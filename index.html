@@ -153,6 +153,55 @@ label{font-size:16px;font-weight:700;color:var(--ink-dim);display:block;margin:1
 @keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .report-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
 .report-row .rn{min-width:150px;font-weight:800;font-size:18px}
+
+/* ---------- Fable 5: focus mode (max 3 elements, clean bg) ---------- */
+body.focus{background:#fcfdff;background-image:none}
+body.focus #anansecorner{display:none}
+.focus-chip{display:inline-block;background:var(--panel2);border:2px solid #cfe0f7;border-radius:999px;padding:6px 16px;font-size:15px;font-weight:800;color:#5d7fb0;margin:0 auto 16px}
+.focus-wrap{max-width:620px;margin:0 auto}
+
+/* ---------- Fable 5: scratchpad ---------- */
+.scratch{margin:18px 0 6px;border:3px dashed #c2b079;border-radius:18px;background:#fffdf4;padding:10px}
+.scratch .sc-top{display:flex;justify-content:space-between;align-items:center;font-size:15px;font-weight:800;color:#9a7d27;margin-bottom:6px}
+.scratch canvas{width:100%;height:150px;border-radius:12px;background:#fffef9;touch-action:none;display:block;border:1px solid #ece0bd}
+.sc-btn{background:#f3ead0;border:2px solid #d9c486;color:#7a611c;border-radius:10px;font-size:14px;font-weight:800;padding:6px 12px;cursor:pointer;font-family:inherit}
+
+/* ---------- Fable 5: manipulatives (coins / counters) ---------- */
+.manip{margin:14px 0;border:2px solid #cfe0f7;border-radius:16px;background:#f7fbff;padding:12px}
+.manip .m-lab{font-size:15px;font-weight:800;color:#5d7fb0;margin-bottom:8px}
+.manip-mat{position:relative;min-height:120px;border-radius:12px;background:repeating-linear-gradient(45deg,#eef5ff 0 12px,#e7f0fd 12px 24px);overflow:hidden;touch-action:none}
+.token{position:absolute;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;cursor:grab;user-select:none;box-shadow:0 3px 8px rgba(60,90,150,.25);touch-action:none}
+.token.coin{color:#5a4410}
+.token:active{cursor:grabbing;transform:scale(1.08)}
+.m-count{font-size:16px;font-weight:800;color:#2d6fc0;margin-top:8px;text-align:right}
+
+/* ---------- Fable 5: one-instruction checklist ---------- */
+.microlist{list-style:none;margin:14px 0;padding:0;text-align:left;max-width:420px;margin-left:auto;margin-right:auto}
+.microlist li{display:flex;align-items:center;gap:10px;font-size:17px;color:#9db0c8;padding:6px 0}
+.microlist li.done{color:#2d6fc0;font-weight:700}
+.microlist li .chk{width:26px;height:26px;border-radius:50%;border:2px solid #cfe0f7;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.microlist li.done .chk{background:var(--green);border-color:var(--green);color:#fff}
+.micro-now{background:#eef6ff;border:3px solid var(--blue);border-radius:16px;padding:16px;font-size:21px;font-weight:700;color:var(--ink);margin:6px 0 14px}
+.micro-confirm{background:linear-gradient(180deg,#5fcf8f,var(--green));color:#fff;font-weight:800;font-size:20px;border:none;border-radius:14px;padding:14px 24px;cursor:pointer;font-family:inherit;box-shadow:0 4px 0 #2f8f5a}
+.micro-confirm:active{transform:translateY(3px);box-shadow:0 1px 0 #2f8f5a}
+
+/* ---------- Fable 5: animated 2K stat bars + level-up hero ---------- */
+.statbar i{transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
+.stat2{display:flex;align-items:center;gap:12px;padding:10px 2px;border-bottom:1px solid #28405e}
+.stat2 .s-nm{font-size:15px;color:#cfe0fa;min-width:128px;font-weight:700}
+.stat2 .s-bar{flex:1;height:12px;background:#26344a;border-radius:6px;overflow:hidden}
+.stat2 .s-bar i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#5a93c4,#ffd97a);width:0;transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
+.stat2 .s-val{font-size:22px;font-weight:900;color:#ffd97a;min-width:40px;text-align:right}
+.stat2.growth .s-nm:after{content:" ▲";color:#5fcf8f;font-size:12px}
+.hero-pop{animation:heroPop .6s ease}
+@keyframes heroPop{0%{transform:scale(.4);opacity:0}55%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+
+/* ---------- Fable 5: pattern tiles ---------- */
+.pat-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:18px 0}
+.pat-cell{width:74px;height:74px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;background:var(--panel2);border:3px solid #b9d4f3;color:var(--ink)}
+.pat-cell.q{background:#fff;border-style:dashed;border-color:var(--gold);color:var(--gold)}
+.swatch{width:74px;height:74px;border-radius:16px;border:3px solid rgba(0,0,0,.12)}
+.readbtn{background:var(--panel2);border:2px solid #b9d4f3;color:#2d6fc0;border-radius:12px;font-size:16px;font-weight:800;padding:8px 16px;cursor:pointer;font-family:inherit}
 </style>
 </head>
 <body>
@@ -196,9 +245,11 @@ function newProfile(name,avatar){return{
   levels:{math:1,english:1,comprehension:1,science:1,history:1},
   diagDone:false,diag:null,
   trophies:[],streak:0,bestStreak:0,xp:0,
+  stats:{speed:90,reading:80,memory:72,strategy:42,recall:38},
   sessions:[],sm2:{},wrongLog:[],
   daily:{date:"",done:false,ok:false},
   weeklyGoal:{topic:"",set:""},
+  alertLog:{},
   askedAt:{}
 }}
 
@@ -210,15 +261,28 @@ function pickVoice(){
   ananseVoice=vs.find(v=>/en[-_](GH|NG|ZA)/i.test(v.lang))||vs.find(v=>/Daniel|Fred|Aaron|Male/i.test(v.name)&&v.lang.startsWith("en"))||vs.find(v=>v.lang.startsWith("en"))||null;
 }
 if("speechSynthesis" in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
-function say(text){
-  if(!DB.sound||!("speechSynthesis" in window))return;
-  try{
+async function say(text) {
+  if (!DB.sound) return;
+  text = text.replace(/[*_#]/g, "");
+  
+  // Web Speech API — works on all devices, no server needed
+  if ("speechSynthesis" in window) {
     speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance(text.replace(/[*_#]/g,""));
-    if(ananseVoice)u.voice=ananseVoice;
-    u.rate=0.95;u.pitch=1.02;
-    speechSynthesis.speak(u);
-  }catch(e){}
+    const msg = new SpeechSynthesisUtterance(text);
+    msg.rate = 0.9;
+    msg.pitch = 1.1;
+    
+    const voices = speechSynthesis.getVoices();
+    msg.voice = voices.find(v => v.name.includes('Aria')) ||
+                voices.find(v => v.name.includes('Samantha')) ||
+                voices.find(v => v.name.includes('Google US English')) ||
+                voices.find(v => v.lang.includes('en-US') && v.name.includes('Female')) ||
+                voices.find(v => v.lang.includes('en-GH')) ||
+                voices.find(v => v.lang.includes('en-NG')) ||
+                voices[0];
+    
+    speechSynthesis.speak(msg);
+  }
 }
 function toggleSound(){
   DB.sound=!DB.sound;save();renderSoundBtn();
@@ -226,6 +290,63 @@ function toggleSound(){
   else say("Sound is on. Akwaaba!");
 }
 function renderSoundBtn(){$("soundBtn").textContent=DB.sound?"🔊":"🔇"}
+
+/* ---------- weightless sound engine (Web Audio synthesis) ---------- */
+let _ac=null, _ambient=null;
+function audioCtx(){
+  if(typeof window==="undefined")return null;
+  if(_ac)return _ac;
+  try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;_ac=new AC();}catch(e){return null;}
+  return _ac;
+}
+function _resume(){const a=audioCtx();if(a&&a.state==="suspended"){try{a.resume();}catch(e){}}}
+function _blip(freq,start,dur,type,vol){
+  const a=audioCtx();if(!a)return;
+  const o=a.createOscillator(),g=a.createGain();
+  o.type=type||"sine";o.frequency.value=freq;
+  const t=a.currentTime+start;
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(vol==null?0.18:vol,t+0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g);g.connect(a.destination);
+  o.start(t);o.stop(t+dur+0.02);
+}
+function sfx(name){
+  if(!DB.sound)return;
+  const a=audioCtx();if(!a)return;_resume();
+  switch(name){
+    case "correct":   _blip(660,0,0.12,"sine",0.16);_blip(990,0.08,0.16,"sine",0.16);break;
+    case "wrong":     _blip(200,0,0.18,"triangle",0.16);_blip(150,0.12,0.22,"triangle",0.16);break;
+    case "levelup":   _blip(523,0,0.14,"square",0.13);_blip(659,0.12,0.14,"square",0.13);_blip(784,0.24,0.14,"square",0.13);_blip(1047,0.36,0.30,"square",0.14);break;
+    case "celebrate": _blip(784,0,0.12,"sine",0.14);_blip(988,0.1,0.12,"sine",0.14);_blip(1319,0.2,0.12,"sine",0.14);_blip(1568,0.3,0.30,"sine",0.15);break;
+    case "drum":      _blip(110,0,0.22,"sine",0.22);_blip(80,0.02,0.26,"triangle",0.18);break;
+    case "tick":      _blip(880,0,0.05,"square",0.08);break;
+    case "swish":     _blip(420,0,0.10,"sine",0.10);_blip(620,0.05,0.12,"sine",0.10);break;
+  }
+}
+// ambient focus loop (gentle, low) — used during reading/story
+function ambientStart(){
+  if(!DB.sound)return;const a=audioCtx();if(!a||_ambient)return;_resume();
+  try{
+    const o=a.createOscillator(),o2=a.createOscillator(),g=a.createGain();
+    o.type="sine";o.frequency.value=196;o2.type="sine";o2.frequency.value=294;
+    g.gain.value=0.0001;g.gain.linearRampToValueAtTime(0.05,a.currentTime+1.5);
+    o.connect(g);o2.connect(g);g.connect(a.destination);o.start();o2.start();
+    _ambient={o,o2,g};
+  }catch(e){}
+}
+function ambientStop(){
+  if(!_ambient)return;const a=audioCtx();
+  try{_ambient.g.gain.linearRampToValueAtTime(0.0001,a.currentTime+0.8);
+    const amb=_ambient;setTimeout(()=>{try{amb.o.stop();amb.o2.stop();}catch(e){}},900);
+  }catch(e){}
+  _ambient=null;
+}
+// resume audio on first user gesture
+if(typeof window!=="undefined"&&window.addEventListener){
+  window.addEventListener("pointerdown",_resume,{once:false});
+  window.addEventListener("keydown",_resume,{once:false});
+}
 
 /* ---------- Ananse the Wise Spider (SVG) ---------- */
 function ananseSVG(size,mood){ // mood: idle | teach | party
@@ -277,6 +398,24 @@ function confetti(){
     document.body.appendChild(c);setTimeout(()=>c.remove(),5000);
   }
 }
+/* ---------- hero animation overlay (level-up / trophy / milestone) ---------- */
+function heroMoment(opts){
+  // opts: {title, sub, mood, sound, hold}
+  const o=$("overlay");if(!o)return;
+  const mood=opts.mood||"party";
+  o.innerHTML='<div class="hero-pop" style="text-align:center">'
+    +'<div style="width:150px;margin:0 auto 10px">'+ananseSVG(150,mood)+'</div>'
+    +'<div style="font-size:30px;font-weight:900;color:var(--gold);text-shadow:0 2px 8px rgba(0,0,0,.35)">'+esc(opts.title||"")+'</div>'
+    +(opts.sub?'<div style="font-size:17px;color:#fff;margin-top:6px;max-width:340px">'+esc(opts.sub)+'</div>':'')
+    +'</div>';
+  o.style.display="flex";
+  confetti();
+  sfx(opts.sound||"levelup");
+  if(opts.say!==false&&opts.title)say(opts.title+(opts.sub?". "+opts.sub:""));
+  const ms=opts.hold||2600;
+  if(opts._timer)clearTimeout(opts._timer);
+  setTimeout(()=>{if(o)o.style.display="none";},ms);
+}
 
 /* ---------- constants ---------- */
 const SUBJECTS={
@@ -303,6 +442,17 @@ const PRAISE=[
  "Every try teaches your brain something new — and you keep trying.",
  "You stuck with it from start to finish — that is true grit.",
  "You used what you learned before — that is clever thinking."
+];
+// short, upbeat lines for a CORRECT answer (no "you struggled" framing)
+const CORRECT_PRAISE=[
+ "Nice work!","You got it!","Exactly right!","Boom — correct!","That's the one!",
+ "Sharp thinking!","Swish! Spot on.","Yes! Well done.","Perfect!","You nailed it!"
+];
+// supportive lines for a WRONG answer, leading into the teaching
+const TRY_AGAIN=[
+ "Good try — let's look at it together.","Close! Let me show you the trick.",
+ "Nice effort. Here's how it works.","Not quite — we'll figure it out step by step.",
+ "That was a fair guess. Let's walk through it.","Almost! Watch this, then you try."
 ];
 const BRAIN_BREAKS=[
  {ic:"🏀",t:"Pretend to shoot 10 free throws. Bend your knees, follow through!"},
@@ -570,6 +720,45 @@ function genMath(lvl){
   return q;
 }
 
+/* ---------- WORD PROBLEMS (#1) — single-step first, two-step only after mastery ----------
+   Each returns manip:"counter"|"coin" so renderQuestion can show on-screen tokens. */
+const WP_SINGLE=[
+ // basketball points (add) — counters
+ function(){const a=2+rnd(7),b=2+rnd(7);const ans=a+b;const o=numOpts(ans,3);const p=pick(PLAYERS);
+  return{q:p+" scored "+a+" points, then scored "+b+" more. How many points in all?",...o,topic:"word problems",manip:"counter",
+   teach:[{i:"🏀",t:"Put out "+a+" counters for the first points."},{i:"➕",t:"Add "+b+" more counters."},{i:"🎯",t:"Count them all: "+a+" + "+b+" = "+ans+"."}]}},
+ // basketball (subtract) — counters
+ function(){const a=6+rnd(8),b=1+rnd(a-1);const ans=a-b;const o=numOpts(ans,3);const p=pick(PLAYERS);
+  return{q:p+" had "+a+" rebounds. He gave "+b+" to a teammate's stat sheet. How many rebounds does he have left?",...o,topic:"word problems",manip:"counter",
+   teach:[{i:"🏀",t:"Put out "+a+" counters."},{i:"➖",t:"Take away "+b+" counters."},{i:"🎯",t:a+" − "+b+" = "+ans+" left."}]}},
+ // money single step — coins
+ function(){const q1=1+rnd(2),d=1+rnd(3),n=1+rnd(2);const ans=q1*25+d*10+n*5;const o=moneyOpts(ans);
+  return{q:"Prince has "+q1+" quarter"+(q1>1?"s":"")+", "+d+" dime"+(d>1?"s":"")+", and "+n+" nickel"+(n>1?"s":"")+". How much money is that?",...o,topic:"word problems",manip:"coin",
+   teach:[{i:"🪙",t:"Drag out your coins. A quarter is 25¢."},{i:"🪙",t:"Dimes are 10¢ and nickels are 5¢. Line them up."},{i:"🎯",t:"Add: "+(q1*25)+" + "+(d*10)+" + "+(n*5)+" = "+ans+"¢."}]}},
+ // money "how much left" — coins
+ function(){const have=20+rnd(4)*5,cost=5+rnd(3)*5;const ans=have-cost;const o=moneyOpts(ans);
+  return{q:"Prince has "+have+"¢. A trading card costs "+cost+"¢. How much money will he have left?",...o,topic:"word problems",manip:"coin",
+   teach:[{i:"🪙",t:"Show "+have+"¢ in coins."},{i:"➖",t:"Take away "+cost+"¢ for the card."},{i:"🎯",t:have+" − "+cost+" = "+ans+"¢ left."}]}}
+];
+const WP_TWO=MATH_GENS[4].filter(f=>true); // reuse two-step gens (they carry topic:"word problems")
+function wpMastered(){return (P&&P.levels.math>=4)&&(P&&P.stats&&P.stats.strategy>=60)}
+function genWordProblem(){
+  const two=wpMastered()&&Math.random()<0.6;
+  let q;
+  if(two){
+    const cands=MATH_GENS[4].filter(()=>true);
+    // pick a two-step word-problem generator
+    for(let i=0;i<10;i++){const g=pick(MATH_GENS[Math.random()<0.5?4:4]);const c=g();if(/word problem/i.test(c.topic)){q=c;break;}}
+    if(!q){const g=MATH_GENS[4][0];q=g();}
+    q.manip=q.manip||"counter";
+  }else{
+    q=pick(WP_SINGLE)();
+  }
+  q.subject="math";q.level=two?4:Math.max(1,Math.min(3,P?P.levels.math:1));
+  const pr=(two?MATH_GENS[4][0]:pick(WP_SINGLE))();q.practice={q:pr.q,opts:pr.opts,a:pr.a};
+  return q;
+}
+
 /* ---------- question selection ---------- */
 const ALL_TOPICS=(()=>{const t=new Set();
   for(const s of ["reading","science","history"])for(let l=1;l<=5;l++)BANK[s][l].forEach(q=>t.add(q.topic));
@@ -611,8 +800,48 @@ function getQuestion(subject,lvl){
   q.subject=subject;q.level=lvl;
   return q;
 }
+/* build one question for a specific topic (used by opening review #6) */
+function questionForTopic(topic){
+  const subj=topicSubject(topic);
+  const lvl=Math.max(1,Math.min(5,(P&&P.levels[subj])||1));
+  if(subj==="math"){
+    if(topic==="word problems")return genWordProblem();
+    for(let i=0;i<12;i++){const q=genMath(lvl);if(q.topic===topic)return q;}
+    return genMath(lvl);
+  }
+  const bank=BANK[subj]&&BANK[subj][lvl]?BANK[subj][lvl]:null;
+  if(!bank)return null;
+  const pool=bank.filter(q=>q.topic===topic);
+  const src=pool.length?pool:bank;
+  const q=Object.assign({},pick(src));
+  q.subject=subj;q.level=lvl;
+  return q;
+}
+/* 2–3 warm-up questions from previously-seen (due) topics; intervention topics first;
+   decoding/spelling capped to at most 1 (#6, #13) */
+function buildReview(subject){
+  if(!P)return[];
+  const due=topicsDue();
+  if(!due.length)return[];
+  const PRIORITY=["word problems","comprehension","story structure","inference"];
+  const ordered=due.slice().sort((a,b)=>{
+    const pa=PRIORITY.indexOf(a),pb=PRIORITY.indexOf(b);
+    return (pa<0?9:pa)-(pb<0?9:pb)||Math.random()-0.5;
+  });
+  const out=[];let englishUsed=0;
+  for(const t of ordered){
+    if(out.length>=3)break;
+    if(topicSubject(t)==="english"){if(englishUsed>=1)continue;englishUsed++;}
+    const q=questionForTopic(t);
+    if(q){q.review=true;out.push(q);}
+  }
+  return out.slice(0,3);
+}
 
 /* ---------- SM2 spaced repetition ---------- */
+// Priority intervention topics: keep them coming back often — cap the interval (#6).
+// (Core SM-2 formula is untouched; we only clamp the resulting interval.)
+const SM2_CAP={"word problems":3,"comprehension":3,"story structure":3,"inference":4};
 function sm2Update(topic,quality){ // quality 0-5
   if(!P)return;
   const s=P.sm2[topic]||{ef:2.5,int:0,reps:0,due:today(),right:0,wrong:0};
@@ -623,6 +852,7 @@ function sm2Update(topic,quality){ // quality 0-5
     s.reps=0;s.int=1;s.wrong++;
   }
   s.ef=Math.max(1.3,s.ef+(0.1-(5-quality)*(0.08+(5-quality)*0.02)));
+  if(SM2_CAP[topic]&&s.int>SM2_CAP[topic])s.int=SM2_CAP[topic]; // interval cap for intervention topics
   s.due=addDays(today(),s.int);
   P.sm2[topic]=s;
 }
@@ -638,12 +868,13 @@ function topicsDue(){
    SCREENS & SESSION ENGINE
    ============================================================ */
 let sprintInt=null;
-function clearTimers(){if(sprintInt){clearInterval(sprintInt);sprintInt=null}}
+function clearTimers(){if(sprintInt){clearInterval(sprintInt);sprintInt=null}if(typeof hoopInt!=="undefined"&&hoopInt){clearInterval(hoopInt);hoopInt=null}}
 function closeOverlay(){overlay.classList.remove("show");overlay.innerHTML=""}
+function defocus(){if(typeof document!=="undefined"&&document.body&&document.body.classList)document.body.classList.remove("focus");if(typeof ambientStop==="function")ambientStop();}
 function openOverlay(html){overlay.innerHTML='<div class="ov-card fadein">'+html+'</div>';overlay.classList.add("show");overlay.scrollTop=0}
 
 function goHome(){
-  clearTimers();closeOverlay();
+  clearTimers();closeOverlay();defocus();
   if("speechSynthesis" in window)speechSynthesis.cancel();
   S=null;
   if(!P)renderProfiles();
@@ -787,7 +1018,8 @@ function dailyPathSubjects(){
   return [order[0],order[1]];
 }
 function renderHome(){
-  clearTimers();closeOverlay();showAnanseCorner(true);
+  clearTimers();closeOverlay();defocus();showAnanseCorner(true);
+  if(typeof checkAlerts==="function")checkAlerts();
   const [s1,s2]=dailyPathSubjects();
   const dailyDone=P.daily.date===today()&&P.daily.done;
   const rec=new Set([s1,s2]);
@@ -798,6 +1030,11 @@ function renderHome(){
    +'<div class="kente-strip" style="margin:16px 0 22px"></div>'
    +'<div class="subj-grid" style="max-width:560px;margin:0 auto">'+Object.keys(SUBJECTS).map(tile).join("")+'</div>'
    +'<div class="adinkra-divider">✦ ✦ ✦</div>'
+   +'<div class="btn-row">'
+   +'<button class="btn" onclick="startStoryReplay()">🎬 Story Replay</button>'
+   +'<button class="btn" onclick="startPatterns()">🧩 Spot the Pattern</button>'
+   +'</div>'
+   +'<div class="spacer"></div>'
    +'<div class="btn-row">'
    +'<button class="btn '+(dailyDone?"secondary":"")+'" onclick="startDaily()">🕵️ Daily Mystery '+(dailyDone?"✓":"")+'</button>'
    +'<button class="btn secondary" onclick="renderTrophyRoom()">🏆 Trophy Room</button>'
@@ -815,43 +1052,164 @@ function renderHome(){
 /* ---------- session ---------- */
 function startSession(subject){
   S={subject,total:10,n:0,correct:0,results:[],consecR:0,consecW:0,
-     sprintEnd:Date.now()+10*60*1000,qStart:0,cur:null,brokeAt:new Set(),xp:0,mode:"session"};
+     sprintEnd:Date.now()+10*60*1000,qStart:0,cur:null,brokeAt:new Set(),xp:0,mode:"session",
+     start:Date.now(),wpC:0,wpT:0,recallC:0,recallT:0,reviewC:0,reviewT:0,mfC:0,mfT:0,wpServed:false,phase:"main",seen:[]};
+  // #6: open with 2–3 review questions from earlier sessions
+  const review=buildReview(subject);
+  if(review.length){
+    S.reviewQ=review;S.reviewIdx=0;S.phase="review";S.total=10+review.length;
+    say("First, a quick warm-up from what we learned before. Then we play "+SUBJECTS[subject].name+"!");
+    nextQuestion();
+    return;
+  }
+  if(subject==="comprehension"){
+    say("Story time! Read carefully, then I will quiz you like a detective.");
+    showStory();
+    return;
+  }
+  if(subject==="history")sfx("drum");
   say("Let's play "+SUBJECTS[subject].name+"! Take your time and think it through.");
   nextQuestion();
 }
+// regenerate a question until it isn't one we've shown recently this session (no repeats)
+function freshQuestion(genFn){
+  let q=genFn(),tries=0;
+  while(q&&q.q&&S&&S.seen&&S.seen.includes(q.q)&&tries<14){q=genFn();tries++;}
+  return q;
+}
 function nextQuestion(){
   if(S.n>=S.total)return endSession();
-  if(S.n>0&&S.n%5===0&&!S.brokeAt.has(S.n))return brainBreak();
+  // #6: serve opening warm-up review questions first
+  if(S.phase==="review"){
+    if(S.reviewQ&&S.reviewIdx<S.reviewQ.length){
+      S.cur=S.reviewQ[S.reviewIdx];S.reviewIdx++;renderQuestion();return;
+    }
+    S.phase="main";
+    if(S.subject==="comprehension"){showStory();return;}
+  }
+  if(S.subject==="comprehension"){
+    if(S.storyQs&&S.storyIdx<S.storyQs.length){
+      const q=Object.assign({},S.storyQs[S.storyIdx]);S.storyIdx++;
+      q.level=S.storyLvl;q.subject="comprehension";
+      S.cur=q;renderQuestion();return;
+    }
+    return showStory();
+  }
   const lvl=P.levels[S.subject];
-  S.cur=getQuestion(S.subject,lvl);
+  // #1: guarantee at least one word problem every math session (single-step first)
+  if(S.subject==="math"&&!S.wpServed&&S.phase!=="review"&&(S.n>=2||S.n>=S.total-1)){
+    S.wpServed=true;
+    S.cur=freshQuestion(genWordProblem);
+    renderQuestion();return;
+  }
+  S.cur=freshQuestion(()=>getQuestion(S.subject,lvl));
   renderQuestion();
 }
+/* story-first comprehension */
+function showStory(){
+  clearTimers();showAnanseCorner(false);
+  const lvl=Math.max(1,Math.min(5,P.levels.comprehension));
+  const st=pick(STORIES[lvl]);
+  S.story=st;S.storyLvl=lvl;S.storyQs=st.qs.slice(0,5);S.storyIdx=0;S.cur=null;
+  ambientStart(); // gentle focus loop while reading (#12)
+  app.innerHTML='<div class="fadein" style="max-width:640px;margin:0 auto">'
+   +'<div class="center"><div class="ananse-wrap">'+ananseSVG(110,"teach")+'</div>'
+   +'<div class="speech" style="max-width:480px;margin:10px auto">Read this story slowly and carefully. When you finish, I will ask you 5 questions about it!</div></div>'
+   +'<div class="spacer"></div>'
+   +'<div class="card gold"><h2 style="margin-bottom:10px">📖 '+esc(st.title)+'</h2>'
+   +'<p style="font-size:21px;line-height:1.8">'+esc(st.text)+'</p></div>'
+   +'<div class="center"><div class="spacer"></div>'
+   +'<div class="btn-row"><button class="btn big" onclick="storyDone()">I read it — Quiz me! ✅</button>'
+   +'<button class="btn secondary" onclick="say(S.story.text)">🔊 Read it to me</button></div></div>';
+  say("Here is your story: "+st.title+". Read it slowly. Tap quiz me when you are ready.");
+}
+function storyDone(){ambientStop();nextQuestion()}
 function renderQuestion(){
-  clearTimers();showAnanseCorner(true);
+  clearTimers();
   const q=S.cur;
+  if(S){S.seen=S.seen||[];if(q&&q.q){S.seen.push(q.q);if(S.seen.length>14)S.seen.shift();}}
   const order=shuffle(q.opts.map((_,i)=>i));
   S.order=order;
   const letters=["A","B","C","D"];
-  app.innerHTML='<div class="fadein">'
+  const facts=isMathFacts(q);
+  const wp=isWordProblem(q);
+  const showScratch=(S.subject==="math"&&!facts)||wp;   // scratchpad for thinking-math (#4)
+  const gate=wp||(S.subject==="math"&&!facts&&q.level>=2); // reveal options after thinking (#4)
+  // focus mode: clean screen, hide Ananse corner & clutter (#8)
+  if(typeof document!=="undefined"&&document.body&&document.body.classList)document.body.classList.add("focus");
+  showAnanseCorner(false);
+  const reviewChip=S.phase==="review"?'<span class="focus-chip">🔁 Warm-up review</span>':'';
+  app.innerHTML='<div class="fadein focus-wrap">'
    +'<div class="hud">'
    +'<span class="pill">'+SUBJECTS[S.subject].icon+' <b>'+SUBJECTS[S.subject].name+'</b></span>'
-   +'<span class="pill">⏱ <b id="sprint"></b></span>'
    +'<span class="lvl-badge">LVL '+q.level+' · '+LEVEL_NAMES[q.level]+'</span>'
+   +reviewChip
    +'</div>'
-   +'<div class="dots" style="margin-bottom:16px">'+Array.from({length:S.total},(_,i)=>'<span class="dot '+(i<S.results.length?(S.results[i].correct?"on":"bad"):"")+'"></span>').join("")+'</div>'
    +'<div class="card gold">'
    +'<p class="qtext">'+esc(q.q)+'</p>'
-   +'<div class="opts">'+order.map((oi,pos)=>'<button class="opt" id="opt'+pos+'" onclick="answer('+pos+')"><span class="letter">'+letters[pos]+'</span><span>'+esc(q.opts[oi])+'</span></button>').join("")+'</div>'
+   +'<div class="center" style="margin:-4px 0 10px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">'
+   +((wp||S.subject==="comprehension")?'<button class="readbtn" onclick="say(S.cur.q)">🔊 Read it again</button>':'')
+   +'<button class="readbtn" onclick="askHelp()">🕷️ Ananse, help me</button>'
+   +'</div>'
+   +(q.manip?manipHTML(q):'')
+   +(showScratch?scratchHTML():'')
+   +'<div class="opts" id="optwrap" style="'+(gate?'display:none':'')+'">'+order.map((oi,pos)=>'<button class="opt" id="opt'+pos+'" onclick="answer('+pos+')"><span class="letter">'+letters[pos]+'</span><span>'+esc(q.opts[oi])+'</span></button>').join("")+'</div>'
+   +(gate?'<div class="center" id="revealwrap"><div class="spacer"></div><button class="btn big" onclick="revealOptions()">I worked it out — show my choices ▶</button></div>':'')
    +'</div></div>';
   S.qStart=Date.now();
-  sprintInt=setInterval(()=>{const el=$("sprint");if(el)el.textContent=fmtTime(S.sprintEnd-Date.now())},250);
-  const el=$("sprint");if(el)el.textContent=fmtTime(S.sprintEnd-Date.now());
-  say(q.q);
+  if(showScratch)initScratch();
+  say(q.q+(gate?". Use your scratchpad to work it out first, then show your choices.":""));
 }
+function revealOptions(){
+  const w=$("optwrap");if(w)w.style.display="";
+  const r=$("revealwrap");if(r)r.style.display="none";
+  S.qStart=Date.now(); // start timing from when choices appear
+  sfx("tick");
+}
+/* ---------- manipulatives: tap-to-add coins / counters (#1) ---------- */
+function manipHTML(q){
+  if(q.manip==="coin"){
+    return '<div class="manip"><div class="m-count">Total: <b id="mtotal">0</b>¢</div>'
+      +'<div class="manip-bar">'
+      +['25¢','10¢','5¢','1¢'].map((c,i)=>'<button class="token coin" onclick="manipCoin('+[25,10,5,1][i]+')">'+c+'</button>').join("")
+      +'</div>'
+      +'<div class="manip-mat" id="mmat"></div>'
+      +'<button class="sc-btn" onclick="manipClear()">↺ Clear coins</button></div>';
+  }
+  return '<div class="manip"><div class="m-count">Counters: <b id="mtotal">0</b></div>'
+    +'<div class="manip-bar"><button class="token" onclick="manipCounter(1)">🏀 Add one</button>'
+    +'<button class="token" onclick="manipCounter(-1)">➖ Take one</button></div>'
+    +'<div class="manip-mat" id="mmat"></div>'
+    +'<button class="sc-btn" onclick="manipClear()">↺ Clear</button></div>';
+}
+let _mtot=0,_mcount=0;
+function manipCoin(v){_mtot+=v;_mcount++;const m=$("mmat");if(m)m.insertAdjacentHTML("beforeend",'<span class="token coin sm">'+v+'¢</span>');const t=$("mtotal");if(t)t.textContent=_mtot;sfx("tick");}
+function manipCounter(d){_mcount=Math.max(0,_mcount+d);const m=$("mmat");if(m){if(d>0)m.insertAdjacentHTML("beforeend",'<span class="token sm">🏀</span>');else if(m.lastChild)m.removeChild(m.lastChild);}const t=$("mtotal");if(t)t.textContent=_mcount;sfx("tick");}
+function manipClear(){_mtot=0;_mcount=0;const m=$("mmat");if(m)m.innerHTML="";const t=$("mtotal");if(t)t.textContent="0";}
+/* ---------- scratchpad (#4) ---------- */
+function scratchHTML(){
+  return '<div class="scratch"><div class="sc-top"><span>✏️ Scratchpad — work it out here</span>'
+    +'<button class="sc-btn" onclick="scratchClear()">↺ Clear</button></div>'
+    +'<canvas id="scpad" width="600" height="180"></canvas></div>';
+}
+let _scctx=null,_scdraw=false;
+function initScratch(){
+  const c=$("scpad");if(!c||!c.getContext)return;
+  _mtot=0;_mcount=0;
+  const ctx=c.getContext("2d");_scctx=ctx;
+  ctx.lineWidth=3;ctx.lineCap="round";ctx.strokeStyle="#1B4332";
+  const pos=e=>{const r=c.getBoundingClientRect();const t=e.touches?e.touches[0]:e;return{x:(t.clientX-r.left)*(c.width/r.width),y:(t.clientY-r.top)*(c.height/r.height)};};
+  const down=e=>{_scdraw=true;const p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);e.preventDefault();};
+  const move=e=>{if(!_scdraw)return;const p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke();e.preventDefault();};
+  const up=()=>{_scdraw=false;};
+  c.addEventListener("pointerdown",down);c.addEventListener("pointermove",move);
+  c.addEventListener("pointerup",up);c.addEventListener("pointerleave",up);
+}
+function scratchClear(){const c=$("scpad");if(c&&c.getContext)c.getContext("2d").clearRect(0,0,c.width,c.height);}
 function answer(pos){
   const q=S.cur;
+  let leveledUp=false;
   const elapsed=Date.now()-S.qStart;
-  if(q.level>1&&elapsed<4000){showStopSign();return}
   const chosen=S.order[pos];
   const correct=chosen===q.a;
   // lock options, show feedback
@@ -864,26 +1222,71 @@ function answer(pos){
   });
   S.n++;
   S.results.push({topic:q.topic,correct,level:q.level,ms:elapsed});
+  // intervention metric tracking (#15)
+  if(S.phase==="review"){S.reviewT++;if(correct)S.reviewC++;}
+  if(isWordProblem(q)){S.wpT++;if(correct)S.wpC++;}
+  if(isRecall(q)||S.subject==="comprehension"){S.recallT++;if(correct)S.recallC++;}
+  if(isMathFacts(q)){S.mfT++;if(correct)S.mfC++;}
   sm2Update(q.topic,correct?(elapsed<15000?5:4):2);
   if(correct){
     S.correct++;S.consecR++;S.consecW=0;
     S.xp+=10*q.level;P.xp+=10*q.level;
     P.streak++;if(P.streak>P.bestStreak)P.bestStreak=P.streak;
     checkStreakTrophy();
-    if(S.consecR>=2){if(P.levels[S.subject]<5){P.levels[S.subject]++;toast("⬆️ Level Up! "+LEVEL_NAMES[P.levels[S.subject]]+"!")}S.consecR=0}
+    growStats(q,true);
+    if(S.consecR>=2){if(P.levels[S.subject]<5){P.levels[S.subject]++;leveledUp=true}S.consecR=0}
   }else{
     S.consecW++;S.consecR=0;P.streak=0;
     P.wrongLog.push({date:today(),topic:q.topic,subject:S.subject});
+    growStats(q,false);
     if(S.consecW>=2){if(P.levels[S.subject]>1){P.levels[S.subject]--;toast("Let's build it back up — Level "+P.levels[S.subject])}S.consecW=0}
   }
   save();
-  const praise=pick(PRAISE);
+  // let the green/red highlight show on the tapped option BEFORE any overlay covers it
   if(correct){
-    openOverlay('<div class="center"><div class="teach-illus">🎯</div><h2>'+(q.level>=4?"Big-time play!":"Swish!")+'</h2><div class="speech">'+esc(praise)+'</div><div class="spacer"></div><button class="btn big" onclick="closeOverlay();nextQuestion()">Next ▶</button></div>');
+    sfx("correct");
+    const praise=pick(CORRECT_PRAISE);
     say("Correct! "+praise);
+    if(leveledUp){
+      setTimeout(()=>{
+        heroMoment({title:"LEVEL UP!",sub:LEVEL_NAMES[P.levels[S.subject]]+" unlocked!",mood:"party",sound:"levelup",hold:2800});
+        setTimeout(()=>{closeOverlay();nextQuestion();},2900);
+      },750);
+    }else{
+      setTimeout(()=>{
+        openOverlay('<div class="center"><div class="teach-illus">🎯</div><h2>'+(q.level>=4?"Big-time play!":"Swish!")+'</h2><div class="speech">'+esc(praise)+'</div><div class="spacer"></div><button class="btn big" onclick="closeOverlay();nextQuestion()">Next ▶</button></div>');
+      },800);
+    }
   }else{
-    openOverlay('<div class="center"><div class="ananse-wrap">'+ananseSVG(120,"teach")+'</div><div class="speech">'+esc(praise)+'</div><p class="muted" style="margin-top:12px">Now let me show you how this works, step by step.</p><div class="spacer"></div><button class="btn big" onclick="startTeaching()">Teach me, Ananse 🕷️</button></div>');
-    say(praise+". Now let me show you how this works, step by step.");
+    sfx("wrong");
+    const enc=pick(TRY_AGAIN);
+    say(enc+" Let me show you how, step by step.");
+    setTimeout(()=>{startTeaching(enc);},900);
+  }
+}
+/* ---------- 2K stat growth hooks (#9) ---------- */
+function isMathFacts(q){
+  if(!q||!S)return false;
+  const t=(q.topic||"").toLowerCase();
+  return S.subject==="math"&&/addition|subtraction|multiplication|division|place value|order of operations|rounding|times table|number/.test(t)&&!/word problem/.test(t);
+}
+function isWordProblem(q){return q&&/word problem/i.test(q.topic||"")}
+function isRecall(q){return q&&/recall|sequence|comprehension|story/i.test(q.topic||"")}
+function growStats(q,correct){
+  if(!P.stats)P.stats={speed:90,reading:80,memory:72,strategy:42,recall:38};
+  const st=P.stats, clamp=k=>{if(st[k]>99)st[k]=99;if(st[k]<1)st[k]=1};
+  const before={strategy:st.strategy,recall:st.recall};
+  if(correct){
+    if(isWordProblem(q)){st.strategy+=2;clamp("strategy")}
+    if(isRecall(q)||S.subject==="comprehension"){st.recall+=2;clamp("recall")}
+    if(S.subject==="english"){st.reading+=1;clamp("reading")}
+    if(/sequence|memory|inference/i.test(q.topic||"")){st.memory+=1;clamp("memory")}
+    if(isMathFacts(q)&&(Date.now()-S.qStart)<6000){st.speed+=1;clamp("speed")}
+    // celebrate when an intervention stat crosses a 10-point milestone (#16)
+    ["strategy","recall"].forEach(k=>{
+      if(Math.floor(st[k]/10)>Math.floor(before[k]/10)&&typeof fireCelebration==="function")
+        fireCelebration("milestone",k.toUpperCase()+" "+(Math.floor(st[k]/10)*10));
+    });
   }
 }
 
@@ -895,25 +1298,36 @@ function showStopSign(){
 
 /* ---------- Ananse teaching mode ---------- */
 let T=null; // teaching state
-function startTeaching(){
-  T={q:S?S.cur:T.q,step:0,from:"session"};
-  T.q=S.cur;
+function startTeaching(praise){
+  T={q:S.cur,step:0,from:"session",praise:praise||""};
+  renderTeachStep();
+}
+/* student-requested help: walk the hints, then return to the same question to answer */
+function askHelp(){
+  if(!S||!S.cur||!S.cur.teach)return;
+  if(typeof sfx==="function")sfx("tick");
+  T={q:S.cur,step:0,from:"help",praise:"Sure! Let's work through it together."};
   renderTeachStep();
 }
 function renderTeachStep(){
   const steps=T.q.teach;
   const st=steps[T.step];
+  // #3: accumulated checkmarks for completed steps, one instruction visible at a time
+  const done=steps.slice(0,T.step).map((s,i)=>'<div class="micro-confirm">✅ <span>'+esc(s.t)+'</span></div>').join("");
   openOverlay('<div class="center">'
    +'<div class="ananse-wrap">'+ananseSVG(110,"teach")+'</div>'
-   +'<div class="teach-illus">'+st.i+'</div>'
-   +'<p class="teach-text">'+esc(st.t)+'</p>'
+   +(T.step===0&&T.praise?'<div class="speech" style="margin-bottom:8px">'+esc(T.praise)+'</div>':"")
+   +(done?'<div class="microlist">'+done+'</div>':"")
+   +'<div class="micro-now"><div class="teach-illus">'+st.i+'</div>'
+   +'<p class="teach-text">Step '+(T.step+1)+' of '+steps.length+': '+esc(st.t)+'</p></div>'
    +'<div class="step-dots">'+steps.map((_,i)=>'<span class="dot '+(i<=T.step?"on":"")+'"></span>').join("")+'</div>'
-   +'<button class="btn big" onclick="teachNext()">'+(T.step<steps.length-1?"Tap to continue ▶":"Got it! Let me try one 💪")+'</button>'
+   +'<button class="btn big" onclick="teachNext()">'+(T.step<steps.length-1?"I did this ✓ — next step":"Got it! Let me try one 💪")+'</button>'
    +'</div>');
   say(st.t);
 }
 function teachNext(){
   if(T.step<T.q.teach.length-1){T.step++;renderTeachStep()}
+  else if(T.from==="help"){closeOverlay();if(typeof say==="function")say("Now you try. Pick your answer when you're ready.");}
   else renderPractice();
 }
 function renderPractice(){
@@ -1006,11 +1420,14 @@ function awardTrophy(t){
 
 /* ---------- session end ---------- */
 function endSession(){
-  clearTimers();closeOverlay();
+  clearTimers();closeOverlay();defocus();
   const acc=S.results.length?S.correct/S.results.length:0;
   const lvlAvg=S.results.length?S.results.reduce((a,r)=>a+r.level,0)/S.results.length:1;
-  const mins=Math.round((Date.now()-(S.sprintEnd-10*60*1000))/60000);
-  P.sessions.push({date:today(),subject:S.subject,correct:S.correct,total:S.results.length,lvlAvg:Math.round(lvlAvg*10)/10,xp:S.xp,t:Date.now()});
+  const durMs=Date.now()-(S.start||(S.sprintEnd-10*60*1000));
+  const mins=Math.round(durMs/60000);
+  P.sessions.push({date:today(),subject:S.subject,correct:S.correct,total:S.results.length,lvlAvg:Math.round(lvlAvg*10)/10,xp:S.xp,t:Date.now(),
+    durMs:durMs,wpC:S.wpC,wpT:S.wpT,recallC:S.recallC,recallT:S.recallT,reviewC:S.reviewC,reviewT:S.reviewT,mfC:S.mfC,mfT:S.mfT});
+  if(typeof checkAlerts==="function")checkAlerts();
   const earned=[];
   const ICONS={math:["🏆","🧮","🔢","📐"],english:["✏️","🖋️","📝","🏆"],comprehension:["📚","📖","📜","🏆"],science:["🪐","🔬","🚀","🏆"],history:["🪘","👑","🪑","🏆"]};
   if(acc>=0.8&&S.results.length>=S.total){
@@ -1040,12 +1457,340 @@ function endSession(){
    +'</div>'
    +(earned.length?'<div class="spacer"></div><h3>🏆 New trophies!</h3><div class="shelf-row" style="justify-content:center;margin-top:10px">'+earned.map(t=>'<div class="trophy" style="border-color:'+t.color+'"><span class="t-ic">'+t.icon+'</span><span class="t-lb">'+esc(t.label)+'</span></div>').join("")+'</div>':"")
    +'<div class="spacer"></div>'
-   +'<div class="btn-row"><button class="btn big" onclick="goHome()">Daily Path 🏠</button>'
+   +(S.results.length>=S.total?'<div class="btn-row"><button class="btn big" onclick="startHoops()">🏀 Bonus Hoops Game!</button></div><div class="spacer"></div>':"")
+   +'<div class="btn-row"><button class="btn '+(S.results.length>=S.total?"secondary ":"")+'big" onclick="goHome()">Daily Path 🏠</button>'
    +(earned.length?'<button class="btn secondary big" onclick="renderTrophyRoom()">Trophy Room 🏆</button>':"")
    +'</div></div>';
-  say("Session complete! "+praiseLine+(earned.length?" And you earned a new trophy! Go see it in your trophy room.":""));
+  say("Session complete! "+praiseLine+(earned.length?" And you earned a new trophy!":"")+(S.results.length>=S.total?" You also unlocked the bonus hoops game!":""));
   S=null;
 }
+
+/* ---------- bonus hoops — reward mini-game ---------- */
+var hoopInt=null,H=null;
+function startHoops(){
+  clearTimers();closeOverlay();showAnanseCorner(false);
+  if(hoopInt){clearInterval(hoopInt);hoopInt=null}
+  H={shot:0,made:0,pos:0,dir:1,live:true};
+  app.innerHTML='<div class="fadein center" style="max-width:480px;margin:0 auto">'
+   +'<h1>🏀 Bonus Hoops!</h1>'
+   +'<p class="muted">You earned it! 5 free throws — tap SHOOT when the marker is in the green zone.</p>'
+   +'<div style="font-size:56px;margin:10px 0" id="hoopAnim">🏀&nbsp;&nbsp;&nbsp;&nbsp;🧺</div>'
+   +'<h3 id="hoopScore">Shot 1 of 5 · Made 0</h3>'
+   +'<div style="position:relative;height:34px;background:var(--panel2);border:2px solid #b9d4f3;border-radius:17px;margin:18px 0;overflow:hidden">'
+   +'<div style="position:absolute;left:38%;width:24%;top:0;bottom:0;background:rgba(59,178,115,.45)"></div>'
+   +'<div id="hoopMark" style="position:absolute;left:0;top:2px;bottom:2px;width:14px;border-radius:7px;background:#2d6fc0"></div>'
+   +'</div>'
+   +'<button class="btn big" onclick="hoopsShoot()">SHOOT! 🏀</button>'
+   +'<div class="spacer"></div>'
+   +'<button class="btn secondary" style="font-size:15px;padding:8px 16px" onclick="endHoops()">Done playing</button>'
+   +'</div>';
+  say("Bonus hoops! Tap shoot when the marker is in the green zone. Five free throws!");
+  hoopRun();
+}
+function hoopRun(){
+  if(hoopInt)clearInterval(hoopInt);
+  H.pos=0;H.dir=1;H.live=true;
+  hoopInt=setInterval(()=>{
+    H.pos+=H.dir*3.4;
+    if(H.pos>=100){H.pos=100;H.dir=-1}
+    if(H.pos<=0){H.pos=0;H.dir=1}
+    const m=$("hoopMark");if(m)m.style.left="calc("+H.pos+"% - 7px)";
+  },16);
+}
+function hoopsShoot(){
+  if(!H||!H.live)return;
+  H.live=false;
+  if(hoopInt){clearInterval(hoopInt);hoopInt=null}
+  const hit=H.pos>=38&&H.pos<=62;
+  H.shot++;
+  if(hit){H.made++;P.xp+=3;save()}
+  const an=$("hoopAnim");if(an)an.innerHTML=hit?'🏀➡️🧺 <b style="color:#3bb273">SWISH!</b>':'🏀↩️ <b style="color:#ff6b4a">Rim out!</b>';
+  const sc=$("hoopScore");if(sc)sc.textContent="Shot "+Math.min(H.shot+1,5)+" of 5 · Made "+H.made;
+  say(hit?"Swish!":"So close!");
+  if(H.shot>=5)setTimeout(endHoops,1200);
+  else setTimeout(()=>{if(!H)return;const a2=$("hoopAnim");if(a2)a2.innerHTML="🏀&nbsp;&nbsp;&nbsp;&nbsp;🧺";hoopRun()},900);
+}
+function endHoops(){
+  if(hoopInt){clearInterval(hoopInt);hoopInt=null}
+  if(!H)return;
+  const made=H.made,shots=H.shot;
+  H=null;
+  if(made===5){
+    awardTrophy({type:"hoops",icon:"🏀",label:"Sharpshooter",color:"#f5a623",detail:"Made 5 of 5 bonus free throws!"});
+    confetti();
+  }
+  app.innerHTML='<div class="fadein center">'
+   +'<div class="ananse-wrap '+(made===5?"ananse-celebrate":"")+'">'+ananseSVG(140,made>=3?"party":"idle")+'</div>'
+   +'<h1>'+(made===5?"🏆 Sharpshooter!":"Nice shooting!")+'</h1>'
+   +'<div class="speech" style="max-width:420px;margin:14px auto">You made '+made+' of '+shots+' free throws'+(made?' and earned +'+(made*3)+' XP':'')+'. '+(made===5?'A Sharpshooter trophy is waiting in your trophy room!':'Keep practicing — your aim grows just like your brain!')+'</div>'
+   +'<div class="spacer"></div><div class="btn-row"><button class="btn big" onclick="goHome()">Daily Path 🏠</button>'
+   +(made===5?'<button class="btn secondary big" onclick="renderTrophyRoom()">Trophy Room 🏆</button>':"")
+   +'</div></div>';
+  say("You made "+made+" of "+shots+"! Great bonus game.");
+}
+</script>
+<script>
+"use strict";
+/* ============================================================
+   STORY BANK — read-then-quiz comprehension
+   ============================================================ */
+/* ============================================================
+   STORY REPLAY — sequencing activity (#2)
+   Ananse reads a short passage aloud, then asks first/next questions.
+   2-event chains, building to 4 after mastery.
+   ============================================================ */
+const SEQUENCES=[
+ {title:"Game Day Morning",text:"Prince woke up early for the big game. First he ate a bowl of oatmeal. Then he packed his jersey and water bottle. Next he laced up his sneakers. Finally he ran out the door to catch the bus.",
+  events:["He ate a bowl of oatmeal","He packed his jersey and water bottle","He laced up his sneakers","He ran out to catch the bus"]},
+ {title:"Ananse Builds a Web",text:"Ananse the spider felt hungry. First he climbed to the top corner of the doorway. Then he spun a long silk thread. Next he wove the thread into a wide web. Finally he waited quietly for his dinner.",
+  events:["He climbed to the top corner","He spun a long silk thread","He wove the thread into a web","He waited for his dinner"]},
+ {title:"Making Jollof Rice",text:"Mama started cooking dinner. First she chopped the tomatoes and onions. Then she fried them in a hot pot. Next she poured in the rice and water. Finally she covered the pot and let it simmer.",
+  events:["She chopped tomatoes and onions","She fried them in a hot pot","She poured in rice and water","She covered the pot to simmer"]},
+ {title:"The Free Throw",text:"The crowd went quiet. First Prince stepped up to the line. Then he bounced the ball three times. Next he took a deep breath. Finally he shot the ball and scored.",
+  events:["He stepped up to the line","He bounced the ball three times","He took a deep breath","He shot the ball and scored"]},
+ {title:"Planting a Seed",text:"Kofi wanted to grow a flower. First he dug a small hole in the soil. Then he dropped a seed inside. Next he covered it with dirt. Finally he watered it with his can.",
+  events:["He dug a small hole","He dropped a seed inside","He covered it with dirt","He watered it"]}
+];
+function seqChainLen(){const r=(P&&P.stats&&P.stats.recall)||38;return r>=70?4:(r>=55?3:2);}
+let R=null;
+function startStoryReplay(){
+  clearTimers();closeOverlay();defocus();showAnanseCorner(false);
+  const sq=pick(SEQUENCES);
+  const n=seqChainLen();
+  R={sq,events:sq.events.slice(0,n),qi:0,correct:0,total:0};
+  ambientStart();
+  app.innerHTML='<div class="fadein" style="max-width:640px;margin:0 auto">'
+   +'<div class="center"><div class="ananse-wrap">'+ananseSVG(110,"teach")+'</div>'
+   +'<div class="speech" style="max-width:480px;margin:10px auto">Listen and read carefully. After the story, I will ask you what happened FIRST and what came NEXT!</div></div>'
+   +'<div class="spacer"></div>'
+   +'<div class="card gold"><h2 style="margin-bottom:10px">🎬 '+esc(sq.title)+'</h2>'
+   +'<p style="font-size:21px;line-height:1.8">'+esc(sq.text)+'</p></div>'
+   +'<div class="center"><div class="spacer"></div><div class="btn-row">'
+   +'<button class="btn big" onclick="replayStart()">I read it — Quiz me! ✅</button>'
+   +'<button class="readbtn" onclick="say(R.sq.text)">🔊 Read it to me</button></div></div>';
+  say("Story Replay! Here is the story: "+sq.title+". "+sq.text);
+}
+function replayStart(){ambientStop();R.qi=0;R.correct=0;R.total=0;replayQuestion();}
+function replayQuestion(){
+  defocus();if(typeof document!=="undefined"&&document.body)document.body.classList.add("focus");
+  const ev=R.events,i=R.qi;
+  if(i>=ev.length)return replayDone();
+  // q0: what happened FIRST; later: what happened NEXT after previous event
+  const correctText=ev[i];
+  const distractors=ev.filter((_,k)=>k!==i);
+  const opts=shuffle([correctText].concat(distractors.slice(0,3))).slice(0,Math.min(4,ev.length));
+  if(!opts.includes(correctText))opts[0]=correctText;
+  R.order=opts;R.ans=opts.indexOf(correctText);
+  const letters=["A","B","C","D"];
+  const prompt=i===0?"What happened FIRST in the story?":"What happened NEXT, after “"+ev[i-1]+"”?";
+  app.innerHTML='<div class="fadein focus-wrap">'
+   +'<div class="hud"><span class="pill">🎬 <b>Story Replay</b></span>'
+   +'<span class="lvl-badge">Step '+(i+1)+' of '+ev.length+'</span></div>'
+   +'<div class="card gold"><p class="qtext">'+esc(prompt)+'</p>'
+   +'<div class="center" style="margin:-4px 0 10px"><button class="readbtn" onclick="say(R.sq.text)">🔊 Hear the story again</button></div>'
+   +'<div class="opts">'+opts.map((o,pos)=>'<button class="opt" id="ropt'+pos+'" onclick="replayAnswer('+pos+')"><span class="letter">'+letters[pos]+'</span><span>'+esc(o)+'</span></button>').join("")+'</div>'
+   +'</div></div>';
+  say(prompt);
+}
+function replayAnswer(pos){
+  const correct=pos===R.ans;
+  R.order.forEach((o,p)=>{const b=$("ropt"+p);if(!b)return;if(p===R.ans)b.classList.add("correct");else if(p===pos&&!correct)b.classList.add("wrong");else b.classList.add("dim");b.onclick=null;});
+  R.total++;
+  // count toward recall metric + stat growth
+  if(correct){
+    R.correct++;P.streak++;if(P.streak>P.bestStreak)P.bestStreak=P.streak;
+    if(!P.stats)P.stats={speed:90,reading:80,memory:72,strategy:42,recall:38};
+    P.stats.recall=Math.min(99,P.stats.recall+2);P.stats.memory=Math.min(99,P.stats.memory+1);
+    R.consec=(R.consec||0)+1;
+    sfx("correct");save();
+    if(R.consec>=3&&typeof fireCelebration==="function")fireCelebration("recall3");
+  }else{R.consec=0;P.streak=0;sfx("wrong");save();}
+  const msg=correct?"Yes! That is exactly the right order.":"Good try! The right one was “"+R.events[R.qi]+"”.";
+  setTimeout(()=>{
+    openOverlay('<div class="center"><div class="ananse-wrap">'+ananseSVG(110,correct?"party":"teach")+'</div><div class="speech">'+esc(msg)+'</div><div class="spacer"></div><button class="btn big" onclick="closeOverlay();replayNext()">Next ▶</button></div>');
+    say(msg);
+  },700);
+}
+function replayNext(){R.qi++;replayQuestion();}
+function replayDone(){
+  defocus();ambientStop();
+  // log a lightweight session for tracking
+  P.sessions.push({date:today(),subject:"comprehension",correct:R.correct,total:R.total,lvlAvg:1,xp:R.correct*8,t:Date.now(),
+    durMs:0,wpC:0,wpT:0,recallC:R.correct,recallT:R.total,reviewC:0,reviewT:0,mfC:0,mfT:0,replay:true});
+  if(R.correct===R.total&&R.total>=3){awardTrophy({type:"recall",icon:"🎬",label:"Replay Master",color:"#3bb273",detail:"Perfect story order — "+R.correct+"/"+R.total+"!"});}
+  save();
+  if(typeof checkAlerts==="function")checkAlerts();
+  confetti();
+  app.innerHTML='<div class="fadein center">'
+   +'<div class="ananse-wrap ananse-celebrate">'+ananseSVG(150,"party")+'</div>'
+   +'<h1>Replay Complete!</h1>'
+   +'<div class="speech" style="max-width:460px;margin:14px auto">You put the story in order — '+R.correct+' out of '+R.total+' correct. Remembering order makes your RECALL stat grow!</div>'
+   +'<div class="center"><div class="spacer"></div><div class="btn-row">'
+   +'<button class="btn big" onclick="startStoryReplay()">Another story 🎬</button>'
+   +'<button class="btn secondary" onclick="goHome()">🏠 Home</button></div></div></div>';
+  say("Great job! You got "+R.correct+" out of "+R.total+" in the right order.");
+}
+
+/* ============================================================
+   SPOT THE PATTERN mini-game (#14) — 3 items max per round
+   Jersey-number skip counts + Kente colour repeats.
+   ============================================================ */
+const KENTE_COLORS={gold:"#C9A84C",green:"#1B4332",red:"#c0492f",black:"#1a1a1a",blue:"#2a5fa8"};
+let G=null;
+function makePattern(){
+  if(Math.random()<0.5){
+    // numeric skip-count jersey numbers
+    const step=pick([2,3,5,10]);const start=pick([0,1,2,3,4])+step;
+    const seq=[start,start+step,start+step*2,start+step*3];
+    const ans=start+step*4;
+    const opts=shuffle([ans,ans+step,ans-step,ans+1]).slice(0,4);
+    if(!opts.includes(ans))opts[0]=ans;
+    return{kind:"num",seq:seq,ans:String(ans),opts:opts.map(String),
+      prompt:"What jersey number comes NEXT?",hint:"The numbers go up by "+step+" each time."};
+  }else{
+    // kente colour repeat
+    const cols=Object.keys(KENTE_COLORS);
+    const a=pick(cols);let b=pick(cols);while(b===a)b=pick(cols);
+    const unit=[a,b];const seq=[a,b,a,b,a]; // next should be b
+    const ans="b"; const optCols=shuffle([a,b,pick(cols.filter(c=>c!==a&&c!==b))]);
+    return{kind:"col",seq:seq,ansCol:b,opts:optCols,
+      prompt:"Which colour comes NEXT in the Kente pattern?",hint:"The pattern repeats: "+a+", "+b+", "+a+", "+b+"…"};
+  }
+}
+function startPatterns(){
+  clearTimers();closeOverlay();defocus();showAnanseCorner(false);
+  G={i:0,n:3,correct:0};
+  say("Spot the Pattern! Look closely and find what comes next.");
+  patternRound();
+}
+function swatchHTML(col){return '<span class="swatch" style="background:'+(KENTE_COLORS[col]||"#ccc")+'"></span>';}
+function patternRound(){
+  if(typeof document!=="undefined"&&document.body)document.body.classList.add("focus");
+  if(G.i>=G.n)return patternDone();
+  const p=makePattern();G.cur=p;
+  const letters=["A","B","C","D"];
+  let cells,optsHTML,ansIdx;
+  if(p.kind==="num"){
+    cells=p.seq.map(n=>'<span class="pat-cell">'+n+'</span>').join("")+'<span class="pat-cell q">?</span>';
+    const order=shuffle(p.opts.map((_,i)=>i));G.order=order;ansIdx=p.opts.indexOf(p.ans);
+    optsHTML=order.map((oi,pos)=>'<button class="opt" id="gopt'+pos+'" onclick="patternAnswer('+pos+')"><span class="letter">'+letters[pos]+'</span><span>'+esc(p.opts[oi])+'</span></button>').join("");
+    G.ans=order.indexOf(ansIdx);
+  }else{
+    cells=p.seq.map(c=>'<span class="pat-cell">'+swatchHTML(c)+'</span>').join("")+'<span class="pat-cell q">?</span>';
+    const order=shuffle(p.opts.map((_,i)=>i));G.order=order;ansIdx=p.opts.indexOf(p.ansCol);
+    optsHTML=order.map((oi,pos)=>'<button class="opt" id="gopt'+pos+'" onclick="patternAnswer('+pos+')"><span class="letter">'+letters[pos]+'</span>'+swatchHTML(p.opts[oi])+'<span>'+esc(p.opts[oi])+'</span></button>').join("");
+    G.ans=order.indexOf(ansIdx);
+  }
+  app.innerHTML='<div class="fadein focus-wrap">'
+   +'<div class="hud"><span class="pill">🧩 <b>Spot the Pattern</b></span><span class="lvl-badge">'+(G.i+1)+' of '+G.n+'</span></div>'
+   +'<div class="card gold"><p class="qtext">'+esc(p.prompt)+'</p>'
+   +'<div class="pat-row">'+cells+'</div>'
+   +'<div class="opts">'+optsHTML+'</div></div></div>';
+  say(p.prompt);
+}
+function patternAnswer(pos){
+  const correct=pos===G.ans;
+  G.order.forEach((o,p)=>{const b=$("gopt"+p);if(!b)return;if(p===G.ans)b.classList.add("correct");else if(p===pos&&!correct)b.classList.add("wrong");else b.classList.add("dim");b.onclick=null;});
+  if(correct){G.correct++;P.stats.memory=Math.min(99,(P.stats.memory||72)+1);sfx("correct");}else sfx("wrong");
+  save();
+  const msg=correct?"Nice eyes! That is the pattern.":"Almost! "+G.cur.hint;
+  setTimeout(()=>{openOverlay('<div class="center"><div class="ananse-wrap">'+ananseSVG(100,correct?"party":"teach")+'</div><div class="speech">'+esc(msg)+'</div><div class="spacer"></div><button class="btn big" onclick="closeOverlay();patternNext()">Next ▶</button></div>');say(msg);},600);
+}
+function patternNext(){G.i++;patternRound();}
+function patternDone(){
+  defocus();confetti();
+  app.innerHTML='<div class="fadein center">'
+   +'<div class="ananse-wrap ananse-celebrate">'+ananseSVG(140,"party")+'</div>'
+   +'<h1>Pattern Pro!</h1>'
+   +'<div class="speech" style="max-width:440px;margin:14px auto">You spotted '+G.correct+' of '+G.n+' patterns. Pattern-spotting trains your brain to see how things connect!</div>'
+   +'<div class="center"><div class="spacer"></div><div class="btn-row">'
+   +'<button class="btn big" onclick="startPatterns()">Again 🧩</button>'
+   +'<button class="btn secondary" onclick="goHome()">🏠 Home</button></div></div></div>';
+  say("You found "+G.correct+" patterns. Great pattern power!");
+}
+
+const STORIES={
+1:[
+{title:"The New Ball",text:"Kofi got a new basketball for his birthday. It was orange with black lines. He ran to the park to play. His friend Ama was there. They played until the sun went down. Kofi smiled all the way home.",qs:[
+{q:"What did Kofi get for his birthday?",opts:["A new basketball","A new bike","A puppy","New shoes"],a:0,topic:"comprehension",teach:[{i:"🔍",t:"Look back at the very first sentence of the story."},{i:"📖",t:"It says: 'Kofi got a new basketball for his birthday.'"},{i:"🎯",t:"The answer is right there in the story — a basketball!"}]},
+{q:"What happened FIRST in the story?",opts:["Kofi got a new ball","Kofi played with Ama","The sun went down","Kofi walked home"],a:0,topic:"story structure",teach:[{i:"🎬",t:"FIRST means the very beginning of the story."},{i:"📖",t:"The story starts with Kofi getting the ball. The playing came after."},{i:"🎯",t:"So 'Kofi got a new ball' happened first."}]},
+{q:"How did Kofi feel at the end of the story?",opts:["Happy","Angry","Scared","Sleepy"],a:0,topic:"inference",teach:[{i:"🕵️",t:"The story doesn't SAY 'Kofi was happy' — we use clues."},{i:"😊",t:"The clue: 'Kofi smiled all the way home.' Smiling shows happiness."},{i:"🎯",t:"Clues + thinking = inference. Kofi felt happy!"}]},
+{q:"Who did Kofi play with at the park?",opts:["Ama","His brother","His teacher","Nobody"],a:0,topic:"comprehension",teach:[{i:"🔍",t:"Hunt for the name in the middle of the story."},{i:"📖",t:"It says: 'His friend Ama was there. They played...'"},{i:"🎯",t:"Kofi played with his friend Ama."}]},
+{q:"What is this story MOSTLY about?",opts:["Kofi's fun day with his new ball","A rainy day at school","Ama's birthday party","Buying new shoes"],a:0,topic:"comprehension",teach:[{i:"💡",t:"The MAIN IDEA is what the whole story is about, not one tiny part."},{i:"📖",t:"Every sentence is about Kofi enjoying his new basketball."},{i:"🎯",t:"So the story is mostly about Kofi's fun day with his new ball."}]}
+]},
+{title:"Ananse and the Mango",text:"Ananse the spider saw a big mango high in a tree. He wanted it for lunch. He spun a long web up to the branch. He climbed and climbed. At the top, a little bird looked hungry too. Ananse shared the mango with the bird. They both ate happily.",qs:[
+{q:"What did Ananse see in the tree?",opts:["A big mango","A football","A kite","A coconut"],a:0,topic:"comprehension",teach:[{i:"🔍",t:"Check the first sentence again."},{i:"📖",t:"'Ananse the spider saw a big mango high in a tree.'"},{i:"🎯",t:"He saw a big mango!"}]},
+{q:"How did Ananse reach the mango?",opts:["He spun a web and climbed","He threw a stone","He asked an elephant","He waited for it to fall"],a:0,topic:"story structure",teach:[{i:"🎬",t:"Think about the steps in order: what did Ananse DO?"},{i:"🕸️",t:"'He spun a long web up to the branch. He climbed and climbed.'"},{i:"🎯",t:"He spun a web and climbed up. That's how he reached it."}]},
+{q:"What kind of friend is Ananse in this story?",opts:["Kind and sharing","Mean and greedy","Lazy","Scared"],a:0,topic:"inference",teach:[{i:"🕵️",t:"Use clues from what Ananse DID, not just what the story says."},{i:"🥭",t:"He shared his mango with a hungry bird — even after all that climbing!"},{i:"🎯",t:"Sharing your food shows you are kind. That's an inference!"}]},
+{q:"What happened LAST in the story?",opts:["They both ate happily","Ananse saw the mango","Ananse spun a web","Ananse wanted lunch"],a:0,topic:"story structure",teach:[{i:"🎬",t:"LAST means the very end of the story."},{i:"📖",t:"The final sentence says: 'They both ate happily.'"},{i:"🎯",t:"That's the ending — they both ate happily."}]},
+{q:"What is this story mostly about?",opts:["Ananse working hard and sharing","A bird building a nest","How mangoes grow","A spider who got lost"],a:0,topic:"comprehension",teach:[{i:"💡",t:"Ask: what happens in the WHOLE story, beginning to end?"},{i:"📖",t:"Ananse works hard to get the mango, then shares it."},{i:"🎯",t:"The story is mostly about working hard and sharing."}]}
+]}
+],
+2:[
+{title:"The Big Game",text:"Esi bounced the ball as the crowd cheered. Her team was losing by one point. Coach called a timeout and said, 'Pass to each other and stay calm.' Esi took a deep breath. She passed to Yaw, and Yaw passed it back. With three seconds left, Esi jumped and shot. The ball rolled around the rim... and dropped in! Her teammates lifted her up like a champion.",qs:[
+{q:"Why did the coach call a timeout?",opts:["To help the team calm down and make a plan","Because the game was over","Because Esi was hurt","To order food"],a:0,topic:"inference",teach:[{i:"🕵️",t:"The story doesn't say WHY — look at what coach said for clues."},{i:"🗣️",t:"He said 'Pass to each other and stay calm.' That's a plan for nervous players."},{i:"🎯",t:"So the timeout was to calm the team and make a plan."}]},
+{q:"What happened right AFTER Esi took a deep breath?",opts:["She passed to Yaw","She shot the ball","The crowd went home","Coach called timeout"],a:0,topic:"story structure",teach:[{i:"🎬",t:"Find 'deep breath' in the story, then read the NEXT sentence."},{i:"📖",t:"'Esi took a deep breath. She passed to Yaw...'"},{i:"🎯",t:"Right after the breath, she passed to Yaw."}]},
+{q:"'Her teammates lifted her up like a champion.' What does this tell us?",opts:["They were proud of her","They were angry at her","She was too tired to walk","They wanted to leave"],a:0,topic:"figurative language",teach:[{i:"🎭",t:"'Like a champion' is a comparison — it paints a picture."},{i:"🏆",t:"We lift up winners to celebrate them. It shows excitement and pride."},{i:"🎯",t:"It tells us her teammates were proud and celebrating her."}]},
+{q:"How did the team feel at the end?",opts:["Joyful and excited","Bored","Worried","Embarrassed"],a:0,topic:"inference",teach:[{i:"🕵️",t:"Use the clues: the shot dropped in, and they lifted Esi up."},{i:"🎉",t:"Winning at the last second + celebrating = big joy!"},{i:"🎯",t:"The team felt joyful and excited."}]},
+{q:"What is the story mostly about?",opts:["Esi staying calm to win the big game","How to bounce a ball","A coach who shouted a lot","A broken basketball hoop"],a:0,topic:"comprehension",teach:[{i:"💡",t:"Main idea = the big picture of the whole story."},{i:"📖",t:"Losing team → stay calm → smart passes → winning shot."},{i:"🎯",t:"It's mostly about Esi staying calm to win the game."}]}
+]},
+{title:"Market Day",text:"Every Saturday, Adwoa helps her grandmother sell tomatoes at the market. This morning, dark clouds filled the sky. 'Hurry,' said Grandma, 'we must cover the baskets!' Adwoa pulled the plastic sheets over the tomatoes just as the first drops fell. Grandma laughed, 'Quick as a cat, you are!' They sat together under the shade and listened to the rain drum on the roof.",qs:[
+{q:"Why did Grandma say they must cover the baskets?",opts:["She saw rain was coming","The sun was too bright","Thieves were near","The market was closing"],a:0,topic:"inference",teach:[{i:"🕵️",t:"What clue came right before Grandma spoke?"},{i:"🌧️",t:"'Dark clouds filled the sky' — dark clouds mean rain is coming!"},{i:"🎯",t:"She wanted to protect the tomatoes from the rain."}]},
+{q:"What does 'Quick as a cat' mean?",opts:["Adwoa moved very fast","Adwoa looked like a cat","Adwoa was slow","Adwoa was sleepy"],a:0,topic:"figurative language",teach:[{i:"🎭",t:"This is a simile — comparing two things using 'as' or 'like'."},{i:"🐈",t:"Cats pounce fast! Comparing Adwoa to a cat means she was speedy."},{i:"🎯",t:"'Quick as a cat' = Adwoa moved very fast."}]},
+{q:"What do Adwoa and Grandma do every Saturday?",opts:["Sell tomatoes at the market","Play basketball","Visit the beach","Wash clothes"],a:0,topic:"comprehension",teach:[{i:"🔍",t:"The first sentence tells us their Saturday routine."},{i:"📖",t:"'Every Saturday, Adwoa helps her grandmother sell tomatoes.'"},{i:"🎯",t:"They sell tomatoes at the market every Saturday."}]},
+{q:"What does 'the rain drum on the roof' mean?",opts:["The rain made a sound like drumming","A real drum was on the roof","Someone was playing music","The roof was broken"],a:0,topic:"figurative language",teach:[{i:"🎭",t:"Writers compare sounds to instruments to help you HEAR the scene."},{i:"🥁",t:"Raindrops hitting a roof go tap-tap-tap — just like a drum!"},{i:"🎯",t:"It means the rain SOUNDED like drumming. No real drum!"}]},
+{q:"What happened FIRST in the story?",opts:["Dark clouds filled the sky","The rain fell","They sat under the shade","Grandma laughed"],a:0,topic:"story structure",teach:[{i:"🎬",t:"Put the events in order: clouds → cover baskets → rain → rest."},{i:"📖",t:"The clouds came before Grandma spoke or any rain fell."},{i:"🎯",t:"First, dark clouds filled the sky."}]}
+]}
+],
+3:[
+{title:"The Spider's Lesson",text:"Kwame practiced free throws every evening, but he kept missing. One night he noticed a spider building a web in the corner of the porch. The wind tore the web apart twice, yet the spider calmly started again. By morning, a perfect web sparkled with dew. Kwame thought about that spider during practice the next day. Each time he missed, he reset his feet and tried again. By the end of the week, he made ten shots in a row.",qs:[
+{q:"What lesson did Kwame learn from the spider?",opts:["Keep trying calmly after every failure","Spiders are dangerous","Webs are stronger than wind","Practice at night only"],a:0,topic:"inference",teach:[{i:"🕵️",t:"The story never says 'the lesson is...' — connect the clues."},{i:"🕸️",t:"The web broke twice; the spider calmly rebuilt. Then Kwame 'reset and tried again' after misses."},{i:"🎯",t:"Kwame copied the spider: keep trying calmly after failing."}]},
+{q:"Why does the author tell us the web was torn apart TWICE?",opts:["To show the spider never gave up","To show wind is strong","To make the story longer","To explain how webs are made"],a:0,topic:"comprehension",teach:[{i:"💡",t:"Authors choose details for a reason. Ask: what does this detail prove?"},{i:"🕸️",t:"Breaking twice and rebuilding twice shows extra-strong persistence."},{i:"🎯",t:"The detail shows the spider never gave up — the heart of the story."}]},
+{q:"What happened AFTER Kwame watched the spider?",opts:["He reset his feet and retried each missed shot","He stopped playing basketball","He caught the spider","He bought a new ball"],a:0,topic:"story structure",teach:[{i:"🎬",t:"Find the spider scene, then look at what comes next in time."},{i:"📖",t:"'Kwame thought about that spider during practice the next day. Each time he missed, he reset his feet and tried again.'"},{i:"🎯",t:"After watching the spider, he retried each missed shot."}]},
+{q:"'A perfect web sparkled with dew.' What picture does this paint?",opts:["The finished web was beautiful in the morning light","The web was wet and ruined","The spider was crying","It was raining hard"],a:0,topic:"figurative language",teach:[{i:"🎭",t:"'Sparkled' is a shining word — it makes you SEE the scene."},{i:"✨",t:"Tiny water drops catching morning light look like little diamonds."},{i:"🎯",t:"It paints the web as beautiful — a reward for the spider's hard work."}]},
+{q:"What is the main idea of this story?",opts:["Persistence turns failure into success","Spiders build webs at night","Free throws are impossible","Wind ruins everything"],a:0,topic:"comprehension",teach:[{i:"💡",t:"Main idea = the message that covers the WHOLE story."},{i:"🔁",t:"Spider fails twice → succeeds. Kwame misses all week → ten in a row."},{i:"🎯",t:"Both halves teach: persistence turns failure into success."}]}
+]},
+{title:"The Quiet Bus",text:"Abena's class took a bus to the science museum in Accra. On the way back, Abena fell asleep against the window. When she woke, the bus was empty and parked in a quiet lot. Her heart pounded like a talking drum. Then she remembered her teacher's rule: if you are ever lost, stay where you are. A few minutes later she heard running footsteps — her teacher had counted heads and rushed straight back. 'You did exactly right,' her teacher said, hugging her.",qs:[
+{q:"'Her heart pounded like a talking drum.' What does this mean?",opts:["She was very scared and her heart beat fast","There was a drum on the bus","She was listening to music","Her heart was sick"],a:0,topic:"figurative language",teach:[{i:"🎭",t:"A simile compares using 'like' — heart compared to a drum."},{i:"🥁",t:"A talking drum beats loud and fast — just like a frightened heart."},{i:"🎯",t:"It means she was very scared, heart racing. No real drum!"}]},
+{q:"Why was the bus empty when Abena woke up?",opts:["Everyone got off while she slept","The class was hiding","The bus broke down","It was a different bus"],a:0,topic:"inference",teach:[{i:"🕵️",t:"Connect the clues: she fell asleep, then woke up alone."},{i:"💤",t:"If you sleep through the stop, everyone leaves without noticing you."},{i:"🎯",t:"Everyone got off while she was asleep. The clues tell us."}]},
+{q:"What rule helped Abena?",opts:["If you are lost, stay where you are","Always sit in the front","Never ride a bus","Shout for help loudly"],a:0,topic:"comprehension",teach:[{i:"🔍",t:"The rule is written right in the story — find 'rule'."},{i:"📖",t:"'If you are ever lost, stay where you are.'"},{i:"🎯",t:"Staying put let her teacher find her fast."}]},
+{q:"What happened LAST in the story?",opts:["Her teacher hugged her and praised her","Abena fell asleep","The bus parked","Abena woke up"],a:0,topic:"story structure",teach:[{i:"🎬",t:"The end of a story is its final moment."},{i:"📖",t:"The last lines: teacher rushed back, said 'You did exactly right,' and hugged her."},{i:"🎯",t:"The hug and praise came last."}]},
+{q:"What kind of person is Abena's teacher?",opts:["Caring and responsible","Forgetful and lazy","Mean and strict","Shy and quiet"],a:0,topic:"inference",teach:[{i:"🕵️",t:"Judge characters by their ACTIONS."},{i:"🏃",t:"The teacher counted heads, RAN back, and comforted Abena."},{i:"🎯",t:"Those actions show a caring, responsible teacher."}]}
+]}
+],
+4:[
+{title:"The Tournament Secret",text:"The Tema Tigers had lost five games in a row, and some players blamed their shortest teammate, Fiifi. Before the championship, Coach Mensah surprised everyone. 'Fiifi will start tonight,' he announced. The tall players grumbled. But Coach had noticed something during practice: Fiifi never stopped moving, and his passes found teammates like water finding a path downhill. That night, Fiifi did not score a single point — yet the Tigers won by twelve. Every basket began with one of his clever passes. The newspaper called him 'the engine no one saw.'",qs:[
+{q:"Why did Coach Mensah start Fiifi in the championship?",opts:["He noticed Fiifi's movement and passing made the team better","Fiifi was the tallest player","Fiifi begged to play","The other players were injured"],a:0,topic:"inference",teach:[{i:"🕵️",t:"The story gives the coach's reason as a clue, not an announcement."},{i:"👀",t:"'Coach had noticed... Fiifi never stopped moving, and his passes found teammates.'"},{i:"🎯",t:"He saw what others missed: Fiifi's passing made everyone better."}]},
+{q:"'His passes found teammates like water finding a path downhill.' What does this simile mean?",opts:["His passes flowed smoothly and always arrived","He threw the ball into water","His passes were slow","He only passed downhill"],a:0,topic:"figurative language",teach:[{i:"🎭",t:"A simile compares two things with 'like'. Picture water flowing downhill."},{i:"💧",t:"Water always finds its way down — smooth, natural, unstoppable."},{i:"🎯",t:"His passes flowed naturally to teammates, never getting stuck."}]},
+{q:"What does the nickname 'the engine no one saw' mean?",opts:["Fiifi powered the team without getting noticed","Fiifi drove the team bus","Fiifi hid during the game","Fiifi was invisible"],a:0,topic:"figurative language",teach:[{i:"🎭",t:"An engine makes a car move, but you never see it from outside."},{i:"⚙️",t:"Fiifi scored zero points, yet EVERY basket started with his pass."},{i:"🎯",t:"He powered the whole team while nobody was watching him."}]},
+{q:"What happened right after the coach's announcement?",opts:["The tall players grumbled","The Tigers won","Fiifi scored a point","The newspaper arrived"],a:0,topic:"story structure",teach:[{i:"🎬",t:"Find the announcement, then read the very next sentence."},{i:"📖",t:"'Fiifi will start tonight,' he announced. 'The tall players grumbled.'"},{i:"🎯",t:"The grumbling came right after."}]},
+{q:"What is the main idea of this story?",opts:["A player's value isn't always in the points they score","Tall players are always better","Newspapers love basketball","Losing five games means you should quit"],a:0,topic:"comprehension",teach:[{i:"💡",t:"Look at the twist: zero points, yet the team won because of him."},{i:"🤝",t:"The story celebrates unselfish play and hidden contributions."},{i:"🎯",t:"Value isn't only scoring — helping the team counts just as much."}]}
+]},
+{title:"Grandfather's Drum",text:"When Grandfather was a boy in Kumasi, he carved a drum from a fallen cedar tree. He played it at festivals for fifty years, until his hands grew tired. Last month, he placed the drum in my arms. 'It is not a gift,' he said. 'It is a promise.' At first I did not understand. But as I practiced each evening, neighbors began to gather outside our window, clapping and singing like they once did for him. Now I know what I promised: to keep the music alive.",qs:[
+{q:"What did Grandfather mean by 'It is not a gift. It is a promise'?",opts:["The drum came with a duty to continue the tradition","He wanted the drum back","The drum was broken","He never liked the drum"],a:0,topic:"inference",teach:[{i:"🕵️",t:"A gift is just for you. A promise asks something OF you."},{i:"🪘",t:"The narrator later says: 'Now I know what I promised: to keep the music alive.'"},{i:"🎯",t:"The drum carried a duty — to carry on the family tradition."}]},
+{q:"What does 'his hands grew tired' tell us about Grandfather?",opts:["He was getting old","He stopped loving music","He was lazy","He hurt his hands in a game"],a:0,topic:"inference",teach:[{i:"🕵️",t:"After FIFTY years of playing, why would hands grow tired?"},{i:"👴",t:"It's a gentle way of saying he aged and could not play like before."},{i:"🎯",t:"It tells us he was getting old — said kindly."}]},
+{q:"Which order is correct?",opts:["Carved drum → played 50 years → gave it away","Gave it away → carved drum → played","Played → carved drum → gave it away","Carved drum → gave it away → played 50 years"],a:0,topic:"story structure",teach:[{i:"🎬",t:"Track Grandfather's life from boy to old man."},{i:"📖",t:"Boy: carved it. Adult: played at festivals 50 years. Last month: passed it on."},{i:"🎯",t:"Carved → played 50 years → gave it away."}]},
+{q:"Why did the neighbors gather outside the window?",opts:["The narrator's drumming brought the old joy back","They were angry about noise","They wanted to buy the drum","It was raining"],a:0,topic:"inference",teach:[{i:"🕵️",t:"Look at WHAT they did: clapping and singing."},{i:"🎶",t:"'Like they once did for him' — the music pulled people together again."},{i:"🎯",t:"The drumming brought back the joy they remembered."}]},
+{q:"What is this story mostly about?",opts:["Passing a family tradition to a new generation","How to carve a drum","Festivals in Kumasi","A noisy neighborhood"],a:0,topic:"comprehension",teach:[{i:"💡",t:"Think about the beginning and end together."},{i:"🔁",t:"Grandfather's music → the drum → the narrator's promise to keep it alive."},{i:"🎯",t:"It's about passing a tradition from one generation to the next."}]}
+]}
+],
+5:[
+{title:"The Night Market Mystery",text:"Every Friday, the night market in Osu glowed with lanterns — until the week the lights began vanishing, one stall at a time. Some traders whispered about ghosts. Nana Yaa, who sold kelewele, was not convinced. She noticed the lights only disappeared on windy nights, and only from the stalls nearest the sea. So on Friday she arrived early, hid behind her stall, and waited. As the sea breeze rose, she watched a loose canvas sheet swing against the lantern hooks, knocking them one by one into a basket below. The 'ghost' was nothing but wind and bad knots. Nana Yaa retied every lantern with a fisherman's knot, and the market never went dark again.",qs:[
+{q:"How did Nana Yaa solve the mystery?",opts:["She observed patterns and waited to see the real cause","She asked a ghost to leave","She bought new lanterns","She closed the market"],a:0,topic:"comprehension",teach:[{i:"💡",t:"Trace her steps: notice → predict → watch → fix."},{i:"🔍",t:"She spotted the pattern (windy nights, sea-side stalls), then hid and watched the cause with her own eyes."},{i:"🎯",t:"She solved it by observing carefully — like a scientist."}]},
+{q:"Which clue told Nana Yaa it was probably NOT a ghost?",opts:["Lights only vanished on windy nights near the sea","The lanterns were old","The traders were whispering","Kelewele sold out early"],a:0,topic:"inference",teach:[{i:"🕵️",t:"A ghost wouldn't care about weather. But what DOES need wind?"},{i:"🌬️",t:"The pattern — windy nights + sea-side stalls — points to the sea breeze."},{i:"🎯",t:"The wind pattern was the clue that ruled out ghosts."}]},
+{q:"Why did Nana Yaa hide behind her stall and wait?",opts:["To see the true cause with her own eyes","To scare the ghost","To take a nap","To steal lanterns"],a:0,topic:"inference",teach:[{i:"🕵️",t:"She had a suspicion — but a good detective confirms it."},{i:"👀",t:"By hiding and watching, she could catch the cause in action."},{i:"🎯",t:"She waited to SEE the real cause — evidence beats guessing."}]},
+{q:"What is the correct order of events?",opts:["Lights vanish → traders blame ghosts → Nana Yaa watches → she reties the knots","Nana Yaa reties knots → lights vanish → ghosts arrive","Traders blame ghosts → lights vanish → market closes","Nana Yaa watches → lights vanish → traders celebrate"],a:0,topic:"story structure",teach:[{i:"🎬",t:"Walk through the story from problem to solution."},{i:"📖",t:"Problem (vanishing lights) → wrong idea (ghosts) → investigation → fix (fisherman's knots)."},{i:"🎯",t:"Vanish → blame ghosts → watch → retie. Problem to solution!"}]},
+{q:"What lesson does this story teach?",opts:["Look for evidence instead of believing rumors","Ghosts are real","Never sell food at night","Wind is dangerous"],a:0,topic:"comprehension",teach:[{i:"💡",t:"Compare the traders (whispered rumors) with Nana Yaa (gathered evidence)."},{i:"⚖️",t:"Rumors solved nothing. Observation fixed the market for good."},{i:"🎯",t:"The lesson: trust evidence and careful thinking over rumors."}]}
+]},
+{title:"The Final Buzzer",text:"With the national title on the line, the Accra Lions trailed by two points. Ten seconds remained. Captain Kojo had promised his late father he would bring the trophy home, and that promise weighed on him like a backpack full of stones. The inbound pass found his hands. Two defenders rushed toward him — everyone in the arena knew the plan was for Kojo to shoot. But from the corner of his eye, he saw Serwaa, completely open at the three-point line, waving. A promise, Kojo realized, is not about who takes the shot. He whipped the pass to Serwaa. The buzzer sounded as her shot arced through the night air... and snapped the net. Champions.",qs:[
+{q:"'That promise weighed on him like a backpack full of stones.' What does this mean?",opts:["The promise felt like heavy pressure","He carried stones to games","His backpack was lost","He was physically weak"],a:0,topic:"figurative language",teach:[{i:"🎭",t:"A simile compares feelings to things you can touch."},{i:"🎒",t:"Imagine playing while carrying stones — slow, heavy, exhausting. That's pressure."},{i:"🎯",t:"The promise felt like a heavy weight of pressure on him."}]},
+{q:"Why did BOTH defenders rush toward Kojo?",opts:["Everyone expected Kojo to take the final shot","They wanted his autograph","Serwaa told them to","They were lost"],a:0,topic:"inference",teach:[{i:"🕵️",t:"The story says 'everyone in the arena knew the plan was for Kojo to shoot.'"},{i:"🛡️",t:"Defenders guard the player they EXPECT to shoot."},{i:"🎯",t:"They rushed Kojo because everyone expected him to shoot — leaving Serwaa open."}]},
+{q:"What did Kojo realize about his promise?",opts:["Keeping it meant winning as a team, not shooting himself","He should break it","His father wanted him to score 50","Promises don't matter"],a:0,topic:"comprehension",teach:[{i:"🔍",t:"Find the sentence with 'realized'."},{i:"📖",t:"'A promise, Kojo realized, is not about who takes the shot.'"},{i:"🎯",t:"Bringing the trophy home mattered — not who scored. So he passed."}]},
+{q:"What happened at the very END of the story?",opts:["Serwaa's shot won the championship","Kojo took the final shot","The Lions lost by two","The game was cancelled"],a:0,topic:"story structure",teach:[{i:"🎬",t:"Read the final lines once more."},{i:"📖",t:"'Her shot arced through the night air... and snapped the net. Champions.'"},{i:"🎯",t:"Serwaa's three-pointer won it at the buzzer."}]},
+{q:"Why was passing the harder — but better — choice for Kojo?",opts:["He gave up his moment of glory so the team could win","Passing is always easy","He was afraid of the ball","The coach forced him"],a:0,topic:"inference",teach:[{i:"🕵️",t:"Think about what Kojo wanted: to keep his promise himself, as the hero."},{i:"🤝",t:"Giving the shot to an open teammate took trust and unselfishness — with the title on the line."},{i:"🎯",t:"He sacrificed personal glory for the team — the harder, wiser choice."}]}
+]}
+]
+};
 </script>
 <script>
 "use strict";
@@ -1232,7 +1977,67 @@ function renderTrophyRoom(){
    +'<p class="muted">'+P.trophies.length+' trophies earned · your space, your wins</p></div>'
    +'<div class="kente-strip" style="margin:14px 0 20px"></div>'
    +html
-   +'<div class="center"><button class="btn secondary" onclick="goHome()">⟵ Back</button></div></div>';
+   +'<div class="center"><div class="btn-row" style="justify-content:center"><button class="btn secondary" onclick="printCertificate()">🖨️ Print my certificate</button><button class="btn secondary" onclick="goHome()">⟵ Back</button></div></div></div>';
+}
+function printCertificate(){
+  if(typeof sfx==="function")sfx("tick");
+  const subjLabels={math:"Math",english:"English",comprehension:"Comprehension",science:"Science",history:"Ghana History"};
+  const subjects=Object.keys(subjLabels).filter(k=>P.trophies.some(t=>t.type==="subject"&&t.subject===k)).map(k=>subjLabels[k]);
+  const tCount=P.trophies.length;
+  const lvl=(typeof P.level!=="undefined"&&P.level)?P.level:null;
+  const dateStr=new Date().toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"});
+  const spider='<svg viewBox="0 0 100 100" width="84" height="84" aria-hidden="true"><g stroke="#1f3c70" stroke-width="3" stroke-linecap="round" fill="none"><path d="M50 50 L20 30 M50 50 L14 44 M50 50 L18 62 M50 50 L26 74"/><path d="M50 50 L80 30 M50 50 L86 44 M50 50 L82 62 M50 50 L74 74"/></g><ellipse cx="50" cy="56" rx="15" ry="18" fill="#1f3c70"/><circle cx="50" cy="36" r="11" fill="#1f3c70"/><circle cx="46" cy="34" r="2.6" fill="#ffc94d"/><circle cx="54" cy="34" r="2.6" fill="#ffc94d"/></svg>';
+  const kente='repeating-linear-gradient(90deg,#f5a623 0 14px,#ff6b4a 14px 28px,#4aa3e0 28px 36px,#3bb273 36px 50px,#f5a623 50px 56px,#7c5cf0 56px 68px)';
+  const html='<!doctype html><html><head><meta charset="utf-8"><title>'+esc(P.name)+" — Certificate"+'</title>'
+   +'<style>'
+   +'*{box-sizing:border-box;margin:0;padding:0}'
+   +'body{font-family:Georgia,"Times New Roman",serif;color:#1f3c70;background:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}'
+   +'.cert{width:100%;max-width:900px;border:10px solid #f5a623;border-radius:18px;padding:0;position:relative;background:#fff}'
+   +'.bar{height:14px;background:'+kente+'}'
+   +'.inner{padding:46px 56px 40px;text-align:center}'
+   +'.eyebrow{letter-spacing:4px;font-size:15px;color:#6f88ad;text-transform:uppercase;font-family:Arial,Helvetica,sans-serif;font-weight:700}'
+   +'h1{font-size:46px;margin:14px 0 6px;color:#1f3c70}'
+   +'.sub{font-size:18px;color:#6f88ad;margin-bottom:22px}'
+   +'.name{font-size:54px;color:#e09b1a;margin:10px 0 4px;font-weight:700}'
+   +'.rule{width:260px;height:2px;background:#1f3c70;margin:6px auto 20px;opacity:.35}'
+   +'.body{font-size:20px;line-height:1.6;max-width:640px;margin:0 auto 18px}'
+   +'.stats{display:flex;justify-content:center;gap:42px;margin:24px 0 10px;flex-wrap:wrap}'
+   +'.stat b{display:block;font-size:38px;color:#f5a623}'
+   +'.stat span{font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#6f88ad;font-family:Arial,Helvetica,sans-serif}'
+   +'.subjects{font-size:16px;color:#1f3c70;margin-top:6px}'
+   +'.foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:30px;gap:20px}'
+   +'.sig{flex:1;text-align:center}'
+   +'.sig .line{border-top:2px solid #1f3c70;opacity:.5;margin-bottom:6px}'
+   +'.sig small{font-family:Arial,Helvetica,sans-serif;color:#6f88ad}'
+   +'.signame{font-size:22px;color:#1f3c70}'
+   +'.brand{font-family:Arial,Helvetica,sans-serif;font-weight:800;letter-spacing:1px;color:#1f3c70}'
+   +'@media print{body{padding:0;min-height:auto}.cert{border-width:8px}.noprint{display:none}@page{margin:12mm}}'
+   +'.printbtn{position:fixed;top:16px;right:16px;background:#f5a623;color:#14365f;border:none;border-radius:12px;padding:12px 20px;font-size:16px;font-weight:800;cursor:pointer;font-family:Arial,sans-serif;box-shadow:0 3px 0 #e09b1a}'
+   +'</style></head><body>'
+   +'<button class="printbtn noprint" onclick="window.print()">🖨️ Print</button>'
+   +'<div class="cert"><div class="bar"></div><div class="inner">'
+   +spider
+   +'<div class="eyebrow">Ananse Learning Zone</div>'
+   +'<h1>Certificate of Achievement</h1>'
+   +'<div class="sub">This certificate is proudly presented to</div>'
+   +'<div class="name">'+esc(P.name)+'</div>'
+   +'<div class="rule"></div>'
+   +'<div class="body">For curiosity, courage and hard work in learning — every question answered makes the mind grow stronger, just as Ananse the Wise Spider teaches.</div>'
+   +'<div class="stats">'
+   +'<div class="stat"><b>'+tCount+'</b><span>Trophies</span></div>'
+   +(lvl!==null?'<div class="stat"><b>'+lvl+'</b><span>Level</span></div>':'')
+   +'<div class="stat"><b>'+(subjects.length||0)+'</b><span>Subjects</span></div>'
+   +'</div>'
+   +(subjects.length?'<div class="subjects">Mastery shown in: '+esc(subjects.join(" · "))+'</div>':'')
+   +'<div class="foot">'
+   +'<div class="sig"><div class="line"></div><div class="signame">🕷️ Ananse the Wise</div><small>Your Guide</small></div>'
+   +'<div class="sig"><div class="line"></div><div class="signame">'+esc(dateStr)+'</div><small>Date</small></div>'
+   +'</div>'
+   +'</div><div class="bar"></div></div>'
+   +'</body></html>';
+  const w=window.open("","_blank");
+  if(!w){toast("Allow pop-ups to print the certificate");return;}
+  w.document.open();w.document.write(html);w.document.close();
 }
 function trophyDetail(idx){
   const t=P.trophies[idx];if(!t)return;
@@ -1259,20 +2064,25 @@ function subjAccuracy(subj,sinceT,untilT){
 function pct(x){return x===null?"—":Math.round(x*100)+"%"}
 function renderStats(){
   clearTimers();closeOverlay();showAnanseCorner(true);
-  const mAcc=subjAccuracy("math"),eAcc=subjAccuracy("english"),cAcc=subjAccuracy("comprehension"),
-        sAcc=subjAccuracy("science"),hAcc=subjAccuracy("history");
-  const rAcc=(()=>{const v=[eAcc,cAcc].filter(x=>x!==null);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null})();
-  const all=[mAcc,eAcc,cAcc,sAcc,hAcc].filter(x=>x!==null);
-  const avg=all.length?all.reduce((a,b)=>a+b,0)/all.length:null;
-  const ovr=avg===null?60:Math.round(60+avg*39);
-  const iq=(()=>{const v=[sAcc,hAcc].filter(x=>x!==null);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null})();
+  if(!P.stats)P.stats={speed:90,reading:80,memory:72,strategy:42,recall:38};
+  const st=P.stats;
+  const ovr=Math.round((st.speed+st.reading+st.memory+st.strategy+st.recall)/5);
   const games=P.sessions.length;
-  const ppg=games?Math.round(P.sessions.reduce((a,s)=>a+s.xp,0)/games):0;
-  const now=Date.now(),wk=7*864e5;
-  const thisW=subjAccuracy(null,now-wk),lastW=subjAccuracy(null,now-2*wk,now-wk);
-  const gThis=P.sessions.filter(s=>(s.t||0)>=now-wk).length;
-  const gLast=P.sessions.filter(s=>(s.t||0)>=now-2*wk&&(s.t||0)<now-wk).length;
-  const line=(name,val)=>'<div class="statline"><span>'+name+'</span><span class="statbar"><i style="width:'+(val===null?0:Math.round(val*100))+'%"></i></span><b>'+pct(val)+'</b></div>';
+  // 2K stat rows; growth flag adds the "↑ GROWING" badge + green bar
+  const STATS=[
+    {k:"speed",  nm:"SPEED",        sub:"Math Facts Fluency",  grow:false},
+    {k:"reading",nm:"READING POWER",sub:"Decoding",            grow:false},
+    {k:"memory", nm:"MEMORY",       sub:"Sequential Memory",   grow:false},
+    {k:"strategy",nm:"STRATEGY",    sub:"Math Problem Solving",grow:true},
+    {k:"recall", nm:"RECALL",       sub:"Reading Comprehension",grow:true}
+  ];
+  const row=s=>{
+    const v=st[s.k]||0;
+    return '<div class="stat2'+(s.grow?" growth":"")+'">'
+      +'<div class="s-nm">'+s.nm+(s.grow?' <span style="font-size:11px;color:#3bb273;letter-spacing:1px">↑ GROWING</span>':'')+'<span style="display:block;font-size:11px;color:#9db4d4;letter-spacing:1px;font-weight:600">'+s.sub+'</span></div>'
+      +'<span class="s-bar"><i style="width:0%" data-w="'+v+'"></i></span>'
+      +'<b class="s-val">'+v+'</b></div>';
+  };
   app.innerHTML='<div class="fadein" style="max-width:560px;margin:0 auto">'
    +'<div class="card2k">'
    +'<div style="display:flex;justify-content:space-between;align-items:center;gap:16px">'
@@ -1280,20 +2090,15 @@ function renderStats(){
    +'<div class="center"><div class="ovr">'+ovr+'</div><div class="ovr-lb">OVERALL</div></div>'
    +'</div>'
    +'<div style="height:2px;background:#28405e;margin:16px 0"></div>'
-   +line("🏀 Shooting % (Math)",mAcc)
-   +line("🎯 Playmaking (English + Comprehension)",rAcc)
-   +line("🧠 Basketball IQ (Science + History)",iq)
+   +STATS.map(row).join("")
+   +'<div style="height:2px;background:#28405e;margin:12px 0"></div>'
    +'<div class="statline"><span>🔥 Hot Streak</span><b>'+P.streak+' <span style="font-size:14px;color:#9db4d4">(best '+P.bestStreak+')</span></b></div>'
-   +'<div class="statline"><span>🎮 Games Played</span><b>'+games+'</b></div>'
-   +'<div class="statline" style="border:none"><span>⚡ Points Per Game (XP)</span><b>'+ppg+'</b></div>'
+   +'<div class="statline" style="border:none"><span>🎮 Games Played</span><b>'+games+'</b></div>'
    +'</div>'
-   +'<div class="spacer"></div>'
-   +'<div class="card"><h3>📅 Season Stats</h3>'
-   +'<div class="statline"><span>This week</span><b>'+gThis+' games · '+pct(thisW)+'</b></div>'
-   +'<div class="statline" style="border:none"><span>Last week</span><b>'+gLast+' games · '+pct(lastW)+'</b></div>'
-   +(thisW!==null&&lastW!==null?'<p class="muted" style="margin-top:8px">'+(thisW>=lastW?"📈 Trending up — the grind is paying off!":"📊 Last week was hot — time to heat back up!")+'</p>':"")
-   +'</div>'
+   +'<p class="muted" style="text-align:center;margin-top:10px">STRATEGY and RECALL grow every time you solve a word problem or remember a story. 💪</p>'
    +'<div class="center"><div class="spacer"></div><button class="btn secondary" onclick="goHome()">⟵ Back</button></div></div>';
+  // animate bars filling
+  setTimeout(()=>{document.querySelectorAll(".s-bar i").forEach(i=>{i.style.width=(i.getAttribute("data-w")||0)+"%";});},80);
 }
 </script>
 <script>
@@ -1363,16 +2168,6 @@ const TOPIC_ACTIVITIES={
  "famous ghanaians":{d:"At dinner: tell him about Kofi Annan or Kwame Nkrumah in two sentences.",c:"Car ride: 'Which famous Ghanaian would you like to meet, and why?'",b:"Bedtime: 'What big thing do YOU want to do for the world?'"},
  "modern ghana":{d:"At dinner: find Ghana on a map; name its capital and flag colors.",c:"Car ride: talk about the Black Stars and Ghana's flag star.",b:"Bedtime: plan an imaginary one-day trip to Accra."}
 };
-const WHAT_NOT_TO_DO=[
- "Don't say 'just focus' or 'try harder' — ADHD inattentive brains can't focus on command. Instead, shrink the task: 'Let's do just this one.'",
- "Don't punish wandering attention. It is neurology, not defiance. Gently redirect and praise the return: 'Nice catch coming back.'",
- "Don't praise being smart ('You're so clever'). Praise process: effort, strategy, persistence. It builds resilience instead of fear of failure.",
- "Don't run long study marathons. Short 10-minute sprints with movement breaks beat one exhausted hour, every time.",
- "Don't compare him to siblings or classmates. Compare him only to last week's Prince.",
- "Don't review mistakes when he is tired, hungry, or upset — the brain can't learn in stress mode. Revisit tomorrow.",
- "Don't remove physical activity as a consequence. Movement is medicine for ADHD brains — it powers the next focus sprint.",
- "Don't interrogate after a bad session ('Why did you get those wrong?'). Ask instead: 'Which one was the most interesting?'"
-];
 function recentWrongTopics(days){
   const cut=addDays(today(),-days);
   const counts={};
@@ -1398,6 +2193,46 @@ function buildInsights(){
   return out;
 }
 function parentPick(id){P=DB.profiles.find(p=>p.id===id)||P;renderParent()}
+
+/* ---------- intervention metrics (#15) ---------- */
+function sessSum(sessions,field){return sessions.reduce((a,s)=>a+(s[field]||0),0);}
+function accPct(c,t){return t?Math.round(100*c/t):null;}
+function interventionStats(){
+  const ss=P.sessions||[];
+  const now=Date.now(),wk=7*864e5;
+  const thisW=ss.filter(s=>(s.t||0)>=now-wk);
+  const lastW=ss.filter(s=>(s.t||0)>=now-2*wk&&(s.t||0)<now-wk);
+  const wpThis=accPct(sessSum(thisW,"wpC"),sessSum(thisW,"wpT"));
+  const wpLast=accPct(sessSum(lastW,"wpC"),sessSum(lastW,"wpT"));
+  const recallThis=accPct(sessSum(thisW,"recallC"),sessSum(thisW,"recallT"));
+  const recallLast=accPct(sessSum(lastW,"recallC"),sessSum(lastW,"recallT"));
+  const reviewThis=accPct(sessSum(thisW,"reviewC"),sessSum(thisW,"reviewT"));
+  const mfThis=accPct(sessSum(thisW,"mfC"),sessSum(thisW,"mfT"));
+  const durs=thisW.filter(s=>s.durMs).map(s=>s.durMs);
+  const avgMin=durs.length?Math.round(durs.reduce((a,b)=>a+b,0)/durs.length/60000*10)/10:null;
+  return {wpThis,wpLast,recallThis,recallLast,reviewThis,mfThis,avgMin,games:thisW.length};
+}
+function trend(now,prev){
+  if(now===null)return"";
+  if(prev===null)return' <span class="muted" style="font-size:14px">(new)</span>';
+  if(now>prev)return' <span style="color:#3bb273;font-size:14px">▲ up '+(now-prev)+'</span>';
+  if(now<prev)return' <span style="color:#e0512f;font-size:14px">▼ down '+(prev-now)+'</span>';
+  return' <span class="muted" style="font-size:14px">(steady)</span>';
+}
+function interventionTrackerHTML(){
+  const m=interventionStats();
+  const row=(label,val,suffix,tr)=>'<div class="statline"><span>'+label+'</span><b>'+(val===null?'<span class="muted" style="font-size:15px">no data yet</span>':val+(suffix||""))+(tr||"")+'</b></div>';
+  const st=P.stats||{};
+  return '<div class="card">'
+   +row("🏀 Word-problem accuracy",m.wpThis,"%",trend(m.wpThis,m.wpLast))
+   +row("📖 Reading recall accuracy",m.recallThis,"%",trend(m.recallThis,m.recallLast))
+   +row("🔁 Opening-review accuracy",m.reviewThis,"%","")
+   +row("⚡ Math-facts fluency",m.mfThis,"%","")
+   +row("⏱️ Avg time-on-task / session",m.avgMin," min","")
+   +'<div class="statline" style="border:none"><span>🎮 Sessions this week</span><b>'+m.games+'</b></div>'
+   +'</div>'
+   +'<p class="muted" style="margin-top:8px">Player-card stats now: STRATEGY '+(st.strategy||0)+' · RECALL '+(st.recall||0)+' · SPEED '+(st.speed||0)+'. STRATEGY and RECALL are the intervention targets — watch them climb.</p>';
+}
 function renderParent(){
   clearTimers();showAnanseCorner(false);
   if(!P&&DB.profiles.length)P=DB.profiles[0];
@@ -1427,6 +2262,10 @@ function renderParent(){
    +'<div class="kente-strip" style="margin:14px 0 20px"></div>'
    +'<h3>💡 This Week, In Plain English</h3><div class="spacer" style="height:10px"></div>'+insights
    +'<div class="adinkra-divider">✦</div>'
+   +'<h3>🎯 Intervention Tracker</h3>'
+   +'<p class="muted">The five metrics from his evaluation plan, refreshed from his sessions.</p>'
+   +'<div class="spacer" style="height:10px"></div>'+interventionTrackerHTML()
+   +'<div class="adinkra-divider">✦</div>'
    +'<h3>🎯 Weekly Focus Goal</h3>'
    +'<p class="muted">Pick one topic. The app quietly serves it more often — your child never knows.</p>'
    +'<label>Focus topic</label><select id="goalSel"><option value="">— none —</option>'+goalOpts+'</select>'
@@ -1439,9 +2278,6 @@ function renderParent(){
    +'<div class="adinkra-divider">✦</div>'
    +'<h3>🏠 Offline Activities (based on his recent struggles)</h3><div class="spacer" style="height:10px"></div>'+acts
    +'<div class="adinkra-divider">✦</div>'
-   +'<h3>🚫 What NOT To Do</h3><p class="muted">Based on research on ADHD inattentive presentation.</p><div class="spacer" style="height:10px"></div>'
-   +WHAT_NOT_TO_DO.map(w=>'<div class="insight warn">'+esc(w)+'</div>').join("")
-   +'<div class="adinkra-divider">✦</div>'
    +'<h3>📲 Daily Telegram Report</h3>'
    +'<p class="muted">Sent once per day at your chosen time, whenever the app is open and online. Create a bot with @BotFather, then enter its token and your chat ID.</p>'
    +'<label>Bot token</label><input id="tgToken" value="'+esc(DB.telegram.token)+'" placeholder="123456:ABC-DEF...">'
@@ -1450,6 +2286,11 @@ function renderParent(){
    +'<div class="spacer" style="height:12px"></div>'
    +'<div class="btn-row" style="justify-content:flex-start"><button class="btn secondary" onclick="saveTelegram()">Save</button><button class="btn secondary" onclick="sendTelegram(true)">Send test now</button></div>'
    +'<p class="muted" id="tgStatus" style="margin-top:8px">'+(DB.telegram.lastSent?"Last sent: "+esc(DB.telegram.lastSent):"")+'</p>'
+   +'<div class="adinkra-divider">✦</div>'
+   +'<h3>💾 Backup</h3>'
+   +'<p class="muted">Save all profiles, progress and settings to a file you can keep safe or move to another device. Restore brings everything back.</p>'
+   +'<div class="btn-row" style="justify-content:flex-start;margin-top:10px"><button class="btn secondary" onclick="exportBackup()">⬇️ Save backup file</button><button class="btn secondary" onclick="importBackup()">⬆️ Restore from file</button></div>'
+   +'<input type="file" id="restoreFile" accept="application/json,.json,.plz" style="display:none" onchange="handleRestoreFile(event)">'
    +'<div class="adinkra-divider">✦</div>'
    +'<h3>♻️ Reset</h3>'
    +'<p class="muted">Reset Progress wipes '+esc(P.name)+'\'s levels, trophies and history, then re-runs the starting assessment. Reset Everything deletes ALL profiles and settings.</p>'
@@ -1482,6 +2323,50 @@ function doResetApp(){
   localStorage.removeItem("plz_v1");
   DB=defaultDB();P=null;save();
   toast("App reset");
+  renderProfiles();
+}
+function exportBackup(){
+  try{
+    const payload={app:"learning-zone",ver:3,saved:new Date().toISOString(),data:DB};
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    const stamp=new Date().toISOString().slice(0,10);
+    a.href=url;a.download="learning-zone-backup-"+stamp+".json";
+    document.body.appendChild(a);a.click();
+    setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},500);
+    toast("Backup saved");
+  }catch(e){toast("Could not save backup");}
+}
+function importBackup(){
+  const f=$("restoreFile");
+  if(f){f.value="";f.click();}
+}
+function handleRestoreFile(ev){
+  const file=ev.target.files&&ev.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(){
+    let parsed;
+    try{parsed=JSON.parse(reader.result);}catch(e){toast("That file isn't a valid backup");return;}
+    const incoming=parsed&&parsed.data?parsed.data:parsed;
+    if(!incoming||!Array.isArray(incoming.profiles)){toast("That file isn't a Learning Zone backup");return;}
+    const n=incoming.profiles.length;
+    openOverlay('<div class="center"><h2>Restore this backup?</h2><p class="muted" style="margin-top:8px">It contains '+n+' profile'+(n===1?'':'s')+'. This will replace everything currently on this device. This cannot be undone.</p><div class="spacer"></div><div class="btn-row"><button class="btn secondary" onclick="closeOverlay()">Cancel</button><button class="btn" onclick="doRestore()">Yes, restore</button></div></div>');
+    window._restorePending=incoming;
+  };
+  reader.readAsText(file);
+}
+function doRestore(){
+  closeOverlay();
+  const incoming=window._restorePending;
+  if(!incoming){toast("Nothing to restore");return;}
+  const base=defaultDB();
+  DB=Object.assign(base,incoming);
+  DB.telegram=Object.assign(base.telegram,incoming.telegram||{});
+  P=null;save();
+  window._restorePending=null;
+  toast("Backup restored");
   renderProfiles();
 }
 function setGoal(){
@@ -1520,17 +2405,23 @@ function buildReport(){
    +"💬 One thing to say tonight:\n"+sayTonight+"\n\n"
    +"🤝 One thing to do tomorrow:\n"+doTomorrow;
 }
+/* shared low-level Telegram send (used by daily report AND threshold alerts #16) */
+function tgSend(text,onOk){
+  const tg=DB.telegram;
+  if(!tg.token||!tg.chat)return false;
+  if(typeof navigator!=="undefined"&&navigator&&navigator.onLine===false)return false;
+  fetch("https://api.telegram.org/bot"+encodeURIComponent(tg.token)+"/sendMessage",{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({chat_id:tg.chat,text:text})
+  }).then(r=>r.json()).then(j=>{if(j.ok&&onOk)onOk();}).catch(()=>{});
+  return true;
+}
 function sendTelegram(manual){
   const tg=DB.telegram;
   if(!tg.token||!tg.chat){if(manual)toast("Enter bot token and chat ID first");return}
-  if(!navigator.onLine){if(manual)toast("Offline — will send when online");return}
-  fetch("https://api.telegram.org/bot"+encodeURIComponent(tg.token)+"/sendMessage",{
-    method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({chat_id:tg.chat,text:buildReport()})
-  }).then(r=>r.json()).then(j=>{
-    if(j.ok){tg.lastSent=today()+(manual?" (manual)":"");save();toast("Report sent ✓");const el=$("tgStatus");if(el)el.textContent="Last sent: "+tg.lastSent}
-    else toast("Telegram error — check token/chat ID");
-  }).catch(()=>toast("Could not reach Telegram"));
+  if(typeof navigator!=="undefined"&&navigator&&navigator.onLine===false){if(manual)toast("Offline — will send when online");return}
+  const ok=tgSend(buildReport(),()=>{tg.lastSent=today()+(manual?" (manual)":"");save();toast("Report sent ✓");const el=$("tgStatus");if(el)el.textContent="Last sent: "+tg.lastSent});
+  if(!ok&&manual)toast("Telegram error — check token/chat ID");
 }
 function checkTelegramDue(){
   const tg=DB.telegram;
@@ -1539,6 +2430,46 @@ function checkTelegramDue(){
   const [h,m]=(tg.time||"19:00").split(":").map(Number);
   const now=new Date();
   if(now.getHours()>h||(now.getHours()===h&&now.getMinutes()>=m))sendTelegram(false);
+}
+/* ---------- threshold + celebration alerts (#16) ---------- */
+function alertOnce(key,text){
+  // dedupe per profile per day
+  if(!P)return;
+  P.alertLog=P.alertLog||{};
+  const stamp=today()+"|"+key;
+  if(P.alertLog[key]===today())return;        // already sent today
+  if(tgSend("🕷️ Learning Zone Alert — "+P.name+"\n\n"+text)){P.alertLog[key]=today();save();}
+}
+function checkAlerts(){
+  if(!P)return;
+  const tg=DB.telegram;if(!tg||!tg.token||!tg.chat)return;
+  const m=interventionStats();
+  // 1) word-problem accuracy below 60%
+  if(m.wpThis!==null&&m.wpThis<60){
+    alertOnce("wp_low","⚠️ Word-problem accuracy is "+m.wpThis+"% this week (target 60%+). Try a few coin/counter problems together at home.");
+  }
+  // 2) opening-review accuracy declining 2+ consecutive days
+  if(reviewDecline2Days())alertOnce("review_decline","📉 Opening-review accuracy has dropped two days running. The earlier material needs another pass — Ananse is re-queuing it.");
+  // 3) most recent session under 5 minutes
+  const last=(P.sessions||[]).slice(-1)[0];
+  if(last&&last.durMs&&last.durMs<5*60000&&!last.replay){
+    alertOnce("short_session","⏱️ The last session ran under 5 minutes ("+Math.max(1,Math.round(last.durMs/60000))+" min). A short check-in can help him settle into a longer focus block.");
+  }
+}
+function reviewDecline2Days(){
+  // group review accuracy by date, check last 3 days strictly decreasing
+  const byDay={};
+  (P.sessions||[]).forEach(s=>{if(s.reviewT){const d=s.date;byDay[d]=byDay[d]||{c:0,t:0};byDay[d].c+=s.reviewC;byDay[d].t+=s.reviewT;}});
+  const days=Object.keys(byDay).sort().slice(-3);
+  if(days.length<3)return false;
+  const a=byDay[days[0]],b=byDay[days[1]],c=byDay[days[2]];
+  const pa=a.c/a.t,pb=b.c/b.t,pc=c.c/c.t;
+  return pc<pb&&pb<pa;
+}
+function fireCelebration(kind,extra){
+  const tg=DB.telegram;if(!tg||!tg.token||!tg.chat)return;
+  if(kind==="recall3"){alertOnce("celebrate_recall3","🎉 Great news! "+P.name+" just nailed 3 story-recall answers in a row. Reading memory is clicking — tell him you noticed!");}
+  else if(kind==="milestone"){alertOnce("celebrate_milestone_"+(extra||""),"🏅 Milestone! "+P.name+"'s "+(extra||"")+" stat just hit a new high on his player card. The intervention is paying off.");}
 }
 
 /* ============================================================
@@ -1556,6 +2487,8 @@ renderSoundBtn();
     }
     Object.keys(SUBJECTS).forEach(s=>{if(p.levels&&!p.levels[s]){p.levels[s]=1;changed=true}});
     if(!p.color){p.color=pick(PCOLORS);changed=true}
+    if(!p.stats){p.stats={speed:90,reading:80,memory:72,strategy:42,recall:38};changed=true}
+    if(!p.alertLog){p.alertLog={};changed=true}
     (p.sessions||[]).forEach(se=>{if(se.subject==="reading"){se.subject="comprehension";changed=true}});
     (p.trophies||[]).forEach(t=>{if(t.subject==="reading"){t.subject="comprehension";changed=true}});
   });
