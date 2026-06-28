@@ -312,8 +312,8 @@ function toggleSound(){
 }
 function renderSoundBtn(){$("soundBtn").textContent=DB.sound?"🔊":"🔇"}
 
-/* ---------- weightless sound engine (Web Audio synthesis) ---------- */
-let _ac=null, _ambient=null;
+/* ---------- sound engine (Web Audio synthesis — rich game sounds) ---------- */
+let _ac=null,_ambient=null,_noiseBuf=null;
 function audioCtx(){
   if(typeof window==="undefined")return null;
   if(_ac)return _ac;
@@ -321,28 +321,194 @@ function audioCtx(){
   return _ac;
 }
 function _resume(){const a=audioCtx();if(a&&a.state==="suspended"){try{a.resume();}catch(e){}}}
-function _blip(freq,start,dur,type,vol){
-  const a=audioCtx();if(!a)return;
-  const o=a.createOscillator(),g=a.createGain();
-  o.type=type||"sine";o.frequency.value=freq;
-  const t=a.currentTime+start;
-  g.gain.setValueAtTime(0,t);
-  g.gain.linearRampToValueAtTime(vol==null?0.18:vol,t+0.012);
-  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
-  o.connect(g);g.connect(a.destination);
-  o.start(t);o.stop(t+dur+0.02);
+
+// ── helpers ──
+
+// reusable white-noise buffer (2 sec)
+function _noiseBufGet(){
+  const a=audioCtx();if(!a)return null;
+  if(!_noiseBuf){_noiseBuf=a.createBuffer(1,a.sampleRate*2,a.sampleRate);
+    const d=_noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}
+  return _noiseBuf;
 }
+
+// play a filtered noise burst → {src,g,f} or null
+function _noiseHit(durSec,vol,freq,Q){
+  const a=audioCtx(),buf=_noiseBufGet();if(!a||!buf)return;
+  const src=a.createBufferSource();src.buffer=buf;
+  const g=a.createGain(),f=a.createBiquadFilter();
+  f.type="bandpass";f.frequency.value=freq||2000;f.Q.value=Q||0.8;
+  src.connect(f);f.connect(g);g.connect(a.destination);
+  const t=a.currentTime,d=durSec||0.12;
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol||0.12,t+0.004);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+  src.start(t);src.stop(t+d+0.02);
+}
+
+// noise sweep (bandpass slides from freq→freq2)
+function _noiseSweep(durSec,vol,freq,freq2,Q){
+  const a=audioCtx(),buf=_noiseBufGet();if(!a||!buf)return;
+  const src=a.createBufferSource();src.buffer=buf;
+  const g=a.createGain(),f=a.createBiquadFilter();
+  f.type="bandpass";f.frequency.value=freq||400;f.Q.value=Q||1.2;
+  src.connect(f);f.connect(g);g.connect(a.destination);
+  const t=a.currentTime,d=durSec||0.2;
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol||0.1,t+0.006);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+  f.frequency.linearRampToValueAtTime(freq2||2000,t+d*0.6);
+  src.start(t);src.stop(t+d+0.02);
+}
+
+// rich tone: oscillator + optional harmonics + subtle spread
+function _tone(freq,start,dur,type,vol,harmonics){
+  const a=audioCtx();if(!a)return;
+  const t=a.currentTime+(start||0),d=dur||0.15;
+  const o=a.createOscillator(),og=a.createGain();
+  o.type=type||"sine";o.frequency.value=freq;
+  og.gain.setValueAtTime(0,t);og.gain.linearRampToValueAtTime(vol||0.12,t+0.006);
+  og.gain.exponentialRampToValueAtTime(0.0001,t+d);
+  o.connect(og);og.connect(a.destination);
+  o.start(t);o.stop(t+d+0.03);
+  // harmonic overtones
+  if(harmonics){harmonics.forEach(h=>{
+    const o2=a.createOscillator(),g2=a.createGain();
+    o2.type="sine";o2.frequency.value=freq*h;
+    g2.gain.setValueAtTime(0,t);g2.gain.linearRampToValueAtTime(vol*0.35,t+0.005);
+    g2.gain.exponentialRampToValueAtTime(0.0001,t+d*0.7);
+    g2.connect(a.destination);o2.connect(g2);
+    o2.start(t);o2.stop(t+d*0.7+0.02);
+  });}
+}
+
+// multi-tap delay spread (adds spaciousness)
+function _spread(dryGain,amount){
+  const a=audioCtx();if(!a)return;
+  const wet=a.createGain();wet.gain.value=amount||0.08;
+  [0.019,0.031,0.047,0.063].forEach(d=>{
+    const dl=a.createDelay(0.08);dl.delayTime.value=d;
+    const lp=a.createBiquadFilter();lp.type="lowpass";lp.frequency.value=2800;
+    const g=a.createGain();g.gain.value=0.18;
+    dryGain.connect(dl);dl.connect(lp);lp.connect(g);g.connect(wet);
+  });
+  wet.connect(a.destination);
+}
+
+// bell / chime: bright with harmonics + spread
+function _chime(freq,start,dur,vol){
+  const a=audioCtx();if(!a)return;
+  const t=a.currentTime+(start||0),d=dur||0.22;
+  const o=a.createOscillator(),og=a.createGain();
+  o.type="sine";o.frequency.value=freq;
+  og.gain.setValueAtTime(0,t);og.gain.linearRampToValueAtTime(vol||0.1,t+0.004);
+  og.gain.exponentialRampToValueAtTime(0.0001,t+d);
+  o.connect(og);og.connect(a.destination);
+  // octave + octave+fifth harmonics for bell character
+  [2,3,4.8].forEach(h=>{
+    const o2=a.createOscillator(),g2=a.createGain();
+    o2.type="sine";o2.frequency.value=freq*h;
+    g2.gain.setValueAtTime(0,t);g2.gain.linearRampToValueAtTime(vol*0.28,t+0.003);
+    g2.gain.exponentialRampToValueAtTime(0.0001,t+d*0.6);
+    g2.connect(a.destination);o2.connect(g2);
+    o2.start(t);o2.stop(t+d*0.6+0.02);
+  });
+  _spread(og,vol*0.6);
+  o.start(t);o.stop(t+d+0.04);
+}
+
+// percussive thump: noise attack + sine body
+function _thump(freq,start,dur,vol){
+  const a=audioCtx();if(!a)return;
+  const t=a.currentTime+(start||0),d=dur||0.14;
+  _noiseHit(d*0.5,vol*0.5,freq*5||500,1.8); // crack layer
+  const o=a.createOscillator(),g=a.createGain();
+  o.type="sine";o.frequency.value=freq||100;
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol||0.2,t+0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+  g.connect(a.destination);o.connect(g);
+  o.start(t);o.stop(t+d+0.02);
+}
+
+// ── sfx dispatcher ──
+
 function sfx(name){
   if(!DB.sound)return;
   const a=audioCtx();if(!a)return;_resume();
+  const t=a.currentTime;
   switch(name){
-    case "correct":   _blip(660,0,0.12,"sine",0.16);_blip(990,0.08,0.16,"sine",0.16);break;
-    case "wrong":     _blip(200,0,0.18,"triangle",0.16);_blip(150,0.12,0.22,"triangle",0.16);break;
-    case "levelup":   _blip(523,0,0.14,"square",0.13);_blip(659,0.12,0.14,"square",0.13);_blip(784,0.24,0.14,"square",0.13);_blip(1047,0.36,0.30,"square",0.14);break;
-    case "celebrate": _blip(784,0,0.12,"sine",0.14);_blip(988,0.1,0.12,"sine",0.14);_blip(1319,0.2,0.12,"sine",0.14);_blip(1568,0.3,0.30,"sine",0.15);break;
-    case "drum":      _blip(110,0,0.22,"sine",0.22);_blip(80,0.02,0.26,"triangle",0.18);break;
-    case "tick":      _blip(880,0,0.05,"square",0.08);break;
-    case "swish":     _blip(420,0,0.10,"sine",0.10);_blip(620,0.05,0.12,"sine",0.10);break;
+
+    // ✨ CORRECT — bright ascending chime
+    case "correct":
+      _chime(523,0,0.16,0.12);         // C5
+      _chime(659,0.05,0.16,0.12);      // E5
+      _chime(784,0.10,0.24,0.14);      // G5  (rings longer)
+      break;
+
+    // 😔 WRONG — gentle low thud + descending tone (not punishing)
+    case "wrong":
+      _thump(100,0,0.14,0.14);
+      _tone(180,0.03,0.16,"triangle",0.07);
+      _tone(140,0.08,0.18,"triangle",0.05);
+      break;
+
+    // 🎉 LEVELUP — triumphant ascending arpeggio with climax sparkle
+    case "levelup":
+      _chime(523,t,0.12,0.10);
+      _chime(659,t+0.07,0.12,0.10);
+      _chime(784,t+0.14,0.13,0.11);
+      _chime(1047,t+0.21,0.32,0.15);
+      // sparkle burst at end
+      setTimeout(()=>{if(!audioCtx())return;const t2=audioCtx().currentTime;
+        _chime(1319,t2,0.16,0.07);_chime(1568,t2+0.03,0.18,0.06);
+        _chime(1760,t2+0.06,0.20,0.05);
+      },260);
+      break;
+
+    // 🥳 CELEBRATE — rich chord fanfare + shimmer
+    case "celebrate":
+      [523,659,784,1047].forEach((f,i)=>{
+        _tone(f,t+i*0.03,0.42,"sine",0.08,[2,3]);});
+      _noiseHit(0.32,0.05,3200,0.6); // shimmer
+      setTimeout(()=>{if(!audioCtx())return;const t2=audioCtx().currentTime;
+        _chime(1319,t2,0.20,0.06);_chime(1568,t2+0.04,0.22,0.05);
+      },150);
+      break;
+
+    // 🥁 DRUM — actual percussive hit
+    case "drum":
+      _thump(85,0,0.14,0.20);
+      _thump(105,0.03,0.12,0.10);
+      break;
+
+    // ✅ TICK — crisp short snap
+    case "tick":
+      _tone(1400,0,0.03,"square",0.05);
+      _noiseHit(0.025,0.05,2800,1.2);
+      break;
+
+    // 💨 SWISH — filtered noise sweep (actual swoosh)
+    case "swish":
+      _noiseSweep(0.16,0.08,450,2200,0.9);
+      break;
+
+    // 🫧 POP — bright bubble pop
+    case "pop":
+      _tone(700,0,0.05,"sine",0.08,[2,4]);
+      _tone(1050,0.008,0.06,"sine",0.05);
+      break;
+
+    // 🪙 COINS — quick ascending coin collect
+    case "coins":
+      _chime(784,t,0.07,0.08);
+      _chime(988,t+0.04,0.07,0.09);
+      _chime(1319,t+0.08,0.10,0.10);
+      break;
+
+    // 🔥 STREAK — extra sparkle on top of correct
+    case "streak":
+      _chime(1047,t,0.14,0.09);
+      _chime(1319,t+0.05,0.16,0.09);
+      _chime(1568,t+0.10,0.20,0.07);
+      break;
   }
 }
 // ambient focus loop (gentle, low) — used during reading/story
@@ -1285,8 +1451,8 @@ function manipHTML(q){
     +'<button class="sc-btn" onclick="manipClear()">↺ Clear</button></div>';
 }
 let _mtot=0,_mcount=0;
-function manipCoin(v){_mtot+=v;_mcount++;const m=$("mmat");if(m)m.insertAdjacentHTML("beforeend",'<span class="token coin sm">'+v+'¢</span>');const t=$("mtotal");if(t)t.textContent=_mtot;sfx("tick");}
-function manipCounter(d){_mcount=Math.max(0,_mcount+d);const m=$("mmat");if(m){if(d>0)m.insertAdjacentHTML("beforeend",'<span class="token sm">🏀</span>');else if(m.lastChild)m.removeChild(m.lastChild);}const t=$("mtotal");if(t)t.textContent=_mcount;sfx("tick");}
+function manipCoin(v){_mtot+=v;_mcount++;const m=$("mmat");if(m)m.insertAdjacentHTML("beforeend",'<span class="token coin sm">'+v+'¢</span>');const t=$("mtotal");if(t)t.textContent=_mtot;sfx("coins");}
+function manipCounter(d){_mcount=Math.max(0,_mcount+d);const m=$("mmat");if(m){if(d>0)m.insertAdjacentHTML("beforeend",'<span class="token sm">🏀</span>');else if(m.lastChild)m.removeChild(m.lastChild);}const t=$("mtotal");if(t)t.textContent=_mcount;sfx("pop");}
 function manipClear(){_mtot=0;_mcount=0;const m=$("mmat");if(m)m.innerHTML="";const t=$("mtotal");if(t)t.textContent="0";}
 /* ---------- scratchpad (#4) ---------- */
 function scratchHTML(){
@@ -1407,7 +1573,7 @@ function startTeaching(praise){
 /* student-requested help: walk the hints, then return to the same question to answer */
 function askHelp(){
   if(!S||!S.cur||!S.cur.teach)return;
-  if(typeof sfx==="function")sfx("tick");
+  if(typeof sfx==="function")sfx("pop");
   T={q:S.cur,step:0,from:"help",praise:"Sure! Let's work through it together."};
   renderTeachStep();
 }
@@ -2082,7 +2248,7 @@ function renderTrophyRoom(){
    +'<div class="center"><div class="btn-row" style="justify-content:center"><button class="btn secondary" onclick="printCertificate()">🖨️ Print my certificate</button><button class="btn secondary" onclick="goHome()">⟵ Back</button></div></div></div>';
 }
 function printCertificate(){
-  if(typeof sfx==="function")sfx("tick");
+  if(typeof sfx==="function")sfx("pop");
   const subjLabels={math:"Math",english:"English",comprehension:"Comprehension",science:"Science",history:"Ghana History"};
   const subjects=Object.keys(subjLabels).filter(k=>P.trophies.some(t=>t.type==="subject"&&t.subject===k)).map(k=>subjLabels[k]);
   const tCount=P.trophies.length;
