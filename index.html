@@ -89,11 +89,32 @@ h3{font-size:22px;color:var(--ink)}
 @keyframes shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-6deg)}75%{transform:rotate(6deg)}}
 
 /* ---------- Ananse ---------- */
-.ananse-wrap{display:flex;justify-content:center}
+.ananse-wrap{display:flex;justify-content:center;position:relative}
 .ananse-idle{position:fixed;bottom:14px;right:14px;z-index:40;width:92px;height:92px;pointer-events:none;animation:floaty 3.5s ease-in-out infinite}
 @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 .ananse-celebrate svg{animation:dance .6s ease-in-out infinite alternate}
 @keyframes dance{from{transform:rotate(-7deg) translateY(0)}to{transform:rotate(7deg) translateY(-12px)}}
+
+/* Cinematic spider entrance — slow push-in like the video */
+.ananse-cinematic{animation:anansiZoom 8s ease-in-out infinite alternate}
+@keyframes anansiZoom{from{transform:scale(1)}to{transform:scale(1.06)}}
+
+/* Breathing animation — subtle body pulse */
+.ananse-breathe{animation:breathe 3s ease-in-out infinite;transform-origin:center 140px}
+@keyframes breathe{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.03)}}
+
+/* Floating dust motes — golden particles */
+.dust-field{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:inherit}
+.dust{position:absolute;width:4px;height:4px;border-radius:50%;background:radial-gradient(circle,rgba(255,215,0,0.8),rgba(255,180,50,0));animation:drift linear infinite}
+@keyframes drift{0%{transform:translate(0,0) scale(0);opacity:0}10%{opacity:1;transform:scale(1)}90%{opacity:0.8}100%{transform:translate(var(--dx),var(--dy)) scale(0.3);opacity:0}}
+
+/* Eye blink animation */
+.ananse-eyes{animation:blink 4s ease-in-out infinite;transform-origin:center 88px}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(0.1)}}
+
+/* Warm glow behind spider */
+.ananse-glow{position:absolute;inset:-20%;border-radius:50%;background:radial-gradient(circle,rgba(255,200,100,0.15),transparent 70%);animation:glowPulse 4s ease-in-out infinite;pointer-events:none}
+@keyframes glowPulse{0%,100%{opacity:0.5;transform:scale(1)}50%{opacity:0.8;transform:scale(1.1)}}
 .speech{background:#f7fbff;color:#1f3c70;border:3px solid var(--blue);border-radius:18px;padding:16px 20px;font-size:20px;font-weight:700;position:relative;margin-top:14px}
 .speech:before{content:"";position:absolute;top:-15px;left:50%;transform:translateX(-50%);border:12px solid transparent;border-bottom-color:var(--blue);border-top:0}
 
@@ -349,39 +370,92 @@ if(typeof window!=="undefined"&&window.addEventListener){
 }
 
 /* ---------- Ananse the Wise Spider (SVG) ---------- */
-function ananseSVG(size,mood){ // mood: idle | teach | party
+function ananseSVG(size,mood){ // mood: idle | teach | party — Pixar-inspired 3D style
+  // Eyes: large, expressive with iris, pupil, highlight (like the video)
   const eyes=mood==="party"
-    ?'<path d="M86 88 q8 -10 16 0" stroke="#2a1c06" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M118 88 q8 -10 16 0" stroke="#2a1c06" stroke-width="5" fill="none" stroke-linecap="round"/>'
-    :'<circle cx="94" cy="88" r="9" fill="#fff"/><circle cx="96" cy="90" r="4.5" fill="#241803"/><circle cx="126" cy="88" r="9" fill="#fff"/><circle cx="128" cy="90" r="4.5" fill="#241803"/><circle cx="93" cy="86" r="2" fill="#fff" opacity=".9"/><circle cx="125" cy="86" r="2" fill="#fff" opacity=".9"/>';
+    ?'<path d="M86 86 q8 -10 16 0" stroke="#1a0e00" stroke-width="4.5" fill="none" stroke-linecap="round"/><path d="M118 86 q8 -10 16 0" stroke="#1a0e00" stroke-width="4.5" fill="none" stroke-linecap="round"/>'
+    :'<g class="ananse-eyes">'
+     +'<ellipse cx="94" cy="88" rx="13" ry="15" fill="#fff"/><ellipse cx="126" cy="88" rx="13" ry="15" fill="#fff"/>'
+     +'<circle cx="95" cy="90" r="8.5" fill="#5a3a1a"/><circle cx="127" cy="90" r="8.5" fill="#5a3a1a"/>'
+     +'<circle cx="95" cy="90" r="5" fill="#2a1a08"/><circle cx="127" cy="90" r="5" fill="#2a1a08"/>'
+     +'<circle cx="92" cy="86" r="3.5" fill="#fff" opacity="0.95"/><circle cx="124" cy="86" r="3.5" fill="#fff" opacity="0.95"/>'
+     +'<circle cx="97" cy="93" r="1.5" fill="#fff" opacity="0.7"/><circle cx="129" cy="93" r="1.5" fill="#fff" opacity="0.7"/>'
+     +'</g>';
   const mouth=mood==="teach"
-    ?'<ellipse cx="110" cy="108" rx="9" ry="7" fill="#5a3a1a"/>'
-    :'<path d="M96 106 q14 14 28 0" stroke="#5a3a1a" stroke-width="5" fill="none" stroke-linecap="round"/>';
+    ?'<ellipse cx="110" cy="108" rx="8" ry="6" fill="#3a1a00"/><ellipse cx="110" cy="106" rx="5" ry="3" fill="#5a2a10"/>'
+    :'<path d="M97 106 q13 12 26 0" stroke="#3a1a00" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M100 107 q10 8 20 0" stroke="#5a2a10" stroke-width="2.5" fill="none" stroke-linecap="round"/>';
+
+  // 8 legs with gold bands — two-tone dark like the video
   const legs=[];
   for(let s=-1;s<=1;s+=2)for(let i=0;i<4;i++){
-    const y=120+i*14, x1=110+s*38, x2=110+s*(70+i*6), y2=y+22+(mood==="party"?(i%2?-10:6):8);
-    legs.push('<path d="M'+x1+' '+y+' Q'+(110+s*60)+' '+(y-14)+' '+x2+' '+y2+'" stroke="#4a3318" stroke-width="7" fill="none" stroke-linecap="round"/><circle cx="'+x2+'" cy="'+y2+'" r="4" fill="#4a3318"/>');
+    const y=120+i*14, x1=110+s*36, x2=110+s*(72+i*7), y2=y+22+(mood==="party"?(i%2?-12:8):10);
+    legs.push('<path d="M'+x1+' '+y+' Q'+(110+s*58)+' '+(y-14)+' '+x2+' '+y2+'" stroke="#2a1a08" stroke-width="8" fill="none" stroke-linecap="round"/>'
+      +'<path d="M'+x1+' '+y+' Q'+(110+s*58)+' '+(y-14)+' '+x2+' '+y2+'" stroke="#4a3018" stroke-width="4" fill="none" stroke-linecap="round"/>'
+      +'<rect x="'+(x2-6)+'" y="'+(y2-4)+'" width="12" height="5" rx="2" fill="#e8b549" transform="rotate('+(s>0?15:-15)+' '+x2+' '+y2+')"/>'
+      +'<rect x="'+(x1+s*10-3)+'" y="'+(y-2)+'" width="10" height="5" rx="2" fill="#e8b549" transform="rotate('+(s>0?-10:10)+' '+(x1+s*10)+' '+y+')"/>');
   }
-  return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg">'
+
+  return '<div style="position:relative;display:inline-block">'
+   +'<div class="ananse-glow"></div>'
+   +'<svg width="'+size+'" height="'+size+'" viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg" style="overflow:visible">'
    +legs.join("")
-   // body with adinkra symbol (Gye Nyame-inspired spiral)
-   +'<ellipse cx="110" cy="142" rx="42" ry="36" fill="#6b4a22"/>'
-   +'<ellipse cx="110" cy="142" rx="42" ry="36" fill="none" stroke="#54381a" stroke-width="3"/>'
-   +'<path d="M110 124 q14 4 14 18 q0 14 -14 18 q-14 -4 -14 -18 q0 -14 14 -18z" fill="none" stroke="#e8b549" stroke-width="3.5"/>'
-   +'<circle cx="110" cy="142" r="5" fill="#e8b549"/>'
-   // head
-   +'<circle cx="110" cy="92" r="34" fill="#7d5728"/>'
-   +'<circle cx="110" cy="92" r="34" fill="none" stroke="#5e4019" stroke-width="3"/>'
+
+   // Abdomen — dark charcoal like the video, with gold Adinkra patterns
+   +'<g class="ananse-breathe">'
+   // abdomen shadow (3D depth)
+   +'<ellipse cx="112" cy="148" rx="44" ry="38" fill="#1a1a1a" opacity="0.5"/>'
+   // abdomen base — dark charcoal/matte black
+   +'<ellipse cx="110" cy="146" rx="42" ry="36" fill="#2a2420"/>'
+   +'<ellipse cx="110" cy="146" rx="42" ry="36" fill="none" stroke="#15110e" stroke-width="2.5"/>'
+
+   // Gold Adinkra symbol (Gye Nyame-inspired spiral)
+   +'<path d="M110 128 q14 4 14 18 q0 14 -14 18 q-14 -4 -14 -18 q0 -14 14 -18z" fill="none" stroke="#e8b549" stroke-width="3"/>'
+   +'<path d="M110 134 q9 2 9 12 q0 10 -9 12 q-9 -2 -9 -12 q0 -10 9 -12z" fill="none" stroke="#d4a017" stroke-width="2"/>'
+   +'<circle cx="110" cy="146" r="4" fill="#e8b549"/>'
+
+   // Abdomen texture dots (gold micro-pattern)
+   +'<circle cx="92" cy="138" r="1.5" fill="#e8b549" opacity="0.6"/>'
+   +'<circle cx="128" cy="138" r="1.5" fill="#e8b549" opacity="0.6"/>'
+   +'<circle cx="95" cy="155" r="1.5" fill="#e8b549" opacity="0.5"/>'
+   +'<circle cx="125" cy="155" r="1.5" fill="#e8b549" opacity="0.5"/>'
+   +'<circle cx="88" cy="148" r="1" fill="#e8b549" opacity="0.4"/>'
+   +'<circle cx="132" cy="148" r="1" fill="#e8b549" opacity="0.4"/>'
+
+   // Head — dark charcoal, rounded
+   +'<circle cx="110" cy="92" r="35" fill="#2a2420"/>'
+   +'<circle cx="110" cy="92" r="35" fill="none" stroke="#15110e" stroke-width="2.5"/>'
+   // Head highlight (3D lighting from upper-left)
+   +'<ellipse cx="100" cy="80" rx="15" ry="10" fill="#4a4238" opacity="0.4"/>'
+
    +eyes+mouth
-   // beaded necklace
-   +'<path d="M84 116 q26 18 52 0" stroke="none" fill="none"/>'
-   +'<circle cx="88" cy="118" r="5" fill="#c0492f"/><circle cx="99" cy="124" r="5" fill="#e8b549"/><circle cx="110" cy="126" r="5" fill="#4e8f5c"/><circle cx="121" cy="124" r="5" fill="#e8b549"/><circle cx="132" cy="118" r="5" fill="#2a5fa8"/>'
-   // kente hat
-   +'<path d="M78 74 L110 30 L142 74 Z" fill="#c0492f"/>'
-   +'<path d="M85 65 L135 65 L142 74 L78 74 Z" fill="#e8b549"/>'
-   +'<path d="M91 56 L129 56 L135 65 L85 65 Z" fill="#1a1a1a"/>'
-   +'<path d="M97 48 L123 48 L129 56 L91 56 Z" fill="#4e8f5c"/>'
-   +'<circle cx="110" cy="30" r="6" fill="#e8b549"/>'
-   +'</svg>';
+
+   // Beaded necklace (vibrant: red, gold, green, blue, gold)
+   +'<path d="M82 116 q28 20 56 0" stroke="none" fill="none"/>'
+   +'<circle cx="86" cy="117" r="5.5" fill="#c0392b"/><circle cx="97" cy="124" r="5.5" fill="#e8b549"/><circle cx="108" cy="127" r="6" fill="#27ae60"/><circle cx="121" cy="124" r="5.5" fill="#e8b549"/><circle cx="134" cy="117" r="5.5" fill="#2980b9"/>'
+
+   // Gold pendant with spiral
+   +'<circle cx="110" cy="132" r="7" fill="#e8b549" stroke="#b8860b" stroke-width="1.5"/>'
+   +'<path d="M110 128 q4 1 4 4 q0 3 -4 4 q-4 -1 -4 -4 q0 -3 4 -4z" fill="none" stroke="#8b6914" stroke-width="1.5"/>'
+
+   // Kente kufi hat — vibrant pattern like the video
+   +'<path d="M76 74 L110 28 L144 74 Z" fill="#c0392b"/>'
+   // Kente bands: gold, dark, green, gold
+   +'<path d="M82 65 L138 65 L144 74 L76 74 Z" fill="#e8b549"/>'
+   +'<path d="M88 56 L132 56 L138 65 L82 65 Z" fill="#1a1a1a"/>'
+   +'<path d="M94 48 L126 48 L132 56 L88 56 Z" fill="#27ae60"/>'
+   +'<path d="M100 42 L120 42 L126 48 L94 48 Z" fill="#e8b549"/>'
+
+   // Kente geometric accents
+   +'<rect x="100" y="30" width="6" height="8" fill="#27ae60" opacity="0.8"/>'
+   +'<rect x="114" y="30" width="6" height="8" fill="#2980b9" opacity="0.8"/>'
+
+   // Hat tip jewel
+   +'<circle cx="110" cy="28" r="5" fill="#e8b549"/>'
+   +'<circle cx="110" cy="28" r="2.5" fill="#fff" opacity="0.7"/>'
+
+   +'</g>'
+   +'</svg>'
+   +'</div>';
 }
 function showAnanseCorner(on){
   $("anansecorner").innerHTML=on?'<div class="ananse-idle">'+ananseSVG(92,"idle")+'</div>':"";
@@ -874,7 +948,7 @@ function defocus(){if(typeof document!=="undefined"&&document.body&&document.bod
 function openOverlay(html){overlay.innerHTML='<div class="ov-card fadein">'+html+'</div>';overlay.classList.add("show");overlay.scrollTop=0}
 
 function goHome(){
-  clearTimers();closeOverlay();defocus();
+  clearTimers();closeOverlay();defocus();stopDust();
   if("speechSynthesis" in window)speechSynthesis.cancel();
   S=null;
   if(!P)renderProfiles();
@@ -920,11 +994,37 @@ if(typeof navigator!=="undefined"&&"serviceWorker" in navigator&&typeof location
 }
 
 /* ---------- profiles ---------- */
+/* Golden dust motes — cinematic particles like the reference video */
+let dustInt=null;
+function spawnDust(){
+  if(dustInt){clearInterval(dustInt);dustInt=null;}
+  const field=document.getElementById("dustField");
+  if(!field)return;
+  function makeMote(){
+    const d=document.createElement("div");
+    d.className="dust";
+    const startX=Math.random()*100;
+    const startY=50+Math.random()*50;
+    d.style.left=startX+"%";
+    d.style.top=startY+"%";
+    d.style.setProperty("--dx",(Math.random()*60-30)+"px");
+    d.style.setProperty("--dy",(-80-Math.random()*80)+"px");
+    d.style.animationDuration=(3+Math.random()*4)+"s";
+    d.style.opacity=0.3+Math.random()*0.5;
+    field.appendChild(d);
+    setTimeout(()=>d.remove(),8000);
+  }
+  // Spawn a few immediately, then continue
+  for(let i=0;i<8;i++)setTimeout(makeMote,i*200);
+  dustInt=setInterval(makeMote,600);
+}
+function stopDust(){if(dustInt){clearInterval(dustInt);dustInt=null;}}
 function renderProfiles(){
-  clearTimers();showAnanseCorner(false);
+  clearTimers();showAnanseCorner(false);stopDust();
   const tiles=DB.profiles.map(p=>'<button class="opt profile-tile" onclick="selectProfile(\''+p.id+'\')">'+avatarHTML(p,52)+'<span><div style="font-size:24px">'+esc(p.name)+'</div><div class="muted">'+p.trophies.length+' trophies · '+p.sessions.length+' sessions</div></span></button>').join("");
   app.innerHTML='<div class="fadein center">'
-   +'<div class="ananse-wrap">'+ananseSVG(170,"idle")+'</div>'
+   +'<div class="ananse-wrap ananse-cinematic">'+ananseSVG(170,"idle")
+   +'<div class="dust-field" id="dustField"></div></div>'
    +'<h1>Learning Zone</h1>'
    +'<p class="muted" style="margin:8px 0 6px">with Ananse the Wise Spider</p>'
    +'<div class="kente-strip" style="max-width:340px;margin:14px auto 26px"></div>'
@@ -936,12 +1036,13 @@ function renderProfiles(){
    +'<button class="btn secondary" style="font-size:17px;padding:12px 22px" onclick="parentGate()">🔒 Parent Portal</button>'
    +a2hsHTML()
    +'</div>';
+  spawnDust();
   if(DB.profiles.length===0)renderNewProfile();
 }
 function renderNewProfile(){
   showAnanseCorner(false);
   app.innerHTML='<div class="fadein center" style="max-width:520px;margin:0 auto">'
-   +'<div class="ananse-wrap">'+ananseSVG(140,"idle")+'</div>'
+   +'<div class="ananse-wrap ananse-cinematic">'+ananseSVG(140,"idle")+'<div class="dust-field" id="dustField"></div></div>'
    +'<h2>Akwaaba! Welcome!</h2>'
    +'<p class="muted">I am Ananse the Wise Spider. What is your name, young explorer?</p>'
    +'<div class="spacer"></div>'
@@ -954,6 +1055,7 @@ function renderNewProfile(){
    +'<button class="btn big" onclick="createProfile()">Start My Assessment! 🕷️</button>'
    +(DB.profiles.length?'<div class="spacer"></div><button class="btn secondary" onclick="renderProfiles()">Back</button>':"")
    +'</div>';
+  spawnDust();
 }
 function createProfile(){
   const name=($("pname").value||"Explorer").trim().slice(0,20);
