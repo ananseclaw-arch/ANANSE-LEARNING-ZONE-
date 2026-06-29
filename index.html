@@ -275,35 +275,52 @@ function newProfile(name,avatar){return{
 }}
 
 /* ---------- text-to-speech (Ananse's voice) ---------- */
-let ananseVoice=null;
+let ananseVoice=null, speaking=null;
 function pickVoice(){
   if(!("speechSynthesis" in window))return;
   const vs=speechSynthesis.getVoices();
-  ananseVoice=vs.find(v=>/en[-_](GH|NG|ZA)/i.test(v.lang))||vs.find(v=>/Daniel|Fred|Aaron|Male/i.test(v.name)&&v.lang.startsWith("en"))||vs.find(v=>v.lang.startsWith("en"))||null;
+  // Best voices for Ananse — warm, expressive, reliable
+  ananseVoice=vs.find(v=>v.name.includes('Samantha')&&v.lang.startsWith('en-US'))
+           ||vs.find(v=>v.name.includes('Daniel')&&v.lang.startsWith('en-GB'))
+           ||vs.find(v=>/en[-_](GH|NG|ZA)/i.test(v.lang))
+           ||vs.find(v=>v.name.includes('Google')&&v.name.includes('English')&&v.name.includes('Female'))
+           ||vs.find(v=>v.name.includes('Aria'))
+           ||vs.find(v=>v.name.includes('Karen')&&v.lang.startsWith('en-AU'))
+           ||vs.find(v=>v.lang.startsWith('en'))||null;
 }
 if("speechSynthesis" in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
 async function say(text) {
   if (!DB.sound) return;
   text = text.replace(/[*_#]/g, "");
+  if (!("speechSynthesis" in window)) return;
   
-  // Web Speech API — works on all devices, no server needed
-  if ("speechSynthesis" in window) {
-    speechSynthesis.cancel();
-    const msg = new SpeechSynthesisUtterance(text);
-    msg.rate = 0.9;
-    msg.pitch = 1.1;
-    
-    const voices = speechSynthesis.getVoices();
-    msg.voice = voices.find(v => v.name.includes('Aria')) ||
-                voices.find(v => v.name.includes('Samantha')) ||
-                voices.find(v => v.name.includes('Google US English')) ||
-                voices.find(v => v.lang.includes('en-US') && v.name.includes('Female')) ||
-                voices.find(v => v.lang.includes('en-GH')) ||
-                voices.find(v => v.lang.includes('en-NG')) ||
-                voices[0];
-    
-    speechSynthesis.speak(msg);
+  // Cancel any in-progress speech
+  speechSynthesis.cancel();
+  
+  // Wait for voices to load (Chrome loads them async, empty until onvoiceschanged)
+  let retries=0;
+  while(speechSynthesis.getVoices().length===0 && retries<20){
+    await new Promise(r=>setTimeout(r,100));
+    retries++;
   }
+  
+  const msg = new SpeechSynthesisUtterance(text);
+  msg.rate = 0.9;
+  msg.pitch = 1.05;
+  
+  // Try to use the pre-picked voice, fall back to first available
+  if(ananseVoice && speechSynthesis.getVoices().some(v=>v.voiceURI===ananseVoice.voiceURI)){
+    msg.voice=ananseVoice;
+  }else{
+    const vs=speechSynthesis.getVoices();
+    msg.voice=vs.find(v=>v.lang.startsWith('en')&&v.localService)||vs[0];
+  }
+  
+  // Keep a reference to prevent Chrome GC bug (causes humming)
+  speaking=msg;
+  msg.onend=msg.onerror=()=>{speaking=null;};
+  
+  speechSynthesis.speak(msg);
 }
 function toggleSound(){
   DB.sound=!DB.sound;save();renderSoundBtn();
