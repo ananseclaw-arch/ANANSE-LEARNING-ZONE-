@@ -280,37 +280,43 @@ const TTS_API='https://api.streamelements.com/kappa/v2/speech?voice=Brian&text='
 
 async function say(text) {
   if (!DB.sound) return;
-  text = text.replace(/[*_#]/g, "");
+  text = text.replace(/[*_#]/g, "").replace(/[♪♫]/g,"");
   if("speechSynthesis" in window) speechSynthesis.cancel();
-
-  // StreamElements TTS — cross-origin, reliable, no humming
-  try {
-    const a=document.createElement('audio');
-    a.src=TTS_API+encodeURIComponent(text);
-    document.body.appendChild(a);
-    speaking=a;
-    a.onended=a.onerror=()=>{speaking=null;setTimeout(()=>a.remove(),500);};
-    await a.play();
-    return;
-  }catch(e){}
-
-  // Fallback: Web Speech API (local voices only)
-  if("speechSynthesis" in window) {
-    speechSynthesis.cancel();
-    for(let i=0;i<20;i++){
-      if(speechSynthesis.getVoices().length>0)break;
-      await new Promise(r=>setTimeout(r,150));
-    }
-    const v=speechSynthesis.getVoices().filter(v=>v.localService);
-    if(v.length>0){
-      const m=new SpeechSynthesisUtterance(text);
-      m.rate=0.85;m.pitch=1.0;
-      m.voice=v.find(x=>x.name==='Samantha')||v.find(x=>x.name==='Daniel')||v.find(x=>x.lang.startsWith('en'))||v[0];
-      speaking=m;
-      m.onend=m.onerror=()=>{speaking=null;};
-      speechSynthesis.speak(m);
+  
+  // Chunk long text (StreamElements limit ~500 chars)
+  const chunks=text.match(/.{1,400}(?:\s|$)/g)||[text];
+  
+  for(const chunk of chunks){
+    if(!DB.sound || speaking) break;
+    try {
+      const a=document.createElement('audio');
+      a.src=TTS_API+encodeURIComponent(chunk);
+      document.body.appendChild(a);
+      speaking=a;
+      await new Promise((resolve,reject)=>{
+        a.onended=()=>{resolve()};
+        a.onerror=()=>{reject(new Error('audio fail'))};
+        a.play().catch(reject);
+      });
+      speaking=null;setTimeout(()=>a.remove(),500);
+    }catch(e){
+      // StreamElements failed — try Web Speech fallback for this chunk
+      if("speechSynthesis" in window){
+        speechSynthesis.cancel();
+        for(let i=0;i<20;i++){if(speechSynthesis.getVoices().length>0)break;await new Promise(r=>setTimeout(r,150))}
+        const v=speechSynthesis.getVoices().filter(v=>v.localService);
+        if(v.length>0){
+          const m=new SpeechSynthesisUtterance(chunk);
+          m.rate=0.85;m.pitch=1.0;
+          m.voice=v.find(x=>x.name==='Samantha')||v.find(x=>x.name==='Daniel')||v.find(x=>x.lang.startsWith('en'))||v[0];
+          speaking=m;
+          await new Promise(resolve=>{m.onend=m.onerror=()=>{resolve()};speechSynthesis.speak(m)});
+          speaking=null;
+        }
+      }
     }
   }
+  speaking=null;
 }
 function toggleSound(){
   DB.sound=!DB.sound;save();renderSoundBtn();
