@@ -283,33 +283,40 @@ async function say(text) {
   text = text.replace(/[*_#]/g, "");
   if("speechSynthesis" in window) speechSynthesis.cancel();
   
-  // Primary: Google Translate TTS — most reliable, no humming
-  try {
-    const audio=new Audio();
-    audio.src='https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q='+encodeURIComponent(text);
-    speaking=audio;
-    audio.onended=audio.onerror=()=>{speaking=null;};
-    await audio.play();
-    return;
-  }catch(e){/* blocked, try Web Speech */}
-  
-  // Fallback: Web Speech API
-  if ("speechSynthesis" in window) {
-    speechSynthesis.cancel();
-    for(let i=0;i<15;i++){
-      if(speechSynthesis.getVoices().length>0)break;
-      await new Promise(r=>setTimeout(r,150));
-    }
-    const voices=speechSynthesis.getVoices();
-    if(voices.length>0){
-      const msg=new SpeechSynthesisUtterance(text);
-      msg.rate=0.9;msg.pitch=1.0;
-      msg.voice=voices.find(v=>v.localService&&v.lang.startsWith('en'))||voices[0];
-      speaking=msg;
-      msg.onend=msg.onerror=()=>{speaking=null;};
-      speechSynthesis.speak(msg);
-    }
+  // Wait for voices to load (Chrome loads them async)
+  for(let i=0;i<20;i++){
+    if(speechSynthesis.getVoices().length>0)break;
+    await new Promise(r=>setTimeout(r,150));
   }
+  const voices="speechSynthesis" in window ? speechSynthesis.getVoices() : [];
+  
+  // Preferred: local voices only — network/remote voices often hum or don't work
+  const localVoices=voices.filter(v=>v.localService);
+  if(localVoices.length>0 || voices.length>0){
+    const pool=localVoices.length>0 ? localVoices : voices;
+    const msg=new SpeechSynthesisUtterance(text);
+    msg.rate=0.9;msg.pitch=1.0;
+    // Prefer: Samantha > Daniel > any English > default
+    msg.voice=pool.find(v=>v.name==='Samantha'&&v.lang.startsWith('en'))
+           ||pool.find(v=>v.name==='Daniel'&&v.lang.startsWith('en'))
+           ||pool.find(v=>v.lang.startsWith('en'))
+           ||pool[0];
+    speaking=msg;
+    msg.onend=msg.onerror=()=>{speaking=null;};
+    speechSynthesis.speak(msg);
+    return;
+  }
+  
+  // Last fallback: Google Translate TTS via hidden audio element
+  try {
+    const a=document.createElement('audio');
+    a.style.display='none';
+    a.src='https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q='+encodeURIComponent(text);
+    document.body.appendChild(a);
+    speaking=a;
+    a.onended=a.onerror=()=>{speaking=null;a.remove();};
+    await a.play();
+  }catch(e){speaking=null}
 }
 function toggleSound(){
   DB.sound=!DB.sound;save();renderSoundBtn();
