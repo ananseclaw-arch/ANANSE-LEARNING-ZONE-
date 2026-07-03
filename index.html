@@ -289,6 +289,32 @@ input[type=range]{padding:0;height:38px;accent-color:var(--gold)}
 /* Chat bubbles entrance */
 #chatMsgs>div{animation:riseIn .35s var(--spring)}
 
+/* ============================================================
+   BOLD REDESIGN LAYER — aurora backdrop, hero card, vivid
+   gradient subject cards. Brand palette, new visual language.
+   ============================================================ */
+body{background:#f6faff;background-image:none}
+body:before{content:"";position:fixed;inset:-10%;z-index:-1;pointer-events:none;background:
+  radial-gradient(42% 36% at 16% 10%,rgba(245,166,35,.16),transparent 70%),
+  radial-gradient(46% 40% at 86% 6%,rgba(74,163,224,.20),transparent 70%),
+  radial-gradient(52% 46% at 50% 104%,rgba(59,178,115,.11),transparent 72%)}
+body.focus:before{display:none}
+
+.hero-card{display:flex;align-items:center;gap:18px;background:rgba(255,255,255,.62);backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);border:1.5px solid rgba(255,255,255,.95);border-radius:30px;padding:18px 24px;box-shadow:var(--shadow);max-width:560px;margin:0 auto;text-align:left;animation:riseIn .55s var(--spring)}
+.hero-kicker{font-size:14px;font-weight:900;letter-spacing:3px;color:var(--ink-dim)}
+.hero-chip{display:inline-flex;align-items:center;gap:5px;background:rgba(245,166,35,.16);color:#a86e08;font-weight:800;font-size:14px;border-radius:999px;padding:5px 12px;margin-right:7px}
+
+.subj-tile.vivid{border:none;color:#fff;position:relative;overflow:hidden;padding:22px 14px 18px;border-radius:26px}
+.subj-tile.vivid:before{content:"";position:absolute;top:-45%;left:-15%;width:90%;height:90%;background:radial-gradient(circle,rgba(255,255,255,.34),transparent 70%);pointer-events:none}
+.subj-tile.vivid .nm{color:#fff;font-size:21px;text-shadow:0 2px 6px rgba(0,0,0,.2)}
+.subj-tile.vivid .ic-wrap{display:inline-flex;align-items:center;justify-content:center;width:74px;height:74px;border-radius:24px;background:rgba(255,255,255,.28);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);margin-bottom:10px;box-shadow:inset 0 1px 0 rgba(255,255,255,.55)}
+.subj-tile.vivid .ic{font-size:44px;margin:0;display:block;filter:drop-shadow(0 4px 8px rgba(0,0,0,.22))}
+.lv-row{display:flex;gap:5px;justify-content:center;margin-top:10px}
+.lv-dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.35)}
+.lv-dot.on{background:#fff;box-shadow:0 0 8px rgba(255,255,255,.85)}
+.lv-cap{font-size:13.5px;font-weight:800;color:rgba(255,255,255,.92);margin-top:8px}
+.subj-tile.vivid.glow{outline:3.5px solid var(--gold-bright);outline-offset:3px;box-shadow:0 0 30px rgba(245,166,35,.45) !important}
+
 /* Respect reduced motion */
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001s !important;animation-iteration-count:1 !important;transition-duration:.001s !important}}
 </style>
@@ -451,38 +477,44 @@ if(typeof window!=="undefined"&&window.addEventListener){
 }
 
 /* ---------- Ananse the Wise Spider (SVG) ---------- */
-function ananseSVG(size,mood){ // mood: idle | teach | party
+function ananseSVG(size,mood){ // mood: idle | teach | party — Ananse 2.0: soft gradients, big friendly eyes, kente headband
+  const defs='<defs>'
+   +'<radialGradient id="anHead" cx="38%" cy="28%" r="85%"><stop offset="0%" stop-color="#a97a42"/><stop offset="55%" stop-color="#8a5f2e"/><stop offset="100%" stop-color="#6a4820"/></radialGradient>'
+   +'<radialGradient id="anBody" cx="40%" cy="28%" r="90%"><stop offset="0%" stop-color="#8a5f2e"/><stop offset="100%" stop-color="#5c3e18"/></radialGradient>'
+   +'<linearGradient id="anGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ffc94d"/><stop offset="100%" stop-color="#e09b1a"/></linearGradient>'
+   +'</defs>';
   const eyes=mood==="party"
-    ?'<path d="M86 88 q8 -10 16 0" stroke="#2a1c06" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M118 88 q8 -10 16 0" stroke="#2a1c06" stroke-width="5" fill="none" stroke-linecap="round"/>'
-    :'<circle cx="94" cy="88" r="9" fill="#fff"/><circle cx="96" cy="90" r="4.5" fill="#241803"/><circle cx="126" cy="88" r="9" fill="#fff"/><circle cx="128" cy="90" r="4.5" fill="#241803"/><circle cx="93" cy="86" r="2" fill="#fff" opacity=".9"/><circle cx="125" cy="86" r="2" fill="#fff" opacity=".9"/>';
+   ?'<path d="M80 92 q10 -14 20 0" stroke="#2a1c06" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M120 92 q10 -14 20 0" stroke="#2a1c06" stroke-width="6" fill="none" stroke-linecap="round"/>'
+   :'<ellipse cx="90" cy="94" rx="13" ry="15" fill="#fff"/><ellipse cx="130" cy="94" rx="13" ry="15" fill="#fff"/>'
+    +'<circle cx="93" cy="97" r="6.5" fill="#1f3c70"/><circle cx="127" cy="97" r="6.5" fill="#1f3c70"/>'
+    +'<circle cx="95.5" cy="94" r="2.6" fill="#fff"/><circle cx="129.5" cy="94" r="2.6" fill="#fff"/>';
+  const brows=mood==="teach"
+   ?'<path d="M78 76 q12 -8 24 -2" stroke="#4a3318" stroke-width="4.5" fill="none" stroke-linecap="round"/><path d="M118 74 q12 -6 24 2" stroke="#4a3318" stroke-width="4.5" fill="none" stroke-linecap="round"/>':'';
   const mouth=mood==="teach"
-    ?'<ellipse cx="110" cy="108" rx="9" ry="7" fill="#5a3a1a"/>'
-    :'<path d="M96 106 q14 14 28 0" stroke="#5a3a1a" stroke-width="5" fill="none" stroke-linecap="round"/>';
+   ?'<path d="M96 112 q14 12 28 0" stroke="#3c2810" stroke-width="5.5" fill="none" stroke-linecap="round"/>'
+   :mood==="party"
+   ?'<path d="M92 108 q18 22 36 0 q-18 10 -36 0z" fill="#3c2810"/><path d="M101 116 q9 7 18 0 q-9 8 -18 0z" fill="#e0569a"/>'
+   :'<path d="M94 110 q16 15 32 0" stroke="#3c2810" stroke-width="5.5" fill="none" stroke-linecap="round"/>';
+  const cheeks='<circle cx="74" cy="106" r="8" fill="#e0569a" opacity=".25"/><circle cx="146" cy="106" r="8" fill="#e0569a" opacity=".25"/>';
   const legs=[];
   for(let s=-1;s<=1;s+=2)for(let i=0;i<4;i++){
-    const y=120+i*14, x1=110+s*38, x2=110+s*(70+i*6), y2=y+22+(mood==="party"?(i%2?-10:6):8);
-    legs.push('<path d="M'+x1+' '+y+' Q'+(110+s*60)+' '+(y-14)+' '+x2+' '+y2+'" stroke="#4a3318" stroke-width="7" fill="none" stroke-linecap="round"/><circle cx="'+x2+'" cy="'+y2+'" r="4" fill="#4a3318"/>');
+    const y=138+i*12, x1=110+s*33, xm=110+s*(58+i*4), ym=y-16+(mood==="party"?-6:0), x2=110+s*(74+i*5), y2=y+16+(mood==="party"?(i%2?-14:4):6);
+    legs.push('<path d="M'+x1+' '+y+' Q'+xm+' '+ym+' '+x2+' '+y2+'" stroke="#6a4820" stroke-width="5.5" fill="none" stroke-linecap="round"/><circle cx="'+x2+'" cy="'+y2+'" r="4.5" fill="#6a4820"/>');
   }
-  return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg">'
+  return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 220 210" xmlns="http://www.w3.org/2000/svg">'+defs
+   +'<ellipse cx="110" cy="198" rx="52" ry="8" fill="#1f3c70" opacity=".10"/>'
    +legs.join("")
-   // body with adinkra symbol (Gye Nyame-inspired spiral)
-   +'<ellipse cx="110" cy="142" rx="42" ry="36" fill="#6b4a22"/>'
-   +'<ellipse cx="110" cy="142" rx="42" ry="36" fill="none" stroke="#54381a" stroke-width="3"/>'
-   +'<path d="M110 124 q14 4 14 18 q0 14 -14 18 q-14 -4 -14 -18 q0 -14 14 -18z" fill="none" stroke="#e8b549" stroke-width="3.5"/>'
-   +'<circle cx="110" cy="142" r="5" fill="#e8b549"/>'
-   // head
-   +'<circle cx="110" cy="92" r="34" fill="#7d5728"/>'
-   +'<circle cx="110" cy="92" r="34" fill="none" stroke="#5e4019" stroke-width="3"/>'
-   +eyes+mouth
-   // beaded necklace
-   +'<path d="M84 116 q26 18 52 0" stroke="none" fill="none"/>'
-   +'<circle cx="88" cy="118" r="5" fill="#c0492f"/><circle cx="99" cy="124" r="5" fill="#e8b549"/><circle cx="110" cy="126" r="5" fill="#4e8f5c"/><circle cx="121" cy="124" r="5" fill="#e8b549"/><circle cx="132" cy="118" r="5" fill="#2a5fa8"/>'
-   // kente hat
-   +'<path d="M78 74 L110 30 L142 74 Z" fill="#c0492f"/>'
-   +'<path d="M85 65 L135 65 L142 74 L78 74 Z" fill="#e8b549"/>'
-   +'<path d="M91 56 L129 56 L135 65 L85 65 Z" fill="#1a1a1a"/>'
-   +'<path d="M97 48 L123 48 L129 56 L91 56 Z" fill="#4e8f5c"/>'
-   +'<circle cx="110" cy="30" r="6" fill="#e8b549"/>'
+   +'<ellipse cx="110" cy="154" rx="38" ry="32" fill="url(#anBody)"/>'
+   +'<path d="M110 136 q13 4 13 17 q0 13 -13 17 q-13 -4 -13 -17 q0 -13 13 -17z" fill="none" stroke="url(#anGold)" stroke-width="3"/>'
+   +'<circle cx="110" cy="153" r="4.5" fill="url(#anGold)"/>'
+   +'<circle cx="110" cy="96" r="46" fill="url(#anHead)"/>'
+   +cheeks+eyes+brows+mouth
+   +'<circle cx="88" cy="130" r="4.5" fill="#c0492f"/><circle cx="99" cy="135" r="4.5" fill="#e8b549"/><circle cx="110" cy="137" r="4.5" fill="#4e8f5c"/><circle cx="121" cy="135" r="4.5" fill="#e8b549"/><circle cx="132" cy="130" r="4.5" fill="#2a5fa8"/>'
+   +'<path d="M66 66 q44 -26 88 0 l0 16 q-44 -20 -88 0z" fill="#c0492f"/>'
+   +'<path d="M66 74 q44 -22 88 0 l0 8 q-44 -20 -88 0z" fill="url(#anGold)"/>'
+   +'<rect x="84" y="50" width="8" height="18" rx="4" fill="#4e8f5c" transform="rotate(-14 88 59)"/>'
+   +'<rect x="106" y="44" width="8" height="18" rx="4" fill="#2a5fa8"/>'
+   +'<rect x="128" y="50" width="8" height="18" rx="4" fill="#c0492f" transform="rotate(14 132 59)"/>'
    +'</svg>';
 }
 function showAnanseCorner(on){
@@ -1141,10 +1173,21 @@ function renderHome(){
   const [s1,s2]=dailyPathSubjects();
   const dailyDone=P.daily.date===today()&&P.daily.done;
   const rec=new Set([s1,s2]);
-  const tile=s=>'<button class="subj-tile'+(rec.has(s)?" glow":"")+'" onclick="startSession(\''+s+'\')"><span class="ic">'+SUBJECTS[s].icon+'</span><span class="nm">'+SUBJECTS[s].name+'</span><div class="muted" style="font-size:14px;margin-top:4px">Level '+P.levels[s]+' · '+LEVEL_NAMES[P.levels[s]]+(rec.has(s)?' · ⭐ Today\'s pick':'')+'</div></button>';
+  const tile=s=>{
+    const c=SUBJECTS[s].color,lv=P.levels[s];
+    const dots=[1,2,3,4,5].map(n=>'<span class="lv-dot'+(n<=lv?" on":"")+'"></span>').join("");
+    return '<button class="subj-tile vivid'+(rec.has(s)?" glow":"")+'" style="background:linear-gradient(155deg,'+c+','+shadeInk(c,0.45)+');box-shadow:0 10px 26px '+c+'55" onclick="startSession(\''+s+'\')">'
+     +'<span class="ic-wrap"><span class="ic">'+SUBJECTS[s].icon+'</span></span>'
+     +'<span class="nm">'+SUBJECTS[s].name+'</span>'
+     +'<div class="lv-row">'+dots+'</div>'
+     +'<div class="lv-cap">'+LEVEL_NAMES[lv]+(rec.has(s)?' · ⭐ Today\'s pick':'')+'</div>'
+     +'</button>';
+  };
   app.innerHTML='<div class="fadein">'
-   +'<div class="center"><h1>Today\'s Adventure</h1>'
-   +'<p class="muted">Pick a subject to play! Ananse recommends the ones with a ⭐.</p></div>'
+   +'<div class="hero-card">'+ananseSVG(84,"idle")
+   +'<div><div class="hero-kicker">AKWAABA,</div><h1 style="font-size:30px;margin:0">'+esc(P.name)+'!</h1>'
+   +'<div style="margin-top:8px"><span class="hero-chip">🔥 '+(P.streak||0)+' streak</span><span class="hero-chip">⭐ '+(P.xp||0)+' XP</span><span class="hero-chip">🏆 '+P.trophies.length+'</span></div></div></div>'
+   +'<p class="muted center" style="margin-top:12px">Pick a subject — ⭐ marks Ananse\'s picks for today.</p>'
    +'<div class="kente-strip" style="margin:16px 0 22px"></div>'
    +'<div class="subj-grid" style="max-width:560px;margin:0 auto">'+Object.keys(SUBJECTS).map(tile).join("")+'</div>'
    +'<div class="adinkra-divider">✦ ✦ ✦</div>'
@@ -2718,6 +2761,14 @@ function testAnanse(){
 }
 checkAnanseHealth();
 setInterval(checkAnanseHealth,120000);
+
+/* Mix a subject hex color toward the brand ink for gradient depth */
+function shadeInk(hex,f){
+  const h=hex.replace("#",""),to=[31,60,112];
+  const r=parseInt(h.substr(0,2),16),g=parseInt(h.substr(2,2),16),b=parseInt(h.substr(4,2),16);
+  const m=(a,i)=>Math.round(a+(to[i]-a)*f);
+  return "rgb("+m(r,0)+","+m(g,1)+","+m(b,2)+")";
+}
 
 /* ============================================================
    VOICE PICKER (Parent Portal) — uses voiceScore/pickVoice
