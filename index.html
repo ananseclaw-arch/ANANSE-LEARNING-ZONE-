@@ -1022,10 +1022,16 @@ if(typeof navigator!=="undefined"&&"serviceWorker" in navigator&&typeof location
     const hadController=!!navigator.serviceWorker.controller;
     let refreshed=false;
     navigator.serviceWorker.addEventListener("controllerchange",()=>{
-      if(!hadController||refreshed)return;refreshed=true;location.reload();
+      // Auto-swap to a freshly installed version — but at most ONCE per tab
+      // session, so flapping CDN caches can never cause a reload loop.
+      if(!hadController||refreshed)return;
+      let done=null;try{done=sessionStorage.getItem("plzAutoReload");}catch(e){}
+      if(done)return;
+      try{sessionStorage.setItem("plzAutoReload","1");}catch(e){}
+      refreshed=true;location.reload();
     });
     navigator.serviceWorker.register("sw.js").then(reg=>{
-      try{reg.update();}catch(e){}
+      setTimeout(()=>{try{reg.update();}catch(e){}},4000);
       setInterval(()=>{try{reg.update();}catch(e){}},60*60*1000);
     }).catch(()=>{});
   });
