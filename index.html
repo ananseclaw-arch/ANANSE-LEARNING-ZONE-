@@ -202,6 +202,95 @@ body.focus #anansecorner{display:none}
 .pat-cell.q{background:#fff;border-style:dashed;border-color:var(--gold);color:var(--gold)}
 .swatch{width:74px;height:74px;border-radius:16px;border:3px solid rgba(0,0,0,.12)}
 .readbtn{background:var(--panel2);border:2px solid #b9d4f3;color:#2d6fc0;border-radius:12px;font-size:16px;font-weight:800;padding:8px 16px;cursor:pointer;font-family:inherit}
+
+/* ============================================================
+   PREMIUM POLISH LAYER — same brand palette, elevated finish.
+   Liquid glass, spring physics, layered light, staggered motion.
+   ============================================================ */
+:root{
+  --shadow:0 2px 6px rgba(31,60,112,.05),0 14px 34px rgba(80,130,210,.16);
+  --spring:cubic-bezier(.34,1.56,.64,1);
+}
+body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
+h1{background:linear-gradient(120deg,#2d6fc0,#4aa3e0 60%,#2d6fc0);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:.3px}
+
+/* Buttons — glass sheen + spring physics */
+.btn{position:relative;overflow:hidden;transition:transform .22s var(--spring),box-shadow .22s ease,filter .2s ease;will-change:transform}
+.btn:after{content:"";position:absolute;left:0;right:0;top:0;height:46%;background:linear-gradient(180deg,rgba(255,255,255,.5),rgba(255,255,255,0));border-radius:inherit;pointer-events:none}
+@media(hover:hover){.btn:hover{transform:translateY(-2px);filter:brightness(1.04)}}
+.btn:active{transform:translateY(3px) scale(.985)}
+.btn.secondary:after{background:linear-gradient(180deg,rgba(255,255,255,.7),rgba(255,255,255,0))}
+
+/* Liquid-glass surfaces */
+#overlay{background:rgba(214,230,250,.5);backdrop-filter:blur(16px) saturate(1.5);-webkit-backdrop-filter:blur(16px) saturate(1.5)}
+.ov-card{background:rgba(255,255,255,.88);backdrop-filter:blur(22px) saturate(1.35);-webkit-backdrop-filter:blur(22px) saturate(1.35);border-color:rgba(74,163,224,.55);animation:ovSpring .5s var(--spring)}
+@keyframes ovSpring{0%{transform:scale(.82) translateY(28px);opacity:0}100%{transform:scale(1) translateY(0);opacity:1}}
+#topbar .tb-btn{background:rgba(255,255,255,.72);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4);transition:transform .2s var(--spring),box-shadow .2s ease}
+@media(hover:hover){#topbar .tb-btn:hover{transform:translateY(-2px)}}
+.toast{background:rgba(74,163,224,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);animation:toastIn .45s var(--spring)}
+@keyframes toastIn{0%{transform:translate(-50%,-16px) scale(.9);opacity:0}100%{transform:translate(-50%,0) scale(1);opacity:1}}
+
+/* Entrances — springy rise with stagger */
+@keyframes riseIn{0%{opacity:0;transform:translateY(22px) scale(.96)}100%{opacity:1;transform:none}}
+.fadein{animation:riseIn .5s var(--spring)}
+.subj-tile{transition:transform .22s var(--spring),box-shadow .25s ease,border-color .2s ease;animation:riseIn .55s var(--spring) both}
+.subj-grid .subj-tile:nth-child(1){animation-delay:.03s}
+.subj-grid .subj-tile:nth-child(2){animation-delay:.09s}
+.subj-grid .subj-tile:nth-child(3){animation-delay:.15s}
+.subj-grid .subj-tile:nth-child(4){animation-delay:.21s}
+.subj-grid .subj-tile:nth-child(5){animation-delay:.27s}
+@media(hover:hover){.subj-tile:hover{transform:translateY(-4px);box-shadow:0 6px 10px rgba(31,60,112,.06),0 22px 44px rgba(80,130,210,.22)}}
+.subj-tile:active{transform:scale(.96)}
+.subj-tile .ic{filter:drop-shadow(0 6px 10px rgba(31,60,112,.16));transition:transform .25s var(--spring)}
+@media(hover:hover){.subj-tile:hover .ic{transform:scale(1.12) rotate(-3deg)}}
+
+/* Kente strip — living shimmer */
+.kente-strip{position:relative;overflow:hidden}
+.kente-strip:after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 32%,rgba(255,255,255,.55) 50%,transparent 68%);transform:translateX(-130%);animation:shimmer 5s ease-in-out infinite}
+@keyframes shimmer{0%,58%{transform:translateX(-130%)}88%,100%{transform:translateX(130%)}}
+
+/* Answer options — tactile spring + correct pulse */
+.opt{transition:transform .18s var(--spring),border-color .18s ease,background .2s ease,box-shadow .2s ease}
+@media(hover:hover){.opt:hover{border-color:var(--blue);transform:translateY(-2px)}}
+.opt:active{transform:scale(.975)}
+.opt.correct{animation:correctPulse .55s var(--spring)}
+@keyframes correctPulse{0%{transform:scale(1)}45%{transform:scale(1.04)}100%{transform:scale(1)}}
+.opt .letter{transition:transform .2s var(--spring)}
+.opt.correct .letter{background:var(--green);transform:scale(1.15)}
+
+/* Trophies — gold gradient ring, lifted glass shelf */
+.trophy{background:linear-gradient(165deg,#ffffff 0%,#f2f8ff 100%);box-shadow:0 1px 3px rgba(31,60,112,.06),0 8px 18px rgba(80,130,210,.12);transition:transform .2s var(--spring),box-shadow .2s ease;position:relative}
+.trophy:not(.silhouette){border-color:transparent}
+.trophy:not(.silhouette):before{content:"";position:absolute;inset:0;border-radius:14px;padding:2px;background:linear-gradient(140deg,var(--gold-bright),#fff3d6 45%,var(--gold-dim));-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.trophy .t-ic{filter:drop-shadow(0 4px 6px rgba(160,110,10,.25))}
+@media(hover:hover){.trophy:hover{transform:translateY(-4px) rotate(-1.5deg)}}
+.shelf{background:linear-gradient(180deg,rgba(221,235,255,.72),rgba(197,220,251,.85));backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+
+/* Cards & inputs — softer depth, focus glow */
+.card{transition:box-shadow .25s ease,transform .25s ease}
+input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 4px rgba(74,163,224,.18)}
+input[type=range]{padding:0;height:38px;accent-color:var(--gold)}
+
+/* Journey — magazine timeline */
+.jz-card{position:relative;border:2px solid #cfe0f7;border-radius:24px;background:linear-gradient(150deg,#ffffff,#f4f9ff);box-shadow:var(--shadow);padding:20px 20px 16px;margin-bottom:18px;overflow:hidden;animation:riseIn .55s var(--spring) both}
+.jz-card:after{content:"";position:absolute;top:0;left:0;right:0;height:5px;background:var(--kente);opacity:.55}
+.jz-head{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.jz-ic{font-size:42px;filter:drop-shadow(0 5px 9px rgba(31,60,112,.2))}
+.jz-path{display:flex;align-items:flex-start;margin:8px 0 2px}
+.jz-step{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:56px}
+.jz-node{width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:900;border:3px solid #d8e6fa;background:#fff;color:#b9cbe6;transition:transform .2s var(--spring)}
+.jz-node.done{border-color:var(--gold);background:linear-gradient(160deg,var(--gold-bright),var(--gold));color:#14365f;box-shadow:0 6px 16px rgba(245,166,35,.38)}
+.jz-node.now{border-color:var(--blue);color:#2d6fc0;animation:nowPulse 2.2s ease-in-out infinite}
+@keyframes nowPulse{0%,100%{box-shadow:0 0 0 0 rgba(74,163,224,.4)}50%{box-shadow:0 0 0 11px rgba(74,163,224,0)}}
+.jz-link{flex:1;height:6px;background:#e2edfc;border-radius:3px;min-width:8px;margin-top:22px}
+.jz-link.done{background:linear-gradient(90deg,var(--gold),var(--gold-bright))}
+.jz-lbl{font-size:11px;font-weight:800;color:var(--ink-dim);text-align:center;line-height:1.15}
+
+/* Chat bubbles entrance */
+#chatMsgs>div{animation:riseIn .35s var(--spring)}
+
+/* Respect reduced motion */
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001s !important;animation-iteration-count:1 !important;transition-duration:.001s !important}}
 </style>
 </head>
 <body>
@@ -234,9 +323,10 @@ const fmtTime=ms=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.floor(s/60
 
 /* ---------- persistent storage ---------- */
 const DBKEY="plz_v1";
-function defaultDB(){return{profiles:[],pin:null,sound:true,telegram:{token:"",chat:"",time:"19:00",lastSent:""},ananse:{url:"",key:""}}}
+function defaultDB(){return{profiles:[],pin:null,sound:true,telegram:{token:"",chat:"",time:"19:00",lastSent:""},ananse:{url:"",key:""},voice:{name:"",rate:0.92,pitch:1.0}}}
 let DB; try{DB=JSON.parse(localStorage.getItem(DBKEY))||defaultDB()}catch(e){DB=defaultDB()}
 if(!DB.ananse)DB.ananse={url:"",key:""};
+if(!DB.voice)DB.voice={name:"",rate:0.92,pitch:1.0};
 function save(){try{localStorage.setItem(DBKEY,JSON.stringify(DB))}catch(e){}}
 let P=null; // active profile
 let S=null; // active session
@@ -256,19 +346,43 @@ function newProfile(name,avatar){return{
 
 /* ---------- text-to-speech (Ananse's voice) ---------- */
 let ananseVoice=null;
+// Voice quality ranking: prefer enhanced/natural voices, known-good names,
+// Ghanaian/African English accents; penalize macOS novelty voices.
+const VOICE_PREF=["ava","zoe","allison","evan","nathan","joelle","serena","stephanie","samantha","daniel","karen","moira","tessa","aaron","google uk english male","google uk english female","google us english"];
+const VOICE_BAD=/compact|whisper|bells|bad news|good news|albert|zarvox|trinoids|boing|bubbles|cellos|wobble|organ|superstar|jester|grandma|grandpa|rocko|shelley|eddy|flo|reed|sandy|fred|junior|kathy|ralph|novelty/;
+function allVoices(){try{return speechSynthesis.getVoices()||[]}catch(e){return[]}}
+function voiceScore(v){
+  const n=(v.name||"").toLowerCase();
+  let s=0;
+  if(!v.lang||!v.lang.toLowerCase().startsWith("en"))return -999;
+  if(/premium|enhanced|natural|neural|siri/.test(n))s+=60;
+  const i=VOICE_PREF.findIndex(p=>n.includes(p));
+  if(i>=0)s+=40-i;
+  if(/en[-_](GH|NG|ZA)/i.test(v.lang))s+=25;
+  if(v.localService)s+=8;
+  if(VOICE_BAD.test(n))s-=120;
+  return s;
+}
 function pickVoice(){
   if(!("speechSynthesis" in window))return;
-  const vs=speechSynthesis.getVoices();
-  ananseVoice=vs.find(v=>/en[-_](GH|NG|ZA)/i.test(v.lang))||vs.find(v=>/Daniel|Fred|Aaron|Male/i.test(v.name)&&v.lang.startsWith("en"))||vs.find(v=>v.lang.startsWith("en"))||null;
+  const vs=allVoices();
+  if(!vs.length)return;
+  if(DB.voice&&DB.voice.name){
+    const m=vs.find(v=>v.name===DB.voice.name);
+    if(m){ananseVoice=m;return;}
+  }
+  ananseVoice=vs.slice().sort((a,b)=>voiceScore(b)-voiceScore(a))[0]||null;
 }
 if("speechSynthesis" in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
 function say(text){
   if(!DB.sound||!("speechSynthesis" in window))return;
   try{
     speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance(text.replace(/[*_#]/g,""));
+    const u=new SpeechSynthesisUtterance(String(text).replace(/[*_#]/g,""));
+    if(!ananseVoice)pickVoice();
     if(ananseVoice)u.voice=ananseVoice;
-    u.rate=0.95;u.pitch=1.02;
+    u.rate=(DB.voice&&DB.voice.rate)||0.92;
+    u.pitch=(DB.voice&&DB.voice.pitch)||1.0;
     speechSynthesis.speak(u);
   }catch(e){}
 }
@@ -1027,6 +1141,7 @@ function renderHome(){
    +'<div class="btn-row">'
    +'<button class="btn '+(dailyDone?"secondary":"")+'" onclick="startDaily()">🕵️ Daily Mystery '+(dailyDone?"✓":"")+'</button>'
    +'<button class="btn secondary" onclick="renderTrophyRoom()">🏆 Trophy Room</button>'
+   +'<button class="btn secondary" onclick="renderJourney()">🗺️ My Journey</button>'
    +'<button class="btn secondary" onclick="renderStats()">📊 My Player Card</button>'
    +'</div>'
    +'<div class="spacer"></div>'
@@ -2267,6 +2382,13 @@ function renderParent(){
    +'<div class="adinkra-divider">✦</div>'
    +'<h3>🏠 Offline Activities (based on his recent struggles)</h3><div class="spacer" style="height:10px"></div>'+acts
    +'<div class="adinkra-divider">✦</div>'
+   +'<h3>🔊 Ananse\'s Voice</h3>'
+   +'<p class="muted">Choose the voice this device uses when Ananse speaks. Voices marked ★ sound the most natural. Tip: on iPhone/iPad you can download nicer voices in Settings → Accessibility → Spoken Content → Voices → English, then pick them here.</p>'
+   +'<label>Voice</label><select id="voiceSel">'+voiceOptionsHTML()+'</select>'
+   +'<label>Talking speed</label><input id="voiceRate" type="range" min="0.7" max="1.15" step="0.05" value="'+((DB.voice&&DB.voice.rate)||0.92)+'">'
+   +'<div class="spacer" style="height:12px"></div>'
+   +'<div class="btn-row" style="justify-content:flex-start"><button class="btn secondary" onclick="saveVoice()">Save voice</button><button class="btn secondary" onclick="previewVoice()">▶️ Hear a sample</button></div>'
+   +'<div class="adinkra-divider">✦</div>'
    +'<h3>📲 Daily Telegram Report</h3>'
    +'<p class="muted">Sent once per day at your chosen time, whenever the app is open and online. Create a bot with @BotFather, then enter its token and your chat ID.</p>'
    +'<label>Bot token</label><input id="tgToken" value="'+esc(DB.telegram.token)+'" placeholder="123456:ABC-DEF...">'
@@ -2580,6 +2702,58 @@ function testAnanse(){
 }
 checkAnanseHealth();
 setInterval(checkAnanseHealth,120000);
+
+/* ============================================================
+   VOICE PICKER (Parent Portal) — uses voiceScore/pickVoice
+   ============================================================ */
+function voiceOptionsHTML(){
+  const vs=allVoices().filter(v=>v.lang&&v.lang.toLowerCase().startsWith("en")).sort((a,b)=>voiceScore(b)-voiceScore(a));
+  const cur=(DB.voice&&DB.voice.name)||"";
+  let h='<option value="">✨ Automatic (best on this device)</option>';
+  vs.forEach(v=>{
+    h+='<option value="'+esc(v.name)+'" '+(v.name===cur?"selected":"")+'>'+(voiceScore(v)>=60?"★ ":"")+esc(v.name)+' — '+esc(v.lang)+'</option>';
+  });
+  return h;
+}
+function applyVoiceInputs(){
+  DB.voice={name:$("voiceSel")?$("voiceSel").value:"",rate:parseFloat($("voiceRate")&&$("voiceRate").value)||0.92,pitch:1.0};
+  save();ananseVoice=null;pickVoice();
+}
+function saveVoice(){applyVoiceInputs();toast("Ananse's voice saved")}
+function previewVoice(){
+  applyVoiceInputs();
+  const wasSound=DB.sound;DB.sound=true;
+  say("Akwaaba, my friend! I am Ananse the Wise Spider. Shall we learn something amazing today?");
+  DB.sound=wasSound;
+}
+
+/* ============================================================
+   MY JOURNEY — magazine-style progress timeline
+   ============================================================ */
+function renderJourney(){
+  clearTimers();closeOverlay();defocus();showAnanseCorner(true);
+  const cards=Object.keys(SUBJECTS).map((s,i)=>{
+    const lvl=P.levels[s]||1;
+    const steps=[1,2,3,4,5].map(n=>{
+      const cls=n<lvl?" done":(n===lvl?" now":"");
+      const icon=n<lvl?"★":(n===lvl?SUBJECTS[s].icon:n);
+      return '<div class="jz-step"><div class="jz-node'+cls+'">'+icon+'</div><div class="jz-lbl">'+LEVEL_NAMES[n]+'</div></div>'+(n<5?'<div class="jz-link'+(n<lvl?" done":"")+'"></div>':'');
+    }).join("");
+    const tCount=P.trophies.filter(t=>t.subject===s).length;
+    const status=lvl>=5?"Champion path complete! 🎉":"Now training: "+LEVEL_NAMES[lvl];
+    return '<div class="jz-card" style="animation-delay:'+(i*0.07)+'s">'
+     +'<div class="jz-head"><span class="jz-ic">'+SUBJECTS[s].icon+'</span><div><h3>'+SUBJECTS[s].name+'</h3><p class="muted" style="font-size:15px">'+status+(tCount?' · 🏆 '+tCount+' troph'+(tCount===1?'y':'ies'):'')+'</p></div></div>'
+     +'<div class="jz-path">'+steps+'</div></div>';
+  }).join("");
+  const done=Object.keys(SUBJECTS).reduce((a,s)=>a+((P.levels[s]||1)-1),0);
+  app.innerHTML='<div class="fadein">'
+   +'<div class="center"><h1>🗺️ My Journey</h1><p class="muted">Every gold star is ground you already conquered, '+esc(P.name)+'. The glowing circle is where we are right now.</p></div>'
+   +'<div class="kente-strip" style="margin:16px 0 22px"></div>'
+   +'<div style="max-width:640px;margin:0 auto">'+cards+'</div>'
+   +'<div class="btn-row" style="margin-top:12px"><button class="btn" onclick="renderHome()">⟵ Back to Adventure</button></div>'
+   +'<div class="spacer"></div></div>';
+  say(done>0?"Look how far you have come, "+P.name+"! "+done+" level"+(done===1?"":"s")+" conquered already.":"This is your journey map, "+P.name+". Every level you beat turns into a gold star!");
+}
 </script>
 </body>
 </html>
