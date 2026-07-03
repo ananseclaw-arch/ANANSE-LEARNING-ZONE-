@@ -1018,7 +1018,17 @@ function a2hsClick(){
    +'<div class="spacer"></div><button class="btn" onclick="closeOverlay()">Got it!</button></div>');
 }
 if(typeof navigator!=="undefined"&&"serviceWorker" in navigator&&typeof location!=="undefined"&&location.protocol.indexOf("http")===0){
-  window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{})});
+  window.addEventListener("load",()=>{
+    const hadController=!!navigator.serviceWorker.controller;
+    let refreshed=false;
+    navigator.serviceWorker.addEventListener("controllerchange",()=>{
+      if(!hadController||refreshed)return;refreshed=true;location.reload();
+    });
+    navigator.serviceWorker.register("sw.js").then(reg=>{
+      try{reg.update();}catch(e){}
+      setInterval(()=>{try{reg.update();}catch(e){}},60*60*1000);
+    }).catch(()=>{});
+  });
 }
 
 /* ---------- profiles ---------- */
