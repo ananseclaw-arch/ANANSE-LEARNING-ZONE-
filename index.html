@@ -315,6 +315,18 @@ body.focus:before{display:none}
 .lv-cap{font-size:13.5px;font-weight:800;color:rgba(255,255,255,.92);margin-top:8px}
 .subj-tile.vivid.glow{outline:3.5px solid var(--gold-bright);outline-offset:3px;box-shadow:0 0 30px rgba(245,166,35,.45) !important}
 
+/* Splash screen — bold front door */
+.splash-hero{background:rgba(255,255,255,.55);backdrop-filter:blur(22px) saturate(1.45);-webkit-backdrop-filter:blur(22px) saturate(1.45);border:1.5px solid rgba(255,255,255,.95);border-radius:36px;padding:28px 24px 24px;max-width:560px;margin:0 auto;box-shadow:var(--shadow);animation:riseIn .6s var(--spring)}
+.ananse-hero{animation:floaty 3.5s ease-in-out infinite;filter:drop-shadow(0 14px 24px rgba(31,60,112,.22))}
+.splash-title{font-size:44px;letter-spacing:.5px}
+.splash-sub{color:var(--ink-dim);font-weight:800;font-size:17px;letter-spacing:1px;margin-top:4px}
+.profile-tile.pvivid{border:none;border-radius:24px;padding:16px 18px;color:#fff;position:relative;overflow:hidden;animation:riseIn .5s var(--spring) both;transition:transform .2s var(--spring)}
+.profile-tile.pvivid:before{content:"";position:absolute;top:-50%;left:-10%;width:75%;height:110%;background:radial-gradient(circle,rgba(255,255,255,.3),transparent 70%);pointer-events:none}
+@media(hover:hover){.profile-tile.pvivid:hover{transform:translateY(-3px) scale(1.01)}}
+.profile-tile.pvivid:active{transform:scale(.98)}
+.pv-av{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:58px;height:58px;border-radius:20px;background:rgba(255,255,255,.3);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:#fff;font-weight:900;font-size:28px;box-shadow:inset 0 1px 0 rgba(255,255,255,.55);text-shadow:0 2px 4px rgba(0,0,0,.2)}
+.pv-go{margin-left:auto;font-size:20px;color:rgba(255,255,255,.85);background:rgba(255,255,255,.22);border-radius:50%;width:42px;height:42px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
 /* Respect reduced motion */
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001s !important;animation-iteration-count:1 !important;transition-duration:.001s !important}}
 </style>
@@ -345,6 +357,13 @@ const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth
 const addDays=(iso,n)=>{const d=new Date(iso+"T12:00:00");d.setDate(d.getDate()+n);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 const dayOfYear=()=>{const d=new Date();return Math.floor((d-new Date(d.getFullYear(),0,0))/864e5)};
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+/* Mix a hex color toward the brand ink — used for vivid gradient cards */
+function shadeInk(hex,f){
+  const h=String(hex).replace("#",""),to=[31,60,112];
+  const r=parseInt(h.substr(0,2),16)||0,g=parseInt(h.substr(2,2),16)||0,b=parseInt(h.substr(4,2),16)||0;
+  const m=(a,i)=>Math.round(a+(to[i]-a)*f);
+  return "rgb("+m(r,0)+","+m(g,1)+","+m(b,2)+")";
+}
 const fmtTime=ms=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")};
 
 /* ---------- persistent storage ---------- */
@@ -1072,13 +1091,22 @@ if(typeof navigator!=="undefined"&&"serviceWorker" in navigator&&typeof location
 /* ---------- profiles ---------- */
 function renderProfiles(){
   clearTimers();showAnanseCorner(false);
-  const tiles=DB.profiles.map(p=>'<button class="opt profile-tile" onclick="selectProfile(\''+p.id+'\')">'+avatarHTML(p,52)+'<span><div style="font-size:24px">'+esc(p.name)+'</div><div class="muted">'+p.trophies.length+' trophies · '+p.sessions.length+' sessions</div></span></button>').join("");
+  const tiles=DB.profiles.map((p,i)=>{
+    const c=p.color||"#4aa3e0";
+    return '<button class="opt profile-tile pvivid" style="background:linear-gradient(140deg,'+c+','+shadeInk(c,0.5)+');box-shadow:0 10px 24px '+c+'55;animation-delay:'+(i*0.08)+'s" onclick="selectProfile(\''+p.id+'\')">'
+     +'<span class="pv-av">'+esc((p.name||"?").charAt(0).toUpperCase())+'</span>'
+     +'<span><div style="font-size:25px;font-weight:900;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.2)">'+esc(p.name)+'</div>'
+     +'<div style="font-size:15px;font-weight:800;color:rgba(255,255,255,.85)">🏆 '+p.trophies.length+' · 🎮 '+p.sessions.length+' sessions</div></span>'
+     +'<span class="pv-go">▶</span></button>';
+  }).join("");
   app.innerHTML='<div class="fadein center">'
-   +'<div class="ananse-wrap">'+ananseSVG(170,"idle")+'</div>'
-   +'<h1>Learning Zone</h1>'
-   +'<p class="muted" style="margin:8px 0 6px">with Ananse the Wise Spider</p>'
-   +'<div class="kente-strip" style="max-width:340px;margin:14px auto 26px"></div>'
-   +(DB.profiles.length?'<h2 style="font-size:24px;margin-bottom:14px">Who\'s learning today?</h2>':"")
+   +'<div class="splash-hero">'
+   +'<div class="ananse-wrap ananse-hero">'+ananseSVG(180,"idle")+'</div>'
+   +'<h1 class="splash-title">Learning Zone</h1>'
+   +'<p class="splash-sub">✨ with Ananse the Wise Spider ✨</p>'
+   +'<div class="kente-strip" style="max-width:340px;margin:16px auto 0"></div>'
+   +'</div>'
+   +(DB.profiles.length?'<h2 style="font-size:24px;margin:24px 0 16px">Who\'s learning today?</h2>':"")
    +'<div style="max-width:520px;margin:0 auto;text-align:left">'+tiles+'</div>'
    +'<div class="spacer"></div>'
    +'<button class="btn" onclick="renderNewProfile()">＋ New Learner</button>'
@@ -2761,14 +2789,6 @@ function testAnanse(){
 }
 checkAnanseHealth();
 setInterval(checkAnanseHealth,120000);
-
-/* Mix a subject hex color toward the brand ink for gradient depth */
-function shadeInk(hex,f){
-  const h=hex.replace("#",""),to=[31,60,112];
-  const r=parseInt(h.substr(0,2),16),g=parseInt(h.substr(2,2),16),b=parseInt(h.substr(4,2),16);
-  const m=(a,i)=>Math.round(a+(to[i]-a)*f);
-  return "rgb("+m(r,0)+","+m(g,1)+","+m(b,2)+")";
-}
 
 /* ============================================================
    VOICE PICKER (Parent Portal) — uses voiceScore/pickVoice
