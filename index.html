@@ -381,6 +381,7 @@ function defaultDB(){return{profiles:[],pin:null,sound:true,telegram:{token:"",c
 let DB; try{DB=JSON.parse(localStorage.getItem(DBKEY))||defaultDB()}catch(e){DB=defaultDB()}
 if(!DB.ananse)DB.ananse={url:"",key:""};
 if(!DB.voice)DB.voice={name:"",rate:0.92,pitch:1.0};
+if(!DB.kingdom)DB.kingdom={enabled:false};
 function save(){try{
   localStorage.setItem(DBKEY,JSON.stringify(DB));
   // Guardian copy: any time we have real profile data, keep a second snapshot
@@ -1250,6 +1251,7 @@ function dailyPathSubjects(){
   return [order[0],order[1]];
 }
 function renderHome(){
+  if(typeof kingdomWants==="function"&&kingdomWants()){renderKingdom();return;}
   clearTimers();closeOverlay();defocus();showAnanseCorner(true);
   if(typeof checkAlerts==="function")checkAlerts();
   const [s1,s2]=dailyPathSubjects();
@@ -2524,6 +2526,10 @@ function renderParent(){
    +'<div class="adinkra-divider">✦</div>'
    +'<h3>🏠 Offline Activities (based on his recent struggles)</h3><div class="spacer" style="height:10px"></div>'+acts
    +'<div class="adinkra-divider">✦</div>'
+   +'<h3>🕸️ Web Kingdom — new 3D home (preview)</h3>'
+   +'<p class="muted">The magical 3D web where subjects are dewdrops. Needs internet once to fetch the 3D engine; after that it works offline too. Any device that can\'t run it automatically gets the classic home.</p>'
+   +'<div class="btn-row" style="justify-content:flex-start"><button class="btn secondary" onclick="toggleKingdom()">'+(DB.kingdom&&DB.kingdom.enabled?'Turn OFF the 3D Kingdom':'✨ Turn ON the 3D Kingdom')+'</button></div>'
+   +'<div class="adinkra-divider">✦</div>'
    +'<h3>🔊 Ananse\'s Voice</h3>'
    +'<p class="muted">Choose the voice this device uses when Ananse speaks. Voices marked ★ sound the most natural. Tip: on iPhone/iPad you can download nicer voices in Settings → Accessibility → Spoken Content → Voices → English, then pick them here.</p>'
    +'<label>Voice</label><select id="voiceSel">'+voiceOptionsHTML()+'</select>'
@@ -2911,6 +2917,218 @@ setInterval(checkAnanseHealth,120000);
   if(reduced){step();}       // static web for reduced-motion users
   else loop();
 })();
+</script>
+<script>
+/* ============================================================
+   🕸️ ANANSE'S WEB KINGDOM — Phase 1: the 3D hub
+   A giant web in the sky; subjects are glowing dewdrop orbs.
+   Behind a Parent Portal switch (DB.kingdom.enabled).
+   Engine (Three.js) loads once from CDN, then lives in the
+   offline cache. Any failure → classic 2D home, always.
+   ============================================================ */
+const KD={built:false,active:false,raf:null,renderer:null,scene:null,camera:null,
+          web:null,orbs:[],canvas:null,labelBox:null,t:0,px:0,py:0};
+function kingdomWants(){
+  return !!(DB.kingdom&&DB.kingdom.enabled)&&!window._kdFallback&&kdWebgl();
+}
+function kdWebgl(){
+  try{const c=document.createElement("canvas");
+    return !!(window.WebGLRenderingContext&&(c.getContext("webgl")||c.getContext("experimental-webgl")));
+  }catch(e){return false}
+}
+function toggleKingdom(){
+  DB.kingdom.enabled=!DB.kingdom.enabled;
+  window._kdFallback=false;save();
+  toast(DB.kingdom.enabled?"🕸️ Web Kingdom is ON":"Classic home is back");
+  renderParent();
+}
+function loadThree(){
+  return new Promise((res,rej)=>{
+    if(window.THREE)return res();
+    const s=document.createElement("script");
+    s.src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
+    const to=setTimeout(()=>rej(new Error("timeout")),15000);
+    s.onload=()=>{clearTimeout(to);res()};
+    s.onerror=()=>{clearTimeout(to);rej(new Error("load"))};
+    document.head.appendChild(s);
+  });
+}
+/* stop the kingdom loop whenever any other view takes over */
+const _kdOrigClearTimers=clearTimers;
+clearTimers=function(){
+  KD.active=false;
+  if(KD.raf){cancelAnimationFrame(KD.raf);KD.raf=null}
+  _kdOrigClearTimers();
+};
+function renderKingdom(){
+  KD.active=false;closeOverlay();defocus();showAnanseCorner(false);
+  app.innerHTML='<div class="fadein center" style="padding-top:26vh"><div class="ananse-wrap">'+ananseSVG(96,"idle")+'</div><h2 style="margin-top:12px">Spinning the web…</h2></div>';
+  loadThree().then(()=>{kdShow();}).catch(()=>{
+    window._kdFallback=true;   // this device/session can't get the engine — classic home
+    toast("The 3D web needs internet once — showing classic home");
+    renderHome();
+  });
+}
+function kdShow(){
+  if(!KD.built)kdBuildScene();
+  app.innerHTML="";
+  const wrap=document.createElement("div");
+  wrap.id="kdwrap";
+  wrap.style.cssText="position:fixed;inset:0;overflow:hidden;background:linear-gradient(180deg,#dceeff 0%,#f6faff 55%,#fff6e8 100%)";
+  wrap.appendChild(KD.canvas);
+  KD.labelBox=document.createElement("div");
+  KD.labelBox.style.cssText="position:absolute;inset:0;pointer-events:none";
+  wrap.appendChild(KD.labelBox);
+  const top=document.createElement("div");
+  top.style.cssText="position:absolute;top:14px;left:0;right:0;display:flex;justify-content:center;pointer-events:none";
+  top.innerHTML='<div class="hero-chip" style="font-size:16px;background:rgba(255,255,255,.75);backdrop-filter:blur(10px)">🕸️ Akwaaba to the Web Kingdom, '+esc(P.name)+'! · 🔥 '+(P.streak||0)+' · ⭐ '+(P.xp||0)+'</div>';
+  wrap.appendChild(top);
+  const bottom=document.createElement("div");
+  bottom.style.cssText="position:absolute;left:0;right:0;bottom:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:0 12px";
+  bottom.innerHTML='<button class="btn secondary" style="font-size:15px;padding:9px 14px" onclick="renderJourney()">🗺️ Journey</button>'
+   +'<button class="btn secondary" style="font-size:15px;padding:9px 14px" onclick="renderTrophyRoom()">🏆 Trophies</button>'
+   +'<button class="btn secondary" style="font-size:15px;padding:9px 14px" onclick="startDaily()">🕵️ Mystery</button>'
+   +'<button class="btn secondary" style="font-size:15px;padding:9px 14px" onclick="renderStats()">📊 Card</button>'
+   +'<button class="btn secondary" style="font-size:15px;padding:9px 14px" onclick="parentGate()">🔒 Parent</button>';
+  wrap.appendChild(bottom);
+  app.appendChild(wrap);
+  kdMakeLabels();
+  kdResize();
+  KD.active=true;
+  kdTick();
+  say("Welcome to your Web Kingdom, "+P.name+"! Tap a dewdrop to play.");
+}
+function kdBuildScene(){
+  const T=window.THREE;
+  KD.canvas=document.createElement("canvas");
+  KD.canvas.style.cssText="position:absolute;inset:0;width:100%;height:100%";
+  KD.renderer=new T.WebGLRenderer({canvas:KD.canvas,antialias:true,alpha:true});
+  KD.renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
+  KD.scene=new T.Scene();
+  KD.camera=new T.PerspectiveCamera(55,1,0.1,100);
+  KD.camera.position.set(0,1.6,11);
+  KD.scene.add(new T.AmbientLight(0xffffff,0.85));
+  const sun=new T.DirectionalLight(0xfff0cf,0.9);sun.position.set(5,9,6);KD.scene.add(sun);
+  // ---- the great web ----
+  const web=new T.Group();KD.web=web;KD.scene.add(web);
+  web.rotation.x=-0.42;
+  const silk=new T.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.65});
+  const R=7,SPOKES=14;
+  for(let i=0;i<SPOKES;i++){
+    const a=i/SPOKES*Math.PI*2;
+    const g=new T.BufferGeometry().setFromPoints([new T.Vector3(0,0,0),new T.Vector3(Math.cos(a)*R,Math.sin(a)*R,0)]);
+    web.add(new T.Line(g,silk));
+  }
+  for(let r=1.2;r<=R;r+=1.16){
+    const pts=[];
+    for(let i=0;i<=72;i++){
+      const a=i/72*Math.PI*2;
+      const wob=1+Math.sin(a*SPOKES/2)*0.02;
+      pts.push(new T.Vector3(Math.cos(a)*r*wob,Math.sin(a)*r*wob,Math.sin(a*3+r)*0.06));
+    }
+    web.add(new T.Line(new T.BufferGeometry().setFromPoints(pts),silk));
+  }
+  // dew sparkles on the strands
+  const dew=new T.BufferGeometry();
+  const dp=[];
+  for(let i=0;i<90;i++){
+    const a=Math.random()*Math.PI*2,r=1+Math.random()*(R-1);
+    dp.push(Math.cos(a)*r,Math.sin(a)*r,0.02);
+  }
+  dew.setAttribute("position",new T.Float32BufferAttribute(dp,3));
+  web.add(new T.Points(dew,new T.PointsMaterial({color:0xbfe3ff,size:0.09,transparent:true,opacity:0.9})));
+  // ---- subject dewdrop orbs ----
+  KD.orbs=[];
+  const subs=Object.keys(SUBJECTS);
+  subs.forEach((s,i)=>{
+    const a=(i/subs.length)*Math.PI*2+Math.PI/2;
+    const r=4.35;
+    const col=new T.Color(SUBJECTS[s].color);
+    const m=new T.Mesh(
+      new T.SphereGeometry(0.82,32,24),
+      new T.MeshPhongMaterial({color:col,emissive:col,emissiveIntensity:0.28,shininess:120,specular:0xffffff})
+    );
+    m.position.set(Math.cos(a)*r,Math.sin(a)*r,0.35);
+    web.add(m);
+    const ring=new T.Mesh(
+      new T.TorusGeometry(1.02,0.045,10,48),
+      new T.MeshBasicMaterial({color:0xffc94d,transparent:true,opacity:0.95})
+    );
+    ring.position.copy(m.position);ring.visible=false;
+    web.add(ring);
+    KD.orbs.push({subject:s,mesh:m,ring,baseZ:0.35,i});
+  });
+  // interaction — tap the nearest orb (screen-space, big kid-friendly target)
+  KD.canvas.addEventListener("pointerdown",e=>{
+    if(!KD.active)return;
+    const hit=kdOrbAt(e.clientX,e.clientY,90);
+    if(hit){sfx("tick");startSession(hit.subject);}
+  });
+  window.addEventListener("pointermove",e=>{
+    KD.px=(e.clientX/innerWidth-0.5)*2;KD.py=(e.clientY/innerHeight-0.5)*2;
+  },{passive:true});
+  window.addEventListener("resize",kdResize);
+  KD.built=true;
+}
+function kdScreenPos(v3){
+  const T=window.THREE;
+  const v=new T.Vector3().copy(v3);
+  KD.web.localToWorld(v);v.project(KD.camera);
+  return {x:(v.x*0.5+0.5)*innerWidth,y:(-v.y*0.5+0.5)*innerHeight,behind:v.z>1};
+}
+function kdOrbAt(cx,cy,radius){
+  let best=null,bd=radius;
+  KD.orbs.forEach(o=>{
+    const p=kdScreenPos(o.mesh.position);
+    const d=Math.hypot(p.x-cx,p.y-cy);
+    if(!p.behind&&d<bd){bd=d;best=o;}
+  });
+  return best;
+}
+function kdMakeLabels(){
+  if(!KD.labelBox)return;
+  KD.labelBox.innerHTML="";
+  const [p1,p2]=dailyPathSubjects();
+  const rec=new Set([p1,p2]);
+  KD.orbs.forEach(o=>{
+    o.ring.visible=rec.has(o.subject);
+    const el=document.createElement("div");
+    el.style.cssText="position:absolute;transform:translate(-50%,-135%);text-align:center;pointer-events:none;transition:opacity .3s";
+    el.innerHTML='<div style="font-size:34px;filter:drop-shadow(0 4px 8px rgba(31,60,112,.3))">'+SUBJECTS[o.subject].icon+'</div>'
+     +'<div style="font-weight:900;font-size:16px;color:#1f3c70;text-shadow:0 1px 0 #fff">'+SUBJECTS[o.subject].name+'</div>'
+     +'<div style="font-weight:800;font-size:12px;color:#6f88ad">Lv '+P.levels[o.subject]+(rec.has(o.subject)?' · ⭐':'')+'</div>';
+    KD.labelBox.appendChild(el);
+    o.label=el;
+  });
+}
+function kdResize(){
+  if(!KD.renderer)return;
+  KD.renderer.setSize(innerWidth,innerHeight,false);
+  KD.camera.aspect=innerWidth/innerHeight;
+  KD.camera.updateProjectionMatrix();
+}
+function kdTick(){
+  if(!KD.active)return;
+  KD.raf=requestAnimationFrame(kdTick);
+  if(document.hidden)return;
+  KD.t+=0.016;
+  const t=KD.t;
+  KD.web.rotation.z+=0.0007;
+  KD.orbs.forEach((o,i)=>{
+    o.mesh.position.z=o.baseZ+Math.sin(t*1.4+i*1.7)*0.16;
+    o.mesh.rotation.y+=0.01;
+    if(o.ring.visible){o.ring.rotation.z+=0.02;o.ring.position.z=o.mesh.position.z-0.05;}
+    if(o.label){
+      const p=kdScreenPos(o.mesh.position);
+      o.label.style.left=p.x+"px";o.label.style.top=p.y+"px";
+      o.label.style.opacity=p.behind?0:1;
+    }
+  });
+  KD.camera.position.x+=(KD.px*0.9-KD.camera.position.x)*0.04;
+  KD.camera.position.y+=(1.6-KD.py*0.7-KD.camera.position.y)*0.04;
+  KD.camera.lookAt(0,0.4,0);
+  KD.renderer.render(KD.scene,KD.camera);
+}
 
 /* ============================================================
    VOICE PICKER (Parent Portal) — uses voiceScore/pickVoice
