@@ -3006,12 +3006,14 @@ function kdBuildScene(){
   KD.renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
   KD.scene=new T.Scene();
   KD.camera=new T.PerspectiveCamera(55,1,0.1,100);
-  KD.camera.position.set(0,1.6,11);
+  KD.camera.position.set(0,1.3,11.5);
   KD.scene.add(new T.AmbientLight(0xffffff,0.85));
   const sun=new T.DirectionalLight(0xfff0cf,0.9);sun.position.set(5,9,6);KD.scene.add(sun);
   // ---- the great web ----
   const web=new T.Group();KD.web=web;KD.scene.add(web);
   web.rotation.x=-0.42;
+  web.position.y=0.9;
+  web.scale.set(0.88,0.88,0.88);
   const silk=new T.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.65});
   const R=7,SPOKES=14;
   for(let i=0;i<SPOKES;i++){
@@ -3125,8 +3127,8 @@ function kdTick(){
     }
   });
   KD.camera.position.x+=(KD.px*0.9-KD.camera.position.x)*0.04;
-  KD.camera.position.y+=(1.6-KD.py*0.7-KD.camera.position.y)*0.04;
-  KD.camera.lookAt(0,0.4,0);
+  KD.camera.position.y+=(1.3-KD.py*0.7-KD.camera.position.y)*0.04;
+  KD.camera.lookAt(0,0.55,0);
   KD.renderer.render(KD.scene,KD.camera);
 }
 
