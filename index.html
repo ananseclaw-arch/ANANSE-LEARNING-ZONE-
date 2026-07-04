@@ -441,6 +441,7 @@ function pickVoice(){
   ananseVoice=vs.slice().sort((a,b)=>voiceScore(b)-voiceScore(a))[0]||null;
 }
 if("speechSynthesis" in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
+let _sayKeepAlive=null;
 function say(text){
   if(!DB.sound||!("speechSynthesis" in window))return;
   try{
@@ -452,16 +453,29 @@ function say(text){
     if(ananseVoice)u.voice=ananseVoice;
     u.rate=(DB.voice&&DB.voice.rate)||0.92;
     u.pitch=(DB.voice&&DB.voice.pitch)||1.0;
-    u.onerror=function(){
-      // Chosen voice failed (e.g. a network voice while offline) — retry once with the device default
+    u.onerror=function(e){
+      // "interrupted"/"canceled" just means newer speech took over — never retry those
+      const kind=e&&e.error;
+      if(kind==="interrupted"||kind==="canceled"||u._retried)return;
+      u._retried=true;
+      // Real failure (e.g. a network voice while offline) — retry once with the device default
       try{
         ananseVoice=null;
         const v=new SpeechSynthesisUtterance(clean);
         v.rate=u.rate;v.pitch=u.pitch;
         speechSynthesis.speak(v);
-      }catch(e){}
+      }catch(err){}
     };
-    speechSynthesis.speak(u);
+    // Chrome drops speak() fired in the same tick as cancel(); tiny delay fixes it
+    setTimeout(()=>{try{speechSynthesis.speak(u);}catch(e){}},60);
+    // Chrome also freezes long readings after ~15s — nudge it awake while speaking
+    if(_sayKeepAlive)clearInterval(_sayKeepAlive);
+    _sayKeepAlive=setInterval(()=>{
+      try{
+        if(speechSynthesis.speaking){speechSynthesis.pause();speechSynthesis.resume();}
+        else{clearInterval(_sayKeepAlive);_sayKeepAlive=null;}
+      }catch(e){}
+    },9000);
   }catch(e){}
 }
 // Browsers block audio/speech until the first user gesture — unlock both on first tap
