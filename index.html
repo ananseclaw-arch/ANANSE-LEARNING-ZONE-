@@ -381,7 +381,19 @@ function defaultDB(){return{profiles:[],pin:null,sound:true,telegram:{token:"",c
 let DB; try{DB=JSON.parse(localStorage.getItem(DBKEY))||defaultDB()}catch(e){DB=defaultDB()}
 if(!DB.ananse)DB.ananse={url:"",key:""};
 if(!DB.voice)DB.voice={name:"",rate:0.92,pitch:1.0};
-function save(){try{localStorage.setItem(DBKEY,JSON.stringify(DB))}catch(e){}}
+function save(){try{
+  localStorage.setItem(DBKEY,JSON.stringify(DB));
+  // Guardian copy: any time we have real profile data, keep a second snapshot
+  if(DB.profiles&&DB.profiles.length)localStorage.setItem("plz_guard",JSON.stringify({saved:Date.now(),data:DB}));
+}catch(e){}}
+/* Self-heal: if profiles ever vanish unexpectedly (stale tab overwrite,
+   storage eviction), restore them from the guardian snapshot. */
+try{
+  if(!DB.profiles||!DB.profiles.length){
+    const _g=JSON.parse(localStorage.getItem("plz_guard")||"null");
+    if(_g&&_g.data&&_g.data.profiles&&_g.data.profiles.length){DB=_g.data;save();}
+  }
+}catch(e){}
 let P=null; // active profile
 let S=null; // active session
 
@@ -2556,6 +2568,7 @@ function resetApp(){
 function doResetApp(){
   closeOverlay();
   localStorage.removeItem("plz_v1");
+  try{localStorage.removeItem("plz_guard");}catch(e){}
   DB=defaultDB();P=null;save();
   toast("App reset");
   renderProfiles();
