@@ -395,6 +395,29 @@ try{
     if(_g&&_g.data&&_g.data.profiles&&_g.data.profiles.length){DB=_g.data;save();}
   }
 }catch(e){}
+/* ---------- mid-lesson auto-save & resume ---------- */
+function sessSave(){
+  try{
+    if(!P||!S||S.mode!=="session")return;
+    const c=Object.assign({},S,{brokeAt:Array.from(S.brokeAt||[])});
+    DB.resume=DB.resume||{};
+    DB.resume[P.id]={t:Date.now(),s:JSON.parse(JSON.stringify(c))};
+    save();
+  }catch(e){}
+}
+function sessClear(){try{if(DB.resume&&P&&DB.resume[P.id]){delete DB.resume[P.id];save();}}catch(e){}}
+function sessTryResume(){
+  try{
+    const r=DB.resume&&P&&DB.resume[P.id];
+    if(!r||!r.s||!r.s.cur)return false;
+    if(Date.now()-r.t>86400000){delete DB.resume[P.id];save();return false;}
+    S=r.s;S.brokeAt=new Set(S.brokeAt||[]);
+    toast("✨ Continuing right where you left off");
+    renderQuestion();
+    return true;
+  }catch(e){return false}
+}
+function sessResumeBtn(){if(!sessTryResume()){toast("Nothing to continue");renderHome();}}
 let P=null; // active profile
 let S=null; // active session
 
@@ -524,8 +547,10 @@ function sfx(name){
     case "swish":     _blip(420,0,0.10,"sine",0.10);_blip(620,0.05,0.12,"sine",0.10);break;
   }
 }
-// ambient focus loop (gentle, low) — used during reading/story
-function ambientStart(){
+// ambient focus loop — DISABLED: the low oscillator drone read as an
+// unpleasant hum on many speakers (reported on English/Comprehension).
+// ambientStop() is kept so existing calls stay safe.
+function ambientStart(){return;
   if(!DB.sound)return;const a=audioCtx();if(!a||_ambient)return;_resume();
   try{
     const o=a.createOscillator(),o2=a.createOscillator(),g=a.createGain();
@@ -1206,7 +1231,9 @@ function selectProfile(id){
 }
 function kidEnter(p){
   P=p;
-  if(!P.diagDone)startDiagnostic();else{say("Akwaaba, "+P.name+"!");renderHome()}
+  if(!P.diagDone){startDiagnostic();return;}
+  if(sessTryResume())return;   // reopen mid-lesson → land on the exact same question
+  say("Akwaaba, "+P.name+"!");renderHome();
 }
 /* kid login PIN */
 let kidBuf="",kidMode="check",kidTarget=null;
@@ -1272,6 +1299,7 @@ function renderHome(){
    +'<div><div class="hero-kicker">AKWAABA,</div><h1 style="font-size:30px;margin:0">'+esc(P.name)+'!</h1>'
    +'<div style="margin-top:8px"><span class="hero-chip">🔥 '+(P.streak||0)+' streak</span><span class="hero-chip">⭐ '+(P.xp||0)+' XP</span><span class="hero-chip">🏆 '+P.trophies.length+'</span></div></div></div>'
    +'<p class="muted center" style="margin-top:12px">Pick a subject — ⭐ marks Ananse\'s picks for today.</p>'
+   +(DB.resume&&DB.resume[P.id]&&DB.resume[P.id].s?'<div class="btn-row" style="margin-top:10px"><button class="btn" onclick="sessResumeBtn()">▶ Continue your lesson</button></div>':'')
    +'<div class="kente-strip" style="margin:16px 0 22px"></div>'
    +'<div class="subj-grid" style="max-width:560px;margin:0 auto">'+Object.keys(SUBJECTS).map(tile).join("")+'</div>'
    +'<div class="adinkra-divider">✦ ✦ ✦</div>'
@@ -1300,7 +1328,7 @@ function renderHome(){
 function startSession(subject){
   S={subject,total:10,n:0,correct:0,results:[],consecR:0,consecW:0,
      sprintEnd:Date.now()+10*60*1000,qStart:0,cur:null,brokeAt:new Set(),xp:0,mode:"session",
-     start:Date.now(),wpC:0,wpT:0,recallC:0,recallT:0,reviewC:0,reviewT:0,mfC:0,mfT:0,wpServed:false,phase:"main",seen:[]};
+     start:Date.now(),wpC:0,wpT:0,recallC:0,recallT:0,reviewC:0,reviewT:0,mfC:0,mfT:0,wpServed:false,phase:"main",seen:[],diff:0,tried:false};
   // #6: open with 2–3 review questions from earlier sessions
   const review=buildReview(subject);
   if(review.length){
@@ -1342,7 +1370,8 @@ function nextQuestion(){
     }
     return showStory();
   }
-  const lvl=P.levels[S.subject];
+  // dynamic difficulty: base mastery level ± the per-answer adjustment (harder after right, easier after wrong)
+  const lvl=Math.max(1,Math.min(5,(P.levels[S.subject]||1)+(S.diff||0)));
   // #1: guarantee at least one word problem every math session (single-step first)
   if(S.subject==="math"&&!S.wpServed&&S.phase!=="review"&&(S.n>=2||S.n>=S.total-1)){
     S.wpServed=true;
@@ -1407,6 +1436,8 @@ function renderQuestion(){
    +(gate?'<div class="center" id="revealwrap"><div class="spacer"></div><button class="btn big" onclick="revealOptions()">I worked it out — show my choices ▶</button></div>':'')
    +'</div></div>';
   S.qStart=Date.now();
+  S.tried=false;               // fresh mastery slate for this question
+  sessSave();                  // auto-save: reopening resumes exactly here
   if(showScratch)initScratch();
   say(q.q+(gate?". Use your scratchpad to work it out first, then show your choices.":""));
 }
@@ -1462,39 +1493,50 @@ function answer(pos){
   const elapsed=Date.now()-S.qStart;
   const chosen=S.order[pos];
   const correct=chosen===q.a;
-  // lock options, show feedback
-  S.order.forEach((oi,p)=>{
-    const b=$("opt"+p);if(!b)return;
-    if(oi===q.a)b.classList.add("correct");
-    else if(p===pos&&!correct)b.classList.add("wrong");
-    else b.classList.add("dim");
-    b.onclick=null;
-  });
-  S.n++;
-  S.results.push({topic:q.topic,correct,level:q.level,ms:elapsed});
-  // intervention metric tracking (#15)
-  if(S.phase==="review"){S.reviewT++;if(correct)S.reviewC++;}
-  if(isWordProblem(q)){S.wpT++;if(correct)S.wpC++;}
-  if(isRecall(q)||S.subject==="comprehension"){S.recallT++;if(correct)S.recallC++;}
-  if(isMathFacts(q)){S.mfT++;if(correct)S.mfC++;}
-  sm2Update(q.topic,correct?(elapsed<15000?5:4):2);
+  const firstTry=!S.tried;
   if(correct){
-    S.correct++;S.consecR++;S.consecW=0;
-    S.xp+=10*q.level;P.xp+=10*q.level;
-    P.streak++;if(P.streak>P.bestStreak)P.bestStreak=P.streak;
-    checkStreakTrophy();
-    growStats(q,true);
-    if(S.consecR>=2){if(P.levels[S.subject]<5){P.levels[S.subject]++;leveledUp=true}S.consecR=0}
+    // lock everything, light up the right answer
+    S.order.forEach((oi,p)=>{
+      const b=$("opt"+p);if(!b)return;
+      if(oi===q.a)b.classList.add("correct");else b.classList.add("dim");
+      b.onclick=null;
+    });
   }else{
-    S.consecW++;S.consecR=0;P.streak=0;
-    P.wrongLog.push({date:today(),topic:q.topic,subject:S.subject});
-    growStats(q,false);
-    if(S.consecW>=2){if(P.levels[S.subject]>1){P.levels[S.subject]--;toast("Let's build it back up — Level "+P.levels[S.subject])}S.consecW=0}
+    // MASTERY MODE: this choice retires; the others stay live so they retry until correct
+    const b=$("opt"+pos);
+    if(b){b.classList.add("wrong");b.onclick=null;setTimeout(()=>{b.classList.add("dim")},650);}
   }
-  save();
-  // let the green/red highlight show on the tapped option BEFORE any overlay covers it
+  // record stats/difficulty ONLY on the first attempt — retries never double-count
+  if(firstTry){
+    S.tried=true;
+    S.results.push({topic:q.topic,correct,level:q.level,ms:elapsed});
+    if(S.phase==="review"){S.reviewT++;if(correct)S.reviewC++;}
+    if(isWordProblem(q)){S.wpT++;if(correct)S.wpC++;}
+    if(isRecall(q)||S.subject==="comprehension"){S.recallT++;if(correct)S.recallC++;}
+    if(isMathFacts(q)){S.mfT++;if(correct)S.mfC++;}
+    sm2Update(q.topic,correct?(elapsed<15000?5:4):2);
+    if(correct){
+      S.correct++;S.consecR++;S.consecW=0;
+      S.diff=Math.min(2,(S.diff||0)+1);      // ⬆ next question comes in harder
+      S.xp+=10*q.level;P.xp+=10*q.level;
+      P.streak++;if(P.streak>P.bestStreak)P.bestStreak=P.streak;
+      checkStreakTrophy();
+      growStats(q,true);
+      if(S.consecR>=2){if(P.levels[S.subject]<5){P.levels[S.subject]++;leveledUp=true;S.diff=0}S.consecR=0}
+    }else{
+      S.consecW++;S.consecR=0;P.streak=0;
+      S.diff=Math.max(-2,(S.diff||0)-1);     // ⬇ next question comes in easier
+      P.wrongLog.push({date:today(),topic:q.topic,subject:S.subject});
+      growStats(q,false);
+      if(S.consecW>=2){if(P.levels[S.subject]>1){P.levels[S.subject]--;toast("Let's build it back up — Level "+P.levels[S.subject])}S.consecW=0}
+    }
+    save();sessSave();
+  }
   if(correct){
+    S.n++;
+    save();sessSave();
     sfx("correct");
+    if(P.streak>0&&P.streak%5===0)confetti();
     if(leveledUp){
       say("Level up!");
       setTimeout(()=>{
@@ -1502,14 +1544,30 @@ function answer(pos){
         setTimeout(()=>{closeOverlay();nextQuestion();},2900);
       },750);
     }else{
-      // No overlay, no extra tap — green flash + quick auto-advance keeps the flow
-      setTimeout(()=>{nextQuestion();},1200);
+      // reward + a clear, prominent NEXT — advancing happens on the child's tap
+      const w=$("optwrap");
+      const tb=$("trybar");if(tb)tb.remove();
+      if(w&&!$("nextbar")){
+        w.insertAdjacentHTML("afterend",
+          '<div class="center fadein" id="nextbar" style="margin-top:16px">'
+          +'<div class="hero-chip" style="font-size:16px">🎯 '+esc(pick(CORRECT_PRAISE))+'</div>'
+          +'<div class="spacer" style="height:10px"></div>'
+          +'<button class="btn big" onclick="nextQuestion()">'+(S.n>=S.total?"Finish! 🏁":"Next ▶")+'</button></div>');
+      }else if(!w){setTimeout(()=>{nextQuestion();},1200);} // safety net: never dead-end
     }
   }else{
     sfx("wrong");
     const enc=pick(TRY_AGAIN);
-    say(enc+" Let me show you how, step by step.");
-    setTimeout(()=>{startTeaching(enc);},900);
+    say(enc);
+    const w=$("optwrap");
+    const tb=$("trybar");if(tb)tb.remove();
+    if(w){
+      w.insertAdjacentHTML("afterend",
+        '<div class="center fadein" id="trybar" style="margin-top:14px">'
+        +'<div class="speech" style="display:inline-block;margin-top:0">'+esc(enc)+' Pick another answer!</div>'
+        +(q.teach?'<div class="spacer" style="height:10px"></div><button class="btn secondary" onclick="askHelp()">💡 Hint — Ananse, teach me</button>':'')
+        +'</div>');
+    }
   }
 }
 /* ---------- 2K stat growth hooks (#9) ---------- */
@@ -1668,7 +1726,7 @@ function awardTrophy(t){
 
 /* ---------- session end ---------- */
 function endSession(){
-  clearTimers();closeOverlay();defocus();
+  clearTimers();closeOverlay();defocus();sessClear();
   const acc=S.results.length?S.correct/S.results.length:0;
   const lvlAvg=S.results.length?S.results.reduce((a,r)=>a+r.level,0)/S.results.length:1;
   const durMs=Date.now()-(S.start||(S.sprintEnd-10*60*1000));
@@ -2985,7 +3043,8 @@ function kdShow(){
   wrap.appendChild(top);
   const bottom=document.createElement("div");
   bottom.style.cssText="position:absolute;left:0;right:0;bottom:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:0 12px";
-  bottom.innerHTML='<button class="btn secondary" style="font-size:15px;padding:9px 14px" onclick="renderJourney()">🗺️ Journey</button>'
+  bottom.innerHTML=(DB.resume&&DB.resume[P.id]&&DB.resume[P.id].s?'<button class="btn" style="font-size:15px;padding:9px 14px" onclick="sessResumeBtn()">▶ Continue</button>':'')
+   +'<button class="btn secondary" style="font-size:15px;padding:9px 14px" onclick="renderJourney()">🗺️ Journey</button>'
    +'<button class="btn secondary" style="font-size:15px;padding:9px 14px" onclick="renderTrophyRoom()">🏆 Trophies</button>'
    +'<button class="btn secondary" style="font-size:15px;padding:9px 14px" onclick="startDaily()">🕵️ Mystery</button>'
    +'<button class="btn secondary" style="font-size:15px;padding:9px 14px" onclick="renderStats()">📊 Card</button>'
