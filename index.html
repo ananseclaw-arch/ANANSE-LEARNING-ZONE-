@@ -1434,12 +1434,33 @@ function renderQuestion(){
    +(showScratch?scratchHTML():'')
    +'<div class="opts" id="optwrap" style="'+(gate?'display:none':'')+'">'+order.map((oi,pos)=>'<button class="opt" id="opt'+pos+'" onclick="answer('+pos+')"><span class="letter">'+letters[pos]+'</span><span>'+esc(q.opts[oi])+'</span></button>').join("")+'</div>'
    +(gate?'<div class="center" id="revealwrap"><div class="spacer"></div><button class="btn big" onclick="revealOptions()">I worked it out — show my choices ▶</button></div>':'')
+   +'<div class="center" id="skipbar" style="margin-top:14px"><button class="readbtn" onclick="skipQuestion()">Skip this one →</button></div>'
    +'</div></div>';
   S.qStart=Date.now();
   S.tried=false;               // fresh mastery slate for this question
   sessSave();                  // auto-save: reopening resumes exactly here
   if(showScratch)initScratch();
   say(q.q+(gate?". Use your scratchpad to work it out first, then show your choices.":""));
+}
+/* Always-available forward path: skipping counts as a "needs practice" miss
+   (first attempt only) so the adaptive engine still learns from it. */
+function skipQuestion(){
+  const q=S.cur;if(!q)return;
+  if(!S.tried){
+    S.tried=true;
+    S.results.push({topic:q.topic,correct:false,level:q.level,ms:Date.now()-S.qStart});
+    if(S.phase==="review")S.reviewT++;
+    if(isWordProblem(q))S.wpT++;
+    if(isRecall(q)||S.subject==="comprehension")S.recallT++;
+    if(isMathFacts(q))S.mfT++;
+    sm2Update(q.topic,2);
+    S.consecR=0;S.diff=Math.max(-2,(S.diff||0)-1);
+    P.wrongLog.push({date:today(),topic:q.topic,subject:S.subject});
+    save();
+  }
+  S.n++;sessSave();
+  sfx("tick");
+  nextQuestion();
 }
 function revealOptions(){
   const w=$("optwrap");if(w)w.style.display="";
@@ -1547,6 +1568,7 @@ function answer(pos){
       // reward + a clear, prominent NEXT — advancing happens on the child's tap
       const w=$("optwrap");
       const tb=$("trybar");if(tb)tb.remove();
+      const sb=$("skipbar");if(sb)sb.remove();
       if(w&&!$("nextbar")){
         w.insertAdjacentHTML("afterend",
           '<div class="center fadein" id="nextbar" style="margin-top:16px">'
