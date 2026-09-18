@@ -543,7 +543,43 @@ function naturalise(t){
     .trim();
 }
 let _sayKeepAlive=null;
+/* ---------- recorded voice ----------
+   Every fixed phrase is pre-rendered to MP3 (see build_voice.py) so Ananse
+   sounds the same on every device. Most phones and iPads ship only the basic
+   compact synth voice, which no amount of code can make sound human; playing
+   real audio removes that lottery entirely and works offline once cached.
+   Anything not in the manifest — generated maths, names — still falls back to
+   the device voice. */
+let VOICE_MAP=null, _voiceAudio=null;
+function voiceKey(t){
+  return String(t).replace(/[*_#]/g,"").replace(/\s+/g," ").trim();
+}
+fetch("voice/manifest.json").then(r=>r.ok?r.json():null)
+  .then(m=>{VOICE_MAP=m||{}}).catch(()=>{VOICE_MAP={}});
+function stopRecorded(){
+  if(_voiceAudio){try{_voiceAudio.pause()}catch(e){}_voiceAudio=null}
+}
+function sayRecorded(text){
+  if(!VOICE_MAP)return false;
+  const f=VOICE_MAP[voiceKey(text)];
+  if(!f)return false;
+  try{
+    stopRecorded();
+    try{speechSynthesis.cancel()}catch(e){}
+    const a=new Audio("voice/"+f);
+    a.playbackRate=(DB.voice&&DB.voice.rate)||1.0;
+    _voiceAudio=a;
+    const pr=a.play();
+    if(pr&&pr.catch)pr.catch(()=>{sayDevice(text)});  // autoplay blocked → fall back
+    return true;
+  }catch(e){return false}
+}
 function say(text){
+  if(!DB.sound)return;
+  if(sayRecorded(text))return;
+  sayDevice(text);
+}
+function sayDevice(text){
   if(!DB.sound||!("speechSynthesis" in window))return;
   try{
     speechSynthesis.cancel();
@@ -586,7 +622,7 @@ window.addEventListener("pointerdown",function(){
 },{once:true});
 function toggleSound(){
   DB.sound=!DB.sound;save();renderSoundBtn();
-  if(!DB.sound&&"speechSynthesis" in window)speechSynthesis.cancel();
+  if(!DB.sound){stopRecorded();stopRecorded();if("speechSynthesis" in window)speechSynthesis.cancel();}
   else say("Sound is on. Akwaaba!");
 }
 function renderSoundBtn(){$("soundBtn").textContent=DB.sound?"🔊":"🔇"}
@@ -1206,7 +1242,7 @@ function openOverlay(html){overlay.innerHTML='<div class="ov-card fadein">'+html
 
 function goHome(){
   clearTimers();closeOverlay();defocus();
-  if("speechSynthesis" in window)speechSynthesis.cancel();
+  stopRecorded();if("speechSynthesis" in window)speechSynthesis.cancel();
   S=null;
   if(!P)renderProfiles();
   else if(!P.diagDone)startDiagnostic();
@@ -1214,7 +1250,7 @@ function goHome(){
 }
 function exitToProfiles(){
   clearTimers();closeOverlay();
-  if("speechSynthesis" in window)speechSynthesis.cancel();
+  stopRecorded();if("speechSynthesis" in window)speechSynthesis.cancel();
   S=null;P=null;
   renderProfiles();
 }
@@ -2372,7 +2408,7 @@ function finishDaily(won,praise){
    ============================================================ */
 function renderTrophyRoom(){
   clearTimers();closeOverlay();showAnanseCorner(false);
-  if("speechSynthesis" in window)speechSynthesis.cancel();
+  stopRecorded();if("speechSynthesis" in window)speechSynthesis.cancel();
   const groups=[
     {key:"math",label:"Math",sil:["🧮","🔢"]},
     {key:"english",label:"English",sil:["✏️","📝"]},
@@ -3361,11 +3397,18 @@ function hasNaturalVoice(){
   return allVoices().some(v=>v.lang&&v.lang.toLowerCase().startsWith("en")&&voiceScore(v)>=140);
 }
 function voiceAdviceHTML(){
+  const n=VOICE_MAP?Object.keys(VOICE_MAP).length:0;
+  if(n){
+    return '<div style="background:#e8f7ee;border:1px solid #9fd8b4;border-radius:12px;padding:12px;margin:8px 0">'
+      +'<b>🎙️ Ananse speaks with a real recorded voice.</b>'
+      +'<p class="muted" style="margin:6px 0 0">'+n+' recorded lines ship with the app, so Ananse sounds the same on every phone, tablet and computer — no downloads needed. Works offline too.</p>'
+      +'<p class="muted" style="margin:6px 0 0">The voice below is only used for made-up maths questions and your child\'s name.</p>'
+      +'</div>';
+  }
   if(hasNaturalVoice())return '<p class="muted">✅ A natural-sounding voice is installed on this device.</p>';
   return '<div style="background:#fff4d6;border:1px solid #f0c674;border-radius:12px;padding:12px;margin:8px 0">'
     +'<b>⚠️ This device only has the basic robot voice.</b>'
-    +'<p class="muted" style="margin:6px 0 0">To fix it, download a better one — it is free and takes a minute:</p>'
-    +'<p class="muted" style="margin:6px 0 0"><b>iPad / iPhone:</b> Settings → Accessibility → Spoken Content → Voices → English → pick <b>Ava</b>, <b>Zoe</b> or <b>Siri</b> and tap the download cloud. Then come back here and choose it above.</p>'
+    +'<p class="muted" style="margin:6px 0 0"><b>iPad / iPhone:</b> Settings → Accessibility → Spoken Content → Voices → English → download <b>Ava</b>, <b>Zoe</b> or <b>Siri</b>, then choose it above.</p>'
     +'<p class="muted" style="margin:6px 0 0"><b>Mac:</b> System Settings → Accessibility → Spoken Content → System Voice → Manage Voices → download an <b>(Enhanced)</b> or <b>(Premium)</b> English voice.</p>'
     +'</div>';
 }
