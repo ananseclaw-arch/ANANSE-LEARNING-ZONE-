@@ -2710,7 +2710,8 @@ function renderParent(){
    +'<h3>🔊 Ananse\'s Voice</h3>'
    +'<p class="muted">Choose the voice this device uses when Ananse speaks. Voices marked ★ sound the most natural. Tip: on iPhone/iPad you can download nicer voices in Settings → Accessibility → Spoken Content → Voices → English, then pick them here.</p>'
    +'<label>Voice</label><select id="voiceSel">'+voiceOptionsHTML()+'</select>'
-   +'<label>Talking speed</label><input id="voiceRate" type="range" min="0.7" max="1.15" step="0.05" value="'+((DB.voice&&DB.voice.rate)||0.92)+'">'
+   +voiceAdviceHTML()
+   +'<label>Talking speed</label><input id="voiceRate" type="range" min="0.8" max="1.3" step="0.05" value="'+((DB.voice&&DB.voice.rate)||1.0)+'">'
    +'<div class="spacer" style="height:12px"></div>'
    +'<div class="btn-row" style="justify-content:flex-start"><button class="btn secondary" onclick="saveVoice()">Save voice</button><button class="btn secondary" onclick="previewVoice()">▶️ Hear a sample</button></div>'
    +'<div class="adinkra-divider">✦</div>'
@@ -3349,12 +3350,33 @@ function voiceOptionsHTML(){
   const cur=(DB.voice&&DB.voice.name)||"";
   let h='<option value="">✨ Automatic (best on this device)</option>';
   vs.forEach(v=>{
-    h+='<option value="'+esc(v.name)+'" '+(v.name===cur?"selected":"")+'>'+(voiceScore(v)>=60?"★ ":"")+esc(v.name)+' — '+esc(v.lang)+'</option>';
+    h+='<option value="'+esc(v.name)+'" '+(v.name===cur?"selected":"")+'>'+(voiceScore(v)>=140?"★ ":"")+esc(v.name)+' — '+esc(v.lang)+'</option>';
   });
   return h;
 }
+/* Most iPads/iPhones ship ONLY the basic compact voices — that is what makes
+   Ananse sound robotic, and no code change can fix it. Detect it and tell the
+   parent exactly how to download a natural voice. */
+function hasNaturalVoice(){
+  return allVoices().some(v=>v.lang&&v.lang.toLowerCase().startsWith("en")&&voiceScore(v)>=140);
+}
+function voiceAdviceHTML(){
+  if(hasNaturalVoice())return '<p class="muted">✅ A natural-sounding voice is installed on this device.</p>';
+  return '<div style="background:#fff4d6;border:1px solid #f0c674;border-radius:12px;padding:12px;margin:8px 0">'
+    +'<b>⚠️ This device only has the basic robot voice.</b>'
+    +'<p class="muted" style="margin:6px 0 0">To fix it, download a better one — it is free and takes a minute:</p>'
+    +'<p class="muted" style="margin:6px 0 0"><b>iPad / iPhone:</b> Settings → Accessibility → Spoken Content → Voices → English → pick <b>Ava</b>, <b>Zoe</b> or <b>Siri</b> and tap the download cloud. Then come back here and choose it above.</p>'
+    +'<p class="muted" style="margin:6px 0 0"><b>Mac:</b> System Settings → Accessibility → Spoken Content → System Voice → Manage Voices → download an <b>(Enhanced)</b> or <b>(Premium)</b> English voice.</p>'
+    +'</div>';
+}
 function applyVoiceInputs(){
-  DB.voice={name:$("voiceSel")?$("voiceSel").value:"",rate:parseFloat($("voiceRate")&&$("voiceRate").value)||0.92,pitch:1.0};
+  const prev=DB.voice||{};
+  DB.voice={
+    name:$("voiceSel")?$("voiceSel").value:"",
+    rate:parseFloat($("voiceRate")&&$("voiceRate").value)||1.0,
+    // keep the natural-sounding pitch instead of resetting it to flat 1.0
+    pitch:(typeof prev.pitch==="number"&&prev.pitch)||1.05
+  };
   save();ananseVoice=null;pickVoice();
 }
 function saveVoice(){applyVoiceInputs();toast("Ananse's voice saved")}
