@@ -427,10 +427,20 @@ const fmtTime=ms=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.floor(s/60
 
 /* ---------- persistent storage ---------- */
 const DBKEY="plz_v1";
-function defaultDB(){return{profiles:[],pin:null,sound:true,telegram:{token:"",chat:"",time:"19:00",lastSent:""},ananse:{url:"",key:""},voice:{name:"",rate:0.92,pitch:1.0},kingdom:{enabled:true,v2:true}}}
+function defaultDB(){return{profiles:[],pin:null,sound:true,telegram:{token:"",chat:"",time:"19:00",lastSent:""},ananse:{url:"",key:""},voice:{name:"",rate:1.0,pitch:1.05},kingdom:{enabled:true,v2:true},lastProfile:null}}
 let DB; try{DB=JSON.parse(localStorage.getItem(DBKEY))||defaultDB()}catch(e){DB=defaultDB()}
 if(!DB.ananse)DB.ananse={url:"",key:""};
-if(!DB.voice)DB.voice={name:"",rate:0.92,pitch:1.0};
+if(!DB.voice)DB.voice={name:"",rate:1.0,pitch:1.05};
+/* One-time upgrade: the old defaults (0.92 rate / 1.0 pitch) are the slow,
+   flat delivery kids read as robotic. Lift anyone still on them, and drop a
+   stale voice choice so the new neural-first ranking can pick a better one. */
+if(!DB.voiceV2){
+  if(!DB.voice.rate||Math.abs(DB.voice.rate-0.92)<0.001)DB.voice.rate=1.0;
+  if(!DB.voice.pitch||Math.abs(DB.voice.pitch-1.0)<0.001)DB.voice.pitch=1.05;
+  if(DB.voice.name&&!/premium|enhanced|natural|neural|siri/i.test(DB.voice.name))DB.voice.name="";
+  DB.voiceV2=true;
+}
+if(!("lastProfile" in DB))DB.lastProfile=null;
 if(!DB.kingdom||!DB.kingdom.v2)DB.kingdom={enabled:true,v2:true};
 function save(){try{
   localStorage.setItem(DBKEY,JSON.stringify(DB));
@@ -488,16 +498,19 @@ function newProfile(name,avatar){return{
 let ananseVoice=null;
 // Voice quality ranking: prefer enhanced/natural voices, known-good names,
 // Ghanaian/African English accents; penalize macOS novelty voices.
-const VOICE_PREF=["ava","zoe","allison","evan","nathan","joelle","serena","stephanie","samantha","daniel","karen","moira","tessa","aaron","google uk english male","google uk english female","google us english"];
+const VOICE_PREF=["ava (premium)","ava (enhanced)","zoe (premium)","zoe (enhanced)","evan (enhanced)","nathan (enhanced)","joelle (enhanced)","serena (premium)","isha (premium)","ava","zoe","allison","evan","nathan","joelle","serena","stephanie","samantha","daniel","karen","moira","tessa","aaron","google uk english male","google uk english female","google us english"];
 const VOICE_BAD=/compact|whisper|bells|bad news|good news|albert|zarvox|trinoids|boing|bubbles|cellos|wobble|organ|superstar|jester|grandma|grandpa|rocko|shelley|eddy|flo|reed|sandy|fred|junior|kathy|ralph|novelty/;
 function allVoices(){try{return speechSynthesis.getVoices()||[]}catch(e){return[]}}
 function voiceScore(v){
   const n=(v.name||"").toLowerCase();
   let s=0;
   if(!v.lang||!v.lang.toLowerCase().startsWith("en"))return -999;
-  if(/premium|enhanced|natural|neural|siri/.test(n))s+=60;
+  // Modern neural voices are the big win for sounding human — weight them hard.
+  if(/premium|enhanced|natural|neural|siri/.test(n))s+=140;
+  if(/\(premium\)/.test(n))s+=40;      // premium beats enhanced
+  if(/novelty|compact/.test(n))s-=200; // legacy robotic synths
   const i=VOICE_PREF.findIndex(p=>n.includes(p));
-  if(i>=0)s+=40-i;
+  if(i>=0)s+=60-i;
   if(/en[-_](GH|NG|ZA)/i.test(v.lang))s+=25;
   // device voices keep working offline; network voices go silent — prefer local strongly
   if(v.localService)s+=35;
@@ -515,18 +528,32 @@ function pickVoice(){
   ananseVoice=vs.slice().sort((a,b)=>voiceScore(b)-voiceScore(a))[0]||null;
 }
 if("speechSynthesis" in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
+/* Make synthesised speech sound less flat: add micro-pauses at clause breaks,
+   expand symbols the engine reads awkwardly, and stop it sprinting through
+   lists. Punctuation is the only prosody lever the Web Speech API gives us. */
+function naturalise(t){
+  return String(t)
+    .replace(/\s*\.\.\.\s*/g,"… ")
+    .replace(/([,;:])\s*/g,"$1 ")
+    .replace(/\s*—\s*/g,", ")
+    .replace(/([.!?])\s+/g,"$1  ")     // longer beat between sentences
+    .replace(/(\d)\s*\/\s*(\d)/g,"$1 over $2")
+    .replace(/\bvs\.?\b/gi,"versus")
+    .replace(/\s{3,}/g,"  ")
+    .trim();
+}
 let _sayKeepAlive=null;
 function say(text){
   if(!DB.sound||!("speechSynthesis" in window))return;
   try{
     speechSynthesis.cancel();
     try{speechSynthesis.resume();}catch(e){}
-    const clean=String(text).replace(/[*_#]/g,"");
+    const clean=naturalise(String(text).replace(/[*_#]/g,""));
     const u=new SpeechSynthesisUtterance(clean);
     if(!ananseVoice)pickVoice();
     if(ananseVoice)u.voice=ananseVoice;
-    u.rate=(DB.voice&&DB.voice.rate)||0.92;
-    u.pitch=(DB.voice&&DB.voice.pitch)||1.0;
+    u.rate=(DB.voice&&DB.voice.rate)||1.0;
+    u.pitch=(DB.voice&&DB.voice.pitch)||1.05;
     u.onerror=function(e){
       // "interrupted"/"canceled" just means newer speech took over — never retry those
       const kind=e&&e.error;
@@ -1060,10 +1087,17 @@ function getQuestion(subject,lvl){
   if(subject==="math"){
     // weekly goal weighting for math topics
     const goal=P&&P.weeklyGoal.topic;
+    /* Generated math can repeat the identical sum back-to-back. Keep a short
+       memory of recent prompts and re-roll when one comes up again. */
+    const recent=(P&&(P._recentMath=P._recentMath||[]))||[];
+    const isDupe=q=>q&&recent.indexOf(q.q)>=0;
+    const remember=q=>{if(!q||!P)return q;recent.push(q.q);if(recent.length>12)recent.shift();return q;};
     if(goal&&topicSubject(goal)==="math"&&Math.random()<0.5){
-      for(let tries=0;tries<8;tries++){const q=genMath(lvl);if(q.topic===goal)return q}
+      for(let tries=0;tries<8;tries++){const q=genMath(lvl);if(q.topic===goal&&!isDupe(q))return remember(q)}
     }
-    return genMath(lvl);
+    let q=genMath(lvl);
+    for(let tries=0;tries<10&&isDupe(q);tries++)q=genMath(lvl);
+    return remember(q);
   }
   let pool=BANK[subject][lvl].slice();
   const goal=P&&P.weeklyGoal.topic;
@@ -1076,9 +1110,24 @@ function getQuestion(subject,lvl){
     const ix="b_"+subject+lvl+"_"+BANK[subject][lvl].indexOf(x), iy="b_"+subject+lvl+"_"+BANK[subject][lvl].indexOf(y);
     return (P.askedAt[ix]||0)-(P.askedAt[iy]||0)||Math.random()-0.5;
   });
-  const q=Object.assign({},pool[0]);
-  q.id="b_"+subject+lvl+"_"+BANK[subject][lvl].indexOf(pool[0]);
+  /* Never serve the same question twice in a row: sorting alone is
+     deterministic, so the staleset head repeats whenever a session revisits a
+     subject. Pick at random from the 5 stalest instead, and skip anything
+     asked in the last 24h while unseen questions remain. */
+  const DAY=86400000, now=Date.now();
+  const idOf=q=>"b_"+subject+lvl+"_"+BANK[subject][lvl].indexOf(q);
+  const fresh=pool.filter(q=>!(P.askedAt[idOf(q)]));
+  const notRecent=pool.filter(q=>(now-(P.askedAt[idOf(q)]||0))>DAY);
+  const candidates=fresh.length?fresh:(notRecent.length?notRecent:pool);
+  const head=candidates.slice(0,Math.min(5,candidates.length));
+  let chosen=head[rnd(head.length)];
+  if(head.length>1&&P._lastQid&&idOf(chosen)===P._lastQid){
+    chosen=head[(head.indexOf(chosen)+1)%head.length];
+  }
+  const q=Object.assign({},chosen);
+  q.id=idOf(chosen);
   P.askedAt[q.id]=Date.now();
+  P._lastQid=q.id;
   q.subject=subject;q.level=lvl;
   return q;
 }
@@ -1265,7 +1314,9 @@ function createProfile(){
   const p=newProfile(name,"");
   p.pin=pin;
   p.color=PCOLORS[DB.profiles.length%PCOLORS.length];
-  DB.profiles.push(p);save();
+  DB.profiles.push(p);
+  DB.lastProfile=p.id;   // new learner becomes this device's owner
+  save();
   P=p;
   say("Akwaaba, "+name+"! I am Ananse. Let us begin an adventure!");
   startDiagnostic();
@@ -1277,6 +1328,7 @@ function selectProfile(id){
 }
 function kidEnter(p){
   P=p;
+  DB.lastProfile=p.id;save();   // remember this learner for next launch
   if(!P.diagDone){startDiagnostic();return;}
   if(sessTryResume())return;   // reopen mid-lesson → land on the exact same question
   say("Akwaaba, "+P.name+"!");renderHome();
@@ -1362,7 +1414,7 @@ function renderHome(){
    +'</div>'
    +'<div class="spacer"></div>'
    +'<div class="btn-row">'
-   +'<button class="btn secondary" style="font-size:16px;padding:10px 18px" onclick="P=null;renderProfiles()">👥 Switch Player</button>'
+   +'<button class="btn secondary" style="font-size:16px;padding:10px 18px" onclick="DB.lastProfile=null;save();P=null;renderProfiles()">👥 Switch Player</button>'
    +'<button class="btn" style="font-size:18px;padding:12px 22px" onclick="parentGate()">🔒 Parent Portal</button>'
    +'</div></div></div>';
   say("Welcome back, "+P.name+"! Pick a subject to start today's path.");
@@ -2887,7 +2939,20 @@ renderSoundBtn();
   });
   if(changed)save();
 })();
-renderProfiles();
+/* Remember who was here. A returning learner on their own device should land
+   straight in the app — no profile tile, no PIN pad, no diagnostic re-run. */
+(function autoResume(){
+  try{
+    const last=DB.lastProfile;
+    if(!last)return renderProfiles();
+    const p=DB.profiles.find(x=>x.id===last);
+    if(!p||!p.diagDone)return renderProfiles();  // finish onboarding properly first
+    P=p;
+    if(sessTryResume())return;                   // mid-lesson → exact same question
+    say("Akwaaba, "+P.name+"!");
+    renderHome();
+  }catch(e){renderProfiles();}
+})();
 </script>
 <script>
 /* ============================================================
