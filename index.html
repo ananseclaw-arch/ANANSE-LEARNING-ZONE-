@@ -356,7 +356,7 @@ body.storyworld:before{opacity:.45;mix-blend-mode:screen}
 .scene-orb.o1{left:18%;top:22%}.scene-orb.o2{right:14%;top:32%;animation-delay:-1.4s}.scene-orb.o3{left:24%;bottom:18%;animation-delay:-2.7s;background:#ffd56a;box-shadow:0 0 12px #ffd56a,0 0 30px #f5a623}
 .ananse-stage{position:absolute;left:50%;top:48%;width:260px;height:260px;transform:translate(-50%,-50%) translateZ(80px);transform-style:preserve-3d;animation:stageFloat 4s ease-in-out infinite}
 .ananse-stage:after{content:"";position:absolute;left:16%;right:16%;bottom:2%;height:28px;border-radius:50%;background:rgba(0,0,0,.5);filter:blur(14px);transform:rotateX(72deg);z-index:-1}.ananse-stage svg{width:100%;height:100%;filter:drop-shadow(0 26px 25px rgba(0,0,0,.38))}
-.ananse-render{display:block;object-fit:contain;max-width:100%;filter:drop-shadow(0 24px 24px rgba(0,0,0,.34));transform-origin:50% 74%}.ananse-render.party{animation:ananseDance .72s ease-in-out infinite alternate}.ananse-render.teach{animation:ananseThink 3s ease-in-out infinite}.ananse-stage .ananse-render{width:118%;height:118%;max-width:none;position:absolute;left:-9%;top:-8%}
+.ananse-render{display:block;object-fit:cover;border-radius:50%;border:4px solid #f5a623;box-shadow:0 0 0 3px #071b35;background:#0b2a55;max-width:100%;filter:drop-shadow(0 24px 24px rgba(0,0,0,.34));transform-origin:50% 74%}.ananse-render.party{animation:ananseDance .72s ease-in-out infinite alternate}.ananse-render.teach{animation:ananseThink 3s ease-in-out infinite}.ananse-stage .ananse-render{width:100%;height:100%;max-width:none;position:absolute;left:0;top:0}
 .scene-badge{position:absolute;left:24px;top:24px;display:flex;align-items:center;gap:9px;padding:9px 13px;border:1px solid rgba(255,255,255,.2);border-radius:999px;background:rgba(4,22,42,.54);backdrop-filter:blur(16px);color:#d7efff;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.scene-badge i{width:8px;height:8px;border-radius:50%;background:#5ee5a1;box-shadow:0 0 12px #5ee5a1;animation:livePulse 1.7s ease infinite}
 .splash-panel{padding:18px 0;color:#edf7ff}.splash-panel .splash-title{font-size:clamp(48px,6vw,78px);line-height:.96;margin:14px 0 16px;background:linear-gradient(130deg,#fff 8%,#8fd5ff 58%,#ffd166);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;letter-spacing:-2.5px}.splash-panel .splash-sub{color:#a8c9e0;font-size:18px;line-height:1.6;max-width:520px;letter-spacing:0;font-weight:650}
 .world-kicker{display:inline-flex;align-items:center;gap:8px;color:#ffd166;font-size:13px;font-weight:900;letter-spacing:.16em;text-transform:uppercase}
@@ -374,7 +374,7 @@ body.learningworld{background:#06182d;background-image:radial-gradient(circle at
 body.learningworld #app{max-width:1180px}
 .learning-shell{min-height:calc(100vh - 112px)}
 .learning-shell .hero-card{max-width:none;margin:0;display:grid;grid-template-columns:130px 1fr auto;gap:26px;padding:24px 28px;border-radius:32px;background:linear-gradient(135deg,rgba(21,67,105,.86),rgba(6,29,55,.94));border:1px solid rgba(156,216,255,.25);box-shadow:0 30px 75px rgba(0,0,0,.34)}
-.learning-shell .hero-card .ananse-render{width:124px!important;height:110px!important}
+.learning-shell .hero-card .ananse-render{width:110px!important;height:110px!important}
 .learning-shell .hero-kicker{color:#ffd166}.learning-shell h1{background:linear-gradient(115deg,#fff,#8fd5ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .mission-panel{text-align:right;align-self:center}.mission-panel strong{display:block;color:#fff;font-size:16px}.mission-panel span{color:#8fb6cf;font-size:14px}
 .subject-map{display:grid;grid-template-columns:repeat(6,1fr);grid-auto-rows:164px;gap:16px;margin:24px auto 0;max-width:1040px;perspective:1200px}
@@ -403,7 +403,7 @@ body.learningworld #app{max-width:1180px}
 "use strict";
 /* ============================================================
    PRINCE'S LEARNING ZONE — offline adaptive learning app
-   Ananse the Wise Spider · Ghanaian theme · ADHD-friendly
+   Ananse the Wise Lion · Ghanaian theme · ADHD-friendly
    ============================================================ */
 
 /* ---------- helpers ---------- */
@@ -686,9 +686,9 @@ if(typeof window!=="undefined"&&window.addEventListener){
   window.addEventListener("keydown",_resume,{once:false});
 }
 
-/* ---------- Ananse the Wise Spider (SVG) ---------- */
+/* ---------- Ananse the Wise Lion (mascot image) ---------- */
 function ananseSVG(size,mood){ // mood: idle | teach | party — Ananse 2.0: soft gradients, big friendly eyes, kente headband
-  return '<img class="ananse-render '+(mood||"idle")+'" src="ananse-3d.png" width="'+size+'" height="'+size+'" alt="Ananse the Wise Spider">';
+  return '<img class="ananse-render '+(mood||"idle")+'" src="ananse-lion.png" width="'+size+'" height="'+size+'" alt="Ananse the Wise Lion">';
   const defs='<defs>'
    +'<radialGradient id="anHead" cx="38%" cy="28%" r="85%"><stop offset="0%" stop-color="#a97a42"/><stop offset="55%" stop-color="#8a5f2e"/><stop offset="100%" stop-color="#6a4820"/></radialGradient>'
    +'<radialGradient id="anBody" cx="40%" cy="28%" r="90%"><stop offset="0%" stop-color="#8a5f2e"/><stop offset="100%" stop-color="#5c3e18"/></radialGradient>'
@@ -822,18 +822,18 @@ reading:{
 1:[
 {q:"Kofi dribbled the ball down the court. What does 'dribbled' mean?",opts:["Bounced the ball while moving","Threw the ball away","Sat on the ball","Ate a snack"],a:0,topic:"vocabulary",teach:[{i:"🏀",t:"Dribbling is when a player bounces the ball with one hand while moving."},{i:"👀",t:"The sentence says Kofi moved DOWN THE COURT — so he was moving with the ball."},{i:"💡",t:"Context clues in the sentence help us figure out what a word means."}],practice:{q:"Ama passed the ball to her teammate. What does 'passed' mean?",opts:["Threw it to another player","Hid it","Painted it"],a:0}},
 {q:"Prince put on his jersey, tied his shoes, and grabbed his water bottle. What is he getting ready for?",opts:["Bedtime","A basketball game","A bath","School lunch"],a:1,topic:"inference",teach:[{i:"🕵️",t:"An inference is a smart guess using clues from the story."},{i:"👕",t:"Clue 1: a jersey. Clue 2: tied shoes. Clue 3: water bottle."},{i:"🏀",t:"All three clues point to playing a sport — a basketball game!"}],practice:{q:"Esi grabbed her umbrella and rain boots. What is the weather like?",opts:["Rainy","Sunny","Snowy"],a:0}},
-{q:"Which word is a naming word (noun)?",opts:["ball","jump","quickly","run"],a:0,topic:"grammar",teach:[{i:"📦",t:"A noun names a person, place, or thing."},{i:"🏀",t:"'Ball' is a thing you can hold — so it is a noun."},{i:"🏃",t:"'Jump' and 'run' are action words — those are verbs."}],practice:{q:"Which word is a noun?",opts:["spider","crawl","slowly"],a:0}},
-{q:"The Anansi story begins with 'Once upon a time...'. What part of the story is this?",opts:["The beginning","The middle","The end","The title"],a:0,topic:"story structure",teach:[{i:"📖",t:"Stories have three parts: beginning, middle, and end."},{i:"🌅",t:"'Once upon a time' tells us the story is just starting."},{i:"🏁",t:"The end often says 'and they lived happily' or teaches a lesson."}],practice:{q:"'And that is why spiders live in webs' would come at the...",opts:["end","beginning","middle"],a:0}}
+{q:"Which word is a naming word (noun)?",opts:["ball","jump","quickly","run"],a:0,topic:"grammar",teach:[{i:"📦",t:"A noun names a person, place, or thing."},{i:"🏀",t:"'Ball' is a thing you can hold — so it is a noun."},{i:"🏃",t:"'Jump' and 'run' are action words — those are verbs."}],practice:{q:"Which word is a noun?",opts:["lion","crawl","slowly"],a:0}},
+{q:"The Anansi story begins with 'Once upon a time...'. What part of the story is this?",opts:["The beginning","The middle","The end","The title"],a:0,topic:"story structure",teach:[{i:"📖",t:"Stories have three parts: beginning, middle, and end."},{i:"🌅",t:"'Once upon a time' tells us the story is just starting."},{i:"🏁",t:"The end often says 'and they lived happily' or teaches a lesson."}],practice:{q:"'And that is why lions live in prides' would come at the...",opts:["end","beginning","middle"],a:0}}
 ],
 2:[
 {q:"In NBA 2K, Prince's player was 'exhausted' after the game. What does 'exhausted' mean?",opts:["Very tired","Very happy","Very hungry","Very tall"],a:0,topic:"context clues",teach:[{i:"🔍",t:"Look for clues around the word. It was AFTER a whole game."},{i:"😓",t:"After playing a long game, players feel very tired."},{i:"💡",t:"'Exhausted' is a stronger word for tired."}],practice:{q:"After running all day, the puppy was 'drowsy'. What does drowsy mean?",opts:["Sleepy","Angry","Loud"],a:0}},
 {q:"Which sentence is written correctly?",opts:["Prince plays basketball on Saturdays.","prince plays basketball on saturdays","Prince play basketball on Saturdays.","prince Plays Basketball On saturdays."],a:0,topic:"grammar",teach:[{i:"🔠",t:"Sentences start with a capital letter. Names and days get capitals too."},{i:"🧩",t:"The verb must match: Prince PLAYS, not Prince PLAY."},{i:"✅",t:"'Prince plays basketball on Saturdays.' has capitals, matching verb, and a period."}],practice:{q:"Which is correct?",opts:["Ama reads every night.","ama reads every night","Ama read every night."],a:0}},
-{q:"Kwame read a story about a talking drum in a Ghanaian village. The story is mostly about...",opts:["How drums carry messages","How to cook rice","Basketball rules","A spaceship"],a:0,topic:"comprehension",teach:[{i:"🥁",t:"The main idea is what the WHOLE story is mostly about."},{i:"📖",t:"The story talks about a talking drum — drums that send messages."},{i:"🎯",t:"Small details are not the main idea. Ask: what is the big point?"}],practice:{q:"A story describes how Ananse builds his web step by step. The main idea is...",opts:["How a web gets built","What spiders eat","Rainy days"],a:0}},
+{q:"Kwame read a story about a talking drum in a Ghanaian village. The story is mostly about...",opts:["How drums carry messages","How to cook rice","Basketball rules","A spaceship"],a:0,topic:"comprehension",teach:[{i:"🥁",t:"The main idea is what the WHOLE story is mostly about."},{i:"📖",t:"The story talks about a talking drum — drums that send messages."},{i:"🎯",t:"Small details are not the main idea. Ask: what is the big point?"}],practice:{q:"A story describes how Ananse builds his den step by step. The main idea is...",opts:["How a den gets built","What lions eat","Rainy days"],a:0}},
 {q:"What is the correct order? 1. He scored. 2. Prince caught the pass. 3. He dribbled to the hoop.",opts:["2, 3, 1","1, 2, 3","3, 2, 1","2, 1, 3"],a:0,topic:"story structure",teach:[{i:"🎬",t:"Sequence means the order things happen."},{i:"🏀",t:"First he CAUGHT the pass, then he DRIBBLED, then he SCORED."},{i:"🔢",t:"Words like first, then, and finally help show order."}],practice:{q:"Order these: 1. Eat breakfast. 2. Wake up. 3. Brush teeth.",opts:["2, 1, 3","1, 2, 3","3, 1, 2"],a:0}}
 ],
 3:[
 {q:"'The crowd was a roaring lion when Prince hit the shot.' What does this really mean?",opts:["The crowd was very loud","A lion was in the gym","The crowd fell asleep","Prince roared"],a:0,topic:"figurative language",teach:[{i:"🦁",t:"This is a metaphor — comparing two things without 'like' or 'as'."},{i:"📢",t:"The crowd is not really a lion. They were LOUD like a lion's roar."},{i:"💡",t:"Figurative language paints a picture. Ask: what is being compared?"}],practice:{q:"'Her smile was sunshine.' This means...",opts:["Her smile was warm and bright","The sun was smiling","It was daytime"],a:0}},
-{q:"Esi practiced free throws every single morning. By the championship she made all ten. What lesson does this teach?",opts:["Practice helps you improve","Mornings are boring","Free throws are easy","Championships are unfair"],a:0,topic:"inference",teach:[{i:"🌅",t:"She practiced EVERY morning — that shows effort over time."},{i:"🏆",t:"Then she made all ten — the result of all that practice."},{i:"🧠",t:"The lesson, or theme, connects the effort to the result: practice improves you."}],practice:{q:"Ananse tried three times to climb the tree, and on the third try he made it. The lesson is...",opts:["Keep trying and don't give up","Trees are tall","Spiders are lazy"],a:0}},
+{q:"Esi practiced free throws every single morning. By the championship she made all ten. What lesson does this teach?",opts:["Practice helps you improve","Mornings are boring","Free throws are easy","Championships are unfair"],a:0,topic:"inference",teach:[{i:"🌅",t:"She practiced EVERY morning — that shows effort over time."},{i:"🏆",t:"Then she made all ten — the result of all that practice."},{i:"🧠",t:"The lesson, or theme, connects the effort to the result: practice improves you."}],practice:{q:"Ananse tried three times to climb the tree, and on the third try he made it. The lesson is...",opts:["Keep trying and don't give up","Trees are tall","Lions are lazy"],a:0}},
 {q:"'Kojo was on the fence about which video game to pick.' What does 'on the fence' mean?",opts:["He couldn't decide","He climbed a fence","He was outside","He was angry"],a:0,topic:"figurative language",teach:[{i:"🤔",t:"'On the fence' is an idiom — a saying that doesn't mean exactly what it says."},{i:"⚖️",t:"Picture sitting on a fence between two yards — you are between two choices."},{i:"💡",t:"So 'on the fence' means stuck between options, unable to decide."}],practice:{q:"'It's raining cats and dogs' means...",opts:["Raining very hard","Pets falling from sky","A little drizzle"],a:0}},
 {q:"Which word best completes it? 'The point guard made a ____ pass between two defenders.'",opts:["precise","purple","sleepy","loud"],a:0,topic:"vocabulary",teach:[{i:"🎯",t:"'Precise' means exact and carefully placed."},{i:"🏀",t:"A pass between TWO defenders must be very exact to get through."},{i:"💡",t:"Test each word in the sentence — only 'precise' makes sense."}],practice:{q:"'The chess player made a ____ move to win.'",opts:["clever","sour","fuzzy"],a:0}}
 ],
@@ -845,7 +845,7 @@ reading:{
 ],
 5:[
 {q:"'Defeat is a teacher wearing a disguise.' Which statement BEST explains this?",opts:["Losing can teach lessons if you look closely","Teachers wear costumes","You should hide when you lose","Winning is impossible"],a:0,topic:"figurative language",teach:[{i:"🎭",t:"A disguise hides what something really is."},{i:"📚",t:"The quote says defeat — losing — is secretly a teacher."},{i:"💡",t:"Meaning: when you lose, there is a hidden lesson if you search for it."}],practice:{q:"'Mistakes are stepping stones.' This means...",opts:["Mistakes help you move forward","Never step on stones","Mistakes hurt your feet"],a:0}},
-{q:"An author writes: 'Some say video games waste time. Yet studies show certain games build problem-solving skills.' What is the author doing?",opts:["Presenting both sides, then supporting one with evidence","Telling a fairy tale","Listing game cheat codes","Describing a basketball play"],a:0,topic:"comprehension",teach:[{i:"⚖️",t:"First the author shows an opposing view: 'Some say...'."},{i:"🔬",t:"Then 'Yet studies show' brings in EVIDENCE for the other side."},{i:"🧠",t:"Authors persuade by naming the other side and answering it with facts."}],practice:{q:"'Some think spiders are scary. But spiders eat insects that harm crops.' The author is...",opts:["Defending spiders with a fact","Scaring the reader","Writing a recipe"],a:0}},
+{q:"An author writes: 'Some say video games waste time. Yet studies show certain games build problem-solving skills.' What is the author doing?",opts:["Presenting both sides, then supporting one with evidence","Telling a fairy tale","Listing game cheat codes","Describing a basketball play"],a:0,topic:"comprehension",teach:[{i:"⚖️",t:"First the author shows an opposing view: 'Some say...'."},{i:"🔬",t:"Then 'Yet studies show' brings in EVIDENCE for the other side."},{i:"🧠",t:"Authors persuade by naming the other side and answering it with facts."}],practice:{q:"'Some think lions are lazy. But lions can sprint faster than a car on a city street.' The author is...",opts:["Defending lions with a fact","Scaring the reader","Writing a recipe"],a:0}},
 {q:"Which sentence uses a semicolon correctly?",opts:["Prince loves basketball; he practices every day.","Prince loves; basketball he practices every day.","Prince; loves basketball he practices every day.","Prince loves basketball he; practices every day."],a:0,topic:"grammar",teach:[{i:"➗",t:"A semicolon joins two complete thoughts that are related."},{i:"✅",t:"'Prince loves basketball' is complete. 'He practices every day' is complete."},{i:"🔗",t:"The semicolon sits between the two complete thoughts — like a bridge."}],practice:{q:"Which is correct?",opts:["Ananse is clever; he always finds a way.","Ananse is; clever he always finds a way.","Ananse; is clever he always."],a:0}},
 {q:"In a story, the narrator says 'I knew the truth, though no one believed me.' Whose point of view is this?",opts:["First person — a character in the story","Third person — an outside narrator","Second person — the reader","No one's"],a:0,topic:"story structure",teach:[{i:"👤",t:"Point of view is WHO tells the story."},{i:"🗣️",t:"The word 'I' means the narrator is INSIDE the story — first person."},{i:"👁️",t:"Third person uses 'he' or 'she'. Second person uses 'you'."}],practice:{q:"'She watched the storm roll in.' This point of view is...",opts:["Third person","First person","Second person"],a:0}}
 ]
@@ -853,7 +853,7 @@ reading:{
 science:{
 1:[
 {q:"Ananse looks up at night and sees a glowing ball that changes shape during the month. What is it?",opts:["The Moon","The Sun","A cloud","A basketball"],a:0,topic:"space",teach:[{i:"🌙",t:"The Moon shines at night and seems to change shape."},{i:"🔄",t:"Those shapes are called phases — full moon, half moon, crescent."},{i:"☀️",t:"The Sun is only out in the day, and clouds don't glow."}],practice:{q:"What gives us light during the day?",opts:["The Sun","The Moon","A lamp post"],a:0}},
-{q:"Which animal is an insect?",opts:["Butterfly","Dog","Shark","Eagle"],a:0,topic:"animals",teach:[{i:"🐜",t:"Insects have 6 legs and 3 body parts."},{i:"🦋",t:"A butterfly has 6 legs — count them! It is an insect."},{i:"🕷️",t:"Fun fact: Ananse is a spider with 8 legs, so spiders are NOT insects!"}],practice:{q:"Which one is an insect?",opts:["Ant","Cat","Fish"],a:0}},
+{q:"Which animal is an insect?",opts:["Butterfly","Dog","Shark","Eagle"],a:0,topic:"animals",teach:[{i:"🐜",t:"Insects have 6 legs and 3 body parts."},{i:"🦋",t:"A butterfly has 6 legs — count them! It is an insect."},{i:"🦁",t:"Fun fact: Ananse is a lion with 4 legs and fur, so lions are mammals — NOT insects!"}],practice:{q:"Which one is an insect?",opts:["Ant","Cat","Fish"],a:0}},
 {q:"What do plants need to grow?",opts:["Sunlight and water","Pizza and juice","Darkness and ice","Television"],a:0,topic:"how things work",teach:[{i:"🌱",t:"Plants make their own food using sunlight."},{i:"💧",t:"They drink water through their roots in the soil."},{i:"☀️",t:"Sun + water + soil = a healthy growing plant."}],practice:{q:"A plant in a dark closet with no water will...",opts:["Stop growing","Grow faster","Turn into a tree"],a:0}},
 {q:"Which body part pumps blood around your whole body?",opts:["Heart","Ear","Toe","Hair"],a:0,topic:"human body",teach:[{i:"❤️",t:"Your heart is a muscle in your chest."},{i:"🔄",t:"It pumps blood to every part of your body, all day and night."},{i:"🏀",t:"When you play basketball, your heart beats faster to send more blood!"}],practice:{q:"What do your lungs help you do?",opts:["Breathe","See","Taste"],a:0}}
 ],
@@ -865,7 +865,7 @@ science:{
 ],
 3:[
 {q:"Ananse leaves a cup of water in the sun. Hours later, some water is gone. Where did it go?",opts:["It evaporated into the air","A bird drank it","It sank into the cup","It turned to ice"],a:0,topic:"how things work",teach:[{i:"☀️",t:"The sun's heat turns liquid water into invisible water vapor."},{i:"💨",t:"That change is called evaporation — water rising into the air."},{i:"🌧️",t:"Later, vapor cools into clouds and falls as rain. That is the water cycle!"}],practice:{q:"Puddles disappear after a sunny day because of...",opts:["Evaporation","Earthquakes","Magic"],a:0}},
-{q:"Why can Ananse walk on his web without getting stuck, but flies get trapped?",opts:["Spiders step on the non-sticky threads","Spiders wear shoes","Flies are lazy","The web is not sticky at all"],a:0,topic:"animals",teach:[{i:"🕸️",t:"A web has TWO kinds of silk: sticky spiral threads and smooth spoke threads."},{i:"🕷️",t:"The spider walks carefully on the smooth threads."},{i:"🪰",t:"Flies crash into the sticky spirals and get caught. Clever design!"}],practice:{q:"Spider webs catch prey because some threads are...",opts:["Sticky","Invisible","Made of metal"],a:0}},
+{q:"Why can Ananse creep up on a zebra without being heard?",opts:["Soft paw pads muffle every step","Lions wear shoes","Zebras are lazy","Lions never move"],a:0,topic:"animals",teach:[{i:"🐾",t:"A lion's paws have soft pads that cushion each step like slippers."},{i:"🦁",t:"He crouches low and moves slowly through the tall grass."},{i:"🦓",t:"The zebra never hears him coming until he is very close. Clever hunter!"}],practice:{q:"Lions can move quietly because their paws have...",opts:["Soft pads","Wheels","Metal claws"],a:0}},
 {q:"Why do we have day and night?",opts:["Earth spins around once every 24 hours","The Sun turns off","The Moon blocks the Sun every night","Clouds cover everything"],a:0,topic:"space",teach:[{i:"🌍",t:"Earth spins like a basketball on a fingertip."},{i:"☀️",t:"The side facing the Sun has day. The side facing away has night."},{i:"🕛",t:"One full spin takes 24 hours — one whole day."}],practice:{q:"When Ghana has daytime, the opposite side of Earth has...",opts:["Nighttime","Also daytime","No time"],a:0}},
 {q:"Prince eats fufu before a game. Which body system breaks the food into energy?",opts:["Digestive system","Skeleton","Eyelashes","Fingernails"],a:0,topic:"human body",teach:[{i:"🍲",t:"Food travels from your mouth to your stomach."},{i:"⚙️",t:"The digestive system breaks food into tiny nutrients."},{i:"⚡",t:"Blood carries those nutrients to your muscles as energy to play!"}],practice:{q:"Digestion starts in your...",opts:["Mouth","Knee","Elbow"],a:0}}
 ],
@@ -884,14 +884,14 @@ science:{
 },
 history:{
 1:[
-{q:"Ananse comes from the folktales of which country?",opts:["Ghana","Canada","Japan","Brazil"],a:0,topic:"folklore",teach:[{i:"🇬🇭",t:"Ananse stories come from Ghana, in West Africa."},{i:"🕷️",t:"The Akan people have told Ananse the spider's stories for hundreds of years."},{i:"🌍",t:"The stories traveled the world — in the Caribbean he is called Anancy!"}],practice:{q:"Ananse is what kind of animal?",opts:["A spider","A lion","A bird"],a:0}},
+{q:"Ananse comes from the folktales of which country?",opts:["Ghana","Canada","Japan","Brazil"],a:0,topic:"folklore",teach:[{i:"🇬🇭",t:"Ananse stories come from Ghana, in West Africa."},{i:"🦁",t:"The Akan people have told Ananse's stories for hundreds of years."},{i:"🌍",t:"The stories traveled the world — in the Caribbean he is called Anancy!"}],practice:{q:"In our Learning Zone, Ananse is what kind of animal?",opts:["A lion","A snake","A bird"],a:0}},
 {q:"What is the colorful woven cloth of Ghana called?",opts:["Kente","Denim","Silk pajamas","Wool"],a:0,topic:"kente & adinkra",teach:[{i:"🧵",t:"Kente is a famous cloth woven in bright strips."},{i:"🌈",t:"Each color means something: gold for royalty, green for growth."},{i:"👑",t:"Long ago, kente was worn by Ashanti kings on special days."}],practice:{q:"Kente cloth is made by...",opts:["Weaving strips together","Painting paper","Melting plastic"],a:0}},
 {q:"Which continent is Ghana on?",opts:["Africa","Europe","Asia","Antarctica"],a:0,topic:"modern ghana",teach:[{i:"🌍",t:"Ghana is in West Africa, on the Atlantic coast."},{i:"🏖️",t:"Its capital city is Accra, right by the ocean."},{i:"⭐",t:"Ghana's flag is red, gold, and green with a black star."}],practice:{q:"The capital of Ghana is...",opts:["Accra","Paris","Cairo"],a:0}},
 {q:"What color is the star on Ghana's flag?",opts:["Black","Pink","Orange","Silver"],a:0,topic:"modern ghana",teach:[{i:"🇬🇭",t:"Ghana's flag has three stripes: red, gold, and green."},{i:"⭐",t:"In the middle sits a black star — the symbol of African freedom."},{i:"⚽",t:"Ghana's national soccer team is even called the Black Stars!"}],practice:{q:"Ghana's national soccer team is called the...",opts:["Black Stars","Blue Lions","Red Eagles"],a:0}}
 ],
 2:[
 {q:"Which great kingdom ruled in Ghana's history, famous for its gold?",opts:["The Ashanti Kingdom","The Lego Kingdom","The Ice Kingdom","The Moon Kingdom"],a:0,topic:"ashanti kingdom",teach:[{i:"👑",t:"The Ashanti (Asante) Kingdom rose in the 1600s-1700s."},{i:"🪙",t:"It grew rich and powerful from gold — the land had lots of it."},{i:"🏛️",t:"Its capital was Kumasi, still a great city in Ghana today."}],practice:{q:"The Ashanti Kingdom was famous for what treasure?",opts:["Gold","Ice cream","Diamonds from the moon"],a:0}},
-{q:"In Ananse stories, how does the small spider usually beat bigger animals?",opts:["By being clever and using tricks","By being the strongest","By running away forever","By paying them"],a:0,topic:"folklore",teach:[{i:"🧠",t:"Ananse is small, but he out-THINKS everyone."},{i:"🕷️",t:"In one story he captures a python, hornets, and a leopard using clever plans."},{i:"💡",t:"The lesson: brains can beat brawn. Thinking is your superpower."}],practice:{q:"Ananse stories teach that you can win with...",opts:["Cleverness","Loudness","Money"],a:0}},
+{q:"In Ananse stories, how does clever Ananse usually beat bigger animals?",opts:["By being clever and using tricks","By being the strongest","By running away forever","By paying them"],a:0,topic:"folklore",teach:[{i:"🧠",t:"Ananse is small, but he out-THINKS everyone."},{i:"🦁",t:"In one story he captures a python, hornets, and a leopard using clever plans."},{i:"💡",t:"The lesson: brains can beat brawn. Thinking is your superpower."}],practice:{q:"Ananse stories teach that you can win with...",opts:["Cleverness","Loudness","Money"],a:0}},
 {q:"What are Adinkra symbols?",opts:["Symbols that each carry a special meaning","Video game cheat codes","Types of food","Basketball plays"],a:0,topic:"kente & adinkra",teach:[{i:"🔣",t:"Adinkra are symbols created by the Akan people of Ghana."},{i:"💛",t:"Each one holds a meaning — like Gye Nyame, meaning the greatness of God."},{i:"👕",t:"They are stamped on cloth, carved on stools, even printed on buildings."}],practice:{q:"Each Adinkra symbol has its own...",opts:["Meaning","Password","Flavor"],a:0}},
 {q:"What special chair is a sacred symbol of the Ashanti people?",opts:["The Golden Stool","The Beanbag","The Throne of Ice","The Rocking Chair"],a:0,topic:"ashanti kingdom",teach:[{i:"🪑",t:"The Golden Stool — Sika Dwa — is the most sacred Ashanti object."},{i:"✨",t:"Legend says it floated down from the sky to the first Ashanti king, Osei Tutu."},{i:"🤝",t:"It stands for the spirit and unity of all Ashanti people. No one ever sits on it."}],practice:{q:"The Golden Stool stands for the Ashanti people's...",opts:["Unity","Homework","Breakfast"],a:0}}
 ],
@@ -899,7 +899,7 @@ history:{
 {q:"In 1957, Ghana did something no other country in sub-Saharan Africa had done. What was it?",opts:["Became independent from colonial rule first","Built the first rocket","Invented basketball","Froze the ocean"],a:0,topic:"independence",teach:[{i:"⛓️",t:"For years, Britain ruled Ghana as a colony called the Gold Coast."},{i:"✊",t:"Ghanaians worked and marched for the right to rule themselves."},{i:"🎉",t:"On March 6, 1957, Ghana became free — the FIRST in sub-Saharan Africa. It inspired a whole continent!"}],practice:{q:"Before independence, Ghana was called the...",opts:["Gold Coast","Silver Shore","Iron Island"],a:0}},
 {q:"Who was Ghana's first president, who said 'We face neither East nor West; we face forward'?",opts:["Kwame Nkrumah","Michael Jordan","King Tut","Christopher Columbus"],a:0,topic:"famous ghanaians",teach:[{i:"👨🏿‍💼",t:"Kwame Nkrumah led Ghana's fight for independence."},{i:"🗣️",t:"He became the first president and dreamed of a united Africa."},{i:"🌍",t:"'We face forward' meant: Ghana chooses its own path. He is a hero across Africa."}],practice:{q:"Kwame Nkrumah was Ghana's first...",opts:["President","Astronaut","Goalkeeper"],a:0}},
 {q:"Why did Ashanti weavers give each kente pattern its own name and story?",opts:["So the cloth carries messages and history","To confuse buyers","Names were required by law","They ran out of colors"],a:0,topic:"kente & adinkra",teach:[{i:"🧵",t:"Kente is more than decoration — it speaks."},{i:"📖",t:"A pattern might honor a queen, mark a proverb, or celebrate an event."},{i:"👘",t:"Wearing a pattern tells everyone a story without saying a word."}],practice:{q:"Kente patterns can carry...",opts:["Stories and meanings","Wifi signals","Snacks"],a:0}},
-{q:"In the famous story, Ananse gathered all the world's wisdom in a pot. What lesson does the ending teach?",opts:["Wisdom is meant to be shared, not hoarded","Pots are heavy","Spiders hate climbing","Keep secrets forever"],a:0,topic:"folklore",teach:[{i:"🏺",t:"Ananse tried to keep ALL wisdom in one pot for himself, up a tall tree."},{i:"😅",t:"His own son suggested a better way to climb — proving Ananse didn't have all the wisdom!"},{i:"🌬️",t:"The pot broke, and wisdom scattered to everyone. Shared wisdom makes everyone stronger."}],practice:{q:"The wisdom pot story teaches us to...",opts:["Share knowledge","Hide knowledge","Avoid trees"],a:0}}
+{q:"In the famous story, Ananse gathered all the world's wisdom in a pot. What lesson does the ending teach?",opts:["Wisdom is meant to be shared, not hoarded","Pots are heavy","Lions hate climbing","Keep secrets forever"],a:0,topic:"folklore",teach:[{i:"🏺",t:"Ananse tried to keep ALL wisdom in one pot for himself, up a tall tree."},{i:"😅",t:"His own son suggested a better way to climb — proving Ananse didn't have all the wisdom!"},{i:"🌬️",t:"The pot broke, and wisdom scattered to everyone. Shared wisdom makes everyone stronger."}],practice:{q:"The wisdom pot story teaches us to...",opts:["Share knowledge","Hide knowledge","Avoid trees"],a:0}}
 ],
 4:[
 {q:"Yaa Asantewaa led the Ashanti in 1900 when the British demanded the Golden Stool. Why was her stand so remarkable?",opts:["She was a queen mother who led an army when others hesitated","She was the tallest soldier","She invented the stool","She was British"],a:0,topic:"ashanti kingdom",teach:[{i:"👵🏿",t:"Step 1: The British governor demanded to SIT on the sacred Golden Stool — a deep insult."},{i:"🗣️",t:"Step 2: When some chiefs hesitated, Yaa Asantewaa, the queen mother of Ejisu, rose and challenged them: 'If you men will not fight, we women will!'"},{i:"⚔️",t:"Step 3: She led the war to protect the stool. She is remembered as one of Africa's bravest leaders."}],practice:{q:"Yaa Asantewaa is famous for defending the...",opts:["Golden Stool","Silver Spoon","Bronze Ball"],a:0}},
@@ -910,7 +910,7 @@ history:{
 5:[
 {q:"Historians say Ghana's 1957 independence 'lit a torch' across Africa. What evidence supports this claim?",opts:["Within ten years, more than 30 African nations gained independence","Torches were sold in markets","Nothing changed anywhere","Ghana kept it secret"],a:0,topic:"independence",teach:[{i:"🔥",t:"A 'torch' here is a metaphor — Ghana's freedom showed others it was possible."},{i:"🗺️",t:"After 1957, independence movements surged: Nigeria 1960, Tanzania 1961, Kenya 1963, and many more."},{i:"📊",t:"Historians use this wave of evidence to argue Ghana inspired a continent. Claims need evidence!"}],practice:{q:"A good historian supports claims with...",opts:["Evidence","Guesses","Magic"],a:0}},
 {q:"The Ashanti say 'No one sits on the Golden Stool — not even the king.' What does this reveal about Ashanti ideas of power?",opts:["The nation's spirit is greater than any single ruler","Stools were uncomfortable","Kings disliked sitting","Gold is slippery"],a:0,topic:"ashanti kingdom",teach:[{i:"🪑",t:"The stool holds the SUNSUM — the soul — of the whole Ashanti nation."},{i:"👑",t:"Even the Asantehene (king) only leans on it; he never sits."},{i:"🤝",t:"Deep idea: the people together outrank any one person. Power belongs to the nation."}],practice:{q:"To the Ashanti, the Golden Stool holds the nation's...",opts:["Spirit","Snacks","Money"],a:0}},
-{q:"Compare: Ananse the trickster wins with wit; Yaa Asantewaa won respect with courage. What do BOTH teach Ghanaian children?",opts:["Strength comes in many forms — mind and heart, not just muscle","Only fighting matters","Spiders are stronger than queens","Stories are useless"],a:0,topic:"folklore",teach:[{i:"🕷️",t:"Ananse: small body, giant brain. Wit defeats the powerful."},{i:"👵🏿",t:"Yaa Asantewaa: when others trembled, her courage led a nation."},{i:"💡",t:"Together they teach: you don't need to be the biggest. Cleverness and bravery are true strength."}],practice:{q:"Ananse and Yaa Asantewaa both show that real strength can come from...",opts:["Mind and courage","Size only","Gold only"],a:0}},
+{q:"Compare: Ananse the trickster wins with wit; Yaa Asantewaa won respect with courage. What do BOTH teach Ghanaian children?",opts:["Strength comes in many forms — mind and heart, not just muscle","Only fighting matters","Lions are stronger than queens","Stories are useless"],a:0,topic:"folklore",teach:[{i:"🦁",t:"Ananse: big heart, giant brain. Wit defeats the powerful."},{i:"👵🏿",t:"Yaa Asantewaa: when others trembled, her courage led a nation."},{i:"💡",t:"Together they teach: you don't need to be the biggest. Cleverness and bravery are true strength."}],practice:{q:"Ananse and Yaa Asantewaa both show that real strength can come from...",opts:["Mind and courage","Size only","Gold only"],a:0}},
 {q:"Modern Ghana exports cocoa, gold, and oil, and hosts millions of visitors to historic sites. Why do historians call sites like the coastal castles 'painful but necessary' to preserve?",opts:["They preserve hard truths about the slave trade so it is never forgotten","Castles are good for parties","Paint is expensive","They are secretly new buildings"],a:0,topic:"modern ghana",teach:[{i:"🏰",t:"Castles like Cape Coast and Elmina were used during the Atlantic slave trade — a painful history."},{i:"🕯️",t:"Ghana preserves them so the world remembers what happened and honors those who suffered."},{i:"🌍",t:"In 2019, Ghana's 'Year of Return' invited the African diaspora home to connect with this history. Remembering protects the future."}],practice:{q:"Ghana preserves its historic castles so people will always...",opts:["Remember the past","Forget the past","Have parties"],a:0}}
 ]
 }
@@ -948,7 +948,7 @@ const DAILY_BANK=[
 {mix:"Math + Science",q:"Detective mission! An adult heart beats about 70 times a minute. Prince counts his pulse for exactly half a minute. About how many beats should he count?",opts:["About 35","About 140","About 70","About 7"],a:0,teach:[{i:"❤️",t:"70 beats happen in ONE whole minute."},{i:"➗",t:"Half a minute means half the beats: 70 ÷ 2 = 35."},{i:"🩺",t:"Doctors use this exact trick to check your pulse fast!"}]},
 {mix:"Reading + Science",q:"Detective mission! 'The Moon is a silver coin tossed into the night sky.' Which is TRUE about this sentence?",opts:["It is a metaphor — the Moon reflects sunlight, it is not a coin","The Moon is made of silver","Someone threw the Moon","Coins glow at night"],a:0,teach:[{i:"🌙",t:"The sentence compares the Moon to a coin — that is a metaphor."},{i:"☀️",t:"Science fact: the Moon makes no light. It REFLECTS the Sun's light."},{i:"🕵️",t:"A reading skill plus a science fact cracked this case!"}]},
 {mix:"Math + Ghana History",q:"Detective mission! Ghana's flag has 3 stripes. If a parade flies 9 flags, how many stripes wave in total — and what are the colors?",opts:["27 stripes — red, gold, and green","12 stripes — blue and white","9 stripes — purple","3 stripes — rainbow"],a:0,teach:[{i:"🇬🇭",t:"Each flag: 3 stripes — red, gold, green."},{i:"✖️",t:"9 flags × 3 stripes = 27 stripes."},{i:"⭐",t:"Bonus: each flag also carries one black star — the symbol of freedom!"}]},
-{mix:"Science + Reading",q:"Detective mission! Read carefully: 'A spider is NOT an insect.' Which clue PROVES it?",opts:["Spiders have 8 legs; insects have 6","Spiders are small","Insects can be green","Spiders eat leaves"],a:0,teach:[{i:"🕷️",t:"Count Ananse's legs: 8!"},{i:"🐜",t:"Insects always have exactly 6 legs and 3 body parts."},{i:"🔬",t:"Proof needs the RIGHT evidence — leg count is the clue that settles it."}]},
+{mix:"Science + Reading",q:"Detective mission! Read carefully: 'A lion is NOT a reptile.' Which clue PROVES it?",opts:["Lions have fur and feed milk to cubs; reptiles have scales","Lions are big","Reptiles can be green","Lions eat leaves"],a:0,teach:[{i:"🦁",t:"Look at Ananse: fur and a mane, not scales!"},{i:"🦎",t:"Reptiles have scales and lay eggs; mammals have fur and feed milk to their babies."},{i:"🔬",t:"Proof needs the RIGHT evidence — leg count is the clue that settles it."}]},
 {mix:"Math + Reading",q:"Detective mission! A story is 48 pages. Prince reads half, then 4 more pages. A 'cliffhanger' stops him! How many pages are left?",opts:["20 pages","24 pages","28 pages","4 pages"],a:0,teach:[{i:"📖",t:"Step 1: Half of 48 is 24. He read 24 pages."},{i:"➕",t:"Step 2: Plus 4 more = 28 pages read."},{i:"➖",t:"Step 3: 48 − 28 = 20 pages left. (A cliffhanger is an exciting stopping point!)"}]},
 {mix:"Ghana History + Math",q:"Detective mission! Kofi Annan won the Nobel Prize in 2001. Ghana became independent in 1957. How many years after independence did he win?",opts:["44 years","144 years","4 years","57 years"],a:0,teach:[{i:"🏅",t:"Find the difference: 2001 minus 1957."},{i:"➖",t:"2001 − 1957 = 44."},{i:"🇬🇭",t:"44 years after independence, a Ghanaian led the world to peace!"}]},
 {mix:"Science + Math",q:"Detective mission! Earth spins once every 24 hours. How many hours pass in TWO full spins?",opts:["48 hours","24 hours","12 hours","100 hours"],a:0,teach:[{i:"🌍",t:"One spin = 24 hours = one day."},{i:"✖️",t:"Two spins: 24 + 24 = 48 hours."},{i:"🕛",t:"That is two days and two nights. Space math!"}]}
@@ -1315,11 +1315,11 @@ function renderProfiles(){
      +'<span class="pv-go">▶</span></button>';
   }).join("");
   app.innerHTML='<main class="fadein splash-world">'
-   +'<section class="splash-scene" aria-label="Ananse’s living web"><div class="scene-glow"></div><div class="web-ring"></div>'
+   +'<section class="splash-scene" aria-label="Ananse’s learning court"><div class="scene-glow"></div><div class="web-ring"></div>'
    +'<i class="scene-orb o1"></i><i class="scene-orb o2"></i><i class="scene-orb o3"></i><div class="scene-badge"><i></i> Living story world</div>'
    +'<div class="ananse-stage">'+ananseSVG(260,"idle")+'</div></section>'
    +'<section class="splash-panel"><div class="world-kicker">✦ Wisdom lives in every story</div><h1 class="splash-title">Ananse<br>Learning Zone</h1>'
-   +'<p class="splash-sub">Step into a living web of numbers, stories, science and Ghanaian history. Ananse adapts every adventure to the way you learn.</p>'
+   +'<p class="splash-sub">Step onto a living court of numbers, stories, science and Ghanaian history. Ananse adapts every adventure to the way you learn.</p>'
    +(DB.profiles.length?'<div class="learner-dock"><h2>Who is exploring today?</h2>'+tiles+'<div class="splash-actions"><button class="btn" onclick="renderNewProfile()">＋ New learner</button><button class="btn secondary" onclick="parentGate()">🔒 Parent portal</button></div></div>':'<div class="splash-actions"><button class="btn big" onclick="renderNewProfile()">Begin your adventure</button><button class="btn secondary" onclick="parentGate()">🔒 Parent portal</button></div>')
    +a2hsHTML()+'</section></main>';
   if(DB.profiles.length===0)renderNewProfile();
@@ -1330,7 +1330,7 @@ function renderNewProfile(){
   app.innerHTML='<div class="fadein center" style="max-width:520px;margin:0 auto">'
    +'<div class="ananse-wrap">'+ananseSVG(140,"idle")+'</div>'
    +'<h2>Akwaaba! Welcome!</h2>'
-   +'<p class="muted">I am Ananse the Wise Spider. What is your name, young explorer?</p>'
+   +'<p class="muted">I am Ananse the Wise Lion. What is your name, young explorer?</p>'
    +'<div class="spacer"></div>'
    +'<input id="pname" placeholder="Your name" maxlength="20" style="text-align:center;font-size:26px">'
    +'<div class="spacer"></div>'
@@ -1338,7 +1338,7 @@ function renderNewProfile(){
    +'<p class="muted" style="font-size:14px;margin-top:8px">Pick a secret 4-digit code — you\'ll use it to log in. Keep it safe!</p>'
    +'<p class="muted" style="font-size:15px;margin-top:14px">First we\'ll do a fun assessment so I know exactly where to start you!</p>'
    +'<div class="spacer"></div>'
-   +'<button class="btn big" onclick="createProfile()">Start My Assessment! 🕷️</button>'
+   +'<button class="btn big" onclick="createProfile()">Start My Assessment! 🦁</button>'
    +(DB.profiles.length?'<div class="spacer"></div><button class="btn secondary" onclick="renderProfiles()">Back</button>':"")
    +'</div>';
 }
@@ -1440,7 +1440,7 @@ function renderHome(){
    +'<button class="btn" onclick="startStoryReplay()">🎬 Story Replay</button>'
    +'<button class="btn" onclick="startPatterns()">🧩 Spot the Pattern</button>'
    +'</div>'
-   +(window.ANANSE_ONLINE?'<div class="spacer"></div><div class="btn-row"><button class="btn" onclick="openAskAnanse()">🕷️ Ask Ananse anything</button></div>':'')
+   +(window.ANANSE_ONLINE?'<div class="spacer"></div><div class="btn-row"><button class="btn" onclick="openAskAnanse()">🦁 Ask Ananse anything</button></div>':'')
    +'<div class="spacer"></div>'
    +'<div class="btn-row">'
    +'<button class="btn '+(dailyDone?"secondary":"")+'" onclick="startDaily()">🕵️ Daily Mystery '+(dailyDone?"✓":"")+'</button>'
@@ -1561,7 +1561,7 @@ function renderQuestion(){
    +'<p class="qtext">'+esc(q.q)+'</p>'
    +'<div class="center" style="margin:-4px 0 10px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">'
    +((wp||S.subject==="comprehension")?'<button class="readbtn" onclick="say(S.cur.q)">🔊 Read it again</button>':'')
-   +'<button class="readbtn" onclick="askHelp()">🕷️ Ananse, help me</button>'
+   +'<button class="readbtn" onclick="askHelp()">🦁 Ananse, help me</button>'
    +'</div>'
    +(q.manip?manipHTML(q):'')
    +(showScratch?scratchHTML():'')
@@ -2003,8 +2003,8 @@ function endHoops(){
 const SEQUENCES=[
  {title:"Game Day Morning",text:"Prince woke up early for the big game. First he ate a bowl of oatmeal. Then he packed his jersey and water bottle. Next he laced up his sneakers. Finally he ran out the door to catch the bus.",
   events:["He ate a bowl of oatmeal","He packed his jersey and water bottle","He laced up his sneakers","He ran out to catch the bus"]},
- {title:"Ananse Builds a Web",text:"Ananse the spider felt hungry. First he climbed to the top corner of the doorway. Then he spun a long silk thread. Next he wove the thread into a wide web. Finally he waited quietly for his dinner.",
-  events:["He climbed to the top corner","He spun a long silk thread","He wove the thread into a web","He waited for his dinner"]},
+ {title:"Ananse Builds a Den",text:"Ananse the lion felt sleepy. First he found a shady spot under a big tree. Then he cleared away the sticks and stones. Next he pressed the tall grass flat into a soft bed. Finally he curled up quietly for his nap.",
+  events:["He found a shady spot","He cleared away the sticks","He pressed the grass into a bed","He curled up for his nap"]},
  {title:"Making Jollof Rice",text:"Mama started cooking dinner. First she chopped the tomatoes and onions. Then she fried them in a hot pot. Next she poured in the rice and water. Finally she covered the pot and let it simmer.",
   events:["She chopped tomatoes and onions","She fried them in a hot pot","She poured in rice and water","She covered the pot to simmer"]},
  {title:"The Free Throw",text:"The crowd went quiet. First Prince stepped up to the line. Then he bounced the ball three times. Next he took a deep breath. Finally he shot the ball and scored.",
@@ -2179,12 +2179,12 @@ const STORIES={
 {q:"Who did Kofi play with at the park?",opts:["Ama","His brother","His teacher","Nobody"],a:0,topic:"comprehension",teach:[{i:"🔍",t:"Hunt for the name in the middle of the story."},{i:"📖",t:"It says: 'His friend Ama was there. They played...'"},{i:"🎯",t:"Kofi played with his friend Ama."}]},
 {q:"What is this story MOSTLY about?",opts:["Kofi's fun day with his new ball","A rainy day at school","Ama's birthday party","Buying new shoes"],a:0,topic:"comprehension",teach:[{i:"💡",t:"The MAIN IDEA is what the whole story is about, not one tiny part."},{i:"📖",t:"Every sentence is about Kofi enjoying his new basketball."},{i:"🎯",t:"So the story is mostly about Kofi's fun day with his new ball."}]}
 ]},
-{title:"Ananse and the Mango",text:"Ananse the spider saw a big mango high in a tree. He wanted it for lunch. He spun a long web up to the branch. He climbed and climbed. At the top, a little bird looked hungry too. Ananse shared the mango with the bird. They both ate happily.",qs:[
-{q:"What did Ananse see in the tree?",opts:["A big mango","A football","A kite","A coconut"],a:0,topic:"comprehension",teach:[{i:"🔍",t:"Check the first sentence again."},{i:"📖",t:"'Ananse the spider saw a big mango high in a tree.'"},{i:"🎯",t:"He saw a big mango!"}]},
-{q:"How did Ananse reach the mango?",opts:["He spun a web and climbed","He threw a stone","He asked an elephant","He waited for it to fall"],a:0,topic:"story structure",teach:[{i:"🎬",t:"Think about the steps in order: what did Ananse DO?"},{i:"🕸️",t:"'He spun a long web up to the branch. He climbed and climbed.'"},{i:"🎯",t:"He spun a web and climbed up. That's how he reached it."}]},
+{title:"Ananse and the Mango",text:"Ananse the lion saw a big mango high in a tree. He wanted it for lunch. He dug his claws into the trunk. He climbed and climbed. At the top, a little bird looked hungry too. Ananse shared the mango with the bird. They both ate happily.",qs:[
+{q:"What did Ananse see in the tree?",opts:["A big mango","A football","A kite","A coconut"],a:0,topic:"comprehension",teach:[{i:"🔍",t:"Check the first sentence again."},{i:"📖",t:"'Ananse the lion saw a big mango high in a tree.'"},{i:"🎯",t:"He saw a big mango!"}]},
+{q:"How did Ananse reach the mango?",opts:["He dug in his claws and climbed","He threw a stone","He asked an elephant","He waited for it to fall"],a:0,topic:"story structure",teach:[{i:"🎬",t:"Think about the steps in order: what did Ananse DO?"},{i:"🐾",t:"'He dug his claws into the trunk. He climbed and climbed.'"},{i:"🎯",t:"He dug in his claws and climbed up. That's how he reached it."}]},
 {q:"What kind of friend is Ananse in this story?",opts:["Kind and sharing","Mean and greedy","Lazy","Scared"],a:0,topic:"inference",teach:[{i:"🕵️",t:"Use clues from what Ananse DID, not just what the story says."},{i:"🥭",t:"He shared his mango with a hungry bird — even after all that climbing!"},{i:"🎯",t:"Sharing your food shows you are kind. That's an inference!"}]},
-{q:"What happened LAST in the story?",opts:["They both ate happily","Ananse saw the mango","Ananse spun a web","Ananse wanted lunch"],a:0,topic:"story structure",teach:[{i:"🎬",t:"LAST means the very end of the story."},{i:"📖",t:"The final sentence says: 'They both ate happily.'"},{i:"🎯",t:"That's the ending — they both ate happily."}]},
-{q:"What is this story mostly about?",opts:["Ananse working hard and sharing","A bird building a nest","How mangoes grow","A spider who got lost"],a:0,topic:"comprehension",teach:[{i:"💡",t:"Ask: what happens in the WHOLE story, beginning to end?"},{i:"📖",t:"Ananse works hard to get the mango, then shares it."},{i:"🎯",t:"The story is mostly about working hard and sharing."}]}
+{q:"What happened LAST in the story?",opts:["They both ate happily","Ananse saw the mango","Ananse climbed the tree","Ananse wanted lunch"],a:0,topic:"story structure",teach:[{i:"🎬",t:"LAST means the very end of the story."},{i:"📖",t:"The final sentence says: 'They both ate happily.'"},{i:"🎯",t:"That's the ending — they both ate happily."}]},
+{q:"What is this story mostly about?",opts:["Ananse working hard and sharing","A bird building a nest","How mangoes grow","A lion who got lost"],a:0,topic:"comprehension",teach:[{i:"💡",t:"Ask: what happens in the WHOLE story, beginning to end?"},{i:"📖",t:"Ananse works hard to get the mango, then shares it."},{i:"🎯",t:"The story is mostly about working hard and sharing."}]}
 ]}
 ],
 2:[
@@ -2204,12 +2204,12 @@ const STORIES={
 ]}
 ],
 3:[
-{title:"The Spider's Lesson",text:"Kwame practiced free throws every evening, but he kept missing. One night he noticed a spider building a web in the corner of the porch. The wind tore the web apart twice, yet the spider calmly started again. By morning, a perfect web sparkled with dew. Kwame thought about that spider during practice the next day. Each time he missed, he reset his feet and tried again. By the end of the week, he made ten shots in a row.",qs:[
-{q:"What lesson did Kwame learn from the spider?",opts:["Keep trying calmly after every failure","Spiders are dangerous","Webs are stronger than wind","Practice at night only"],a:0,topic:"inference",teach:[{i:"🕵️",t:"The story never says 'the lesson is...' — connect the clues."},{i:"🕸️",t:"The web broke twice; the spider calmly rebuilt. Then Kwame 'reset and tried again' after misses."},{i:"🎯",t:"Kwame copied the spider: keep trying calmly after failing."}]},
-{q:"Why does the author tell us the web was torn apart TWICE?",opts:["To show the spider never gave up","To show wind is strong","To make the story longer","To explain how webs are made"],a:0,topic:"comprehension",teach:[{i:"💡",t:"Authors choose details for a reason. Ask: what does this detail prove?"},{i:"🕸️",t:"Breaking twice and rebuilding twice shows extra-strong persistence."},{i:"🎯",t:"The detail shows the spider never gave up — the heart of the story."}]},
-{q:"What happened AFTER Kwame watched the spider?",opts:["He reset his feet and retried each missed shot","He stopped playing basketball","He caught the spider","He bought a new ball"],a:0,topic:"story structure",teach:[{i:"🎬",t:"Find the spider scene, then look at what comes next in time."},{i:"📖",t:"'Kwame thought about that spider during practice the next day. Each time he missed, he reset his feet and tried again.'"},{i:"🎯",t:"After watching the spider, he retried each missed shot."}]},
-{q:"'A perfect web sparkled with dew.' What picture does this paint?",opts:["The finished web was beautiful in the morning light","The web was wet and ruined","The spider was crying","It was raining hard"],a:0,topic:"figurative language",teach:[{i:"🎭",t:"'Sparkled' is a shining word — it makes you SEE the scene."},{i:"✨",t:"Tiny water drops catching morning light look like little diamonds."},{i:"🎯",t:"It paints the web as beautiful — a reward for the spider's hard work."}]},
-{q:"What is the main idea of this story?",opts:["Persistence turns failure into success","Spiders build webs at night","Free throws are impossible","Wind ruins everything"],a:0,topic:"comprehension",teach:[{i:"💡",t:"Main idea = the message that covers the WHOLE story."},{i:"🔁",t:"Spider fails twice → succeeds. Kwame misses all week → ten in a row."},{i:"🎯",t:"Both halves teach: persistence turns failure into success."}]}
+{title:"The Lion's Lesson",text:"Kwame practiced free throws every evening, but he kept missing. One weekend at the zoo he watched a young lion cub trying to leap onto a high rock. The cub slipped off twice, yet it calmly backed up and tried again. On the third leap it stood proudly on top, its little mane shining in the sun. Kwame thought about that cub during practice the next day. Each time he missed, he reset his feet and tried again. By the end of the week, he made ten shots in a row.",qs:[
+{q:"What lesson did Kwame learn from the lion cub?",opts:["Keep trying calmly after every failure","Lions are dangerous","Rocks are stronger than cubs","Practice at night only"],a:0,topic:"inference",teach:[{i:"🕵️",t:"The story never says 'the lesson is...' — connect the clues."},{i:"🦁",t:"The cub slipped twice; it calmly tried again. Then Kwame 'reset and tried again' after misses."},{i:"🎯",t:"Kwame copied the cub: keep trying calmly after failing."}]},
+{q:"Why does the author tell us the cub slipped off TWICE?",opts:["To show the cub never gave up","To show rocks are slippery","To make the story longer","To explain how lions climb"],a:0,topic:"comprehension",teach:[{i:"💡",t:"Authors choose details for a reason. Ask: what does this detail prove?"},{i:"🦁",t:"Slipping twice and trying twice more shows extra-strong persistence."},{i:"🎯",t:"The detail shows the cub never gave up — the heart of the story."}]},
+{q:"What happened AFTER Kwame watched the lion cub?",opts:["He reset his feet and retried each missed shot","He stopped playing basketball","He climbed the rock himself","He bought a new ball"],a:0,topic:"story structure",teach:[{i:"🎬",t:"Find the lion cub scene, then look at what comes next in time."},{i:"📖",t:"'Kwame thought about that cub during practice the next day. Each time he missed, he reset his feet and tried again.'"},{i:"🎯",t:"After watching the cub, he retried each missed shot."}]},
+{q:"'Its little mane shining in the sun.' What picture does this paint?",opts:["The cub looked bright and proud after winning","The cub was wet and muddy","The cub was crying","It was raining hard"],a:0,topic:"figurative language",teach:[{i:"🎭",t:"'Shining' is a bright word — it makes you SEE the scene."},{i:"✨",t:"Golden fur catching sunlight looks like a tiny crown."},{i:"🎯",t:"It paints the cub as a winner — a reward for the cub's hard work."}]},
+{q:"What is the main idea of this story?",opts:["Persistence turns failure into success","Lion cubs climb rocks","Free throws are impossible","Rocks ruin everything"],a:0,topic:"comprehension",teach:[{i:"💡",t:"Main idea = the message that covers the WHOLE story."},{i:"🔁",t:"Cub fails twice → succeeds. Kwame misses all week → ten in a row."},{i:"🎯",t:"Both halves teach: persistence turns failure into success."}]}
 ]},
 {title:"The Quiet Bus",text:"Abena's class took a bus to the science museum in Accra. On the way back, Abena fell asleep against the window. When she woke, the bus was empty and parked in a quiet lot. Her heart pounded like a talking drum. Then she remembered her teacher's rule: if you are ever lost, stay where you are. A few minutes later she heard running footsteps — her teacher had counted heads and rushed straight back. 'You did exactly right,' her teacher said, hugging her.",qs:[
 {q:"'Her heart pounded like a talking drum.' What does this mean?",opts:["She was very scared and her heart beat fast","There was a drum on the bus","She was listening to music","Her heart was sick"],a:0,topic:"figurative language",teach:[{i:"🎭",t:"A simile compares using 'like' — heart compared to a drum."},{i:"🥁",t:"A talking drum beats loud and fast — just like a frightened heart."},{i:"🎯",t:"It means she was very scared, heart racing. No real drum!"}]},
@@ -2447,7 +2447,7 @@ function printCertificate(){
   const tCount=P.trophies.length;
   const lvl=(typeof P.level!=="undefined"&&P.level)?P.level:null;
   const dateStr=new Date().toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"});
-  const spider='<svg viewBox="0 0 100 100" width="84" height="84" aria-hidden="true"><g stroke="#1f3c70" stroke-width="3" stroke-linecap="round" fill="none"><path d="M50 50 L20 30 M50 50 L14 44 M50 50 L18 62 M50 50 L26 74"/><path d="M50 50 L80 30 M50 50 L86 44 M50 50 L82 62 M50 50 L74 74"/></g><ellipse cx="50" cy="56" rx="15" ry="18" fill="#1f3c70"/><circle cx="50" cy="36" r="11" fill="#1f3c70"/><circle cx="46" cy="34" r="2.6" fill="#ffc94d"/><circle cx="54" cy="34" r="2.6" fill="#ffc94d"/></svg>';
+  const mascot='<img src="ananse-lion.png" width="84" height="84" alt="" aria-hidden="true" style="border-radius:50%;object-fit:cover;border:3px solid #f5a623">';
   const kente='repeating-linear-gradient(90deg,#f5a623 0 14px,#ff6b4a 14px 28px,#4aa3e0 28px 36px,#3bb273 36px 50px,#f5a623 50px 56px,#7c5cf0 56px 68px)';
   const html='<!doctype html><html><head><meta charset="utf-8"><title>'+esc(P.name)+" — Certificate"+'</title>'
    +'<style>'
@@ -2477,13 +2477,13 @@ function printCertificate(){
    +'</style></head><body>'
    +'<button class="printbtn noprint" onclick="window.print()">🖨️ Print</button>'
    +'<div class="cert"><div class="bar"></div><div class="inner">'
-   +spider
+   +mascot
    +'<div class="eyebrow">Ananse Learning Zone</div>'
    +'<h1>Certificate of Achievement</h1>'
    +'<div class="sub">This certificate is proudly presented to</div>'
    +'<div class="name">'+esc(P.name)+'</div>'
    +'<div class="rule"></div>'
-   +'<div class="body">For curiosity, courage and hard work in learning — every question answered makes the mind grow stronger, just as Ananse the Wise Spider teaches.</div>'
+   +'<div class="body">For curiosity, courage and hard work in learning — every question answered makes the mind grow stronger, just as Ananse the Wise Lion teaches.</div>'
    +'<div class="stats">'
    +'<div class="stat"><b>'+tCount+'</b><span>Trophies</span></div>'
    +(lvl!==null?'<div class="stat"><b>'+lvl+'</b><span>Level</span></div>':'')
@@ -2491,7 +2491,7 @@ function printCertificate(){
    +'</div>'
    +(subjects.length?'<div class="subjects">Mastery shown in: '+esc(subjects.join(" · "))+'</div>':'')
    +'<div class="foot">'
-   +'<div class="sig"><div class="line"></div><div class="signame">🕷️ Ananse the Wise</div><small>Your Guide</small></div>'
+   +'<div class="sig"><div class="line"></div><div class="signame">🦁 Ananse the Wise</div><small>Your Guide</small></div>'
    +'<div class="sig"><div class="line"></div><div class="signame">'+esc(dateStr)+'</div><small>Date</small></div>'
    +'</div>'
    +'</div><div class="bar"></div></div>'
@@ -2602,7 +2602,7 @@ function pinKey(n){
 const TOPIC_ACTIVITIES={
  addition:{d:"At dinner: 'Our team scored 14, then 23 more — what's our total?' Let him add aloud.",c:"Car ride: add the numbers on license plates together.",b:"Bedtime: 'If you had 8 trophies and earned 6 more, how many?'"},
  subtraction:{d:"At dinner: 'We had 20 fries, you ate 7 — how many left?'",c:"Car ride: count down from 50 by taking away 4s.",b:"Bedtime: 'The team scored 18, the other team 11. By how much did we win?'"},
- multiplication:{d:"At dinner: 'Three plates, four pieces each — how many pieces total?'",c:"Car ride: skip-count by 2s, 5s, and 10s like a chant.",b:"Bedtime: '4 spiders, 8 legs each — how many legs?'"},
+ multiplication:{d:"At dinner: 'Three plates, four pieces each — how many pieces total?'",c:"Car ride: skip-count by 2s, 5s, and 10s like a chant.",b:"Bedtime: '4 lions, 4 legs each — how many legs?'"},
  fractions:{d:"At dinner: cut something into equal parts and ask what fraction one piece is.",c:"Car ride: 'If the trip is half done, how much is left?'",b:"Bedtime: 'You read half the book. More than or less than a quarter?'"},
  "place value":{d:"At dinner: say a big number; ask which digit is in the tens place.",c:"Car ride: spot a 3-digit number on a sign; ask the hundreds digit.",b:"Bedtime: 'What is 10 more than 47?'"},
  money:{d:"At dinner: set out coins and ask him to make 75¢ two different ways.",c:"Car ride: 'A snack costs 60¢, you pay with $1 — what change?'",b:"Bedtime: count a coin jar together for one minute."},
@@ -2619,7 +2619,7 @@ const TOPIC_ACTIVITIES={
  comprehension:{d:"At dinner: tell a short story, then ask 'What was it mostly about?'",c:"Car ride: he summarizes his favorite show episode in two sentences.",b:"Bedtime: after reading, ask one 'why' question about the story."},
  "figurative language":{d:"At dinner: say 'I'm so hungry I could eat an elephant' — ask what it really means.",c:"Car ride: invent silly comparisons: 'The traffic is as slow as...'",b:"Bedtime: find one simile or metaphor in tonight's story."},
  space:{d:"At dinner: 'Why do we have day and night?' Spin an orange to show it.",c:"Car ride: spot the Moon and talk about its shape tonight.",b:"Bedtime: one space fact each — yours and his."},
- animals:{d:"At dinner: 'Is a spider an insect?' Count legs together (6 vs 8!).",c:"Car ride: animal guessing game with habitat and diet clues.",b:"Bedtime: pick an animal and ask how its body helps it survive."},
+ animals:{d:"At dinner: 'Is a lion a mammal?' Talk about fur, warm blood and feeding milk to cubs.",c:"Car ride: animal guessing game with habitat and diet clues.",b:"Bedtime: pick an animal and ask how its body helps it survive."},
  "human body":{d:"At dinner: feel your pulse before and after 10 jumping jacks — why faster?",c:"Car ride: 'Which body parts are working while I drive?'",b:"Bedtime: trace where dinner travels through the body."},
  "how things work":{d:"At dinner: ask 'Why does ice melt in your drink?'",c:"Car ride: 'What makes the car stop when I brake?'",b:"Bedtime: one 'how does it work?' question — look it up together tomorrow."},
  folklore:{d:"At dinner: tell one Ananse story — then ask what the lesson was.",c:"Car ride: he retells an Ananse tale in his own words.",b:"Bedtime: invent a NEW Ananse story together, one sentence each."},
@@ -2739,7 +2739,7 @@ function renderParent(){
    +'<div class="adinkra-divider">✦</div>'
    +'<h3>🏠 Offline Activities (based on his recent struggles)</h3><div class="spacer" style="height:10px"></div>'+acts
    +'<div class="adinkra-divider">✦</div>'
-   +'<h3>🕸️ Web Kingdom — new 3D home (preview)</h3>'
+   +'<h3>🦁 Web Kingdom — new 3D home (preview)</h3>'
    +'<p class="muted">The magical 3D web where subjects are dewdrops. Needs internet once to fetch the 3D engine; after that it works offline too. Any device that can\'t run it automatically gets the classic home.</p>'
    +'<div class="btn-row" style="justify-content:flex-start"><button class="btn secondary" onclick="toggleKingdom()">'+(DB.kingdom&&DB.kingdom.enabled?'Turn OFF the 3D Kingdom':'✨ Turn ON the 3D Kingdom')+'</button></div>'
    +'<div class="adinkra-divider">✦</div>'
@@ -2760,7 +2760,7 @@ function renderParent(){
    +'<div class="btn-row" style="justify-content:flex-start"><button class="btn secondary" onclick="saveTelegram()">Save</button><button class="btn secondary" onclick="sendTelegram(true)">Send test now</button></div>'
    +'<p class="muted" id="tgStatus" style="margin-top:8px">'+(DB.telegram.lastSent?"Last sent: "+esc(DB.telegram.lastSent):"")+'</p>'
    +'<div class="adinkra-divider">✦</div>'
-   +'<h3>🕷️ Ask Ananse — AI Tutor (optional)</h3>'
+   +'<h3>🦁 Ask Ananse — AI Tutor (optional)</h3>'
    +'<p class="muted">Runs free and private on your own Mac mini. Do the one-time setup on the mini, then paste the address and key it prints. The chat button appears on '+esc(P.name)+'\'s home screen only when the mini is reachable — without it the app works exactly as before.</p>'
    +'<label>Tutor address</label><input id="anUrl" value="'+esc(DB.ananse.url)+'" placeholder="https://your-tunnel.trycloudflare.com">'
    +'<label>Secret key</label><input id="anKey" value="'+esc(DB.ananse.key)+'" placeholder="paste the key from the mini">'
@@ -2880,7 +2880,7 @@ function buildReport(){
     ?"\"I heard you kept working even on the tricky "+(weak||"questions")+" today. That kind of effort is exactly how champions are built.\""
     :"\"I'd love to do one Ananse mission with you tomorrow — pick the subject and I'll watch.\"";
   const doTomorrow=act?act.d:"Do one 10-minute session together and let him teach YOU one thing he learned.";
-  return "🕷️ Learning Zone — Daily Report ("+t+")\n\n"
+  return "🦁 Learning Zone — Daily Report ("+t+")\n\n"
    +"📚 What "+P.name+" studied: "+studied+"\n"
    +"🧑🏿‍🏫 What Ananse taught him: "+taught+"\n"
    +"🔥 Streak: "+P.streak+" (best "+P.bestStreak+") · Trophies: "+P.trophies.length+"\n\n"
@@ -2920,7 +2920,7 @@ function alertOnce(key,text){
   P.alertLog=P.alertLog||{};
   const stamp=today()+"|"+key;
   if(P.alertLog[key]===today())return;        // already sent today
-  if(tgSend("🕷️ Learning Zone Alert — "+P.name+"\n\n"+text)){P.alertLog[key]=today();save();}
+  if(tgSend("🦁 Learning Zone Alert — "+P.name+"\n\n"+text)){P.alertLog[key]=today();save();}
 }
 function checkAlerts(){
   if(!P)return;
@@ -3019,7 +3019,7 @@ function chatBubble(who,text){
   return '<div style="align-self:'+(kid?"flex-end":"flex-start")+';max-width:85%;border-radius:16px;padding:10px 14px;font-size:19px;font-weight:700;line-height:1.4;'
    +(kid?"background:linear-gradient(180deg,var(--gold-bright),var(--gold));color:#14365f"
         :"background:#f7fbff;border:2px solid var(--blue);color:var(--ink)")
-   +'">'+(kid?"":"🕷️ ")+esc(text)+'</div>';
+   +'">'+(kid?"":"🦁 ")+esc(text)+'</div>';
 }
 function drawChat(extra){
   const box=$("chatMsgs");if(!box)return;
@@ -3027,14 +3027,14 @@ function drawChat(extra){
   box.scrollTop=box.scrollHeight;
 }
 function openAskAnanse(){
-  if(!window.ANANSE_ONLINE){toast("Ananse's thinking web is asleep right now");return;}
+  if(!window.ANANSE_ONLINE){toast("Ananse is napping right now");return;}
   CHAT=[];
   openOverlay('<div>'
    +'<div class="center"><div class="ananse-wrap">'+ananseSVG(90,"teach")+'</div><h2>Ask Ananse anything</h2><p class="muted">What are you curious about today?</p></div>'
    +'<div id="chatMsgs" style="max-height:44vh;overflow-y:auto;margin:14px 0;display:flex;flex-direction:column;gap:10px"></div>'
    +'<div style="display:flex;gap:10px">'
    +'<input id="chatInput" maxlength="200" placeholder="Type your question…" style="flex:1" autocomplete="off">'
-   +'<button class="btn" style="padding:12px 20px;font-size:20px" onclick="askSend()">Send 🕸️</button>'
+   +'<button class="btn" style="padding:12px 20px;font-size:20px" onclick="askSend()">Send 🏀</button>'
    +'</div>'
    +'<div class="btn-row" style="margin-top:14px"><button class="btn secondary" onclick="closeOverlay()">Done ⟵</button></div>'
    +'</div>');
@@ -3046,17 +3046,17 @@ function askSend(){
   const q=inp.value.trim();if(!q)return;
   window._askBusy=true;inp.value="";
   CHAT.push({who:"kid",text:q});
-  drawChat(chatBubble("ananse","Ananse is thinking… 🕸️"));
+  drawChat(chatBubble("ananse","Ananse is thinking… 🦁"));
   let ctrl=null,t=null;
   try{ctrl=new AbortController();t=setTimeout(()=>ctrl.abort(),60000);}catch(e){}
   fetch(ananseBase()+"/ask",{method:"POST",headers:ananseHeaders(),body:JSON.stringify({question:q,child:P?P.name:""}),signal:ctrl?ctrl.signal:undefined})
    .then(r=>r.ok?r.json():Promise.reject())
    .then(j=>{
-     const a=(j&&j.answer?String(j.answer):"Hmm, my web got tangled. Ask me again!").trim();
+     const a=(j&&j.answer?String(j.answer):"Hmm, my mane got tangled. Ask me again!").trim();
      CHAT.push({who:"ananse",text:a});drawChat();say(a);
    })
    .catch(()=>{
-     CHAT.push({who:"ananse",text:"My web can't reach my brain right now. Let's keep playing — ask me again later!"});
+     CHAT.push({who:"ananse",text:"I can't reach my thinking cave right now. Let's keep playing — ask me again later!"});
      drawChat();
    })
    .finally(()=>{if(t)clearTimeout(t);window._askBusy=false;const i=$("chatInput");if(i)i.focus();});
@@ -3166,7 +3166,7 @@ function kdWebgl(){
 function toggleKingdom(){
   DB.kingdom.enabled=!DB.kingdom.enabled;
   window._kdFallback=false;save();
-  toast(DB.kingdom.enabled?"🕸️ Web Kingdom is ON":"Classic home is back");
+  toast(DB.kingdom.enabled?"🦁 Web Kingdom is ON":"Classic home is back");
   renderParent();
 }
 function loadThree(){
@@ -3189,7 +3189,7 @@ clearTimers=function(){
 };
 function renderKingdom(){
   KD.active=false;closeOverlay();defocus();showAnanseCorner(false);
-  app.innerHTML='<div class="fadein center" style="padding-top:26vh"><div class="ananse-wrap">'+ananseSVG(96,"idle")+'</div><h2 style="margin-top:12px">Spinning the web…</h2></div>';
+  app.innerHTML='<div class="fadein center" style="padding-top:26vh"><div class="ananse-wrap">'+ananseSVG(96,"idle")+'</div><h2 style="margin-top:12px">Warming up…</h2></div>';
   loadThree().then(()=>{kdShow();}).catch(()=>{
     window._kdFallback=true;   // this device/session can't get the engine — classic home
     toast("The 3D web needs internet once — showing classic home");
@@ -3208,7 +3208,7 @@ function kdShow(){
   wrap.appendChild(KD.labelBox);
   const top=document.createElement("div");
   top.style.cssText="position:absolute;top:14px;left:0;right:0;display:flex;justify-content:center;pointer-events:none";
-  top.innerHTML='<div class="hero-chip" style="font-size:16px;background:rgba(255,255,255,.75);backdrop-filter:blur(10px)">🕸️ Akwaaba to the Web Kingdom, '+esc(P.name)+'! · 🔥 '+(P.streak||0)+' · ⭐ '+(P.xp||0)+'</div>';
+  top.innerHTML='<div class="hero-chip" style="font-size:16px;background:rgba(255,255,255,.75);backdrop-filter:blur(10px)">🦁 Akwaaba to the Web Kingdom, '+esc(P.name)+'! · 🔥 '+(P.streak||0)+' · ⭐ '+(P.xp||0)+'</div>';
   wrap.appendChild(top);
   const bottom=document.createElement("div");
   bottom.style.cssText="position:absolute;left:0;right:0;bottom:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:0 12px";
@@ -3280,9 +3280,11 @@ function kdBuildScene(){
   const head=new T.Mesh(new T.SphereGeometry(.52,32,24),brown);head.position.set(0,.82,.08);guide.add(head);
   const eyeMat=new T.MeshPhysicalMaterial({color:0xffffff,roughness:.08,clearcoat:1}),pupilMat=new T.MeshStandardMaterial({color:0x071b35,roughness:.25});
   [-.2,.2].forEach(x=>{const eye=new T.Mesh(new T.SphereGeometry(.135,20,16),eyeMat);eye.position.set(x,.92,.48);guide.add(eye);const pupil=new T.Mesh(new T.SphereGeometry(.065,16,12),pupilMat);pupil.position.set(x,.92,.59);guide.add(pupil)});
+  const mane=new T.Mesh(new T.TorusGeometry(.6,.2,14,48),gold);mane.position.set(0,.82,-.02);guide.add(mane);
   const band=new T.Mesh(new T.TorusGeometry(.46,.075,10,44),gold);band.rotation.x=Math.PI/2;band.position.set(0,1.12,.02);guide.add(band);
   function limb(a,b){const mid=new T.Vector3().addVectors(a,b).multiplyScalar(.5),dir=new T.Vector3().subVectors(b,a);const m=new T.Mesh(new T.CylinderGeometry(.035,.05,dir.length(),10),brown);m.position.copy(mid);m.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),dir.clone().normalize());guide.add(m)}
-  [-1,1].forEach(side=>{for(let i=0;i<4;i++){const y=.38-i*.22;limb(new T.Vector3(side*.42,y,.02),new T.Vector3(side*(.92+i*.08),y+.16,.03));limb(new T.Vector3(side*(.92+i*.08),y+.16,.03),new T.Vector3(side*(1.28+i*.08),y-.12,.08))}});
+  [-1,1].forEach(side=>{for(let i=0;i<2;i++){const z=i?-.38:.42;limb(new T.Vector3(side*.42,-.2,z),new T.Vector3(side*.5,-.95,z))}});
+  limb(new T.Vector3(0,.1,-.7),new T.Vector3(.35,.75,-1.25));
   const heart=new T.PointLight(0xffb43b,1.7,6);heart.position.set(0,.4,1.6);guide.add(heart);
   // ---- subject dewdrop orbs ----
   KD.orbs=[];
@@ -3426,7 +3428,7 @@ function saveVoice(){applyVoiceInputs();toast("Ananse's voice saved")}
 function previewVoice(){
   applyVoiceInputs();
   const wasSound=DB.sound;DB.sound=true;
-  say("Akwaaba, my friend! I am Ananse the Wise Spider. Shall we learn something amazing today?");
+  say("Akwaaba, my friend! I am Ananse the Wise Lion. Shall we learn something amazing today?");
   DB.sound=wasSound;
 }
 

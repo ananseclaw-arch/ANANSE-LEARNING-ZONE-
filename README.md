@@ -1,6 +1,6 @@
-# 🕷️ ANANSE LEARNING ZONE
+# 🦁 ANANSE LEARNING ZONE
 
-An offline-first Progressive Web App for children's adaptive learning, featuring Ananse the Wise Spider and a Ghanaian cultural theme.
+An offline-first Progressive Web App for children's adaptive learning, featuring Ananse the Wise Lion and a Ghanaian cultural theme.
 
 **Live site:** [ananseclaw-arch.github.io/ANANSE-LEARNING-ZONE-](https://ananseclaw-arch.github.io/ANANSE-LEARNING-ZONE-/)
 
@@ -19,8 +19,8 @@ An offline-first Progressive Web App for children's adaptive learning, featuring
 - Per-profile progress, stats (speed, reading, memory, strategy, recall), trophies, and learning levels
 - "Switch Player" on the home screen
 
-### 🕷️ Ananse Character
-- SVG spider character with 3 moods: idle, teach, party
+### 🦁 Ananse Character
+- Lion mascot image (`ananse-lion.png`) with 3 moods: idle, teach, party
 - Animated speech bubbles with Ghanaian wisdom
 - "Akwaaba!" welcome (Twi for "welcome")
 - Kente cloth color theme throughout
@@ -71,7 +71,7 @@ An offline-first Progressive Web App for children's adaptive learning, featuring
 - Clear, high-contrast UI
 - TTS reads everything aloud
 
-### 🕷️ Ask Ananse — AI Tutor (optional)
+### 🦁 Ask Ananse — AI Tutor (optional)
 - Connects to a local Hermes agent running on a Mac mini
 - Private, free, runs on your own hardware
 - Chat button appears only when the server is reachable
@@ -81,7 +81,7 @@ An offline-first Progressive Web App for children's adaptive learning, featuring
 - **Installable** — add to home screen on iOS/Android/desktop
 - **Fully offline** — service worker caches everything
 - Works as a standalone app
-- Icons at 180px, 192px, and 512px
+- Lion icons at 180px, 192px, and 512px
 
 ---
 
@@ -105,6 +105,7 @@ An offline-first Progressive Web App for children's adaptive learning, featuring
 ```
 ANANSE-LEARNING-ZONE-/
 ├── index.html           # Entire app (HTML + CSS + JS, 3,188 lines)
+├── ananse-lion.png      # Ananse the Wise Lion mascot
 ├── sw.js                # Service worker for offline support
 ├── manifest.webmanifest # PWA manifest (installable)
 ├── icon-180.png         # PWA icon (180×180)
@@ -119,7 +120,7 @@ ANANSE-LEARNING-ZONE-/
 
 The app is organized into **9 inline script blocks** within `index.html`:
 
-1. **Core utilities** — Sound engine, Ananse SVG, TTS, confetti, profiles
+1. **Core utilities** — Sound engine, Ananse mascot, TTS, confetti, profiles
 2. **Content banks** — Reading, Science, Ghana History question banks
 3. **Math engine** — Procedural NBA/basketball math generation + SM-2 algorithm
 4. **Session engine** — Screen rendering, question flow, teaching, brain breaks, hoops
@@ -171,4 +172,4 @@ No build step, no package manager, no framework. Just a single file.
 
 ## Credits
 
-Built for Prince. Akwaaba! 🕷️
+Built for Prince. Akwaaba! 🦁
