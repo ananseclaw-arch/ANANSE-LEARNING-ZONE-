@@ -369,6 +369,45 @@ body.storyworld:before{opacity:.45;mix-blend-mode:screen}
 @media(max-width:820px){.splash-world{grid-template-columns:1fr;min-height:auto;gap:10px}.splash-scene{min-height:400px}.ananse-stage{width:210px;height:210px}.web-ring{width:390px;height:390px}.splash-panel{padding:12px 2px 40px}.splash-panel .splash-title{font-size:50px}.learner-dock{margin-top:22px}}
 @media(max-width:480px){#app{padding:68px 12px 28px}.splash-scene{min-height:330px;border-radius:28px}.ananse-stage{width:175px;height:175px}.web-ring{width:320px;height:320px}.scene-badge{left:16px;top:16px;font-size:11px}.splash-panel .splash-title{font-size:42px}.learner-dock{padding:13px;border-radius:22px}}
 
+
+/* ---------- Web Kingdom home: floating portals around Ananse ---------- */
+.kh-shell{position:relative;min-height:calc(100vh - 112px);display:flex;flex-direction:column;gap:10px}
+.kh-web{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.55}
+.kh-web line,.kh-web ellipse{fill:none;stroke:rgba(160,215,255,.28);stroke-width:.35;vector-effect:non-scaling-stroke}
+.kh-web ellipse{stroke-dasharray:1.2 1.6;stroke-width:.25}
+.kh-top{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.kh-player{display:flex;align-items:center;gap:14px;padding:12px 18px 12px 12px;border-radius:24px;background:linear-gradient(135deg,rgba(21,67,105,.88),rgba(6,29,55,.95));border:1px solid rgba(156,216,255,.28);box-shadow:0 18px 44px rgba(0,0,0,.35);color:#edf7ff;flex-wrap:wrap}
+.kh-av{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:26px;color:#fff;border:3px solid #ffd166;box-shadow:0 0 0 3px rgba(255,209,102,.25)}
+.kh-hi{font-weight:900;font-size:20px}.kh-meta{font-size:14px;color:#9fd0ff;font-weight:700}
+.kh-stat{display:flex;flex-direction:column;align-items:center;min-width:58px;padding:4px 8px;border-left:1px solid rgba(156,216,255,.18)}
+.kh-stat b{font-size:20px}.kh-stat span{font-weight:900;font-size:18px}.kh-stat small{font-size:11px;color:#9fd0ff;text-transform:uppercase;letter-spacing:.06em}
+.kh-badge{align-self:flex-start;padding:8px 16px;border-radius:999px;background:rgba(6,29,55,.85);border:1px solid rgba(255,209,102,.45);color:#ffd166;font-weight:900;letter-spacing:.04em}
+.kh-stage{position:relative;z-index:1;flex:1;min-height:560px}
+.kh-lion{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;z-index:2;animation:khFloat 5s ease-in-out infinite}
+.kh-lion .ananse-render{width:150px;height:150px;box-shadow:0 0 0 3px #071b35,0 0 60px rgba(255,209,102,.45),0 30px 60px rgba(0,0,0,.45)}
+.kh-bubble{margin:10px auto 0;max-width:230px;padding:8px 12px;border-radius:16px;background:rgba(255,255,255,.92);color:#123;font-weight:700;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.kh-orb{position:absolute;transform:translate(-50%,-50%);width:132px;padding:0;border:0;background:transparent;cursor:pointer;font-family:inherit;color:#edf7ff;text-align:center;z-index:3;animation:khFloat 4.2s ease-in-out infinite;transition:transform .25s var(--spring,ease)}
+.kh-orb:nth-child(2){animation-delay:-.6s}.kh-orb:nth-child(3){animation-delay:-1.4s}.kh-orb:nth-child(4){animation-delay:-2.1s}.kh-orb:nth-child(5){animation-delay:-2.9s}.kh-orb:nth-child(6){animation-delay:-3.5s}.kh-orb:nth-child(7){animation-delay:-1s}
+.kh-orb:hover,.kh-orb:focus-visible{transform:translate(-50%,-50%) scale(1.08);animation-play-state:paused}
+.kh-ring{display:grid;place-items:center;width:96px;height:96px;margin:0 auto;border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.35),transparent 45%),radial-gradient(circle,var(--c) 0%,color-mix(in srgb,var(--c) 55%,#06182d) 70%,#06182d 100%);border:3px solid rgba(255,255,255,.55);box-shadow:0 0 0 6px color-mix(in srgb,var(--c) 30%,transparent),0 0 40px color-mix(in srgb,var(--c) 70%,transparent),0 20px 40px rgba(0,0,0,.45);position:relative}
+.kh-ic{font-size:46px;line-height:1;filter:drop-shadow(0 6px 10px rgba(0,0,0,.4))}
+.kh-nm{display:block;margin-top:8px;font-weight:900;font-size:16px;text-shadow:0 2px 8px rgba(0,0,0,.6)}
+.kh-lv{display:inline-block;margin-top:4px;padding:2px 10px;border-radius:999px;background:rgba(6,29,55,.85);border:1px solid color-mix(in srgb,var(--c) 60%,#fff);font-size:12px;font-weight:800;color:#ffd166}
+.kh-orb.pick .kh-ring{box-shadow:0 0 0 8px color-mix(in srgb,var(--c) 45%,transparent),0 0 70px var(--c),0 20px 40px rgba(0,0,0,.45);animation:khPulse 1.8s ease-in-out infinite}
+.kh-orb.hub{width:170px}.kh-orb.hub .kh-ring{width:110px;height:110px}.kh-orb.hub .kh-ic{font-size:54px}
+.kh-dock{position:relative;z-index:2;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding:12px;border-radius:24px;background:rgba(6,29,55,.72);border:1px solid rgba(156,216,255,.2);backdrop-filter:blur(10px)}
+.kh-dock .btn{font-size:15px;padding:10px 14px}
+@keyframes khFloat{0%,100%{margin-top:0}50%{margin-top:-14px}}
+@keyframes khPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.25)}}
+@media(max-width:640px){
+  .kh-stage{min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:18px 8px;padding:14px 0 6px}
+  .kh-web{display:none}
+  .kh-lion{position:static;transform:none;grid-column:1/-1;animation:none;justify-self:center}
+  .kh-orb{position:static;transform:none;width:auto;left:auto!important;top:auto!important;justify-self:center}
+  .kh-orb.hub{grid-column:1/-1;width:auto}
+  .kh-player{width:100%}.kh-badge{display:none}
+}
+
 /* Complete in-app visual language: spatial command deck + 3D portals. */
 body.learningworld{background:#06182d;background-image:radial-gradient(circle at 50% 0,rgba(60,151,221,.26),transparent 38%),linear-gradient(160deg,#041224,#092a48 55%,#06182d);color:#edf7ff}
 body.learningworld #app{max-width:1180px}
@@ -1425,47 +1464,44 @@ function dailyPathSubjects(){
 }
 function renderHome(){
   if(typeof kingdomWants==="function"&&kingdomWants()){renderKingdom();return;}
-  clearTimers();closeOverlay();defocus();showAnanseCorner(true);
+  clearTimers();closeOverlay();defocus();showAnanseCorner(false);
   document.body.classList.add("learningworld");
   if(typeof checkAlerts==="function")checkAlerts();
   const [s1,s2]=dailyPathSubjects();
   const dailyDone=P.daily.date===today()&&P.daily.done;
   const rec=new Set([s1,s2]);
-  const tile=s=>{
-    const c=SUBJECTS[s].color,lv=P.levels[s];
-    const dots=[1,2,3,4,5].map(n=>'<span class="lv-dot'+(n<=lv?" on":"")+'"></span>').join("");
-    return '<button class="subj-tile vivid'+(rec.has(s)?" glow":"")+'" style="background:linear-gradient(155deg,'+c+','+shadeInk(c,0.45)+');box-shadow:0 10px 26px '+c+'55" onclick="startSession(\''+s+'\')">'
-     +'<span class="ic-wrap"><span class="ic">'+SUBJECTS[s].icon+'</span></span>'
-     +'<span class="nm">'+SUBJECTS[s].name+'</span>'
-     +'<div class="lv-row">'+dots+'</div>'
-     +'<div class="lv-cap">'+LEVEL_NAMES[lv]+(rec.has(s)?' · ⭐ Today\'s pick':'')+'</div>'
-     +'</button>';
-  };
-  app.innerHTML='<div class="fadein learning-shell">'
-   +'<div class="hero-card">'+ananseSVG(84,"idle")
-   +'<div><div class="hero-kicker">AKWAABA,</div><h1 style="font-size:30px;margin:0">'+esc(P.name)+'!</h1>'
-   +'<div style="margin-top:8px"><span class="hero-chip">🔥 '+(P.streak||0)+' streak</span><span class="hero-chip">⭐ '+(P.xp||0)+' XP</span><span class="hero-chip">🏆 '+P.trophies.length+'</span></div></div>'
-   +'<div class="mission-panel"><strong>Choose your next portal</strong><span>Glowing portals are Ananse\'s picks</span></div></div>'
-   +(DB.resume&&DB.resume[P.id]&&DB.resume[P.id].s?'<div class="btn-row" style="margin-top:10px"><button class="btn" onclick="sessResumeBtn()">▶ Continue your lesson</button></div>':'')
-   +'<div class="subject-map">'+Object.keys(SUBJECTS).map(tile).join("")+'</div>'
-   +'<div class="learning-actions"><div class="btn-row">'
-   +'<button class="btn" onclick="renderLessons()">📚 '+(P.grade?GRADE_NAMES[P.grade]+' Lessons':'Grade Lessons')+'</button>'
-   +'<button class="btn" onclick="startStoryReplay()">🎬 Story Replay</button>'
-   +'<button class="btn" onclick="startPatterns()">🧩 Spot the Pattern</button>'
+  const lvAvg=Math.max(1,Math.round(Object.values(P.levels).reduce((x,y)=>x+y,0)/Object.keys(SUBJECTS).length));
+  // orb positions (percent of the stage) — the lion sits at the centre of the web
+  const POS={lessons:[50,9],comprehension:[83,24],english:[89,56],math:[73,86],history:[23,86],science:[11,46]};
+  const orb=(key,icon,name,sub,onclick,color,extra)=>'<button class="kh-orb'+(extra||"")+'" style="--c:'+color+';left:'+POS[key][0]+'%;top:'+POS[key][1]+'%" onclick="'+onclick+'"><span class="kh-ring"><span class="kh-ic">'+icon+'</span></span><span class="kh-nm">'+name+'</span>'+(sub?'<span class="kh-lv">'+sub+'</span>':'')+'</button>';
+  const orbs=Object.keys(SUBJECTS).map(s=>orb(s,SUBJECTS[s].icon,SUBJECTS[s].name,'Lv '+P.levels[s]+(rec.has(s)?' · ⭐':''),"startSession('"+s+"')",SUBJECTS[s].color,rec.has(s)?" pick":"")).join("")
+   +orb("lessons","📚",P.grade?GRADE_NAMES[P.grade]+" Lessons":"Grade Lessons","Learn, then practice","renderLessons()","#ffd166"," hub");
+  const lines=Object.keys(POS).map(k=>'<line x1="50" y1="50" x2="'+POS[k][0]+'" y2="'+POS[k][1]+'"/>').join("");
+  app.innerHTML='<div class="fadein kh-shell">'
+   +'<svg class="kh-web" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><g>'+lines+'</g><ellipse cx="50" cy="50" rx="22" ry="20"/><ellipse cx="50" cy="50" rx="40" ry="36"/></svg>'
+   +'<div class="kh-top">'
+   +'<div class="kh-player"><span class="kh-av" style="background:'+(P.color||"#4aa3e0")+'">'+esc((P.name||"?").charAt(0).toUpperCase())+'</span>'
+   +'<div><div class="kh-hi">Akwaaba, '+esc(P.name)+'!</div><div class="kh-meta">Level '+lvAvg+' · '+LEVEL_NAMES[lvAvg]+'</div></div>'
+   +'<div class="kh-stat"><b>🔥</b><span>'+(P.streak||0)+'</span><small>streak</small></div>'
+   +'<div class="kh-stat"><b>⭐</b><span>'+(P.xp||0)+'</span><small>points</small></div>'
+   +'<div class="kh-stat"><b>🏆</b><span>'+P.trophies.length+'</span><small>trophies</small></div></div>'
+   +'<div class="kh-badge">🦁 Web Kingdom</div></div>'
+   +(DB.resume&&DB.resume[P.id]&&DB.resume[P.id].s?'<div class="btn-row" style="margin:8px 0 0"><button class="btn" onclick="sessResumeBtn()">▶ Continue your lesson</button></div>':'')
+   +'<div class="kh-stage">'
+   +'<div class="kh-lion">'+ananseSVG(150,"idle")+'<div class="kh-bubble">Glowing portals are my picks for today. Tap one!</div></div>'
+   +orbs
    +'</div>'
-   +(window.ANANSE_ONLINE?'<div class="spacer"></div><div class="btn-row"><button class="btn" onclick="openAskAnanse()">🦁 Ask Ananse anything</button></div>':'')
-   +'<div class="spacer"></div>'
-   +'<div class="btn-row">'
-   +'<button class="btn '+(dailyDone?"secondary":"")+'" onclick="startDaily()">🕵️ Daily Mystery '+(dailyDone?"✓":"")+'</button>'
-   +'<button class="btn secondary" onclick="renderTrophyRoom()">🏆 Trophy Room</button>'
-   +'<button class="btn secondary" onclick="renderJourney()">🗺️ My Journey</button>'
-   +'<button class="btn secondary" onclick="renderStats()">📊 My Player Card</button>'
-   +'</div>'
-   +'<div class="spacer"></div>'
-   +'<div class="btn-row">'
-   +'<button class="btn secondary" style="font-size:16px;padding:10px 18px" onclick="DB.lastProfile=null;save();P=null;renderProfiles()">👥 Switch Player</button>'
-   +'<button class="btn" style="font-size:18px;padding:12px 22px" onclick="parentGate()">🔒 Parent Portal</button>'
-   +'</div></div></div>';
+   +'<div class="kh-dock">'
+   +'<button class="btn secondary" onclick="renderJourney()">🗺️ Journey</button>'
+   +'<button class="btn secondary" onclick="renderTrophyRoom()">🏆 Trophies</button>'
+   +'<button class="btn '+(dailyDone?"secondary":"")+'" onclick="startDaily()">🕵️ Mystery'+(dailyDone?" ✓":"")+'</button>'
+   +'<button class="btn secondary" onclick="renderStats()">🃏 Card</button>'
+   +'<button class="btn secondary" onclick="startStoryReplay()">🎬 Story Replay</button>'
+   +'<button class="btn secondary" onclick="startPatterns()">🧩 Patterns</button>'
+   +(window.ANANSE_ONLINE?'<button class="btn secondary" onclick="openAskAnanse()">🦁 Ask Ananse</button>':'')
+   +'<button class="btn secondary" onclick="DB.lastProfile=null;save();P=null;renderProfiles()">👥 Switch</button>'
+   +'<button class="btn" onclick="parentGate()">🔒 Parent</button>'
+   +'</div></div>';
   say("Welcome back, "+P.name+"! Pick a subject to start today's path.");
   checkTelegramDue();
 }
