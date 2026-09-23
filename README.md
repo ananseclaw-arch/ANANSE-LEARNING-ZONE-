@@ -87,7 +87,7 @@ An offline-first Progressive Web App for children's adaptive learning, featuring
 - **Story replay** — read-then-quiz comprehension mode
 - **Spot the Pattern** — visual/audio pattern recognition game
 - **Hoops!** — basketball reward mini-game
-- **Accra Speedway** — a pseudo-3D kart racing game (`race.js`) with three tracks, rival karts, coins, boosts and banana hazards; open any time from the home screen or the landing page, placement earns XP and a Speedway Champion trophy
+- **Grand Fable GP** — a neon pseudo-3D kart racer (`race.js`): rainbow roads through space, a glowing city skyline, holographic item boxes (rocket boost, homing orb, shield, banana), rival karts that fire back, a live leaderboard; three circuits, open any time from the home screen or landing page; placement earns XP and the Grand Fable Champion trophy
 
 ### 🧘 ADHD-Friendly Design
 - Brain breaks between rounds (movement exercises)
