@@ -58,7 +58,7 @@ An offline-first Progressive Web App for children's adaptive learning, featuring
 - Starting levels come from the grade until a trail is run; re-runs keep progress, trophies and streaks and only update levels
 
 ### 📘 Reveal Math practice — matches the class practice book
-- `reveal.js` mirrors the unit and lesson order of the McGraw-Hill *Reveal Math* Grade 3 Student Practice Book (Units 2–13, 88 lessons) so home practice lines up with school
+- `reveal.js` mirrors the unit and lesson order of the McGraw-Hill *Reveal Math* Grade 3 Student Practice Book (Units 2–13, 86 lessons) so home practice lines up with school
 - Every problem is original and generated fresh (unlimited practice); only the unit/lesson names follow the book
 - Each lesson opens with a Review card in the book's style, then 8 problems with Ananse's hints; 80%+ earns a ★
 - Book-style visuals: base-ten blocks, number lines, arrays, equal groups, fraction bars, area grids, clocks, rulers, picture and bar graphs, line plots, polygons
@@ -183,6 +183,10 @@ The app is organized into **9 inline script blocks** within `index.html`:
 3. Paste the URL and key in **Parent Portal → Ask Ananse**
 
 ---
+
+## Maintaining
+
+See [MAINTAINING.md](MAINTAINING.md) for the file map, content rules and the release checklist. Run `python3 check.py` before every deploy; it validates every script block, the inlined content, all lesson/lab data and 40 generated problems per Reveal Math lesson.
 
 ## Development
 
