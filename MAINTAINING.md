@@ -57,6 +57,10 @@ If the cache version is not bumped, installed iPads keep the old copy until thei
 
 `localStorage["plz_v1"]` holds everything: profiles, levels, sessions, lessons, lab, reveal, nature journal, parent PIN, settings. Profile fields added over time are back-filled at load (search for `back-fill` / `fill in fields older profiles lack` in `index.html`). If you add a profile field, add it to `newProfile()` **and** to that migration line. Parents can export/import this as a JSON backup from the portal.
 
+## If a device shows an old or broken version
+
+Open `https://ananseclaw-arch.github.io/ANANSE-LEARNING-ZONE-/?reset=1` on that device. It unregisters the offline worker, clears the caches and reloads; profiles and progress (localStorage) are kept. Any runtime error is shown in a red bar at the top of the page with a "Fix it" button that does the same.
+
 ## Quick health checks an agent can run
 
 - `python3 check.py` — syntax of every script block, lesson/lab data shape, 40 generated problems per Reveal lesson, no "spider" in shipped text, service-worker version consistency.

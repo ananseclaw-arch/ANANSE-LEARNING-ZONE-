@@ -395,6 +395,7 @@ body.storyworld:before{opacity:.45;mix-blend-mode:screen}
 .gp3-fin-title{font-size:clamp(28px,6vw,46px);font-weight:900;text-shadow:0 0 24px #ffd166}.gp3-fin-sub{font-weight:800;color:#c9e6ff;margin-top:6px}
 .gp-podium{display:flex;align-items:flex-end;gap:10px;margin-top:10px}.gp-pod{display:flex;flex-direction:column;align-items:center;padding:8px 12px;border-radius:12px 12px 0 0;background:rgba(255,255,255,.15);min-width:70px}.gp-pod span{font-size:34px}.gp-pod b{color:#ffd166}.gp-pod small{font-size:12px}.gp-pod.p1{background:rgba(255,209,102,.35);padding-bottom:26px}.gp-pod.p3{padding-bottom:2px}
 
+#errbar{position:fixed;left:8px;right:8px;top:64px;z-index:999;background:#b3261e;color:#fff;padding:10px 14px;border-radius:12px;font-size:14px;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.4)}#errbar button{margin-left:8px;border:0;border-radius:8px;padding:4px 10px;font-weight:900;cursor:pointer}
 /* ---------- kart race ---------- */
 .gp-banner{text-align:center;padding:18px 12px 10px}
 .gp-title{font-size:clamp(34px,7vw,56px);font-weight:900;letter-spacing:.04em;color:#fff;text-shadow:0 0 12px #ff4d6d,0 0 30px #b06bff,0 0 60px #4dd2ff;line-height:1}
@@ -530,6 +531,24 @@ body.learningworld #app{max-width:1180px}
 </style>
 </head>
 <body>
+<div id="errbar" hidden></div>
+<script>
+/* Visible error reporter + one-tap recovery. If anything throws, a red bar
+   shows the message so it can be reported. Opening the site with ?reset=1
+   unregisters the offline worker and clears caches (progress is kept). */
+(function(){
+  function show(msg){try{var b=document.getElementById("errbar");if(!b)return;b.hidden=false;b.innerHTML='<b>Something went wrong:</b> '+String(msg).replace(/</g,"&lt;").slice(0,300)+' <button onclick="location.href=location.pathname+\'?reset=1\'">Fix it</button><button onclick="this.parentNode.hidden=true">✕</button>';}catch(e){}}
+  window.addEventListener("error",function(e){show((e.message||"error")+(e.lineno?" (line "+e.lineno+")":""));});
+  window.addEventListener("unhandledrejection",function(e){var r=e.reason;show(r&&r.message?r.message:String(r));});
+  if(/[?&]reset=1/.test(location.search)){
+    var done=function(){location.replace(location.pathname);};
+    var jobs=[];
+    if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations)jobs.push(navigator.serviceWorker.getRegistrations().then(function(rs){return Promise.all(rs.map(function(r){return r.unregister();}));}));
+    if(window.caches&&caches.keys)jobs.push(caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k);}));}));
+    Promise.all(jobs).then(done,done);
+  }
+})();
+</script>
 <div id="topbar">
   <div class="tb-group">
     <button class="tb-btn" id="homeBtn" onclick="goHome()" title="Home" aria-label="Home"><span class="tb-ic">🏠</span><span class="tb-lb">Home</span></button>
