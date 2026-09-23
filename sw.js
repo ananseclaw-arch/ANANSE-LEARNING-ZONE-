@@ -1,7 +1,7 @@
-const CACHE = "learning-zone-v32";
+const CACHE = "learning-zone-v33";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png", "./ananse-lion.png"];
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(f => new Request(f, {cache: "reload"})))).then(() => self.skipWaiting()));
 });
 self.addEventListener("activate", e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
@@ -16,7 +16,7 @@ self.addEventListener("fetch", e => {
   const url = new URL(req.url);
   const isShell = req.mode === "navigate" || /\/(index\.html)?$/.test(url.pathname) || /\.(js|webmanifest)$/.test(url.pathname);
   if (isShell) {
-    e.respondWith(fetch(req).then(resp => {
+    e.respondWith(fetch(req, {cache: "no-cache"}).then(resp => {
       const copy = resp.clone();
       caches.open(CACHE).then(c => c.put(req, copy));
       return resp;
