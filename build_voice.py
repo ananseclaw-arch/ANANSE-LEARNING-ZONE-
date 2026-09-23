@@ -83,6 +83,12 @@ def extract_phrases(html):
         for m in re.finditer(r'\b(?:q|t|intro|title|text):\s*"((?:[^"\\]|\\.){3,1200})"', lj):
             phrases.add(unescape_js(m.group(1)))
 
+    lab_path = os.path.join(HERE, "lab.js")
+    if os.path.exists(lab_path):
+        lb = open(lab_path, errors="ignore").read()
+        for m in re.finditer(r'\b(?:mystery|goal|q):\s*"((?:[^"\\]|\\.){3,600})"', lb):
+            phrases.add(unescape_js(m.group(1)))
+
     cleaned = set()
     for p in phrases:
         p = speakable(p)

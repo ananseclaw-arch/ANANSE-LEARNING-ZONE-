@@ -56,6 +56,13 @@ An offline-first Progressive Web App for children's adaptive learning, featuring
 - "Not sure yet — skip" is allowed; no scores, no pressure
 - Never repeats on its own. Parents can re-run it from the Parent Portal (now, or queued for the next login) — progress, trophies and streaks are kept, only the starting levels update
 
+### 🧪 Ananse's Science Lab — explore, don't just answer
+- 8 hands-on quests in `lab.js`, each a mystery Ananse needs help with; wrong turns are safe and show *why* (the bridge cracks where the span is too long, the pond turns green, the plant wilts)
+- Virtual labs: Gravity Drop (compare planets), Grow-a-Plant (sunlight × water over a week), Light the Lantern (complete the circuit), Rescue the Pond (runoff, trees, oxygen, fish), Bridge Builder (supports vs. span)
+- Visualizing the invisible: Zoom the Universe from the Solar System down to an atom
+- Device sensors: See Your Sound (microphone waveform → amplitude and pitch) and Balance the Ball (tilt sensor → balanced forces), each with on-screen fallbacks
+- Every quest ends with a 2-question scientist's notebook; first solves earn 30 XP, four solves earn the Lab Explorer trophy; parent portal shows quest progress
+
 ### 📚 Grade Lessons (Anne Arundel County / Maryland aligned)
 - 33 lessons for grades 3, 4 and 5 in `lessons.js`, each tagged with its Maryland College and Career-Ready Standard (math, ELA) or Maryland/NGSS science standard
 - Each lesson: Ananse teaches (3 cards) → 4 practice questions with hints; story lessons show the full story first, then 5 questions
@@ -114,6 +121,7 @@ An offline-first Progressive Web App for children's adaptive learning, featuring
 ANANSE-LEARNING-ZONE-/
 ├── index.html           # Entire app (HTML + CSS + JS)
 ├── lessons.js           # Grade 3–5 lessons (source; inlined into index.html by inline_lessons.py)
+├── lab.js               # Science Lab quests (source; inlined the same way)
 ├── ananse-lion.png      # Ananse the Wise Lion mascot
 ├── sw.js                # Service worker for offline support
 ├── manifest.webmanifest # PWA manifest (installable)
