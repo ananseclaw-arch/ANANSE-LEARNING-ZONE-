@@ -384,6 +384,7 @@ body.storyworld:before{opacity:.45;mix-blend-mode:screen}
 .circ-slot{width:110px;padding:10px 6px;border-radius:14px;border:3px solid #b9d4f3;background:var(--panel2,#fff);font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;color:inherit}
 .circ-slot.bad{border-color:#e0512f;background:rgba(224,81,47,.15)}.circ-sym{font-size:24px;font-weight:900;letter-spacing:2px}.circ-slot small{font-size:12px;font-weight:800}
 .tilt-pad{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:10px}.tilt-pad .btn{padding:8px 18px;font-size:18px}
+.nat-thumb{width:34px;height:34px;object-fit:cover;border-radius:8px;vertical-align:middle;margin-right:6px}
 .zoom-stage{text-align:center;min-height:230px;padding:10px}.zoom-emoji{font-size:96px;line-height:1.1;animation:khFloat 4s ease-in-out infinite}
 
 /* ---------- Web Kingdom home: floating portals around Ananse ---------- */
@@ -833,6 +834,11 @@ const LABS=[
  goal:"Keep the ball inside the centre circle for 3 seconds.",
  reflect:[{q:"When the ball stayed still in the centre, the forces on it were...",opts:["Balanced — pulls cancelled out","Unbalanced","Gone","Magnetic"]},
           {q:"Tilting the board made the ball roll because...",opts:["Gravity pulled it downhill — an unbalanced force","The ball got heavier","The board pushed up","Air pushed it"]}]},
+{id:"nature",icon:"🍃",title:"Nature Walk",std:"3-LS4-3 · 4-LS1-1",grade:"3–5",
+ mystery:"Real scientists observe living things where they live. Go outside, find a plant, bug, bird or animal, take its picture, and record what you notice. Then Ananse helps you name it and adds it to your field journal.",
+ goal:"Observe one living thing, photograph it and add it to your field journal.",
+ reflect:[{q:"You counted 8 legs on a creature in a web. It is...",opts:["An arachnid, like a spider","An insect","A bird","A worm"]},
+          {q:"Why do scientists write down WHERE they found a living thing?",opts:["The place is a clue to how it lives and what it needs","It is required by law","To find it again for lunch","No reason"]}]},
 {id:"zoom",icon:"🔭",title:"Zoom the Universe",std:"5-ESS1-1 · 5-PS1-1",grade:"5",
  mystery:"Ananse's telescope zooms from the whole Solar System all the way down to the atoms inside a basketball. Slide through every scale and read the clues.",
  goal:"Visit every scale from the Solar System to the atom.",
@@ -869,7 +875,7 @@ function openLab(id){
    +'<div id="labFeedback" class="lab-feedback" hidden></div>'
    +'<div class="btn-row" style="margin-top:14px"><button class="btn secondary" onclick="renderLab()">⟵ All quests</button><button class="btn secondary" onclick="say(labById(LAB.id).mystery)">🔊 Read it to me</button><button class="btn" id="labDoneBtn" hidden onclick="labReflect()">I solved it! What did I discover? ▶</button></div><div class="spacer"></div></div>';
   say(l.mystery);
-  ({gravity:labGravity,plant:labPlant,circuit:labCircuit,pond:labPond,bridge:labBridge,sound:labSound,tilt:labTilt,zoom:labZoom})[id]($("labArea"));
+  ({gravity:labGravity,plant:labPlant,circuit:labCircuit,pond:labPond,bridge:labBridge,sound:labSound,tilt:labTilt,zoom:labZoom,nature:labNature})[id]($("labArea"));
 }
 function labStop(){
   if(!LAB)return;
@@ -1191,6 +1197,139 @@ function zoomTo(i){
   if(LAB.seen.size===ZOOMS.length)labGoalMet("From the Solar System to a single atom — you zoomed through every scale!");
 }
 
+/* ---------- 9. Nature Walk (camera + real-world observation) ----------
+   The child photographs a living thing, records what they observe, then
+   Ananse identifies it: plants via Pl@ntNet (free key set in the parent
+   portal), bugs by counting legs/wings (classification), birds and other
+   animals by the child's best guess — every result becomes a field-guide
+   card fetched from Wikipedia. Needs internet; the observation notebook
+   works offline and the ID runs when a connection is back. */
+const NATURE_TYPES={plant:{e:"🌿",n:"Plant",organs:["leaf","flower","fruit","bark"],
+  obs:[{k:"where",q:"Where was it growing?",o:["In the ground","In a pot","On a wall or tree","In water"]},{k:"leaf",q:"What shape are the leaves?",o:["Long and thin","Round or oval","Pointy with teeth","Needles"]},{k:"color",q:"Any flowers or fruit? What color?",o:["No flowers","White or yellow","Pink, red or purple","Green fruit or berries"]}]},
+ bug:{e:"🐛",n:"Bug",obs:[{k:"legs",q:"Count the legs. How many?",o:["6 legs","8 legs","More than 8","No legs I can see"]},{k:"wings",q:"Does it have wings?",o:["Yes","No","I could not tell"]},{k:"where",q:"Where did you find it?",o:["On a leaf or flower","On the ground or under a rock","In a web","Flying or on a wall"]}]},
+ bird:{e:"🐦",n:"Bird",obs:[{k:"size",q:"How big was it?",o:["Sparrow size (small)","Robin size (medium)","Crow size (large)","Bigger than a crow"]},{k:"color",q:"Main colors?",o:["Brown or grey","Black","Red or orange","Blue or bright"]},{k:"doing",q:"What was it doing?",o:["Eating or pecking","Singing","Flying","Sitting still"]}]},
+ other:{e:"🐾",n:"Other animal",obs:[{k:"cover",q:"What covers its body?",o:["Fur","Scales","Smooth wet skin","Shell"]},{k:"where",q:"Where was it?",o:["On land","In water","In a tree","Under something"]},{k:"move",q:"How does it move?",o:["Runs or walks","Hops","Slides or crawls","Swims"]}]}};
+function bugGroup(o){
+  if(o.legs==="6 legs")return {name:"Insect",wiki:"Insect",why:"6 legs and 3 body parts means it is an insect."};
+  if(o.legs==="8 legs")return {name:"Arachnid (spider family)",wiki:"Arachnid",why:"8 legs means an arachnid — spiders, ticks and mites."};
+  if(o.legs==="More than 8")return {name:"Myriapod (centipede or millipede)",wiki:"Myriapoda",why:"Lots of legs in a row means a centipede or millipede."};
+  return {name:"Worm, slug or snail",wiki:"Invertebrate",why:"No legs — it moves by sliding, like worms, slugs and snails."};
+}
+function labNature(area){
+  LAB.n={type:null,obs:{},thumb:null,id:null};
+  const journal=(P.nature||[]).slice().reverse().slice(0,8).map(e=>'<div class="statline"><span>'+(e.thumb?'<img src="'+e.thumb+'" class="nat-thumb">':NATURE_TYPES[e.type].e)+' <b>'+esc(e.name)+'</b> <span class="muted" style="font-size:13px">'+esc(e.date)+'</span></span><span class="muted" style="font-size:13px">'+esc(e.note||"")+'</span></div>').join("");
+  area.innerHTML='<div id="natStep"></div>'+(journal?'<h3 style="margin-top:16px">📓 My Field Journal</h3><div class="card" style="margin-top:8px">'+journal+'</div>':'');
+  natStep1();
+}
+function natStep1(){
+  $("natStep").innerHTML='<p class="center" style="font-weight:800">Step 1 · Go outside (a yard, park or window box counts). What did you find?</p><div class="opts">'+Object.keys(NATURE_TYPES).map(k=>'<button class="opt" style="justify-content:center;font-size:20px" onclick="natType(\''+k+'\')">'+NATURE_TYPES[k].e+' '+NATURE_TYPES[k].n+'</button>').join("")+'</div>';
+}
+function natType(t){
+  LAB.n.type=t;sfx("tick");
+  $("natStep").innerHTML='<p class="center" style="font-weight:800">Step 2 · Take a photo of it (get close, hold still)</p>'
+   +'<div class="center"><label class="btn" style="display:inline-block;cursor:pointer">📷 Take or choose a photo<input type="file" accept="image/*" capture="environment" style="display:none" onchange="natPhoto(event)"></label></div>'
+   +'<div id="natPreview" class="center" style="margin-top:10px"></div>'
+   +'<div class="center" style="margin-top:8px"><button class="readbtn" onclick="natObs()">No camera — skip the photo →</button></div>';
+}
+function natPhoto(ev){
+  const f=ev.target.files&&ev.target.files[0];if(!f)return;
+  LAB.n.file=f;
+  const img=new Image();const url=URL.createObjectURL(f);
+  img.onload=()=>{
+    const c=document.createElement("canvas");const s=Math.min(1,220/Math.max(img.width,img.height));c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);
+    c.getContext("2d").drawImage(img,0,0,c.width,c.height);LAB.n.thumb=c.toDataURL("image/jpeg",0.6);
+    URL.revokeObjectURL(url);
+    $("natPreview").innerHTML='<img src="'+LAB.n.thumb+'" style="max-width:220px;border-radius:14px;border:3px solid #f5a623"><div class="spacer" style="height:8px"></div><button class="btn" onclick="natObs()">Looks good — next ▶</button>';
+    sfx("tick");
+  };
+  img.src=url;
+}
+function natObs(){
+  const T=NATURE_TYPES[LAB.n.type];LAB.n.oi=0;
+  const step=()=>{
+    const o=T.obs[LAB.n.oi];
+    if(!o)return natIdentify();
+    $("natStep").innerHTML='<p class="center" style="font-weight:800">Step 3 · Scientist\'s eyes ('+(LAB.n.oi+1)+' of '+T.obs.length+')</p><p class="qtext" style="font-size:22px">'+esc(o.q)+'</p><div class="opts">'+o.o.map(v=>'<button class="opt" onclick="natAns(\''+o.k+'\',\''+v.replace(/'/g,"\\'")+'\')"><span>'+esc(v)+'</span></button>').join("")+'</div>';
+    say(o.q);
+  };
+  LAB.n.next=step;step();
+}
+function natAns(k,v){LAB.n.obs[k]=v;LAB.n.oi++;sfx("tick");LAB.n.next();}
+async function natIdentify(){
+  const n=LAB.n,T=NATURE_TYPES[n.type];
+  $("natStep").innerHTML='<p class="center" style="font-weight:800">Step 4 · Ananse looks it up…</p><div class="center"><div class="ananse-wrap">'+ananseSVG(80,"teach")+'</div><p class="muted" id="natStatus">Thinking…</p></div>';
+  if(n.type==="plant"){
+    const key=(DB.plantnet&&DB.plantnet.key||"").trim();
+    if(!n.file){return natGuess("I need a photo to identify a plant. Tell me your best guess instead.");}
+    if(!key){return natGuess("Plant ID needs the free Pl@ntNet key — a parent can add it in the Parent Portal. For now, what do you think it is?");}
+    if(!navigator.onLine){return natGuess("No internet right now. What do you think it is? I will remember your notes.");}
+    try{
+      const fd=new FormData();fd.append("images",n.file);fd.append("organs",n.obs.color&&n.obs.color!=="No flowers"?"flower":"leaf");
+      const r=await fetch("https://my-api.plantnet.org/v2/identify/all?lang=en&api-key="+encodeURIComponent(key),{method:"POST",body:fd});
+      if(!r.ok)throw new Error("Pl@ntNet said "+r.status);
+      const j=await r.json();const res=(j.results||[]).slice(0,3);
+      if(!res.length)throw new Error("no match");
+      $("natStep").innerHTML='<p class="center" style="font-weight:800">Step 4 · Ananse\'s best matches — pick the one that looks right</p><div class="opts">'+res.map((x,i)=>'<button class="opt" onclick="natPick('+i+')"><span><b>'+esc((x.species.commonNames&&x.species.commonNames[0])||x.species.scientificNameWithoutAuthor)+'</b><br><span class="muted" style="font-size:13px">'+esc(x.species.scientificNameWithoutAuthor)+' · '+Math.round(x.score*100)+'% sure</span></span></button>').join("")+'</div>';
+      LAB.n.cands=res.map(x=>({name:(x.species.commonNames&&x.species.commonNames[0])||x.species.scientificNameWithoutAuthor,wiki:x.species.scientificNameWithoutAuthor}));
+    }catch(e){natGuess("Pl@ntNet could not identify that photo ("+(e.message||"error")+"). Try a clearer, closer shot — or tell me your best guess.");}
+    return;
+  }
+  if(n.type==="bug"){const g=bugGroup(n.obs);return natCard({name:g.name,wiki:g.wiki,why:g.why});}
+  natGuess(T.e+" What do you think it is? Type a name (like 'robin' or 'grey squirrel') and I will look it up.");
+}
+function natGuess(msg){
+  $("natStep").innerHTML='<p class="center" style="font-weight:800">Step 4 · Your best guess</p><p class="muted center">'+esc(msg)+'</p><div class="center"><input id="natName" placeholder="What is it?" style="max-width:320px;text-align:center;font-size:20px"><div class="spacer" style="height:8px"></div><button class="btn" onclick="natLookup()">🔎 Look it up</button></div>';
+}
+const NAT_HINT={bird:{w:" bird North America",re:/bird|species/i},other:{w:" animal North America",re:/animal|mammal|reptile|amphibian|rodent|species|fish|crab/i},plant:{w:" plant",re:/plant|tree|flower|shrub|species|genus/i},bug:{w:" insect",re:/insect|arthropod|spider|arachnid|species|beetle|bug/i}};
+async function wikiSummary(title){
+  const r=await fetch("https://en.wikipedia.org/api/rest_v1/page/summary/"+encodeURIComponent(title.replace(/ /g,"_")));
+  if(!r.ok)return null;return r.json();
+}
+/* search Wikipedia for the child's guess, biased to the kind of living thing,
+   and keep the first real (non-disambiguation) page that reads like one */
+async function wikiBest(q,type){
+  const h=NAT_HINT[type]||NAT_HINT.other;
+  const r=await fetch("https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&origin=*&srlimit=4&srsearch="+encodeURIComponent(q+h.w));
+  const j=await r.json();const titles=(j.query&&j.query.search||[]).map(x=>x.title);
+  let fallback=null;
+  for(const t of titles){
+    const sj=await wikiSummary(t);if(!sj||sj.type==="disambiguation")continue;
+    if(h.re.test((sj.description||"")+" "+(sj.extract||"").slice(0,160)))return sj;
+    if(!fallback)fallback=sj;
+  }
+  return fallback;
+}
+async function natLookup(){
+  const q=($("natName").value||"").trim();if(!q){toast("Type a name first");return;}
+  natCard({name:q,wiki:q,search:true});
+}
+function natPick(i){const c=LAB.n.cands[i];natCard({name:c.name,wiki:c.wiki});}
+async function natCard(x){
+  LAB.n.id=x;
+  let card='<div class="card gold" style="margin-top:10px"><h2>'+esc(x.name)+'</h2>'+(x.why?'<p style="font-weight:700">'+esc(x.why)+'</p>':'')+'<p class="muted" id="natWiki">Fetching Ananse\'s field guide…</p></div>';
+  $("natStep").innerHTML='<p class="center" style="font-weight:800">Step 5 · Field guide</p>'+card+'<div class="center" style="margin-top:10px"><button class="btn big" onclick="natSave()">📓 Add to my Field Journal</button></div>';
+  try{
+    if(!navigator.onLine)throw new Error("offline");
+    const r=await fetch("https://en.wikipedia.org/api/rest_v1/page/summary/"+encodeURIComponent(x.wiki.replace(/ /g,"_")));
+    let j=r.ok?await r.json():{type:"disambiguation"};
+    if(x.search||j.type==="disambiguation"){const best=await wikiBest(x.wiki,LAB.n.type);if(best)j=best;}
+    if(j.type==="disambiguation")throw new Error("no clear page");
+    if(x.search&&j.title){LAB.n.id.name=j.title.toLowerCase()===x.name.toLowerCase()?j.title:x.name+" ("+j.title+")";}
+    LAB.n.summary=(j.extract||"").split(". ").slice(0,3).join(". ")+".";
+    $("natWiki").innerHTML=(j.thumbnail?'<img src="'+j.thumbnail.source+'" style="float:right;max-width:140px;border-radius:12px;margin:0 0 8px 12px">':'')+'<b>'+esc(j.title)+'</b><br>'+esc(LAB.n.summary)+'<br><small class="muted">from Wikipedia</small>';
+    say(x.name+". "+LAB.n.summary);
+  }catch(e){$("natWiki").textContent="The field guide needs internet — your observation is still saved. "+(x.why||"");}
+}
+function natSave(){
+  const n=LAB.n;P.nature=P.nature||[];
+  const note=Object.values(n.obs).join(" · ");
+  P.nature.push({date:today(),type:n.type,name:n.id.name,note,thumb:n.thumb||null});
+  while(P.nature.length>20)P.nature.shift();
+  save();sfx("correct");
+  labGoalMet(n.id.name+" is in your field journal with "+Object.keys(n.obs).length+" observations.");
+  $("natStep").innerHTML='<div class="center"><p style="font-weight:800">Saved! Find another living thing?</p><button class="btn secondary" onclick="labNature($(\'labArea\'))">🍃 New observation</button></div>';
+}
+
 </script>
 <script>
 "use strict";
@@ -1223,6 +1362,7 @@ const DBKEY="plz_v1";
 function defaultDB(){return{profiles:[],pin:null,sound:true,telegram:{token:"",chat:"",time:"19:00",lastSent:""},ananse:{url:"",key:""},voice:{name:"",rate:1.0,pitch:1.05},kingdom:{enabled:true,v2:true},lastProfile:null}}
 let DB; try{DB=JSON.parse(localStorage.getItem(DBKEY))||defaultDB()}catch(e){DB=defaultDB()}
 if(!DB.ananse)DB.ananse={url:"",key:""};
+if(!DB.plantnet)DB.plantnet={key:""};
 if(!DB.voice)DB.voice={name:"",rate:1.0,pitch:1.05};
 /* One-time upgrade: the old defaults (0.92 rate / 1.0 pitch) are the slow,
    flat delivery kids read as robotic. Lift anyone still on them, and drop a
@@ -3751,6 +3891,12 @@ function renderParent(){
    +'<div class="spacer" style="height:12px"></div>'
    +'<div class="btn-row" style="justify-content:flex-start"><button class="btn secondary" onclick="saveAnanse()">Save</button><button class="btn secondary" onclick="testAnanse()">Test connection</button></div>'
    +'<p class="muted" id="anStatus" style="margin-top:8px"></p>'
+   +'<div class="adinkra-divider">✦</div>'
+   +'<h3>🍃 Nature Walk — plant identification (optional)</h3>'
+   +'<p class="muted">The Science Lab\'s Nature Walk can name plants from a photo using Pl@ntNet, a free service run by French research institutes. Create a free account at my.plantnet.org, copy your API key, and paste it here. Bugs, birds and the Wikipedia field guide work without it.</p>'
+   +'<label>Pl@ntNet API key</label><input id="pnKey" value="'+esc(DB.plantnet.key||"")+'" placeholder="2b10...">'
+   +'<div class="spacer" style="height:12px"></div><div class="btn-row" style="justify-content:flex-start"><button class="btn secondary" onclick="DB.plantnet.key=($(\'pnKey\').value||\'\').trim();save();toast(\'Pl@ntNet key saved\')">Save key</button></div>'
+   +(P.nature&&P.nature.length?'<p class="muted" style="margin-top:8px">'+esc(P.name)+'\'s field journal: '+P.nature.length+' observation'+(P.nature.length===1?'':'s')+', latest '+esc(P.nature[P.nature.length-1].name)+' on '+esc(P.nature[P.nature.length-1].date)+'.</p>':'')
    +'<div class="adinkra-divider">✦</div>'
    +'<h3>💾 Backup</h3>'
    +'<p class="muted">Save all profiles, progress and settings to a file you can keep safe or move to another device. Restore brings everything back.</p>'

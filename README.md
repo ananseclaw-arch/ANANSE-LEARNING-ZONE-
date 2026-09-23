@@ -61,6 +61,7 @@ An offline-first Progressive Web App for children's adaptive learning, featuring
 - Virtual labs: Gravity Drop (compare planets), Grow-a-Plant (sunlight × water over a week), Light the Lantern (complete the circuit), Rescue the Pond (runoff, trees, oxygen, fish), Bridge Builder (supports vs. span)
 - Visualizing the invisible: Zoom the Universe from the Solar System down to an atom
 - Device sensors: See Your Sound (microphone waveform → amplitude and pitch) and Balance the Ball (tilt sensor → balanced forces), each with on-screen fallbacks
+- Nature Walk: photograph a plant, bug, bird or animal outside, record observations, and Ananse names it — plants via Pl@ntNet (free key in the parent portal), bugs by counting legs, others by the child's guess — with a Wikipedia field-guide card; entries go into a personal field journal
 - Every quest ends with a 2-question scientist's notebook; first solves earn 30 XP, four solves earn the Lab Explorer trophy; parent portal shows quest progress
 
 ### 📚 Grade Lessons (Anne Arundel County / Maryland aligned)
