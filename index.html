@@ -3568,9 +3568,32 @@ function nextQuestion(){
   if(S.subject==="math"&&!S.wpServed&&S.phase!=="review"&&(S.n>=2||S.n>=S.total-1)){
     S.wpServed=true;
     S.cur=freshQuestion(genWordProblem);
-    renderQuestion();return;
+    introThenAsk();return;
   }
   S.cur=freshQuestion(()=>getQuestion(S.subject,lvl));
+  introThenAsk();
+}
+/* TEACH FIRST on a brand-new topic (Eb, 2026-09-23). The home-screen subject
+   buttons used to quiz straight away, so on a topic Prince had never met he was
+   guessing first and only taught after getting it wrong. Now, the first time a
+   topic appears (no spaced-repetition record and never introduced), Ananse walks
+   the teach cards as a worked example, then asks the question's PRACTICE twin —
+   a fresh question of the same kind — so the teaching never gives away the
+   answer being graded. Topics he already knows stay quiz-first (recall practice).
+   Lessons already teach first, and warm-up review is by definition seen topics. */
+function isNewTopic(q){
+  return !!(q&&q.topic&&q.teach&&q.teach.length&&q.practice&&q.practice.opts
+    &&!q.vis   // picture questions: the picture belongs to the example, not the twin
+    &&!(P.sm2&&P.sm2[q.topic])&&!(P.introDone&&P.introDone[q.topic]));
+}
+function introThenAsk(){
+  const q=S.cur;
+  if(!S.lesson&&S.phase!=="review"&&isNewTopic(q)){
+    P.introDone=P.introDone||{};P.introDone[q.topic]=Date.now();save();
+    T={q:q,step:0,from:"intro",praise:"New skill! Let me show you how it works first."};
+    renderTeachStep();
+    return;
+  }
   renderQuestion();
 }
 /* story-first comprehension */
@@ -3850,6 +3873,13 @@ function renderTeachStep(){
 function teachNext(){
   if(T.step<T.q.teach.length-1){T.step++;renderTeachStep()}
   else if(T.from==="help"){closeOverlay();if(typeof say==="function")say("Now you try. Pick your answer when you're ready.");}
+  else if(T.from==="intro"){
+    // worked example done: now ask a fresh question of the same kind
+    closeOverlay();
+    const ex=T.q,pr=ex.practice;
+    S.cur=Object.assign({},ex,{q:pr.q,opts:pr.opts,a:pr.a,practice:null,introduced:true});
+    renderQuestion();
+  }
   else renderPractice();
 }
 function renderPractice(){
