@@ -102,7 +102,7 @@ An offline-first Progressive Web App for children's adaptive learning, featuring
 | Audio | Web Audio API + Speech Synthesis API |
 | 3D Hub | Three.js (loaded on demand) |
 | Storage | IndexedDB (via localStorage wrapper) |
-| Offline | Service Worker (v30) |
+| Offline | Service Worker (v32, network-first app shell) |
 | Reports | Telegram Bot API |
 | Hosting | GitHub Pages |
 
@@ -113,7 +113,7 @@ An offline-first Progressive Web App for children's adaptive learning, featuring
 ```
 ANANSE-LEARNING-ZONE-/
 ├── index.html           # Entire app (HTML + CSS + JS)
-├── lessons.js           # Grade 3–5 lessons aligned to Maryland standards
+├── lessons.js           # Grade 3–5 lessons (source; inlined into index.html by inline_lessons.py)
 ├── ananse-lion.png      # Ananse the Wise Lion mascot
 ├── sw.js                # Service worker for offline support
 ├── manifest.webmanifest # PWA manifest (installable)
@@ -170,7 +170,7 @@ The app is organized into **9 inline script blocks** within `index.html`:
 
 All HTML, CSS, and app JavaScript live in `index.html`; grade lesson content lives in `lessons.js`. To modify:
 
-1. Edit `index.html` (or `lessons.js` for lesson content) directly
+1. Edit `index.html` directly (for lesson content edit `lessons.js`, then run `python3 inline_lessons.py`)
 2. Test by opening it in a browser (`open index.html`)
 3. Bump the service worker version in `sw.js` if changing cached assets
 4. Push to `main` — GitHub Pages deploys automatically
