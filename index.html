@@ -5335,8 +5335,25 @@ function testAnanse(){
   if(el)el.textContent="Testing…";
   checkAnanseHealth(ok=>{if(el)el.textContent=ok?"✅ Connected! The chat button now shows on the home screen.":"❌ Could not reach the tutor. Is the Mac mini on? Is the address exactly right?";});
 }
-checkAnanseHealth();
-setInterval(checkAnanseHealth,120000);
+/* The free tunnel gets a NEW address whenever the Mac mini restarts, which
+   silently broke the saved address. The mini publishes its current address in
+   tutor.json next to this page; pick it up automatically. Only for devices that
+   were already set up (have the key) — never auto-enable on a stranger's device. */
+function syncTutorUrl(done){
+  try{
+    if(!(DB.ananse&&DB.ananse.key)||typeof fetch!=="function"){if(done)done();return;}
+    fetch("tutor.json?t="+Date.now(),{cache:"no-store"})
+      .then(r=>r.ok?r.json():null)
+      .then(j=>{
+        const u=j&&typeof j.url==="string"?j.url.trim().replace(/\/+$/,""):"";
+        if(/^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/.test(u)&&u!==ananseBase()){DB.ananse.url=u;save();}
+      })
+      .catch(()=>{})
+      .finally(()=>{if(done)done();});
+  }catch(e){if(done)done();}
+}
+syncTutorUrl(()=>checkAnanseHealth());
+setInterval(()=>syncTutorUrl(()=>checkAnanseHealth()),120000);
 
 /* ============================================================
    ANANSE'S LIVING WEB — brand-colored particle constellation

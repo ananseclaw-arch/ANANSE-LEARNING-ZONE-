@@ -1,4 +1,4 @@
-const CACHE = "learning-zone-v45";
+const CACHE = "learning-zone-v46";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png", "./ananse-lion.png"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(f => new Request(f, {cache: "reload"})))).then(() => self.skipWaiting()));
@@ -14,6 +14,8 @@ self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
+  // The tutor address changes; never serve it from cache.
+  if (/\/tutor\.json$/.test(url.pathname)) return;
   const isShell = req.mode === "navigate" || /\/(index\.html)?$/.test(url.pathname) || /\.(js|webmanifest)$/.test(url.pathname);
   if (isShell) {
     e.respondWith(fetch(req, {cache: "no-cache"}).then(resp => {
