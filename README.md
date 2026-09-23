@@ -87,7 +87,7 @@ An offline-first Progressive Web App for children's adaptive learning, featuring
 - **Story replay** — read-then-quiz comprehension mode
 - **Spot the Pattern** — visual/audio pattern recognition game
 - **Hoops!** — basketball reward mini-game
-- **Grand Fable GP** — a neon pseudo-3D kart racer (`race.js`): rainbow roads through space, a glowing city skyline, holographic item boxes (rocket boost, homing orb, shield, banana), rival karts that fire back, a live leaderboard; three circuits, open any time from the home screen or landing page; placement earns XP and the Grand Fable Champion trophy
+- **Grand Fable GP** — a true 3D kart racer (`race3d.js`, Three.js): bright stadium circuits seen from behind the kart, start arch with title banner and checkered flags, grandstands full of spectators, cones, palms, clouds and balloons; choose-your-racer screen with five original racers and stats, three circuits, item boxes (rocket boost, homing orb, shield, banana), rivals that fight back, lap/timer HUD, live leaderboard, minimap and podium. Open any time from the home screen or landing page; placement earns XP and the Grand Fable Champion trophy. A 2D neon racer (`race.js`) is the automatic fallback without WebGL
 
 ### 🧘 ADHD-Friendly Design
 - Brain breaks between rounds (movement exercises)

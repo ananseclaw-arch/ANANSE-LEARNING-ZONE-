@@ -27,11 +27,11 @@ function raceStop(){
 }
 function raceFmt(ms){const s=Math.floor(ms/1000),m=Math.floor(s/60);return m+":"+String(s%60).padStart(2,"0")+"."+String(Math.floor((ms%1000)/100));}
 function raceOrdinal(n){return n+(["th","st","nd","rd"][(n%100>10&&n%100<14)?0:(n%10<4?n%10:0)]);}
-function renderRace(){
+function renderRace2D(){
   clearTimers();closeOverlay();defocus();showAnanseCorner(false);raceStop();
   document.body.classList.add("learningworld");
   const best=P&&P.race?P.race:{};
-  const tracks=RACE_TRACKS.map(t=>'<button class="kh-tile gp-tile" style="--c:'+t.sky[2]+'" onclick="startRace(\''+t.id+'\')"><span class="kh-tic">'+(t.space?"🌌":"🌆")+'</span><span class="kh-tnm">'+esc(t.name)+'</span><span class="kh-tsub">'+t.laps+' laps'+(best[t.id]?' · best '+raceFmt(best[t.id].time)+' · '+raceOrdinal(best[t.id].place):' · not raced yet')+'</span></button>').join("");
+  const tracks=RACE_TRACKS.map(t=>'<button class="kh-tile gp-tile" style="--c:'+t.sky[2]+'" onclick="startRace2D(\''+t.id+'\')"><span class="kh-tic">'+(t.space?"🌌":"🌆")+'</span><span class="kh-tnm">'+esc(t.name)+'</span><span class="kh-tsub">'+t.laps+' laps'+(best[t.id]?' · best '+raceFmt(best[t.id].time)+' · '+raceOrdinal(best[t.id].place):' · not raced yet')+'</span></button>').join("");
   app.innerHTML='<div class="fadein gp-shell" style="max-width:760px;margin:0 auto">'
    +'<div class="gp-banner"><div class="gp-title">GRAND FABLE GP</div><div class="gp-sub">FORGING THE PATH OF AI RACING · with Ananse the Wise Lion</div></div>'
    +'<div class="center"><div class="speech" style="max-width:560px;margin:10px auto">Race Ananse\'s #7 kart on rainbow roads through space against Kofi, Ama, Esi and Kwame. Drive through holographic boxes to grab items: 🚀 rocket boost, 🌀 homing orb, 🛡️ shield, 🍌 banana. The kart accelerates itself — you steer and fire.</div></div>'
@@ -40,13 +40,13 @@ function renderRace(){
    +'<div class="btn-row" style="margin-top:14px"><button class="btn" onclick="'+(P?'renderHome()':'renderProfiles()')+'">⟵ Back</button></div><div class="spacer"></div></div>';
   say("Welcome to the Grand Fable GP! Choose your circuit and let's race.");
 }
-function startRace(tid){
+function startRace2D(tid){
   raceStop();clearTimers();closeOverlay();showAnanseCorner(false);
   const T=RACE_TRACKS.find(t=>t.id===tid)||RACE_TRACKS[0];
   app.innerHTML='<div class="fadein race-wrap">'
    +'<canvas id="rcCanvas" width="720" height="440"></canvas>'
    +'<div class="race-ctl"><button class="race-btn" id="rcL">◀</button><button class="race-btn" id="rcB">🛑</button><button class="race-btn gp-fire" id="rcF">⚡</button><button class="race-btn" id="rcR">▶</button></div>'
-   +'<div class="center" style="margin-top:8px"><button class="readbtn" onclick="renderRace()">⟵ Quit race</button></div></div>';
+   +'<div class="center" style="margin-top:8px"><button class="readbtn" onclick="renderRace2D()">⟵ Quit race</button></div></div>';
   const c=$("rcCanvas");
   const SEG=200,RW=2200;const segs=[];
   T.curves.forEach(([n,curve])=>{for(let i=0;i<n;i++){const t=i/n;const ease=curve*(t<0.25?t*4:(t>0.75?(1-t)*4:1));segs.push({curve:ease,sprites:[]});}});
@@ -61,7 +61,7 @@ function startRace(tid){
   const stars=[];for(let i=0;i<90;i++)stars.push({x:Math.random(),y:Math.random()*0.55,r:Math.random()*1.8+0.4,tw:Math.random()*6});
   const cars=RACE_RIVALS.map((r,i)=>({name:r.n,e:r.e,c:r.c,z:(i+1)*SEG*3,x:(i%2?0.45:-0.45),speed:0,max:11700+i*500+rnd2(500),lap:0,total:0,spin:0,slow:0,wobble:Math.random()*6,fireIn:6+Math.random()*8}));
   RC={T,segs,N,LEN,SEG,RW,items,cars,stars,shots:[],place:5,board:[{name:"Kofi"},{name:"Ama"},{name:"Esi"},{name:"Kwame"},{name:"You"}],player:{z:0,x:0,speed:0,max:13000,lap:0,total:0,spin:0,boost:0,shield:0,item:null,coins:0},keys:{},t0:performance.now(),time:0,done:false,raf:null,cam:{h:1000,depth:1/Math.tan((80/2)*Math.PI/180)},last:performance.now(),touchDir:0,brake:false,flash:0,msg:"",msgT:0,hue:0};
-  RC.kd=e=>{if(!RC)return;const k=e.key.toLowerCase();if(k==="escape"){renderRace();return;}if(k===" "||k==="arrowup"){raceUseItem();e.preventDefault();return;}RC.keys[k]=true;if(["arrowleft","arrowright","arrowdown"].includes(k))e.preventDefault();};
+  RC.kd=e=>{if(!RC)return;const k=e.key.toLowerCase();if(k==="escape"){renderRace2D();return;}if(k===" "||k==="arrowup"){raceUseItem();e.preventDefault();return;}RC.keys[k]=true;if(["arrowleft","arrowright","arrowdown"].includes(k))e.preventDefault();};
   RC.ku=e=>{if(!RC)return;RC.keys[e.key.toLowerCase()]=false;};
   window.addEventListener("keydown",RC.kd);window.addEventListener("keyup",RC.ku);
   const hold=(id,dir)=>{const b=$(id);const on=ev=>{ev.preventDefault();if(!RC)return;if(dir==="b")RC.brake=true;else RC.touchDir=dir;};const off=ev=>{ev.preventDefault();if(!RC)return;if(dir==="b")RC.brake=false;else if(RC.touchDir===dir)RC.touchDir=0;};["pointerdown","touchstart"].forEach(t=>b.addEventListener(t,on,{passive:false}));["pointerup","pointerleave","pointercancel","touchend"].forEach(t=>b.addEventListener(t,off));};
@@ -259,5 +259,5 @@ function raceFinish(){
     if(place===1&&!P.trophies.some(t=>t.type==="race")&&typeof awardTrophy==="function")awardTrophy({type:"race",icon:"🏎️",label:"Grand Fable Champion",color:"#ffd166",detail:"Won a race on "+RC.T.name+"."});
     save();
   }
-  setTimeout(()=>{if(!RC)return;const wrap=document.querySelector(".race-wrap");if(wrap)wrap.insertAdjacentHTML("beforeend",'<div class="center fadein" style="margin-top:10px"><div class="btn-row"><button class="btn big" onclick="startRace(\''+RC.T.id+'\')">Race again 🔁</button><button class="btn secondary big" onclick="renderRace()">Circuits 🏁</button><button class="btn secondary big" onclick="'+(P?'renderHome()':'renderProfiles()')+'">Home 🏠</button></div></div>');},1200);
+  setTimeout(()=>{if(!RC)return;const wrap=document.querySelector(".race-wrap");if(wrap)wrap.insertAdjacentHTML("beforeend",'<div class="center fadein" style="margin-top:10px"><div class="btn-row"><button class="btn big" onclick="startRace2D(\''+RC.T.id+'\')">Race again 🔁</button><button class="btn secondary big" onclick="renderRace2D()">Circuits 🏁</button><button class="btn secondary big" onclick="'+(P?'renderHome()':'renderProfiles()')+'">Home 🏠</button></div></div>');},1200);
 }

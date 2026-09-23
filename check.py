@@ -28,7 +28,7 @@ with tempfile.TemporaryDirectory() as td:
 ok(f"{len(blocks)} script blocks parse") if not problems else None
 
 # 2. inlined copies match sources
-for fn, marker in (("lessons.js", "/* lessons.js is inlined here"), ("lab.js", "/* lab.js is inlined here"), ("reveal.js", "/* reveal.js is inlined here"), ("race.js", "/* race.js is inlined here")):
+for fn, marker in (("lessons.js", "/* lessons.js is inlined here"), ("lab.js", "/* lab.js is inlined here"), ("reveal.js", "/* reveal.js is inlined here"), ("race.js", "/* race.js is inlined here"), ("race3d.js", "/* race3d.js is inlined here")):
     src = read(fn)
     start = html.find(marker)
     if start < 0: bad(f"{fn} marker missing from index.html"); continue

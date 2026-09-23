@@ -95,8 +95,9 @@ def extract_phrases(html):
         for m in re.finditer(r'"\d+-\d+":"((?:[^"\\]|\\.){3,600})"', rv):
             phrases.add(unescape_js(m.group(1)))
 
-    race_path = os.path.join(HERE, "race.js")
-    if os.path.exists(race_path):
+    for rp in ("race.js", "race3d.js"):
+      race_path = os.path.join(HERE, rp)
+      if os.path.exists(race_path):
         rc = open(race_path, errors="ignore").read()
         for m in re.finditer(r'say\(\s*"((?:[^"\\]|\\.){3,300})"\s*\)', rc):
             phrases.add(unescape_js(m.group(1)))
