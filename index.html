@@ -399,6 +399,7 @@ body.learningworld #app{max-width:1180px}
 <div id="app"></div>
 <div id="overlay"></div>
 <div id="anansecorner"></div>
+<script src="lessons.js"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -442,6 +443,8 @@ if(!DB.voiceV2){
 }
 if(!("lastProfile" in DB))DB.lastProfile=null;
 if(!DB.kingdom||!DB.kingdom.v2)DB.kingdom={enabled:true,v2:true};
+/* grade lessons + placement re-checks: fill in fields older profiles lack */
+(DB.profiles||[]).forEach(p=>{if(!("grade" in p))p.grade=null;if(!p.lessons)p.lessons={};if(!p.diagHistory)p.diagHistory=p.diag?[p.diag]:[];if(!("retest" in p))p.retest=false;});
 function save(){try{
   localStorage.setItem(DBKEY,JSON.stringify(DB));
   // Guardian copy: any time we have real profile data, keep a second snapshot
@@ -484,7 +487,7 @@ let S=null; // active session
 function newProfile(name,avatar){return{
   id:Date.now()+""+rnd(999),name,avatar,color:null,pin:null,created:today(),
   levels:{math:1,english:1,comprehension:1,science:1,history:1},
-  diagDone:false,diag:null,
+  diagDone:false,diag:null,diagHistory:[],retest:false,grade:null,lessons:{},
   trophies:[],streak:0,bestStreak:0,xp:0,
   stats:{speed:90,reading:80,memory:72,strategy:42,recall:38},
   sessions:[],sm2:{},wrongLog:[],
@@ -876,7 +879,7 @@ science:{
 {q:"Prince jumps for a rebound. Which TWO body systems work together to make the jump happen?",opts:["Muscles and bones","Hair and teeth","Ears and toenails","Skin and eyelashes"],a:0,topic:"human body",teach:[{i:"🦴",t:"Step 1: Bones are the body's frame — they hold you up."},{i:"💪",t:"Step 2: Muscles pull on the bones to create movement."},{i:"🏀",t:"Step 3: Working together, muscles + bones = a powerful jump. Teamwork inside your body!"}],practice:{q:"Muscles move your body by pulling on your...",opts:["Bones","Clothes","Shadow"],a:0}}
 ],
 5:[
-{q:"Ananse wonders: the Moon has almost no gravity pull on you compared to Earth. If Prince jumped on the Moon, he would...",opts:["Jump about 6 times higher than on Earth","Not be able to jump","Fall upward forever","Jump exactly the same"],a:0,topic:"space",teach:[{i:"🌙",t:"The Moon is smaller than Earth, so its gravity is about 6 times weaker."},{i:"🦘",t:"Weaker gravity pulls you down less — so the same jump goes much higher."},{i:"👨‍🚀",t:"That is why astronauts on the Moon bounce like kangaroos in slow motion!"}],practice:{q:"On the Moon, a dropped feather and hammer land together because there is no...",opts:["Air to slow the feather","Gravity at all","Sunlight"],a:0}},
+{q:"Ananse wonders: the Moon's gravity is only about one-sixth as strong as Earth's. If Prince jumped on the Moon, he would...",opts:["Jump about 6 times higher than on Earth","Not be able to jump","Fall upward forever","Jump exactly the same"],a:0,topic:"space",teach:[{i:"🌙",t:"The Moon is smaller than Earth, so its gravity is about 6 times weaker."},{i:"🦘",t:"Weaker gravity pulls you down less — so the same jump goes much higher."},{i:"👨‍🚀",t:"That is why astronauts on the Moon bounce like kangaroos in slow motion!"}],practice:{q:"On the Moon, a dropped feather and hammer land together because there is no...",opts:["Air to slow the feather","Gravity at all","Sunlight"],a:0}},
 {q:"Octopuses can change color to match rocks. Ananse asks: how does this help them survive?",opts:["Camouflage hides them from predators and prey","It makes them prettier for photos","Color keeps them warm","It helps them float"],a:0,topic:"animals",teach:[{i:"🐙",t:"Changing color to match the background is called camouflage."},{i:"🛡️",t:"Hidden octopuses are hard for sharks to spot — defense!"},{i:"🍽️",t:"It also lets them sneak up on crabs — offense! One skill, two survival wins."}],practice:{q:"A leaf-colored insect sitting on a leaf is using...",opts:["Camouflage","Echolocation","Migration"],a:0}},
 {q:"Your brain sends messages to your muscles through nerves at over 100 meters per second. Why does that speed matter in basketball?",opts:["Fast reactions need fast signals from brain to body","Nerves dribble the ball","Slow signals score more","It doesn't matter"],a:0,topic:"human body",teach:[{i:"🧠",t:"Your brain decides: catch the ball! That decision becomes an electrical signal."},{i:"⚡",t:"The signal races down nerves to your hand muscles in a split second."},{i:"🏀",t:"Faster signals = faster reactions = steals, blocks, and clutch catches."}],practice:{q:"Messages travel from your brain to your muscles through...",opts:["Nerves","Hair","Teeth"],a:0}},
 {q:"A simple machine question: a ramp lets you push a heavy box up to a truck instead of lifting it. Why is the ramp easier?",opts:["It spreads the work over a longer distance, needing less force","Ramps remove gravity","Boxes weigh less on ramps","Trucks pull boxes with magnets"],a:0,topic:"how things work",teach:[{i:"📦",t:"Lifting straight up needs ALL the force at once."},{i:"📐",t:"A ramp is an inclined plane — a simple machine."},{i:"💡",t:"You push a longer way but with less force each step. Same work, easier feel!"}],practice:{q:"A ramp is a simple machine called an...",opts:["Inclined plane","Engine","Elevator"],a:0}}
@@ -948,7 +951,7 @@ const DAILY_BANK=[
 {mix:"Math + Science",q:"Detective mission! An adult heart beats about 70 times a minute. Prince counts his pulse for exactly half a minute. About how many beats should he count?",opts:["About 35","About 140","About 70","About 7"],a:0,teach:[{i:"❤️",t:"70 beats happen in ONE whole minute."},{i:"➗",t:"Half a minute means half the beats: 70 ÷ 2 = 35."},{i:"🩺",t:"Doctors use this exact trick to check your pulse fast!"}]},
 {mix:"Reading + Science",q:"Detective mission! 'The Moon is a silver coin tossed into the night sky.' Which is TRUE about this sentence?",opts:["It is a metaphor — the Moon reflects sunlight, it is not a coin","The Moon is made of silver","Someone threw the Moon","Coins glow at night"],a:0,teach:[{i:"🌙",t:"The sentence compares the Moon to a coin — that is a metaphor."},{i:"☀️",t:"Science fact: the Moon makes no light. It REFLECTS the Sun's light."},{i:"🕵️",t:"A reading skill plus a science fact cracked this case!"}]},
 {mix:"Math + Ghana History",q:"Detective mission! Ghana's flag has 3 stripes. If a parade flies 9 flags, how many stripes wave in total — and what are the colors?",opts:["27 stripes — red, gold, and green","12 stripes — blue and white","9 stripes — purple","3 stripes — rainbow"],a:0,teach:[{i:"🇬🇭",t:"Each flag: 3 stripes — red, gold, green."},{i:"✖️",t:"9 flags × 3 stripes = 27 stripes."},{i:"⭐",t:"Bonus: each flag also carries one black star — the symbol of freedom!"}]},
-{mix:"Science + Reading",q:"Detective mission! Read carefully: 'A lion is NOT a reptile.' Which clue PROVES it?",opts:["Lions have fur and feed milk to cubs; reptiles have scales","Lions are big","Reptiles can be green","Lions eat leaves"],a:0,teach:[{i:"🦁",t:"Look at Ananse: fur and a mane, not scales!"},{i:"🦎",t:"Reptiles have scales and lay eggs; mammals have fur and feed milk to their babies."},{i:"🔬",t:"Proof needs the RIGHT evidence — leg count is the clue that settles it."}]},
+{mix:"Science + Reading",q:"Detective mission! Read carefully: 'A lion is NOT a reptile.' Which clue PROVES it?",opts:["Lions have fur and feed milk to cubs; reptiles have scales","Lions are big","Reptiles can be green","Lions eat leaves"],a:0,teach:[{i:"🦁",t:"Look at Ananse: fur and a mane, not scales!"},{i:"🦎",t:"Reptiles have scales and lay eggs; mammals have fur and feed milk to their babies."},{i:"🔬",t:"Proof needs the RIGHT evidence — fur and milk for babies are the clues that settle it."}]},
 {mix:"Math + Reading",q:"Detective mission! A story is 48 pages. Prince reads half, then 4 more pages. A 'cliffhanger' stops him! How many pages are left?",opts:["20 pages","24 pages","28 pages","4 pages"],a:0,teach:[{i:"📖",t:"Step 1: Half of 48 is 24. He read 24 pages."},{i:"➕",t:"Step 2: Plus 4 more = 28 pages read."},{i:"➖",t:"Step 3: 48 − 28 = 20 pages left. (A cliffhanger is an exciting stopping point!)"}]},
 {mix:"Ghana History + Math",q:"Detective mission! Kofi Annan won the Nobel Prize in 2001. Ghana became independent in 1957. How many years after independence did he win?",opts:["44 years","144 years","4 years","57 years"],a:0,teach:[{i:"🏅",t:"Find the difference: 2001 minus 1957."},{i:"➖",t:"2001 − 1957 = 44."},{i:"🇬🇭",t:"44 years after independence, a Ghanaian led the world to peace!"}]},
 {mix:"Science + Math",q:"Detective mission! Earth spins once every 24 hours. How many hours pass in TWO full spins?",opts:["48 hours","24 hours","12 hours","100 hours"],a:0,teach:[{i:"🌍",t:"One spin = 24 hours = one day."},{i:"✖️",t:"Two spins: 24 + 24 = 48 hours."},{i:"🕛",t:"That is two days and two nights. Space math!"}]}
@@ -1111,6 +1114,7 @@ const ALL_TOPICS=(()=>{const t=new Set();
   return [...t];})();
 
 function topicSubject(topic){
+  if(typeof LESSON_TOPIC_SUBJECT!=="undefined"&&LESSON_TOPIC_SUBJECT[topic])return LESSON_TOPIC_SUBJECT[topic];
   if(["addition","subtraction","multiplication","division","fractions","place value","money","rounding","area","word problems","order of operations","math"].includes(topic))return "math";
   if(ENGLISH_TOPICS.includes(topic))return "english";
   if(["inference","story structure","comprehension","figurative language"].includes(topic))return "comprehension";
@@ -1178,11 +1182,19 @@ function questionForTopic(topic){
   }
   const bank=BANK[subj]&&BANK[subj][lvl]?BANK[subj][lvl]:null;
   if(!bank)return null;
-  const pool=bank.filter(q=>q.topic===topic);
+  let pool=bank.filter(q=>q.topic===topic);
+  if(!pool.length)pool=lessonQuestions(subj).filter(q=>q.topic===topic); // lesson topics live in lessons.js
   const src=pool.length?pool:bank;
   const q=Object.assign({},pick(src));
   q.subject=subj;q.level=lvl;
   return q;
+}
+/* every practice question from the learner's grade lessons (or all grades), tagged with subject + level */
+function lessonQuestions(subject,grade){
+  const grades=grade&&LESSONS[grade]?[grade]:Object.keys(LESSONS);
+  const out=[];
+  grades.forEach(g=>LESSONS[g].forEach(L=>{if(subject&&L.subject!==subject)return;L.qs.forEach(q=>out.push(Object.assign({},q,{subject:L.subject,level:L.lvl,lesson:L.id})))}));
+  return out;
 }
 /* 2–3 warm-up questions from previously-seen (due) topics; intervention topics first;
    decoding/spelling capped to at most 1 (#6, #13) */
@@ -1365,7 +1377,7 @@ function selectProfile(id){
 function kidEnter(p){
   P=p;
   DB.lastProfile=p.id;save();   // remember this learner for next launch
-  if(!P.diagDone){startDiagnostic();return;}
+  if(!P.diagDone||P.retest){startDiagnostic({retest:P.diagDone});return;}
   if(sessTryResume())return;   // reopen mid-lesson → land on the exact same question
   say("Akwaaba, "+P.name+"!");renderHome();
 }
@@ -1437,6 +1449,7 @@ function renderHome(){
    +(DB.resume&&DB.resume[P.id]&&DB.resume[P.id].s?'<div class="btn-row" style="margin-top:10px"><button class="btn" onclick="sessResumeBtn()">▶ Continue your lesson</button></div>':'')
    +'<div class="subject-map">'+Object.keys(SUBJECTS).map(tile).join("")+'</div>'
    +'<div class="learning-actions"><div class="btn-row">'
+   +'<button class="btn" onclick="renderLessons()">📚 '+(P.grade?GRADE_NAMES[P.grade]+' Lessons':'Grade Lessons')+'</button>'
    +'<button class="btn" onclick="startStoryReplay()">🎬 Story Replay</button>'
    +'<button class="btn" onclick="startPatterns()">🧩 Spot the Pattern</button>'
    +'</div>'
@@ -1487,6 +1500,10 @@ function freshQuestion(genFn){
 }
 function nextQuestion(){
   if(S.n>=S.total)return endSession();
+  if(S.lesson){ // grade lesson: fixed question list, in order
+    if(!S.lessonQs||S.n>=S.lessonQs.length)return endSession();
+    S.cur=S.lessonQs[S.n];renderQuestion();return;
+  }
   // #6: serve opening warm-up review questions first
   if(S.phase==="review"){
     if(S.reviewQ&&S.reviewIdx<S.reviewQ.length){
@@ -1561,6 +1578,7 @@ function renderQuestion(){
    +'<p class="qtext">'+esc(q.q)+'</p>'
    +'<div class="center" style="margin:-4px 0 10px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">'
    +((wp||S.subject==="comprehension")?'<button class="readbtn" onclick="say(S.cur.q)">🔊 Read it again</button>':'')
+   +(S.story?'<button class="readbtn" onclick="showStoryAgain()">📖 Read the story again</button>':'')
    +'<button class="readbtn" onclick="askHelp()">🦁 Ananse, help me</button>'
    +'</div>'
    +(q.manip?manipHTML(q):'')
@@ -1887,7 +1905,8 @@ function endSession(){
   const durMs=Date.now()-(S.start||(S.sprintEnd-10*60*1000));
   const mins=Math.round(durMs/60000);
   P.sessions.push({date:today(),subject:S.subject,correct:S.correct,total:S.results.length,lvlAvg:Math.round(lvlAvg*10)/10,xp:S.xp,t:Date.now(),
-    durMs:durMs,wpC:S.wpC,wpT:S.wpT,recallC:S.recallC,recallT:S.recallT,reviewC:S.reviewC,reviewT:S.reviewT,mfC:S.mfC,mfT:S.mfT});
+    durMs:durMs,wpC:S.wpC,wpT:S.wpT,recallC:S.recallC,recallT:S.recallT,reviewC:S.reviewC,reviewT:S.reviewT,mfC:S.mfC,mfT:S.mfT,lesson:S.lesson||null});
+  if(S.lesson){P.lessons=P.lessons||{};const prev=P.lessons[S.lesson];const rec={date:today(),correct:S.correct,total:S.results.length,tries:(prev?prev.tries:0)+1};if(!prev||rec.correct>=prev.correct)P.lessons[S.lesson]=rec;else{prev.tries=rec.tries;prev.date=rec.date;}}
   if(typeof checkAlerts==="function")checkAlerts();
   const earned=[];
   const ICONS={math:["🏆","🧮","🔢","📐"],english:["✏️","🖋️","📝","🏆"],comprehension:["📚","📖","📜","🏆"],science:["🪐","🔬","🚀","🏆"],history:["🪘","👑","🪑","🏆"]};
@@ -1907,7 +1926,8 @@ function endSession(){
   const praiseLine=acc>=0.8?"You earned every bit of this with focus and effort.":(acc>=0.5?"You worked hard on tough questions today — that effort is building your brain.":"Tough session — but you kept going, and that is what real training looks like. Tomorrow we grow stronger.");
   app.innerHTML='<div class="fadein center">'
    +'<div class="ananse-wrap '+(earned.length?"ananse-celebrate":"")+'">'+ananseSVG(160,mood)+'</div>'
-   +'<h1>Session Complete!</h1>'
+   +'<h1>'+(S.lesson?'Lesson Complete!':'Session Complete!')+'</h1>'
+   +(S.lesson?'<p class="muted">📚 '+esc(lessonById(S.lesson).title)+' · '+esc(lessonById(S.lesson).std)+'</p>':'')
    +'<div class="speech" style="max-width:480px;margin:14px auto">'+esc(praiseLine)+'</div>'
    +'<div class="spacer"></div>'
    +'<div class="card gold" style="max-width:440px;margin:0 auto;text-align:left">'
@@ -1921,6 +1941,7 @@ function endSession(){
    +(S.results.length>=S.total?'<div class="btn-row"><button class="btn big" onclick="startHoops()">🏀 Bonus Hoops Game!</button></div><div class="spacer"></div>':"")
    +'<div class="btn-row"><button class="btn '+(S.results.length>=S.total?"secondary ":"")+'big" onclick="goHome()">Daily Path 🏠</button>'
    +(earned.length?'<button class="btn secondary big" onclick="renderTrophyRoom()">Trophy Room 🏆</button>':"")
+   +(S.lesson?'<button class="btn secondary big" onclick="renderLessons()">More Lessons 📚</button>':"")
    +'</div></div>';
   say("Session complete! "+praiseLine+(earned.length?" And you earned a new trophy!":"")+(S.results.length>=S.total?" You also unlocked the bonus hoops game!":""));
   S=null;
@@ -2259,69 +2280,228 @@ const STORIES={
    DIAGNOSTIC ADVENTURE — first launch only
    ============================================================ */
 let D=null;
-function startDiagnostic(){
-  clearTimers();showAnanseCorner(false);
-  const qs=[];
-  Object.keys(SUBJECTS).forEach(s=>{
-    [1,3,5].forEach(l=>{
-      const q=s==="math"?genMath(l):Object.assign({subject:s,level:l},pick(BANK[s][l]));
-      q.subject=s;q.level=l;qs.push(q);
-    });
-  });
-  const sc={};Object.keys(SUBJECTS).forEach(s=>sc[s]=0);
-  D={qs,i:0,score:sc};
+const DIAG_PER_SUBJECT=4;
+const DIAG_ORDER=["math","english","comprehension","science","history"];
+/* Entry point. First login: pick a grade, then walk the trail.
+   Re-check (parent request): same trail, progress and trophies untouched. */
+function startDiagnostic(opts){
+  clearTimers();closeOverlay();defocus();showAnanseCorner(false);
+  D={retest:!!(opts&&opts.retest),plan:null,si:0,i:0};
+  if(!P.grade){pickGradeThen(diagIntro,true);return;}
+  diagIntro();
+}
+/* grade picker — used at onboarding and from the lessons screen */
+let _gradeAfter=null;
+function pickGradeThen(fn,first){
+  _gradeAfter=fn;
+  clearTimers();closeOverlay();showAnanseCorner(false);
+  app.innerHTML='<div class="fadein center" style="max-width:560px;margin:0 auto">'
+   +'<div class="ananse-wrap">'+ananseSVG(140,"idle")+'</div>'
+   +'<h1>What grade are you in, '+esc(P.name)+'?</h1>'
+   +'<div class="speech">'+(first?'This helps me pick the right lessons — the same skills your teachers in Anne Arundel County work on.':'Pick your grade so I can show the right lessons.')+'</div>'
+   +'<div class="spacer"></div>'
+   +'<div class="opts">'+[3,4,5].map(g=>'<button class="opt" style="justify-content:center;font-size:24px" onclick="setGrade('+g+')"><span>'+GRADE_NAMES[g]+'</span></button>').join("")+'</div>'
+   +'<p class="muted" style="margin-top:12px">A parent can change this any time in the Parent Portal.</p></div>';
+  say("What grade are you in, "+P.name+"?");
+}
+function setGrade(g){P.grade=g;save();const fn=_gradeAfter;_gradeAfter=null;if(fn)fn();else renderHome();}
+function diagIntro(){
+  D.plan=DIAG_ORDER.map(s=>({s,lvl:2,asked:0,correct:0,hist:[],story:null,qs:null,used:[]}));
+  D.si=0;D.i=0;D.total=DIAG_ORDER.length*DIAG_PER_SUBJECT;
+  const t=D.retest?"Time for a quick re-check, "+esc(P.name)+"! Walk the Explorer's Trail again so I can see how much you have grown. Your trophies and streak stay safe.":"Before our adventures begin, "+esc(P.name)+", walk the Explorer's Trail with me! "+D.total+" fun challenges across every subject — no scores, no pressure. Each answer helps me choose where to start you. Some will be easy, some tricky. Just try your best!";
   app.innerHTML='<div class="fadein center" style="max-width:560px;margin:0 auto">'
    +'<div class="ananse-wrap">'+ananseSVG(170,"idle")+'</div>'
    +'<h1>The Explorer\'s Trail 🗺️</h1>'
-   +'<div class="speech">Before our adventures begin, '+esc(P.name)+', walk the Explorer\'s Trail with me! Fifteen fun challenges — no scores, no pressure. They just help me learn how YOU like to think. Some will be easy, some tricky. Just try your best!</div>'
+   +'<div class="speech">'+t+'</div>'
    +'<div class="spacer"></div>'
-   +'<button class="btn big" onclick="diagQuestion()">Start the Trail! 🥾</button></div>';
-  say("Before our adventures begin, "+P.name+", walk the Explorer's Trail with me! Fifteen fun challenges. No pressure — just try your best!");
+   +'<button class="btn big" onclick="diagNextQ()">Start the Trail! 🥾</button></div>';
+  say(D.retest?"Time for a quick re-check! Walk the Explorer's Trail again so I can see how much you have grown.":"Before our adventures begin, "+P.name+", walk the Explorer's Trail with me! "+D.total+" fun challenges. No pressure — just try your best!");
+}
+/* question pool at a level: base bank + the learner's grade lessons at that level */
+function diagPick(st){
+  if(st.s==="math")return genMath(st.lvl);
+  const base=(BANK[st.s]&&BANK[st.s][st.lvl])?BANK[st.s][st.lvl]:[];
+  const les=lessonQuestions(st.s,P.grade).filter(q=>q.level===st.lvl);
+  let pool=base.concat(les).filter(q=>!st.used.includes(q.q));
+  if(!pool.length)pool=base.concat(les);
+  const q=Object.assign({},pick(pool));
+  q.subject=st.s;q.level=st.lvl;st.used.push(q.q);
+  return q;
+}
+function diagNextQ(){
+  const st=D.plan[D.si];
+  if(!st)return diagReport();
+  if(st.asked>=DIAG_PER_SUBJECT){D.si++;return diagNextQ();}
+  if(st.s==="comprehension"&&!st.story){
+    // story FIRST, then its questions — never a question about a story the child has not read
+    const les=lessonsFor(P.grade,"comprehension");
+    const L=les.length?pick(les):null;
+    const story=L?Object.assign({},L.story,{qs:L.qs}):pick(STORIES[2]);
+    st.story=story;st.qs=story.qs.slice(0,DIAG_PER_SUBJECT).map(q=>Object.assign({},q,{subject:"comprehension",level:2}));
+    diagStory(st);return;
+  }
+  diagQuestion();
+}
+function diagStory(st){
+  app.innerHTML='<div class="fadein" style="max-width:640px;margin:0 auto">'
+   +'<div class="hud"><span class="pill">🗺️ Explorer\'s Trail</span><span class="pill">📖 Story time</span></div>'
+   +'<div class="center"><div class="ananse-wrap">'+ananseSVG(100,"teach")+'</div>'
+   +'<div class="speech" style="max-width:480px;margin:10px auto">Read this story slowly. When you finish, I will ask you '+DIAG_PER_SUBJECT+' questions about it.</div></div>'
+   +'<div class="spacer"></div>'
+   +'<div class="card gold"><h2 style="margin-bottom:10px">📖 '+esc(st.story.title)+'</h2>'
+   +'<p style="font-size:21px;line-height:1.8">'+esc(st.story.text)+'</p></div>'
+   +'<div class="center"><div class="spacer"></div><div class="btn-row">'
+   +'<button class="btn big" onclick="diagQuestion()">I read it — Quiz me! ✅</button>'
+   +'<button class="btn secondary" onclick="say(D.plan[D.si].story.text)">🔊 Read it to me</button></div></div>';
+  say("Here is your story: "+st.story.title+". Read it slowly. Tap quiz me when you are ready.");
 }
 function diagQuestion(){
-  const q=D.qs[D.i];
+  const st=D.plan[D.si];
+  const q=st.s==="comprehension"?st.qs[st.asked]:diagPick(st);
+  D.q=q;
   const order=shuffle(q.opts.map((_,i)=>i));
   D.order=order;
   const letters=["A","B","C","D"];
   app.innerHTML='<div class="fadein">'
-   +'<div class="hud"><span class="pill">🗺️ Explorer\'s Trail</span><span class="pill">Stone <b>'+(D.i+1)+'</b> of '+D.qs.length+'</span><span class="pill">'+SUBJECTS[q.subject].icon+' '+SUBJECTS[q.subject].name+'</span></div>'
-   +'<div class="bar" style="margin-bottom:18px"><i style="width:'+Math.round(D.i/D.qs.length*100)+'%"></i></div>'
+   +'<div class="hud"><span class="pill">🗺️ Explorer\'s Trail</span><span class="pill">Stone <b>'+(D.i+1)+'</b> of '+D.total+'</span><span class="pill">'+SUBJECTS[q.subject].icon+' '+SUBJECTS[q.subject].name+'</span></div>'
+   +'<div class="bar" style="margin-bottom:18px"><i style="width:'+Math.round(D.i/D.total*100)+'%"></i></div>'
    +'<div class="card gold"><p class="qtext">'+esc(q.q)+'</p>'
+   +'<div class="center" style="margin:-4px 0 10px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button class="readbtn" onclick="say(D.q.q)">🔊 Read it again</button>'
+   +(st.story?'<button class="readbtn" onclick="diagStoryAgain()">📖 Read the story again</button>':'')+'</div>'
    +'<div class="opts">'+order.map((oi,pos)=>'<button class="opt" id="dopt'+pos+'" onclick="diagAnswer('+pos+')"><span class="letter">'+letters[pos]+'</span><span>'+esc(q.opts[oi])+'</span></button>').join("")+'</div>'
+   +'<div class="center" style="margin-top:14px"><button class="readbtn" onclick="diagAnswer(null)">Not sure yet — skip →</button></div>'
    +'</div></div>';
   say(q.q);
 }
+function diagStoryAgain(){
+  const st=D.plan[D.si];if(!st||!st.story)return;
+  openOverlay('<div><h2 style="margin-bottom:10px">📖 '+esc(st.story.title)+'</h2><p style="font-size:20px;line-height:1.8;text-align:left">'+esc(st.story.text)+'</p><div class="spacer"></div><div class="btn-row"><button class="btn secondary" onclick="say(D.plan[D.si].story.text)">🔊 Read it to me</button><button class="btn big" onclick="closeOverlay()">Back to the question ▶</button></div></div>');
+}
 function diagAnswer(pos){
-  const q=D.qs[D.i];
-  const correct=D.order[pos]===q.a;
-  if(correct)D.score[q.subject]++;
+  const st=D.plan[D.si],q=D.q;
+  const correct=pos!==null&&D.order[pos]===q.a;
   D.order.forEach((oi,p)=>{const b=$("dopt"+p);if(b){b.classList.add(p===pos?(correct?"correct":"dim"):"dim");b.onclick=null}});
-  const cheer=correct?pick(["Nice thinking!","You found the path!","Onward, explorer!"]):pick(["Good try — onward!","Tricky stone! Keep walking.","Every step teaches us. Onward!"]);
-  toast(cheer);say(cheer);
-  setTimeout(diagNext,1100);
-}
-function diagNext(){
+  st.asked++;if(correct)st.correct++;
+  st.hist.push({lvl:q.level,ok:correct,skipped:pos===null});
+  if(st.s!=="comprehension")st.lvl=Math.max(1,Math.min(5,st.lvl+(correct?1:-1))); // staircase: harder after right, easier after wrong
   D.i++;
-  if(D.i<D.qs.length)diagQuestion();
-  else diagReport();
+  const cheer=pos===null?pick(["No problem — onward!","Skipping is allowed. Next stone!"]):(correct?pick(["Nice thinking!","You found the path!","Onward, explorer!"]):pick(["Good try — onward!","Tricky stone! Keep walking.","Every step teaches us. Onward!"]));
+  toast(cheer);say(cheer);
+  setTimeout(diagNextQ,1000);
 }
+function diagPlacement(st){
+  if(st.s==="comprehension"){const c=st.correct;return c>=4?4:(c===3?3:(c===2?2:1));}
+  return Math.max(1,Math.min(5,st.lvl));
+}
+function diagReadiness(lvl){return lvl>=4?"Above grade level":(lvl>=2?"On grade level":"Building the basics")}
 function diagReport(){
-  const lvls={},words={};
-  Object.keys(D.score).forEach(s=>{
-    const c=D.score[s];
-    lvls[s]=c>=3?3:(c===2?2:1);
-    words[s]=c>=3?"Ready for big challenges right away!":(c===2?"Solid ground — we will build up from grade level.":"We will start gently and grow strong together.");
+  const lvls={},score={},words={};
+  D.plan.forEach(st=>{
+    const l=diagPlacement(st);
+    lvls[st.s]=l;score[st.s]=st.correct;
+    words[st.s]=(l>=4?"Ready for big challenges right away!":(l>=2?"Solid ground — we build up from grade level.":"We will start gently and grow strong together."))+" ("+st.correct+" of "+st.asked+")";
   });
-  P.levels=lvls;P.diagDone=true;P.diag={date:today(),score:D.score};save();
+  const rec={date:today(),grade:P.grade,score,levels:lvls,retest:D.retest};
+  P.levels=lvls;P.diagDone=true;P.retest=false;P.diag=rec;
+  P.diagHistory=P.diagHistory||[];P.diagHistory.push(rec);
+  save();
   app.innerHTML='<div class="fadein" style="max-width:620px;margin:0 auto">'
    +'<div class="center"><div class="ananse-wrap ananse-celebrate">'+ananseSVG(140,"party")+'</div>'
    +'<h1>Trail Complete! 🎉</h1>'
-   +'<div class="speech">You finished the Explorer\'s Trail, '+esc(P.name)+'! Here is the map of where each adventure begins. Remember — every explorer starts somewhere, and every path leads up!</div></div>'
+   +'<div class="speech">'+(D.retest?'Re-check done, '+esc(P.name)+'! Here is your updated map.':'You finished the Explorer\'s Trail, '+esc(P.name)+'! Here is the map of where each adventure begins. Remember — every explorer starts somewhere, and every path leads up!')+'</div></div>'
    +'<div class="spacer"></div>'
-   +Object.keys(SUBJECTS).map(s=>'<div class="card" style="margin-bottom:12px"><div class="report-row" style="margin:0"><span class="rn">'+SUBJECTS[s].icon+' '+SUBJECTS[s].name+'</span><div class="bar" style="flex:1"><i style="width:'+(lvls[s]/5*100)+'%"></i></div><span class="lvl-badge">LVL '+lvls[s]+'</span></div><p class="muted" style="margin-top:8px">'+words[s]+'</p></div>').join("")
+   +Object.keys(SUBJECTS).map(s=>'<div class="card" style="margin-bottom:12px"><div class="report-row" style="margin:0"><span class="rn">'+SUBJECTS[s].icon+' '+SUBJECTS[s].name+'</span><div class="bar" style="flex:1"><i style="width:'+(lvls[s]/5*100)+'%"></i></div><span class="lvl-badge">LVL '+lvls[s]+'</span></div><p class="muted" style="margin-top:8px"><b>'+diagReadiness(lvls[s])+'</b> · '+words[s]+'</p></div>').join("")
    +'<div class="center"><div class="spacer"></div><button class="btn big" onclick="goHome()">Start My Adventure! 🚀</button></div></div>';
-  say("Trail complete! Here is your adventure map. Every path leads up from here!");
+  say(D.retest?"Re-check complete! Here is your updated map.":"Trail complete! Here is your adventure map. Every path leads up from here!");
   confetti();
+}
+/* parent-portal helpers */
+function parentRetestNow(){closeOverlay();toast("Hand the device to "+P.name);startDiagnostic({retest:true});}
+function parentRetestNext(){P.retest=!P.retest;save();toast(P.retest?"Re-check will run at "+P.name+"'s next login":"Re-check cancelled");renderParent();}
+function parentSetGrade(){const v=+($("gradeSel")&&$("gradeSel").value);if(GRADE_NAMES[v]){P.grade=v;save();toast("Grade saved: "+GRADE_NAMES[v]);renderParent();}}
+function trailHistoryHTML(){
+  const h=(P.diagHistory||[]).slice().reverse().slice(0,6);
+  if(!h.length)return '<p class="muted">No trail results yet.</p>';
+  return h.map(r=>'<div class="statline"><span>'+esc(r.date)+(r.retest?' · re-check':' · first trail')+(r.grade?' · '+GRADE_NAMES[r.grade]:'')+'</span><b style="font-size:15px">'+Object.keys(SUBJECTS).map(s=>SUBJECTS[s].icon+(r.levels&&r.levels[s]||"?")).join(" ")+'</b></div>').join("");
+}
+function lessonProgressHTML(){
+  const g=P.grade;if(!g)return '<p class="muted">Set a grade to unlock lessons.</p>';
+  const all=lessonsFor(g);const done=all.filter(L=>P.lessons&&P.lessons[L.id]);
+  const rows=all.map(L=>{const r=P.lessons&&P.lessons[L.id];return '<div class="statline"><span>'+SUBJECTS[L.subject].icon+' '+esc(L.title)+' <span class="muted" style="font-size:13px">'+esc(L.std)+'</span></span><b style="font-size:15px;color:'+(r?(r.correct/r.total>=0.8?"#2f8f4e":"#e0512f"):"#6f88ad")+'">'+(r?r.correct+"/"+r.total:"not yet")+'</b></div>'}).join("");
+  return '<p class="muted">'+done.length+' of '+all.length+' '+GRADE_NAMES[g]+' lessons completed.</p><div class="card" style="margin-top:10px">'+rows+'</div>';
+}
+
+/* ============================================================
+   GRADE LESSONS — Maryland standards, taught then practiced
+   ============================================================ */
+function renderLessons(){
+  clearTimers();closeOverlay();defocus();showAnanseCorner(true);
+  if(!P.grade){pickGradeThen(renderLessons,false);return;}
+  const g=P.grade;
+  const groups=["math","english","comprehension","science"].map(sub=>{
+    const ls=lessonsFor(g,sub);if(!ls.length)return "";
+    const cards=ls.map(L=>{
+      const r=P.lessons&&P.lessons[L.id];
+      const badge=r?'<span class="lvl-badge" style="background:'+(r.correct/r.total>=0.8?"#2f8f4e":"#f5a623")+'">'+(r.correct/r.total>=0.8?"★ ":"")+r.correct+'/'+r.total+'</span>':'<span class="lvl-badge" style="background:#6f88ad">new</span>';
+      return '<button class="opt" style="display:flex;justify-content:space-between;align-items:center;gap:10px" onclick="renderLesson(\''+L.id+'\')"><span style="text-align:left"><b>'+esc(L.title)+'</b><br><span class="muted" style="font-size:14px">'+esc(L.std)+' · '+esc(L.stdName)+'</span></span>'+badge+'</button>';
+    }).join("");
+    return '<h3 style="margin-top:18px">'+SUBJECTS[sub].icon+' '+SUBJECTS[sub].name+'</h3><div class="opts" style="margin-top:8px">'+cards+'</div>';
+  }).join("");
+  app.innerHTML='<div class="fadein" style="max-width:680px;margin:0 auto">'
+   +'<div class="center"><h1>📚 '+GRADE_NAMES[g]+' Lessons</h1><p class="muted">The skills Anne Arundel County teaches in '+GRADE_NAMES[g]+' — Maryland College and Career-Ready Standards for math and reading, and Maryland\'s science standards. Learn first, then practice.</p></div>'
+   +'<div class="kente-strip" style="margin:14px 0 6px"></div>'
+   +groups
+   +'<div class="btn-row" style="margin-top:18px"><button class="btn" onclick="renderHome()">⟵ Back to Adventure</button><button class="btn secondary" onclick="pickGradeThen(renderLessons,false)">Change grade</button></div>'
+   +'<div class="spacer"></div></div>';
+  say("Here are your "+GRADE_NAMES[g]+" lessons, "+P.name+". Pick one and I will teach it first, then we practice.");
+}
+function renderLesson(id){
+  const L=lessonById(id);if(!L)return renderLessons();
+  clearTimers();closeOverlay();defocus();showAnanseCorner(false);
+  const cards=(L.teach||[]).map((c,i)=>'<div class="micro-confirm" style="align-items:flex-start"><span style="font-size:26px">'+c.i+'</span><span style="font-size:19px;line-height:1.55">'+esc(c.t)+'</span></div>').join("");
+  const r=P.lessons&&P.lessons[id];
+  app.innerHTML='<div class="fadein" style="max-width:660px;margin:0 auto">'
+   +'<div class="hud"><span class="pill">'+SUBJECTS[L.subject].icon+' <b>'+SUBJECTS[L.subject].name+'</b></span><span class="pill">📚 '+GRADE_NAMES[L.grade]+'</span><span class="lvl-badge">'+esc(L.std)+'</span></div>'
+   +'<h1 style="margin-top:10px">'+esc(L.title)+'</h1><p class="muted">'+esc(L.stdName)+'</p>'
+   +'<div class="center"><div class="ananse-wrap">'+ananseSVG(100,"teach")+'</div>'
+   +'<div class="speech" style="max-width:520px;margin:10px auto">'+esc(L.intro||(L.story?"Read the story carefully, then I will ask you about it.":""))+'</div></div>'
+   +((L.teach||[]).length?'<div class="card gold" style="margin-top:14px"><h3 style="margin-bottom:10px">Ananse teaches</h3><div class="microlist">'+cards+'</div></div>':'')
+   +(r?'<p class="muted center" style="margin-top:10px">Best so far: '+r.correct+' of '+r.total+' · tried '+r.tries+' time'+(r.tries===1?'':'s')+'</p>':'')
+   +'<div class="center"><div class="spacer"></div><div class="btn-row">'
+   +'<button class="btn big" onclick="startLesson(\''+id+'\')">'+(L.story?'Read the story ▶':'Start practice ▶')+'</button>'
+   +'<button class="btn secondary" onclick="lessonRead(\''+id+'\')">🔊 Read it to me</button>'
+   +'<button class="btn secondary" onclick="renderLessons()">⟵ Lessons</button></div></div></div>';
+  say(L.title+". "+(L.intro||"")+" "+(L.teach||[]).map(c=>c.t).join(" "));
+}
+function lessonRead(id){const L=lessonById(id);if(L)say(L.title+". "+(L.intro||"")+" "+(L.teach||[]).map(c=>c.t).join(" "));}
+function startLesson(id){
+  const L=lessonById(id);if(!L)return;
+  S={subject:L.subject,total:L.qs.length,n:0,correct:0,results:[],consecR:0,consecW:0,
+     sprintEnd:Date.now()+10*60*1000,qStart:0,cur:null,brokeAt:new Set(),xp:0,mode:"session",
+     start:Date.now(),wpC:0,wpT:0,recallC:0,recallT:0,reviewC:0,reviewT:0,mfC:0,mfT:0,wpServed:true,phase:"main",seen:[],diff:0,tried:false,
+     lesson:id,lessonQs:L.qs.map(q=>Object.assign({},q,{subject:L.subject,level:L.lvl,lesson:id}))};
+  if(L.story){S.story=L.story;S.storyLvl=L.lvl;showLessonStory();return;}
+  say("Practice time! Take your turn.");
+  nextQuestion();
+}
+function showLessonStory(){
+  clearTimers();showAnanseCorner(false);
+  const st=S.story;
+  app.innerHTML='<div class="fadein" style="max-width:640px;margin:0 auto">'
+   +'<div class="center"><div class="ananse-wrap">'+ananseSVG(110,"teach")+'</div>'
+   +'<div class="speech" style="max-width:480px;margin:10px auto">Read this story slowly and carefully. When you finish, I will ask you '+S.total+' questions about it!</div></div>'
+   +'<div class="spacer"></div>'
+   +'<div class="card gold"><h2 style="margin-bottom:10px">📖 '+esc(st.title)+'</h2>'
+   +'<p style="font-size:21px;line-height:1.8">'+esc(st.text)+'</p></div>'
+   +'<div class="center"><div class="spacer"></div>'
+   +'<div class="btn-row"><button class="btn big" onclick="nextQuestion()">I read it — Quiz me! ✅</button>'
+   +'<button class="btn secondary" onclick="say(S.story.text)">🔊 Read it to me</button></div></div>';
+  say("Here is your story: "+st.title+". Read it slowly. Tap quiz me when you are ready.");
+}
+/* any story question can bring the story back — never quiz on a story the child cannot see */
+function showStoryAgain(){
+  if(!S||!S.story)return;
+  openOverlay('<div><h2 style="margin-bottom:10px">📖 '+esc(S.story.title)+'</h2><p style="font-size:20px;line-height:1.8;text-align:left">'+esc(S.story.text)+'</p><div class="spacer"></div><div class="btn-row"><button class="btn secondary" onclick="say(S.story.text)">🔊 Read it to me</button><button class="btn big" onclick="closeOverlay()">Back to the question ▶</button></div></div>');
 }
 
 /* ============================================================
@@ -2726,6 +2906,16 @@ function renderParent(){
    +'<h3>🎯 Intervention Tracker</h3>'
    +'<p class="muted">The five metrics from his evaluation plan, refreshed from his sessions.</p>'
    +'<div class="spacer" style="height:10px"></div>'+interventionTrackerHTML()
+   +'<div class="adinkra-divider">✦</div>'
+   +'<h3>🗺️ Explorer\'s Trail — placement check</h3>'
+   +'<p class="muted">'+esc(P.name)+' walked the trail once at the first login; it never repeats on its own. Run it again whenever you want a fresh read on where '+esc(P.name)+' is. Progress, trophies and streaks are kept — only the starting levels update.</p>'
+   +'<label>Grade</label><select id="gradeSel"><option value="">— not set —</option>'+[3,4,5].map(g=>'<option value="'+g+'" '+(P.grade===g?"selected":"")+'>'+GRADE_NAMES[g]+'</option>').join("")+'</select>'
+   +'<div class="spacer" style="height:10px"></div><div class="btn-row" style="justify-content:flex-start"><button class="btn secondary" onclick="parentSetGrade()">Save grade</button><button class="btn secondary" onclick="parentRetestNow()">🥾 Re-check now</button><button class="btn secondary" onclick="parentRetestNext()">'+(P.retest?'✓ Re-check queued for next login (tap to cancel)':'Re-check at next login')+'</button></div>'
+   +'<div class="card" style="margin-top:12px">'+trailHistoryHTML()+'</div>'
+   +'<div class="adinkra-divider">✦</div>'
+   +'<h3>📚 Grade Lessons</h3>'
+   +'<p class="muted">Lessons follow the Maryland College and Career-Ready Standards and Maryland science standards that Anne Arundel County schools teach. Green = 80% or better.</p>'
+   +lessonProgressHTML()
    +'<div class="adinkra-divider">✦</div>'
    +'<h3>🎯 Weekly Focus Goal</h3>'
    +'<p class="muted">Pick one topic. The app quietly serves it more often — your child never knows.</p>'

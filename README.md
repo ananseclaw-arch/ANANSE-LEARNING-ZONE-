@@ -12,7 +12,7 @@ An offline-first Progressive Web App for children's adaptive learning, featuring
 - **5 subjects:** Math (NBA/basketball procedural), English, Comprehension, Science, Ghana History
 - **5 difficulty levels:** Warmup → On Grade → Conceptual → Multi-Step → Challenge
 - **SM-2 spaced repetition** — topics are re-queued on an optimal schedule
-- **7,394+ content questions** across the content bank, plus unlimited procedural math
+- Content bank plus 138 grade-lesson questions, plus unlimited procedural math
 
 ### 👥 Multi-Profile System
 - Each child gets a profile with name + 4-digit PIN
@@ -49,10 +49,18 @@ An offline-first Progressive Web App for children's adaptive learning, featuring
 - Celebration alerts for milestones and achievements
 - Configurable send time
 
-### 🧠 Diagnostic Adventure
-- First-launch 15-question assessment ("The Explorer's Trail")
-- No scores or pressure — purely diagnostic
-- Determines starting level for each subject
+### 🧠 Onboarding: The Explorer's Trail
+- Runs once, at the first login: pick a grade (3, 4 or 5), then 20 adaptive questions — 4 per subject
+- Staircase placement: each right answer steps up a level, each miss steps down, so the trail finds the true starting level (1–5) fast
+- Comprehension shows a grade-level story *before* its questions; a "Read the story again" button is always available
+- "Not sure yet — skip" is allowed; no scores, no pressure
+- Never repeats on its own. Parents can re-run it from the Parent Portal (now, or queued for the next login) — progress, trophies and streaks are kept, only the starting levels update
+
+### 📚 Grade Lessons (Anne Arundel County / Maryland aligned)
+- 33 lessons for grades 3, 4 and 5 in `lessons.js`, each tagged with its Maryland College and Career-Ready Standard (math, ELA) or Maryland/NGSS science standard
+- Each lesson: Ananse teaches (3 cards) → 4 practice questions with hints; story lessons show the full story first, then 5 questions
+- Per grade: 3 math, 3 English, 2 comprehension stories, 3 science
+- Best score per lesson tracked; parent portal shows lesson progress and the grade setting
 
 ### 🏆 Gamification
 - **Trophy room** with earned trophies per subject
@@ -89,12 +97,12 @@ An offline-first Progressive Web App for children's adaptive learning, featuring
 
 | Layer | Technology |
 |---|---|
-| Frontend | Vanilla JS (0 dependencies, single 253KB `index.html`) |
+| Frontend | Vanilla JS (0 dependencies, `index.html` + `lessons.js`) |
 | Styling | Pure CSS, Kente cloth color palette |
 | Audio | Web Audio API + Speech Synthesis API |
 | 3D Hub | Three.js (loaded on demand) |
 | Storage | IndexedDB (via localStorage wrapper) |
-| Offline | Service Worker (v21) |
+| Offline | Service Worker (v30) |
 | Reports | Telegram Bot API |
 | Hosting | GitHub Pages |
 
@@ -104,7 +112,8 @@ An offline-first Progressive Web App for children's adaptive learning, featuring
 
 ```
 ANANSE-LEARNING-ZONE-/
-├── index.html           # Entire app (HTML + CSS + JS, 3,188 lines)
+├── index.html           # Entire app (HTML + CSS + JS)
+├── lessons.js           # Grade 3–5 lessons aligned to Maryland standards
 ├── ananse-lion.png      # Ananse the Wise Lion mascot
 ├── sw.js                # Service worker for offline support
 ├── manifest.webmanifest # PWA manifest (installable)
@@ -159,9 +168,9 @@ The app is organized into **9 inline script blocks** within `index.html`:
 
 ## Development
 
-This is a **single-file app** — all HTML, CSS, and JavaScript live in `index.html`. To modify:
+All HTML, CSS, and app JavaScript live in `index.html`; grade lesson content lives in `lessons.js`. To modify:
 
-1. Edit `index.html` directly
+1. Edit `index.html` (or `lessons.js` for lesson content) directly
 2. Test by opening it in a browser (`open index.html`)
 3. Bump the service worker version in `sw.js` if changing cached assets
 4. Push to `main` — GitHub Pages deploys automatically

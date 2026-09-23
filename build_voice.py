@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pre-record every fixed phrase Ananse says, using free Microsoft neural TTS.
+"""Pre-record every fixed phrase Ananse says (index.html + lessons.js), using free Microsoft neural TTS.
 
 WHY: the app used the device's built-in voice. Most phones/iPads ship only the
 basic compact voice, so Ananse sounded robotic and there was no way to fix that
@@ -76,13 +76,20 @@ def extract_phrases(html):
         for m in re.finditer(r'\bt:\s*"((?:[^"\\]|\\.){3,400})"', bank):
             phrases.add(unescape_js(m.group(1)))
 
+    # 3. grade lessons (lessons.js): questions, teach steps, intros, story text
+    lessons_path = os.path.join(HERE, "lessons.js")
+    if os.path.exists(lessons_path):
+        lj = open(lessons_path, errors="ignore").read()
+        for m in re.finditer(r'\b(?:q|t|intro|title|text):\s*"((?:[^"\\]|\\.){3,1200})"', lj):
+            phrases.add(unescape_js(m.group(1)))
+
     cleaned = set()
     for p in phrases:
         p = speakable(p)
         # skip anything with runtime interpolation — it differs per child
         if not p or '"+' in p or "+\"" in p:
             continue
-        if len(p) < 4 or len(p) > 400:
+        if len(p) < 4 or len(p) > 1200:
             continue
         cleaned.add(p)
     return sorted(cleaned)
