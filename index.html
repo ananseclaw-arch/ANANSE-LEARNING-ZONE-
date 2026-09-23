@@ -370,6 +370,34 @@ body.storyworld:before{opacity:.45;mix-blend-mode:screen}
 @media(max-width:480px){#app{padding:68px 12px 28px}.splash-scene{min-height:330px;border-radius:28px}.ananse-stage{width:175px;height:175px}.web-ring{width:320px;height:320px}.scene-badge{left:16px;top:16px;font-size:11px}.splash-panel .splash-title{font-size:42px}.learner-dock{padding:13px;border-radius:22px}}
 
 
+/* ---------- top bar labels ---------- */
+#topbar .tb-group{display:flex;gap:8px;pointer-events:none}
+#topbar .tb-btn{flex-direction:column;gap:1px;padding:4px 10px;min-width:58px;height:52px;font-size:20px;line-height:1}
+#topbar .tb-lb{font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;opacity:.9}
+#topbar .tb-parent{border-color:#ffd166}
+@media(min-width:700px){#topbar .tb-btn{flex-direction:row;gap:8px;height:46px;padding:0 14px}#topbar .tb-lb{font-size:13px;text-transform:none;letter-spacing:0}}
+/* ---------- welcome ---------- */
+.wl-feats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:16px;text-align:left}
+.wl-feat{display:grid;grid-template-columns:38px 1fr;grid-template-rows:auto auto;column-gap:10px;padding:12px 14px;border-radius:18px;background:rgba(6,29,55,.55);border:1px solid rgba(156,216,255,.25);color:#edf7ff}
+.wl-feat span{grid-row:1/3;font-size:28px}.wl-feat b{font-size:16px}.wl-feat small{color:#9fd0ff;font-size:13px;line-height:1.4}
+.grade-chips{display:flex;gap:8px;justify-content:center}.grade-chip{flex:1;padding:12px 6px;border-radius:14px;border:3px solid #b9d4f3;background:var(--panel2,#fff);font-family:inherit;font-weight:900;font-size:17px;color:inherit;cursor:pointer}.grade-chip.on{border-color:#f5a623;background:#fff3d6;box-shadow:0 0 0 3px rgba(245,166,35,.25)}
+/* ---------- grouped home ---------- */
+.kh-hero{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:6px}
+.kh-hero .kh-lion{position:static;transform:none;animation:khFloat 5s ease-in-out infinite}
+.kh-hero .kh-lion .ananse-render{width:120px;height:120px}
+.kh-sec{margin-top:16px}.kh-sec h2{font-size:20px;color:#fff;margin:0 0 10px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.kh-sec h2 small{font-size:13px;font-weight:700;color:#9fd0ff}
+.kh-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}.kh-tiles.kh-small{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
+.kh-tile{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-height:112px;padding:14px;border-radius:20px;border:2px solid color-mix(in srgb,var(--c) 55%,transparent);background:linear-gradient(150deg,color-mix(in srgb,var(--c) 38%,#0b2a55),color-mix(in srgb,var(--c) 12%,#06182d));color:#edf7ff;text-align:left;cursor:pointer;font-family:inherit;box-shadow:0 14px 30px rgba(0,0,0,.3);transition:transform .2s var(--spring,ease),box-shadow .2s ease}
+.kh-tile:hover,.kh-tile:focus-visible{transform:translateY(-3px);box-shadow:0 18px 36px rgba(0,0,0,.4),0 0 24px color-mix(in srgb,var(--c) 50%,transparent)}
+.kh-tile .kh-tic{font-size:32px;line-height:1;filter:drop-shadow(0 4px 8px rgba(0,0,0,.4))}
+.kh-tile .kh-tnm{font-weight:900;font-size:16px;line-height:1.2}.kh-tile .kh-tsub{font-size:12px;color:#c9e6ff;line-height:1.3}
+.kh-tile.pick{border-color:#ffd166;box-shadow:0 0 0 2px rgba(255,209,102,.4),0 0 26px rgba(255,209,102,.35),0 14px 30px rgba(0,0,0,.3)}
+.kh-tile.pick:after{content:"⭐ pick";position:absolute;top:10px;right:10px;font-size:11px;font-weight:900;color:#071b35;background:#ffd166;padding:2px 8px;border-radius:999px}
+.kh-foot{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:22px 0 10px}
+/* ---------- parent portal nav ---------- */
+.pnav{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 4px;position:sticky;top:64px;z-index:5;padding:8px;border-radius:16px;background:rgba(255,255,255,.85);backdrop-filter:blur(10px);border:1px solid #b9d4f3}
+.pnav-chip{color:#123 !important;border:2px solid #b9d4f3;background:#fff;border-radius:999px;padding:6px 10px;font-family:inherit;font-weight:800;font-size:13px;color:inherit;cursor:pointer}.pnav-chip:hover{border-color:#f5a623}
+
 /* ---------- Reveal Math visuals ---------- */
 .qvis{margin:6px auto 12px;text-align:center;max-width:100%;overflow-x:auto}
 .rv-svg{display:block;margin:4px auto;max-width:100%;height:auto}
@@ -463,9 +491,14 @@ body.learningworld #app{max-width:1180px}
 </head>
 <body>
 <div id="topbar">
-  <button class="tb-btn" id="homeBtn" onclick="goHome()" title="Home">🏠</button>
-  <button class="tb-btn" id="usersBtn" onclick="exitToProfiles()" title="Switch learner">👥</button>
-  <button class="tb-btn" id="soundBtn" onclick="toggleSound()" title="Sound">🔊</button>
+  <div class="tb-group">
+    <button class="tb-btn" id="homeBtn" onclick="goHome()" title="Home" aria-label="Home"><span class="tb-ic">🏠</span><span class="tb-lb">Home</span></button>
+    <button class="tb-btn" id="usersBtn" onclick="exitToProfiles()" title="Switch learner" aria-label="Switch learner"><span class="tb-ic">👥</span><span class="tb-lb">Learners</span></button>
+  </div>
+  <div class="tb-group">
+    <button class="tb-btn" id="soundBtn" onclick="toggleSound()" title="Sound" aria-label="Sound"><span class="tb-ic">🔊</span><span class="tb-lb">Sound</span></button>
+    <button class="tb-btn tb-parent" id="parentBtn" onclick="parentGate()" title="Parent Portal" aria-label="Parent Portal"><span class="tb-ic">🔒</span><span class="tb-lb">Parent</span></button>
+  </div>
 </div>
 <canvas id="webfx" aria-hidden="true"></canvas>
 <div id="app"></div>
@@ -1972,7 +2005,7 @@ function toggleSound(){
   if(!DB.sound){stopRecorded();stopRecorded();if("speechSynthesis" in window)speechSynthesis.cancel();}
   else say("Sound is on. Akwaaba!");
 }
-function renderSoundBtn(){$("soundBtn").textContent=DB.sound?"🔊":"🔇"}
+function renderSoundBtn(){const b=$("soundBtn");if(!b)return;const ic=b.querySelector(".tb-ic");if(ic)ic.textContent=DB.sound?"🔊":"🔇";else b.textContent=DB.sound?"🔊":"🔇";}
 
 /* ---------- weightless sound engine (Web Audio synthesis) ---------- */
 let _ac=null, _ambient=null;
@@ -2678,40 +2711,81 @@ function renderProfiles(){
    +'<p class="splash-sub">Step onto a living court of numbers, stories, science and Ghanaian history. Ananse adapts every adventure to the way you learn.</p>'
    +(DB.profiles.length?'<div class="learner-dock"><h2>Who is exploring today?</h2>'+tiles+'<div class="splash-actions"><button class="btn" onclick="renderNewProfile()">＋ New learner</button><button class="btn secondary" onclick="parentGate()">🔒 Parent portal</button></div></div>':'<div class="splash-actions"><button class="btn big" onclick="renderNewProfile()">Begin your adventure</button><button class="btn secondary" onclick="parentGate()">🔒 Parent portal</button></div>')
    +a2hsHTML()+'</section></main>';
-  if(DB.profiles.length===0)renderNewProfile();
+  if(DB.profiles.length===0)renderWelcome();
 }
-function renderNewProfile(){
+/* ---------- first-run welcome (parent-facing) ---------- */
+function renderWelcome(){
+  clearTimers();showAnanseCorner(false);document.body.classList.add("storyworld");
+  app.innerHTML='<main class="fadein" style="max-width:640px;margin:0 auto;text-align:center">'
+   +'<div class="ananse-stage" style="position:relative;left:auto;top:auto;transform:none;margin:6px auto 0;width:170px;height:170px;animation:none">'+ananseSVG(170,"idle")+'</div>'
+   +'<div class="world-kicker" style="margin-top:14px">✦ Akwaaba · Welcome</div><h1 class="splash-title" style="font-size:44px">Ananse<br>Learning Zone</h1>'
+   +'<p class="splash-sub" style="margin:10px auto">A learning coach for grades 3–5 with Ananse the Wise Lion. Adaptive math, reading, science and Ghana history — matched to what Anne Arundel County schools teach.</p>'
+   +'<div class="wl-feats">'
+   +'<div class="wl-feat"><span>🗺️</span><b>Starts where your child is</b><small>A short Explorer\'s Trail places every subject at the right level.</small></div>'
+   +'<div class="wl-feat"><span>📘</span><b>Matches school</b><small>Reveal Math units and grade lessons on Maryland standards.</small></div>'
+   +'<div class="wl-feat"><span>🧪</span><b>Hands-on science</b><small>Experiments, a nature walk and a field journal, not just quizzes.</small></div>'
+   +'<div class="wl-feat"><span>🔒</span><b>Parent dashboard</b><small>Plain-English insights, focus goals, daily reports.</small></div>'
+   +'</div>'
+   +'<div class="spacer"></div>'
+   +'<button class="btn big" onclick="setupStart()">👨‍👩‍👧 Parent: set up in 2 minutes ▶</button>'
+   +'<p class="muted" style="margin-top:10px;font-size:14px">You will create a parent PIN, add your learner, then hand the device over for a short placement trail.</p>'
+   +a2hsHTML()+'</main>';
+  say("Akwaaba! Welcome to the Ananse Learning Zone. Parents, tap set up to begin.");
+}
+let _pinAfter=null;
+function setupStart(){
+  if(!DB.pin){_pinAfter=()=>renderNewProfile(true);pinMode="set";pinBuf="";renderPinPad("Step 1 of 3 · Create your parent PIN","This 4-digit PIN protects the parent dashboard and settings. Your child will have a separate login code.");return;}
+  renderNewProfile(true);
+}
+let _newGrade=null;
+function pickNewGrade(g){_newGrade=g;[3,4,5].forEach(x=>{const b=$("ng"+x);if(b)b.classList.toggle("on",x===g);});}
+function renderNewProfile(setup){
   showAnanseCorner(false);
   document.body.classList.remove("storyworld");
+  _newGrade=_newGrade||null;
   app.innerHTML='<div class="fadein center" style="max-width:520px;margin:0 auto">'
-   +'<div class="ananse-wrap">'+ananseSVG(140,"idle")+'</div>'
-   +'<h2>Akwaaba! Welcome!</h2>'
-   +'<p class="muted">I am Ananse the Wise Lion. What is your name, young explorer?</p>'
+   +'<div class="ananse-wrap">'+ananseSVG(120,"idle")+'</div>'
+   +'<h2>'+(setup?'Step 2 of 3 · Add your learner':'Add a learner')+'</h2>'
+   +'<p class="muted">Parents fill this in. Your child picks a secret code they can remember.</p>'
    +'<div class="spacer"></div>'
-   +'<input id="pname" placeholder="Your name" maxlength="20" style="text-align:center;font-size:26px">'
+   +'<label style="text-align:left;display:block">Child\'s first name</label><input id="pname" placeholder="First name" maxlength="20" style="text-align:center;font-size:24px">'
+   +'<label style="text-align:left;display:block;margin-top:12px">Grade</label><div class="grade-chips">'+[3,4,5].map(g=>'<button type="button" class="grade-chip'+(_newGrade===g?" on":"")+'" id="ng'+g+'" onclick="pickNewGrade('+g+')">'+GRADE_NAMES[g]+'</button>').join("")+'</div>'
+   +'<label style="text-align:left;display:block;margin-top:12px">Child\'s secret login code (4 digits)</label><input id="ppin" placeholder="0000" maxlength="4" inputmode="numeric" pattern="[0-9]*" style="text-align:center;font-size:24px;letter-spacing:8px">'
+   +'<p class="muted" style="font-size:14px;margin-top:6px">The child types this to open their profile. Parents can reset it any time.</p>'
    +'<div class="spacer"></div>'
-   +'<input id="ppin" placeholder="Secret 4-digit code" maxlength="4" inputmode="numeric" pattern="[0-9]*" style="text-align:center;font-size:24px;letter-spacing:6px">'
-   +'<p class="muted" style="font-size:14px;margin-top:8px">Pick a secret 4-digit code — you\'ll use it to log in. Keep it safe!</p>'
-   +'<p class="muted" style="font-size:15px;margin-top:14px">First we\'ll do a fun assessment so I know exactly where to start you!</p>'
-   +'<div class="spacer"></div>'
-   +'<button class="btn big" onclick="createProfile()">Start My Assessment! 🦁</button>'
-   +(DB.profiles.length?'<div class="spacer"></div><button class="btn secondary" onclick="renderProfiles()">Back</button>':"")
+   +'<button class="btn big" onclick="createProfile('+(setup?'true':'false')+')">Save learner ▶</button>'
+   +'<div class="spacer"></div><button class="btn secondary" onclick="'+(DB.profiles.length?'renderProfiles()':'renderWelcome()')+'">⟵ Back</button>'
    +'</div>';
 }
-function createProfile(){
-  const name=($("pname").value||"Explorer").trim().slice(0,20);
+function createProfile(setup){
+  const name=($("pname").value||"").trim().slice(0,20);
+  if(!name){toast("Type your child's first name");return}
+  if(!_newGrade){toast("Pick a grade");return}
   const pinEl=$("ppin");
   const pin=String((pinEl&&pinEl.value)||"").trim();
-  if(!/^\d{4}$/.test(pin)){toast("Pick a secret code with exactly 4 numbers");say("Pick a secret code with four numbers, like a treasure lock!");return}
+  if(!/^\d{4}$/.test(pin)){toast("The secret code needs exactly 4 numbers");return}
   const p=newProfile(name,"");
-  p.pin=pin;
+  p.pin=pin;p.grade=_newGrade;_newGrade=null;
   p.color=PCOLORS[DB.profiles.length%PCOLORS.length];
   DB.profiles.push(p);
   DB.lastProfile=p.id;   // new learner becomes this device's owner
   save();
   P=p;
-  say("Akwaaba, "+name+"! I am Ananse. Let us begin an adventure!");
-  startDiagnostic();
+  renderHandoff(!!setup);
+}
+/* parent → child hand-off before the placement trail */
+function renderHandoff(setup){
+  clearTimers();showAnanseCorner(false);
+  document.body.classList.remove("learningworld","storyworld","focus");
+  app.innerHTML='<div class="fadein center" style="max-width:560px;margin:0 auto">'
+   +'<div class="ananse-wrap">'+ananseSVG(140,"party")+'</div>'
+   +'<h2>'+(setup?'Step 3 of 3 · ':'')+'All set! Hand the device to '+esc(P.name)+'</h2>'
+   +'<div class="speech" style="margin:12px auto">'+esc(P.name)+' will walk the Explorer\'s Trail — 20 short questions across every subject, with a story to read. It takes about 10 minutes, has no score, and tells Ananse where to start. It runs only once.</div>'
+   +'<div class="card" style="text-align:left;margin-top:12px"><b>Later, in the Parent Portal (🔒 top right):</b><ul style="margin:8px 0 0 18px;line-height:1.7"><li>Set the Reveal Math lesson the class is on</li><li>See plain-English insights and set a weekly focus</li><li>Re-run the trail any time to re-check placement</li></ul></div>'
+   +'<div class="spacer"></div>'
+   +'<button class="btn big" onclick="startDiagnostic()">Start '+esc(P.name)+'\'s Explorer\'s Trail ▶</button>'
+   +'<div class="spacer"></div><button class="btn secondary" onclick="P=null;renderProfiles()">Do it later — back to learners</button></div>';
+  say("All set! Hand the device to "+P.name+" for the Explorer's Trail.");
 }
 function selectProfile(id){
   const p=DB.profiles.find(x=>x.id===id);
@@ -2776,39 +2850,40 @@ function renderHome(){
   const dailyDone=P.daily.date===today()&&P.daily.done;
   const rec=new Set([s1,s2]);
   const lvAvg=Math.max(1,Math.round(Object.values(P.levels).reduce((x,y)=>x+y,0)/Object.keys(SUBJECTS).length));
-  // orb positions (percent of the stage) — the lion sits at the centre of the web
-  const POS={lessons:[50,9],comprehension:[83,24],english:[89,56],math:[64,88],history:[23,86],science:[11,46],lab:[17,17],reveal:[87,86]};
-  const orb=(key,icon,name,sub,onclick,color,extra)=>'<button class="kh-orb'+(extra||"")+'" style="--c:'+color+';left:'+POS[key][0]+'%;top:'+POS[key][1]+'%" onclick="'+onclick+'"><span class="kh-ring"><span class="kh-ic">'+icon+'</span></span><span class="kh-nm">'+name+'</span>'+(sub?'<span class="kh-lv">'+sub+'</span>':'')+'</button>';
-  const orbs=Object.keys(SUBJECTS).map(s=>orb(s,SUBJECTS[s].icon,SUBJECTS[s].name,'Lv '+P.levels[s]+(rec.has(s)?' · ⭐':''),"startSession('"+s+"')",SUBJECTS[s].color,rec.has(s)?" pick":"")).join("")
-   +orb("lessons","📚",P.grade?GRADE_NAMES[P.grade]+" Lessons":"Grade Lessons","Learn, then practice","renderLessons()","#ffd166"," hub")
-   +orb("lab","🧪","Science Lab",(P.lab?Object.keys(P.lab).length:0)+"/"+LABS.length+" quests","renderLab()","#6fd0ff","")
-   +orb("reveal","📘","Reveal Math",P.revealCurrent?"Lesson "+P.revealCurrent:"Class practice book","renderReveal()","#c9a84c",P.revealCurrent?" pick":"");
-  const lines=Object.keys(POS).map(k=>'<line x1="50" y1="50" x2="'+POS[k][0]+'" y2="'+POS[k][1]+'"/>').join("");
+  const tile=(icon,name,sub,onclick,color,cls)=>'<button class="kh-tile'+(cls?" "+cls:"")+'" style="--c:'+color+'" onclick="'+onclick+'"><span class="kh-tic">'+icon+'</span><span class="kh-tnm">'+name+'</span>'+(sub?'<span class="kh-tsub">'+sub+'</span>':'')+'</button>';
+  const subj=s=>tile(SUBJECTS[s].icon,SUBJECTS[s].name,'Level '+P.levels[s]+' · '+LEVEL_NAMES[P.levels[s]],"startSession('"+s+"')",SUBJECTS[s].color,rec.has(s)?"pick":"");
+  const curRv=P.revealCurrent&&typeof revealLesson==="function"?revealLesson(P.revealCurrent):null;
+  const todayTiles=[
+    (DB.resume&&DB.resume[P.id]&&DB.resume[P.id].s)?tile("▶","Continue your lesson","Pick up where you left off","sessResumeBtn()","#3bb273","pick"):"",
+    tile(SUBJECTS[s1].icon,SUBJECTS[s1].name+" today","Ananse\'s pick · Level "+P.levels[s1],"startSession('"+s1+"')",SUBJECTS[s1].color,"pick"),
+    tile(SUBJECTS[s2].icon,SUBJECTS[s2].name+" today","Ananse\'s pick · Level "+P.levels[s2],"startSession('"+s2+"')",SUBJECTS[s2].color,"pick"),
+    curRv?tile("📘","Reveal Math "+curRv.id,"Where the class is · "+curRv.t,"renderRevealLesson('"+curRv.id+"')","#c9a84c","pick"):"",
+    tile("🕵️","Daily Mystery",dailyDone?"Solved today ✓":"One cross-subject case a day","startDaily()","#7c5cf0",dailyDone?"":"")
+  ].join("");
   app.innerHTML='<div class="fadein kh-shell">'
-   +'<svg class="kh-web" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><g>'+lines+'</g><ellipse cx="50" cy="50" rx="22" ry="20"/><ellipse cx="50" cy="50" rx="40" ry="36"/></svg>'
-   +'<div class="kh-top">'
+   +'<div class="kh-hero"><div class="kh-lion">'+ananseSVG(120,"idle")+'</div>'
    +'<div class="kh-player"><span class="kh-av" style="background:'+(P.color||"#4aa3e0")+'">'+esc((P.name||"?").charAt(0).toUpperCase())+'</span>'
-   +'<div><div class="kh-hi">Akwaaba, '+esc(P.name)+'!</div><div class="kh-meta">Level '+lvAvg+' · '+LEVEL_NAMES[lvAvg]+'</div></div>'
+   +'<div><div class="kh-hi">Akwaaba, '+esc(P.name)+'!</div><div class="kh-meta">'+(P.grade?GRADE_NAMES[P.grade]+' · ':'')+'Level '+lvAvg+' · '+LEVEL_NAMES[lvAvg]+'</div></div>'
    +'<div class="kh-stat"><b>🔥</b><span>'+(P.streak||0)+'</span><small>streak</small></div>'
    +'<div class="kh-stat"><b>⭐</b><span>'+(P.xp||0)+'</span><small>points</small></div>'
-   +'<div class="kh-stat"><b>🏆</b><span>'+P.trophies.length+'</span><small>trophies</small></div></div>'
-   +'<div class="kh-badge">🦁 Web Kingdom</div></div>'
-   +(DB.resume&&DB.resume[P.id]&&DB.resume[P.id].s?'<div class="btn-row" style="margin:8px 0 0"><button class="btn" onclick="sessResumeBtn()">▶ Continue your lesson</button></div>':'')
-   +'<div class="kh-stage">'
-   +'<div class="kh-lion">'+ananseSVG(150,"idle")+'<div class="kh-bubble">Glowing portals are my picks for today. Tap one!</div></div>'
-   +orbs
-   +'</div>'
-   +'<div class="kh-dock">'
-   +'<button class="btn secondary" onclick="renderJourney()">🗺️ Journey</button>'
-   +'<button class="btn secondary" onclick="renderTrophyRoom()">🏆 Trophies</button>'
-   +'<button class="btn '+(dailyDone?"secondary":"")+'" onclick="startDaily()">🕵️ Mystery'+(dailyDone?" ✓":"")+'</button>'
-   +'<button class="btn secondary" onclick="renderStats()">🃏 Card</button>'
-   +'<button class="btn secondary" onclick="startStoryReplay()">🎬 Story Replay</button>'
-   +'<button class="btn secondary" onclick="startPatterns()">🧩 Patterns</button>'
-   +(window.ANANSE_ONLINE?'<button class="btn secondary" onclick="openAskAnanse()">🦁 Ask Ananse</button>':'')
-   +'<button class="btn secondary" onclick="DB.lastProfile=null;save();P=null;renderProfiles()">👥 Switch</button>'
-   +'<button class="btn" onclick="parentGate()">🔒 Parent</button>'
-   +'</div></div>';
+   +'<div class="kh-stat"><b>🏆</b><span>'+P.trophies.length+'</span><small>trophies</small></div></div></div>'
+   +'<section class="kh-sec"><h2>⭐ Today\'s path <small>Ananse\'s picks — start here</small></h2><div class="kh-tiles">'+todayTiles+'</div></section>'
+   +'<section class="kh-sec"><h2>📖 Subjects <small>adaptive practice at your level</small></h2><div class="kh-tiles">'+Object.keys(SUBJECTS).map(subj).join("")+'</div></section>'
+   +'<section class="kh-sec"><h2>🧭 Explore <small>lessons, labs and games</small></h2><div class="kh-tiles">'
+   +tile("📚",P.grade?GRADE_NAMES[P.grade]+" Lessons":"Grade Lessons","Maryland standards · learn, then practice","renderLessons()","#ffd166")
+   +tile("📘","Reveal Math","Your class practice book, unit by unit","renderReveal()","#c9a84c")
+   +tile("🧪","Science Lab",(P.lab?Object.keys(P.lab).length:0)+"/"+(typeof LABS!=="undefined"?LABS.length:9)+" quests · experiments & nature walk","renderLab()","#6fd0ff")
+   +tile("🎬","Story Replay","Read, then put events in order","startStoryReplay()","#ff6b4a")
+   +tile("🧩","Spot the Pattern","Kente pattern puzzles","startPatterns()","#e0569a")
+   +(window.ANANSE_ONLINE?tile("🦁","Ask Ananse","Your AI tutor is online","openAskAnanse()","#f5a623"):"")
+   +'</div></section>'
+   +'<section class="kh-sec"><h2>🏆 My progress</h2><div class="kh-tiles kh-small">'
+   +tile("🗺️","My Journey","Levels conquered","renderJourney()","#4aa3e0")
+   +tile("🏆","Trophy Room",P.trophies.length+" earned","renderTrophyRoom()","#ffd166")
+   +tile("🃏","Player Card","Stats and skills","renderStats()","#7c5cf0")
+   +'</div></section>'
+   +'<div class="kh-foot"><button class="btn secondary" onclick="DB.lastProfile=null;save();P=null;renderProfiles()">👥 Switch learner</button><button class="btn" onclick="parentGate()">🔒 Parent Portal</button></div>'
+   +'</div>';
   say("Welcome back, "+P.name+"! Pick a subject to start today's path.");
   checkTelegramDue();
 }
@@ -4107,23 +4182,26 @@ function parentDone(){
   if(parentFromLogin){P=null;renderProfiles()}
   else goHome();
 }
-function renderPinPad(){
+let _pinTitle=null,_pinSub=null;
+function renderPinPad(t,sb){
   clearTimers();showAnanseCorner(false);
-  const title=pinMode==="set"?"Create a 4-digit Parent PIN":"Parent Portal";
-  const sub=pinMode==="set"?"This PIN protects the parent dashboard.":"Enter your 4-digit PIN";
+  document.body.classList.remove("learningworld","storyworld","focus");
+  if(t){_pinTitle=t;_pinSub=sb||"";}
+  const title=_pinTitle||(pinMode==="set"?"Create a 4-digit Parent PIN":"Parent Portal");
+  const sub=_pinSub||(pinMode==="set"?"This PIN protects the parent dashboard.":"Enter your 4-digit PIN");
   app.innerHTML='<div class="fadein center" style="max-width:420px;margin:0 auto">'
    +'<h2>🔒 '+title+'</h2><p class="muted">'+sub+'</p>'
    +'<div class="pin-display">'+[0,1,2,3].map(i=>'<div class="pin-digit">'+(pinBuf.length>i?"●":"")+'</div>').join("")+'</div>'
    +'<div class="pin-pad">'+[1,2,3,4,5,6,7,8,9].map(n=>'<button onclick="pinKey('+n+')">'+n+'</button>').join("")
-   +'<button onclick="pinClear()">✕</button><button onclick="pinKey(0)">0</button><button onclick="goHome()">⟵</button>'
+   +'<button onclick="pinClear()">✕</button><button onclick="pinKey(0)">0</button><button onclick="_pinTitle=_pinSub=null;_pinAfter=null;goHome()">⟵</button>'
    +'</div></div>';
 }
 function pinClear(){pinBuf="";renderPinPad()}
 function pinKey(n){
   pinBuf+=n;
   if(pinBuf.length<4){renderPinPad();return}
-  if(pinMode==="set"){DB.pin=pinBuf;save();toast("PIN saved");renderParent()}
-  else if(pinBuf===DB.pin)renderParent();
+  if(pinMode==="set"){DB.pin=pinBuf;save();toast("Parent PIN saved");_pinTitle=_pinSub=null;const f=_pinAfter;_pinAfter=null;if(f)f();else renderParent();}
+  else if(pinBuf===DB.pin){_pinTitle=_pinSub=null;renderParent();}
   else{toast("Wrong PIN");pinBuf="";renderPinPad()}
 }
 
@@ -4182,6 +4260,7 @@ function buildInsights(){
   if(!any)out.push({cls:"",t:"No sessions yet this week. The insights will fill in as "+P.name+" plays."});
   return out;
 }
+function parentJump(t){const h=[...document.querySelectorAll("h3")].find(x=>x.textContent.indexOf(t)>=0);if(h)h.scrollIntoView({behavior:"smooth",block:"start"});}
 function parentPick(id){P=DB.profiles.find(p=>p.id===id)||P;renderParent()}
 
 /* ---------- intervention metrics (#15) ---------- */
@@ -4225,6 +4304,7 @@ function interventionTrackerHTML(){
 }
 function renderParent(){
   clearTimers();showAnanseCorner(false);
+  document.body.classList.remove("learningworld","storyworld","focus"); // parent pages use the light, high-contrast theme
   if(!P&&DB.profiles.length)P=DB.profiles[0];
   if(!P){
     app.innerHTML='<div class="fadein center" style="max-width:520px;margin:0 auto"><h1>Parent Dashboard</h1>'
@@ -4247,7 +4327,9 @@ function renderParent(){
   }).join("")||'<p class="muted">Once he misses a few questions, tailored at-home activities appear here.</p>';
   const goalOpts=ALL_TOPICS.map(t=>'<option value="'+esc(t)+'" '+(P.weeklyGoal.topic===t?"selected":"")+' style="text-transform:capitalize">'+esc(t)+'</option>').join("");
   app.innerHTML='<div class="fadein" style="max-width:680px;margin:0 auto">'
-   +'<h1>Parent Dashboard</h1><p class="muted">'+esc(P.name)+' · joined '+esc(P.created)+'</p>'
+   +'<div class="btn-row" style="justify-content:space-between;margin-bottom:6px"><button class="btn secondary" onclick="parentDone()">⟵ Back to the app</button><button class="btn secondary" onclick="pinMode=\'set\';pinBuf=\'\';renderPinPad()">Change PIN</button></div>'
+   +'<h1>Parent Dashboard</h1><p class="muted">'+esc(P.name)+' · joined '+esc(P.created)+(P.grade?' · '+GRADE_NAMES[P.grade]:'')+'</p>'
+   +'<div class="pnav">'+[["💡","This week","This Week"],["🗺️","Trail & grade","Explorer"],["📘","Reveal Math","Reveal Math"],["📚","Lessons & labs","Grade Lessons"],["🎯","Focus goal","Weekly Focus"],["🏠","At home","Offline Activities"],["🔊","Voice","Voice"],["📲","Reports","Telegram"],["🍃","Nature ID","Nature Walk"],["💾","Backup","Backup"],["♻️","Reset","Reset"]].map(x=>'<button class="pnav-chip" onclick="parentJump(\''+x[2]+'\')">'+x[0]+' '+x[1]+'</button>').join("")+'</div>'
    +(DB.profiles.length>1?'<div class="btn-row" style="justify-content:flex-start;margin-top:10px">'+DB.profiles.map(p=>'<button class="btn '+(p.id===P.id?"":"secondary")+'" style="font-size:15px;padding:8px 14px" onclick="parentPick(\''+p.id+'\')">'+esc(p.name)+'</button>').join("")+'</div>':"")
    +'<div class="kente-strip" style="margin:14px 0 20px"></div>'
    +'<h3>💡 This Week, In Plain English</h3><div class="spacer" style="height:10px"></div>'+insights
@@ -4284,9 +4366,9 @@ function renderParent(){
    +'<div class="adinkra-divider">✦</div>'
    +'<h3>🏠 Offline Activities (based on his recent struggles)</h3><div class="spacer" style="height:10px"></div>'+acts
    +'<div class="adinkra-divider">✦</div>'
-   +'<h3>🦁 Web Kingdom — new 3D home (preview)</h3>'
-   +'<p class="muted">The magical 3D web where subjects are dewdrops. Needs internet once to fetch the 3D engine; after that it works offline too. Any device that can\'t run it automatically gets the classic home.</p>'
-   +'<div class="btn-row" style="justify-content:flex-start"><button class="btn secondary" onclick="toggleKingdom()">'+(DB.kingdom&&DB.kingdom.enabled?'Turn OFF the 3D Kingdom':'✨ Turn ON the 3D Kingdom')+'</button></div>'
+   +'<h3>🌐 Experimental 3D home (off by default)</h3>'
+   +'<p class="muted">An older 3D hub where subjects are floating orbs. Needs internet once to fetch the 3D engine; after that it works offline too. Any device that can\'t run it automatically gets the classic home.</p>'
+   +'<div class="btn-row" style="justify-content:flex-start"><button class="btn secondary" onclick="toggleKingdom()">'+(DB.kingdom&&DB.kingdom.enabled?'Turn OFF the 3D home':'Try the 3D home')+'</button></div>'
    +'<div class="adinkra-divider">✦</div>'
    +'<h3>🔊 Ananse\'s Voice</h3>'
    +'<p class="muted">Choose the voice this device uses when Ananse speaks. Voices marked ★ sound the most natural. Tip: on iPhone/iPad you can download nicer voices in Settings → Accessibility → Spoken Content → Voices → English, then pick them here.</p>'
@@ -4717,7 +4799,7 @@ function kdWebgl(){
 function toggleKingdom(){
   DB.kingdom.enabled=!DB.kingdom.enabled;
   window._kdFallback=false;save();
-  toast(DB.kingdom.enabled?"🦁 Web Kingdom is ON":"Classic home is back");
+  toast(DB.kingdom.enabled?"3D home is ON":"Standard home is back");
   renderParent();
 }
 function loadThree(){

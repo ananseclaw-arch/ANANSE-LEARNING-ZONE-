@@ -15,7 +15,7 @@ An offline-first Progressive Web App for children's adaptive learning, featuring
 - Content bank plus 138 grade-lesson questions, plus unlimited procedural math
 
 ### 👥 Multi-Profile System
-- Each child gets a profile with name + 4-digit PIN
+- Each child gets a profile with name, grade + 4-digit login code (parents add learners from the landing page)
 - Per-profile progress, stats (speed, reading, memory, strategy, recall), trophies, and learning levels
 - "Switch Player" on the home screen
 
@@ -49,8 +49,9 @@ An offline-first Progressive Web App for children's adaptive learning, featuring
 - Celebration alerts for milestones and achievements
 - Configurable send time
 
-### 🧠 Onboarding: The Explorer's Trail
-- Runs once, at the first login: pick a grade (3, 4 or 5), then 20 adaptive questions — 4 per subject
+### 🧠 Onboarding: welcome → parent setup → hand-off → The Explorer's Trail
+- First run shows a welcome page explaining the app; a parent creates the parent PIN, adds the learner (name, grade 3–5, child's 4-digit login code), then hands the device over
+- The Explorer's Trail runs once: 20 adaptive questions — 4 per subject
 - Staircase placement: each right answer steps up a level, each miss steps down, so the trail finds the true starting level (1–5) fast
 - Comprehension shows a grade-level story *before* its questions; a "Read the story again" button is always available
 - "Not sure yet — skip" is allowed; no scores, no pressure
