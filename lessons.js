@@ -104,7 +104,7 @@ const LESSONS={
 ]},
 {id:"s3-3",subject:"science",lvl:3,title:"Forces: Pushes and Pulls",std:"3-PS2-1",stdName:"Balanced and unbalanced forces change an object's motion",
  intro:"A force is a push or a pull. Forces can start something moving, stop it, speed it up or change its direction.",
- teach:[{i:"🤝",t:"Two players push a ball with equal force from opposite sides. The forces are BALANCED and the ball stays still."},{i:"💪",t:"If one pushes harder, the forces are UNBALANCED and the ball moves toward the weaker push."},{i:"🎯",t:"Gravity pulls down. Friction slows sliding things. A bigger force makes a bigger change in motion."}],
+ teach:[{i:"🤝",t:"Two players push a ball with equal force from opposite sides. The forces are BALANCED and the ball stays still."},{i:"💪",t:"If one pushes harder, the forces are UNBALANCED and the ball moves in the direction of the stronger push."},{i:"🎯",t:"Gravity pulls down. Friction slows sliding things. A bigger force makes a bigger change in motion."}],
  qs:[
  {q:"Two teams pull a rope with the same force. The rope does not move. The forces are...",opts:["Balanced","Unbalanced","Magnetic","Invisible"],a:0,topic:"forces",teach:[{i:"🤝",t:"Same force, opposite directions."},{i:"⚖️",t:"They cancel out, so nothing moves."},{i:"🎯",t:"Balanced."}]},
  {q:"Prince pushes a ball gently and it rolls slowly. He pushes harder and it rolls faster. What does this show?",opts:["A bigger force causes a bigger change in motion","Balls always roll the same speed","Friction makes things faster","Gravity pushes sideways"],a:0,topic:"forces",teach:[{i:"💪",t:"More push = more speed."},{i:"📏",t:"The size of a force changes how much motion changes."},{i:"🎯",t:"Bigger force, bigger change."}]},
