@@ -2634,7 +2634,6 @@ function goHome(){
   stopRecorded();if("speechSynthesis" in window)speechSynthesis.cancel();
   S=null;
   if(!P)renderProfiles();
-  else if(!P.diagDone)startDiagnostic();
   else renderHome();
 }
 function exitToProfiles(){
@@ -2762,10 +2761,12 @@ function createProfile(setup){
   if(!name){toast("Type your child's first name");return}
   if(!_newGrade){toast("Pick a grade");return}
   const pinEl=$("ppin");
-  const pin=String((pinEl&&pinEl.value)||"").trim();
-  if(!/^\d{4}$/.test(pin)){toast("The secret code needs exactly 4 numbers");return}
+  const pin=String((pinEl&&pinEl.value)||"").replace(/\D/g,"");
+  if(pin.length!==4){toast("The secret code needs exactly 4 numbers");return}
   const p=newProfile(name,"");
   p.pin=pin;p.grade=_newGrade;_newGrade=null;
+  const start={3:2,4:3,5:3}[p.grade]||1; // grade-based starting level until a placement check says otherwise
+  Object.keys(p.levels).forEach(k=>p.levels[k]=start);
   p.color=PCOLORS[DB.profiles.length%PCOLORS.length];
   DB.profiles.push(p);
   DB.lastProfile=p.id;   // new learner becomes this device's owner
@@ -2779,13 +2780,14 @@ function renderHandoff(setup){
   document.body.classList.remove("learningworld","storyworld","focus");
   app.innerHTML='<div class="fadein center" style="max-width:560px;margin:0 auto">'
    +'<div class="ananse-wrap">'+ananseSVG(140,"party")+'</div>'
-   +'<h2>'+(setup?'Step 3 of 3 · ':'')+'All set! Hand the device to '+esc(P.name)+'</h2>'
-   +'<div class="speech" style="margin:12px auto">'+esc(P.name)+' will walk the Explorer\'s Trail — 20 short questions across every subject, with a story to read. It takes about 10 minutes, has no score, and tells Ananse where to start. It runs only once.</div>'
-   +'<div class="card" style="text-align:left;margin-top:12px"><b>Later, in the Parent Portal (🔒 top right):</b><ul style="margin:8px 0 0 18px;line-height:1.7"><li>Set the Reveal Math lesson the class is on</li><li>See plain-English insights and set a weekly focus</li><li>Re-run the trail any time to re-check placement</li></ul></div>'
+   +'<h2>'+(setup?'Step 3 of 3 · ':'')+esc(P.name)+' is ready!</h2>'
+   +'<div class="card" style="text-align:left;margin-top:12px"><div class="statline"><span>Login code</span><b style="letter-spacing:6px">'+esc(P.pin)+'</b></div><div class="statline"><span>Grade</span><b>'+GRADE_NAMES[P.grade]+'</b></div><div class="statline" style="border:none"><span>Starting level</span><b>'+LEVEL_NAMES[P.levels.math]+'</b></div></div>'
+   +'<div class="speech" style="margin:12px auto">'+esc(P.name)+' can start any lesson right away. When you want to know exactly where '+esc(P.name)+' is in each subject, run the Explorer\'s Trail — a 10-minute placement check you can start from the home screen or the Parent Portal, any time.</div>'
    +'<div class="spacer"></div>'
-   +'<button class="btn big" onclick="startDiagnostic()">Start '+esc(P.name)+'\'s Explorer\'s Trail ▶</button>'
-   +'<div class="spacer"></div><button class="btn secondary" onclick="P=null;renderProfiles()">Do it later — back to learners</button></div>';
-  say("All set! Hand the device to "+P.name+" for the Explorer's Trail.");
+   +'<button class="btn big" onclick="goHome()">Go to '+esc(P.name)+'\'s home ▶</button>'
+   +'<div class="spacer"></div><button class="btn secondary" onclick="startDiagnostic()">🗺️ Run the Explorer\'s Trail now (optional)</button>'
+   +'<div class="spacer"></div><button class="btn secondary" style="font-size:15px" onclick="P=null;renderProfiles()">⟵ Back to learners</button></div>';
+  say(P.name+" is ready! Tap go to home to start, or run the Explorer's Trail to check placement.");
 }
 function selectProfile(id){
   const p=DB.profiles.find(x=>x.id===id);
@@ -2795,7 +2797,7 @@ function selectProfile(id){
 function kidEnter(p){
   P=p;
   DB.lastProfile=p.id;save();   // remember this learner for next launch
-  if(!P.diagDone||P.retest){startDiagnostic({retest:P.diagDone});return;}
+  if(P.retest){startDiagnostic({retest:P.diagDone});return;} // only when a parent queued a placement check
   if(sessTryResume())return;   // reopen mid-lesson → land on the exact same question
   say("Akwaaba, "+P.name+"!");renderHome();
 }
@@ -2881,6 +2883,7 @@ function renderHome(){
    +tile("🗺️","My Journey","Levels conquered","renderJourney()","#4aa3e0")
    +tile("🏆","Trophy Room",P.trophies.length+" earned","renderTrophyRoom()","#ffd166")
    +tile("🃏","Player Card","Stats and skills","renderStats()","#7c5cf0")
+   +tile("🗺️","Explorer\'s Trail",P.diagDone?"Placement check · last "+esc((P.diag&&P.diag.date)||""):"Optional 10-min placement check","startDiagnostic({retest:P.diagDone})","#3bb273")
    +'</div></section>'
    +'<div class="kh-foot"><button class="btn secondary" onclick="DB.lastProfile=null;save();P=null;renderProfiles()">👥 Switch learner</button><button class="btn" onclick="parentGate()">🔒 Parent Portal</button></div>'
    +'</div>';
@@ -3728,14 +3731,14 @@ function setGrade(g){P.grade=g;save();const fn=_gradeAfter;_gradeAfter=null;if(f
 function diagIntro(){
   D.plan=DIAG_ORDER.map(s=>({s,lvl:2,asked:0,correct:0,hist:[],story:null,qs:null,used:[]}));
   D.si=0;D.i=0;D.total=DIAG_ORDER.length*DIAG_PER_SUBJECT;
-  const t=D.retest?"Time for a quick re-check, "+esc(P.name)+"! Walk the Explorer's Trail again so I can see how much you have grown. Your trophies and streak stay safe.":"Before our adventures begin, "+esc(P.name)+", walk the Explorer's Trail with me! "+D.total+" fun challenges across every subject — no scores, no pressure. Each answer helps me choose where to start you. Some will be easy, some tricky. Just try your best!";
+  const t=D.retest?"Time for a quick re-check, "+esc(P.name)+"! Walk the Explorer's Trail again so I can see how much you have grown. Your trophies and streak stay safe.":"Walk the Explorer's Trail with me, "+esc(P.name)+"! "+D.total+" fun challenges across every subject — no scores, no pressure. Each answer helps me set the right level for you. Some will be easy, some tricky. Just try your best!";
   app.innerHTML='<div class="fadein center" style="max-width:560px;margin:0 auto">'
    +'<div class="ananse-wrap">'+ananseSVG(170,"idle")+'</div>'
    +'<h1>The Explorer\'s Trail 🗺️</h1>'
    +'<div class="speech">'+t+'</div>'
    +'<div class="spacer"></div>'
    +'<button class="btn big" onclick="diagNextQ()">Start the Trail! 🥾</button></div>';
-  say(D.retest?"Time for a quick re-check! Walk the Explorer's Trail again so I can see how much you have grown.":"Before our adventures begin, "+P.name+", walk the Explorer's Trail with me! "+D.total+" fun challenges. No pressure — just try your best!");
+  say(D.retest?"Time for a quick re-check! Walk the Explorer's Trail again so I can see how much you have grown.":"Walk the Explorer's Trail with me, "+P.name+"! "+D.total+" fun challenges. No pressure — just try your best!");
 }
 /* question pool at a level: base bank + the learner's grade lessons at that level */
 function diagPick(st){
@@ -4339,7 +4342,7 @@ function renderParent(){
    +'<div class="spacer" style="height:10px"></div>'+interventionTrackerHTML()
    +'<div class="adinkra-divider">✦</div>'
    +'<h3>🗺️ Explorer\'s Trail — placement check</h3>'
-   +'<p class="muted">'+esc(P.name)+' walked the trail once at the first login; it never repeats on its own. Run it again whenever you want a fresh read on where '+esc(P.name)+' is. Progress, trophies and streaks are kept — only the starting levels update.</p>'
+   +'<p class="muted">The Explorer\'s Trail is an optional 10-minute placement check (20 questions, 4 per subject). '+(P.diagDone?esc(P.name)+' last walked it on '+esc((P.diag&&P.diag.date)||"")+'.':esc(P.name)+' has not walked it yet — levels are set from the grade until you do.')+' Run it whenever you want a fresh read. Progress, trophies and streaks are kept — only the starting levels update.</p>'
    +'<label>Grade</label><select id="gradeSel"><option value="">— not set —</option>'+[3,4,5].map(g=>'<option value="'+g+'" '+(P.grade===g?"selected":"")+'>'+GRADE_NAMES[g]+'</option>').join("")+'</select>'
    +'<div class="spacer" style="height:10px"></div><div class="btn-row" style="justify-content:flex-start"><button class="btn secondary" onclick="parentSetGrade()">Save grade</button><button class="btn secondary" onclick="parentRetestNow()">🥾 Re-check now</button><button class="btn secondary" onclick="parentRetestNext()">'+(P.retest?'✓ Re-check queued for next login (tap to cancel)':'Re-check at next login')+'</button></div>'
    +'<div class="card" style="margin-top:12px">'+trailHistoryHTML()+'</div>'
@@ -4408,11 +4411,13 @@ function renderParent(){
    +'<div class="adinkra-divider">✦</div>'
    +'<h3>♻️ Reset</h3>'
    +'<p class="muted">Reset Progress wipes '+esc(P.name)+'\'s levels, trophies and history, then re-runs the starting assessment. Reset Everything deletes ALL profiles and settings.</p>'
-   +'<div class="btn-row" style="justify-content:flex-start;margin-top:10px"><button class="btn secondary" onclick="resetKidPin()">🔑 Reset '+esc(P.name)+'\'s Login Code</button><button class="btn secondary" onclick="resetProgress()">Reset '+esc(P.name)+'\'s Progress</button><button class="btn secondary" style="color:#e0512f" onclick="resetApp()">Reset Everything</button></div>'
+   +'<label>'+esc(P.name)+'\'s login code (current: <b style="letter-spacing:4px">'+esc(P.pin||"not set")+'</b>)</label><div class="btn-row" style="justify-content:flex-start"><input id="kidCodeNew" placeholder="new 4-digit code" maxlength="4" inputmode="numeric" style="max-width:200px;text-align:center;letter-spacing:6px"><button class="btn secondary" onclick="setKidCode()">Save code</button></div>'
+   +'<div class="btn-row" style="justify-content:flex-start;margin-top:10px"><button class="btn secondary" onclick="resetKidPin()">🔑 Let '+esc(P.name)+' pick a new code at next login</button><button class="btn secondary" onclick="resetProgress()">Reset '+esc(P.name)+'\'s Progress</button><button class="btn secondary" style="color:#e0512f" onclick="resetApp()">Reset Everything</button></div>'
    +'<div class="adinkra-divider">✦</div>'
    +'<div class="btn-row" style="justify-content:flex-start"><button class="btn secondary" onclick="pinMode=\'set\';pinBuf=\'\';renderPinPad()">Change PIN</button><button class="btn" onclick="parentDone()">Done ⟵</button></div>'
    +'<div class="spacer"></div></div>';
 }
+function setKidCode(){const v=String(($("kidCodeNew")||{}).value||"").replace(/\D/g,"");if(v.length!==4){toast("Enter exactly 4 numbers");return}P.pin=v;save();toast(P.name+"'s login code is now "+v);renderParent();}
 function resetKidPin(){
   P.pin=null;save();
   toast(P.name+"'s login code cleared — they'll pick a new one next login");

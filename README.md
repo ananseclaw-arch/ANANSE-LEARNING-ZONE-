@@ -51,11 +51,11 @@ An offline-first Progressive Web App for children's adaptive learning, featuring
 
 ### 🧠 Onboarding: welcome → parent setup → hand-off → The Explorer's Trail
 - First run shows a welcome page explaining the app; a parent creates the parent PIN, adds the learner (name, grade 3–5, child's 4-digit login code), then hands the device over
-- The Explorer's Trail runs once: 20 adaptive questions — 4 per subject
+- The Explorer's Trail is optional: the learner can open any lesson right after login; a parent runs the trail (home tile or Parent Portal) whenever they want a placement read — 20 adaptive questions, 4 per subject
 - Staircase placement: each right answer steps up a level, each miss steps down, so the trail finds the true starting level (1–5) fast
 - Comprehension shows a grade-level story *before* its questions; a "Read the story again" button is always available
 - "Not sure yet — skip" is allowed; no scores, no pressure
-- Never repeats on its own. Parents can re-run it from the Parent Portal (now, or queued for the next login) — progress, trophies and streaks are kept, only the starting levels update
+- Starting levels come from the grade until a trail is run; re-runs keep progress, trophies and streaks and only update levels
 
 ### 📘 Reveal Math practice — matches the class practice book
 - `reveal.js` mirrors the unit and lesson order of the McGraw-Hill *Reveal Math* Grade 3 Student Practice Book (Units 2–13, 88 lessons) so home practice lines up with school
