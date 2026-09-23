@@ -541,7 +541,7 @@ body.learningworld #app{max-width:1180px}
   window.addEventListener("error",function(e){show((e.message||"error")+(e.lineno?" (line "+e.lineno+")":""));});
   window.addEventListener("unhandledrejection",function(e){var r=e.reason;show(r&&r.message?r.message:String(r));});
   if(/[?&]reset=1/.test(location.search)){
-    var done=function(){location.replace(location.pathname);};
+    var done=function(){fetch(location.pathname,{cache:"reload"}).then(function(){location.replace(location.pathname);},function(){location.replace(location.pathname);});}; // refresh the HTTP-cached page too
     var jobs=[];
     if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations)jobs.push(navigator.serviceWorker.getRegistrations().then(function(rs){return Promise.all(rs.map(function(r){return r.unregister();}));}));
     if(window.caches&&caches.keys)jobs.push(caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k);}));}));
