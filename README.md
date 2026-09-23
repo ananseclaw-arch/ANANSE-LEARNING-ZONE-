@@ -56,6 +56,13 @@ An offline-first Progressive Web App for children's adaptive learning, featuring
 - "Not sure yet — skip" is allowed; no scores, no pressure
 - Never repeats on its own. Parents can re-run it from the Parent Portal (now, or queued for the next login) — progress, trophies and streaks are kept, only the starting levels update
 
+### 📘 Reveal Math practice — matches the class practice book
+- `reveal.js` mirrors the unit and lesson order of the McGraw-Hill *Reveal Math* Grade 3 Student Practice Book (Units 2–13, 88 lessons) so home practice lines up with school
+- Every problem is original and generated fresh (unlimited practice); only the unit/lesson names follow the book
+- Each lesson opens with a Review card in the book's style, then 8 problems with Ananse's hints; 80%+ earns a ★
+- Book-style visuals: base-ten blocks, number lines, arrays, equal groups, fraction bars, area grids, clocks, rulers, picture and bar graphs, line plots, polygons
+- Parents set "where the class is" in the Parent Portal; that lesson is offered first and its portal glows on the home screen; each unit has a Math @ Home tip
+
 ### 🧪 Ananse's Science Lab — explore, don't just answer
 - 8 hands-on quests in `lab.js`, each a mystery Ananse needs help with; wrong turns are safe and show *why* (the bridge cracks where the span is too long, the pond turns green, the plant wilts)
 - Virtual labs: Gravity Drop (compare planets), Grow-a-Plant (sunlight × water over a week), Light the Lantern (complete the circuit), Rescue the Pond (runoff, trees, oxygen, fish), Bridge Builder (supports vs. span)
@@ -123,6 +130,7 @@ ANANSE-LEARNING-ZONE-/
 ├── index.html           # Entire app (HTML + CSS + JS)
 ├── lessons.js           # Grade 3–5 lessons (source; inlined into index.html by inline_lessons.py)
 ├── lab.js               # Science Lab quests (source; inlined the same way)
+├── reveal.js            # Reveal Math Grade 3 practice generators (source; inlined the same way)
 ├── ananse-lion.png      # Ananse the Wise Lion mascot
 ├── sw.js                # Service worker for offline support
 ├── manifest.webmanifest # PWA manifest (installable)
