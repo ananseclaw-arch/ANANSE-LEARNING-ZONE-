@@ -43,7 +43,7 @@ function renderRace(){
     +'<span class="gp-stat"><i>Speed</i><em style="width:'+(r.speed*20)+'%"></em></span><span class="gp-stat"><i>Turning</i><em style="width:'+(r.handle*20)+'%"></em></span><span class="gp-stat"><i>Start</i><em style="width:'+(r.accel*20)+'%"></em></span>'
     +'<small>'+esc(r.bio)+'</small></button>').join("");
   app.innerHTML='<div class="fadein gp-shell" style="max-width:820px;margin:0 auto">'
-   +'<div class="gp-banner"><div class="gp-title">GRAND FABLE GP</div><div class="gp-sub">Choose your racer</div></div>'
+   +'<div class="gp-banner"><div class="gp-title">GRAND FABLE GP</div><div class="gp-sub">Choose your driver · everyone races the Speed GT supercar</div></div>'
    +'<div class="gp-grid" id="gpRacers">'+cards+'</div>'
    +'<div class="center" style="margin-top:14px"><button class="btn big" onclick="renderCircuits()">Next: choose a circuit ▶</button></div>'
    +'<div class="btn-row" style="margin-top:12px"><button class="btn secondary" onclick="'+(P?'renderHome()':'renderProfiles()')+'">⟵ Back</button><button class="btn secondary" style="font-size:14px" onclick="renderRace2D()">Classic 2D racer</button></div><div class="spacer"></div></div>';
@@ -153,19 +153,31 @@ function gpBuild(C){
   const bananaTex=gpCanvasTex(64,64,(x,w,h)=>{x.font="52px system-ui";x.textAlign="center";x.textBaseline="middle";x.fillText("🍌",32,36);});
   const mkBanana=(t,x)=>{const sp=new T.Sprite(new T.SpriteMaterial({map:bananaTex,transparent:true}));sp.scale.set(2,2,1);scene.add(sp);return{t,x,kind:"banana",alive:true,mesh:sp};};
   for(let i=70;i<M;i+=120)items.push(mkBanana(i/M,(Math.floor(Math.random()*3)-1)*0.55));
-  // karts
-  const mkKart=r=>{const g=new T.Group();const body=new T.Mesh(new T.BoxGeometry(2.2,0.6,3.2),new T.MeshLambertMaterial({color:r.c}));body.position.y=0.75;g.add(body);
-    const nose=new T.Mesh(new T.BoxGeometry(1.4,0.4,1.2),new T.MeshLambertMaterial({color:r.c}));nose.position.set(0,0.65,2.1);g.add(nose);
-    const seat=new T.Mesh(new T.BoxGeometry(1.2,0.8,0.5),new T.MeshLambertMaterial({color:0x222}));seat.position.set(0,1.4,-0.9);g.add(seat);
-    const plate=new T.Mesh(new T.PlaneGeometry(0.9,0.6),new T.MeshBasicMaterial({map:gpTextTex(String(GP_RACERS.indexOf(r)+1),"#fff","#111",64,48,40)}));plate.position.set(0,0.9,2.72);g.add(plate);
-    const wheels=[];[[-1.15,0.5,1.1],[1.15,0.5,1.1],[-1.2,0.5,-1.1],[1.2,0.5,-1.1]].forEach(p=>{const w=new T.Mesh(new T.CylinderGeometry(0.5,0.5,0.45,12),new T.MeshLambertMaterial({color:0x151515}));w.rotation.z=Math.PI/2;w.position.set(p[0],p[1],p[2]);g.add(w);wheels.push(w);const hub=new T.Mesh(new T.CylinderGeometry(0.22,0.22,0.5,8),new T.MeshLambertMaterial({color:0xdddddd}));hub.rotation.z=Math.PI/2;hub.position.set(p[0],p[1],p[2]);g.add(hub);});
-    const head=new T.Mesh(new T.SphereGeometry(0.62,16,12),new T.MeshBasicMaterial({map:gpFaceTex(r.e)}));head.position.set(0,2.05,-0.5);head.rotation.y=Math.PI;g.add(head);
-    const helmet=new T.Mesh(new T.SphereGeometry(0.7,16,10,0,Math.PI*2,0,Math.PI/2),new T.MeshLambertMaterial({color:r.helmet}));helmet.position.set(0,2.15,-0.5);g.add(helmet);
-    const torso=new T.Mesh(new T.BoxGeometry(1,0.9,0.7),new T.MeshLambertMaterial({color:r.c}));torso.position.set(0,1.35,-0.5);g.add(torso);
-    const wheelSt=new T.Mesh(new T.TorusGeometry(0.35,0.06,6,16),new T.MeshLambertMaterial({color:0x333}));wheelSt.position.set(0,1.45,0.5);wheelSt.rotation.x=Math.PI/3;g.add(wheelSt);
-    const shield=new T.Mesh(new T.SphereGeometry(2.6,16,12),new T.MeshBasicMaterial({color:0x4dd2ff,transparent:true,opacity:0.25}));shield.position.y=1.2;shield.visible=false;g.add(shield);
-    const flame=new T.Sprite(new T.SpriteMaterial({map:gpCanvasTex(64,64,(x)=>{x.font="52px system-ui";x.textAlign="center";x.textBaseline="middle";x.fillText("🔥",32,36);}),transparent:true}));flame.scale.set(2,2,1);flame.position.set(0,0.8,-2.4);flame.visible=false;g.add(flame);
+  // cars — a low, wide supercar (the Speed GT): sloped glass cabin, side intakes, rear wing, tail-light bars
+  const mkCar=(r,paint)=>{const g=new T.Group();const body=new T.MeshPhongMaterial({color:paint,shininess:90,specular:0x777777});const dark=new T.MeshPhongMaterial({color:0x14161c,shininess:30});const glass=new T.MeshPhongMaterial({color:0x1c2a3d,shininess:120,specular:0xaaaaaa,transparent:true,opacity:0.7});
+    const add=(geo,mat,x,y,z,rx,ry,rz)=>{const m=new T.Mesh(geo,mat);m.position.set(x,y,z);if(rx)m.rotation.x=rx;if(ry)m.rotation.y=ry;if(rz)m.rotation.z=rz;g.add(m);return m;};
+    add(new T.BoxGeometry(2.2,0.32,4.5),dark,0,0.42,0);                       // chassis / splitter
+    add(new T.BoxGeometry(2.15,0.5,4.4),body,0,0.78,0);                       // lower body
+    add(new T.BoxGeometry(2.0,0.22,1.7),body,0,1.06,1.45,-0.1);               // hood sloping to the nose
+    add(new T.BoxGeometry(1.75,0.55,2.1),glass,0,1.32,-0.15);                 // cabin glass
+    add(new T.BoxGeometry(1.62,0.1,1.25),body,0,1.62,-0.3);                   // roof
+    add(new T.BoxGeometry(1.7,0.55,0.12),glass,0,1.3,0.98,-0.75);             // windshield
+    add(new T.BoxGeometry(1.6,0.5,0.12),glass,0,1.28,-1.28,0.7);              // rear glass
+    add(new T.BoxGeometry(2.15,0.38,1.5),body,0,1.0,-1.6);                    // rear deck
+    add(new T.BoxGeometry(0.18,0.34,1.1),dark,-1.1,0.9,-0.55);add(new T.BoxGeometry(0.18,0.34,1.1),dark,1.1,0.9,-0.55); // side intakes
+    add(new T.BoxGeometry(2.3,0.08,0.55),new T.MeshPhongMaterial({color:0x2a2d36,shininess:60}),0,1.5,-2.15);           // rear wing
+    add(new T.BoxGeometry(0.08,0.42,0.3),dark,-0.75,1.25,-2.1);add(new T.BoxGeometry(0.08,0.42,0.3),dark,0.75,1.25,-2.1); // wing struts
+    const tail=new T.MeshBasicMaterial({color:0xff2a2a});add(new T.BoxGeometry(0.75,0.12,0.06),tail,-0.62,1.02,-2.26);add(new T.BoxGeometry(0.75,0.12,0.06),tail,0.62,1.02,-2.26);
+    const lamp=new T.MeshBasicMaterial({color:0xfff6d5});add(new T.BoxGeometry(0.5,0.14,0.06),lamp,-0.72,0.98,2.27);add(new T.BoxGeometry(0.5,0.14,0.06),lamp,0.72,0.98,2.27);
+    add(new T.CylinderGeometry(0.1,0.1,0.3,8),new T.MeshPhongMaterial({color:0x999999}),-0.35,0.55,-2.3,Math.PI/2);add(new T.CylinderGeometry(0.1,0.1,0.3,8),new T.MeshPhongMaterial({color:0x999999}),0.35,0.55,-2.3,Math.PI/2);
+    const plate=add(new T.PlaneGeometry(0.8,0.24),new T.MeshBasicMaterial({map:gpTextTex("SPEED GT","#f4f4f4","#111",256,80,52)}),0,0.72,-2.27);plate.rotation.y=Math.PI;
+    const wheels=[];const tyre=new T.MeshPhongMaterial({color:0x111111,shininess:10}),rim=new T.MeshPhongMaterial({color:0xcfd4dc,shininess:120,specular:0xffffff});
+    [[-1.02,0.48,1.45],[1.02,0.48,1.45],[-1.05,0.5,-1.4],[1.05,0.5,-1.4]].forEach(p=>{const w=new T.Mesh(new T.CylinderGeometry(p[2]>0?0.46:0.5,p[2]>0?0.46:0.5,0.42,16),tyre);w.rotation.z=Math.PI/2;w.position.set(p[0],p[1],p[2]);g.add(w);wheels.push(w);const rm=new T.Mesh(new T.CylinderGeometry(0.3,0.3,0.44,10),rim);rm.rotation.z=Math.PI/2;rm.position.set(p[0],p[1],p[2]);g.add(rm);});
+    const head=new T.Mesh(new T.SphereGeometry(0.3,14,10),new T.MeshBasicMaterial({map:gpFaceTex(r.e)}));head.position.set(-0.35,1.32,-0.1);head.rotation.y=Math.PI;g.add(head);
+    const shield=new T.Mesh(new T.SphereGeometry(2.9,16,12),new T.MeshBasicMaterial({color:0x4dd2ff,transparent:true,opacity:0.25}));shield.position.y=1;shield.visible=false;g.add(shield);
+    const flame=new T.Sprite(new T.SpriteMaterial({map:gpCanvasTex(64,64,(x)=>{x.font="52px system-ui";x.textAlign="center";x.textBaseline="middle";x.fillText("🔥",32,36);}),transparent:true}));flame.scale.set(2,2,1);flame.position.set(0,0.7,-2.9);flame.visible=false;g.add(flame);
     scene.add(g);return{g,wheels,shieldMesh:shield,flameMesh:flame};};
+  const mkKart=r=>mkCar(r,r.id===me.id?0xff5a1f:r.c);
   const karts=[];GP_RACERS.forEach((r,i)=>{const isMe=r.id===me.id;const m=mkKart(r);const order=isMe?0:(karts.length+1);
     karts.push({racer:r,player:isMe,...m,t:0,x:0,speed:0,max:36+r.speed*3,accel:9+r.accel*2.2,steer:1.4+r.handle*0.28,lap:0,spin:0,boost:0,shield:0,item:null,fireIn:8+Math.random()*8,wobble:Math.random()*7,boxes:0,pos:new T.Vector3()});});
   // starting grid: player at back row centre, rivals ahead in two columns
@@ -231,7 +243,7 @@ function gpUpdate(dt,waiting){
     pos.addScaledVector(nor,kt.x*(R3.W-1.2));kt.pos.copy(pos);
     kt.g.position.copy(pos);if(offroad)kt.g.position.y=Math.abs(Math.sin(kt.t*len*3))*0.12;
     kt.g.lookAt(pos.clone().add(tan));kt.g.rotation.y+=(kt.spin>0?Math.sin(kt.spin*15)*0.9:0)+(kt.player?((right?-1:0)+(left?1:0))*0.12:0);
-    kt.wheels.forEach(w=>w.rotation.x+=kt.speed*dt*1.8);
+    kt.wheels.forEach(w=>w.rotation.x+=kt.speed*dt*1.4);
     kt.shieldMesh.visible=kt.shield>0;kt.flameMesh.visible=kt.boost>0;
     // items
     items.forEach(it=>{if(!it.alive)return;const d=(it.t-kt.t+1)%1;if(d<0.004&&Math.abs(it.x-kt.x)<0.35){
@@ -260,7 +272,7 @@ function gpUpdate(dt,waiting){
 }
 function gpRender(dt){
   const me=R3.karts.find(k=>k.player);const tan=R3.curve.getTangentAt(me.t).normalize();
-  const target=me.pos.clone().addScaledVector(tan,-11).add(new R3.T.Vector3(0,5.2,0));
+  const target=me.pos.clone().addScaledVector(tan,-10.5).add(new R3.T.Vector3(0,4.6,0));
   if(R3.countdown>0&&R3.camPos.lengthSq()===0)R3.camPos.copy(target);
   R3.camPos.lerp(target,Math.min(1,dt*5));R3.camera.position.copy(R3.camPos);
   R3.camera.lookAt(me.pos.clone().addScaledVector(tan,8).add(new R3.T.Vector3(0,1.6,0)));
