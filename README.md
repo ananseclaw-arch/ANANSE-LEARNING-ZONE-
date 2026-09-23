@@ -87,6 +87,7 @@ An offline-first Progressive Web App for children's adaptive learning, featuring
 - **Story replay** — read-then-quiz comprehension mode
 - **Spot the Pattern** — visual/audio pattern recognition game
 - **Hoops!** — basketball reward mini-game
+- **Accra Speedway** — a pseudo-3D kart racing game (`race.js`) with three tracks, rival karts, coins, boosts and banana hazards; open any time from the home screen or the landing page, placement earns XP and a Speedway Champion trophy
 
 ### 🧘 ADHD-Friendly Design
 - Brain breaks between rounds (movement exercises)

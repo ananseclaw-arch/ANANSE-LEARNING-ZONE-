@@ -95,6 +95,12 @@ def extract_phrases(html):
         for m in re.finditer(r'"\d+-\d+":"((?:[^"\\]|\\.){3,600})"', rv):
             phrases.add(unescape_js(m.group(1)))
 
+    race_path = os.path.join(HERE, "race.js")
+    if os.path.exists(race_path):
+        rc = open(race_path, errors="ignore").read()
+        for m in re.finditer(r'say\(\s*"((?:[^"\\]|\\.){3,300})"\s*\)', rc):
+            phrases.add(unescape_js(m.group(1)))
+
     cleaned = set()
     for p in phrases:
         p = speakable(p)

@@ -11,11 +11,12 @@ Live site: https://ananseclaw-arch.github.io/ANANSE-LEARNING-ZONE-/ (GitHub Page
 | Grade 3–5 lessons (Maryland standards) | `lessons.js` | Source of truth. **Inlined** into `index.html` by `inline_lessons.py`. |
 | Science Lab quests | `lab.js` | Same: edit here, then inline. |
 | Reveal Math generators (Grade 3, units 2–13) | `reveal.js` | Same: edit here, then inline. |
+| Kart racing game (Accra Speedway) | `race.js` | Same: edit here, then inline. Pure play, no questions. |
 | Recorded voice | `voice/*.mp3`, `voice/manifest.json` | Built by `build_voice.py` (needs `pip install edge-tts`, network). |
 | Offline cache | `sw.js` | Bump `CACHE` version on every deploy. |
 | Icons / mascot | `icon-*.png`, `ananse-lion.png` | |
 
-`index.html` is what ships. `lessons.js`, `lab.js`, `reveal.js` exist so content is easy to edit; **never edit the inlined copies inside `index.html` directly** — edit the source file and run `python3 inline_lessons.py`.
+`index.html` is what ships. `lessons.js`, `lab.js`, `reveal.js`, `race.js` exist so content is easy to edit; **never edit the inlined copies inside `index.html` directly** — edit the source file and run `python3 inline_lessons.py`.
 
 ## The release checklist (do all of it, in order)
 
