@@ -201,6 +201,7 @@ body.focus #anansecorner{display:none}
 .pat-cell{width:74px;height:74px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;background:var(--panel2);border:3px solid #b9d4f3;color:var(--ink)}
 .pat-cell.q{background:#fff;border-style:dashed;border-color:var(--gold);color:var(--gold)}
 .swatch{width:74px;height:74px;border-radius:16px;border:3px solid rgba(0,0,0,.12)}
+.readbtn.helpbtn{background:linear-gradient(180deg,var(--gold-bright),var(--gold));border-color:#d98f0f;color:#14365f;font-size:18px;box-shadow:0 3px 0 #c07a06}
 .readbtn{background:var(--panel2);border:2px solid #b9d4f3;color:#2d6fc0;border-radius:12px;font-size:16px;font-weight:800;padding:8px 16px;cursor:pointer;font-family:inherit}
 
 /* ============================================================
@@ -3729,8 +3730,13 @@ function buildReview(subject){
     return (pa<0?9:pa)-(pb<0?9:pb)||Math.random()-0.5;
   });
   const out=[];let englishUsed=0;
+  /* Warm-up must match the subject he tapped (Eb, 2026-09-24: Prince opened
+     Math and got Science questions). Reading-family subjects share topics. */
+  const READING=["english","comprehension","reading"];
+  const sameSubj=t=>{const ts=topicSubject(t);return ts===subject||(READING.indexOf(ts)>=0&&READING.indexOf(subject)>=0);};
   for(const t of ordered){
     if(out.length>=3)break;
+    if(!sameSubj(t))continue;
     if(topicSubject(t)==="english"){if(englishUsed>=1)continue;englishUsed++;}
     const q=questionForTopic(t);
     if(q){q.review=true;out.push(q);}
@@ -4169,7 +4175,7 @@ function renderQuestion(){
    +'<div class="center" style="margin:-4px 0 10px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">'
    +((wp||S.subject==="comprehension")?'<button class="readbtn" onclick="say(S.cur.q)">🔊 Read it again</button>':'')
    +(S.story?'<button class="readbtn" onclick="showStoryAgain()">📖 Read the story again</button>':'')
-   +'<button class="readbtn" onclick="askHelp()">🦁 Ananse, help me</button>'
+   +'<button class="readbtn helpbtn" onclick="askHelp()">🦁 Ananse, help me</button>'
    +'</div>'
    +(q.manip?manipHTML(q):'')
    +(showScratch?scratchHTML():'')
@@ -4373,7 +4379,8 @@ function startTeaching(praise){
 }
 /* student-requested help: walk the hints, then return to the same question to answer */
 function askHelp(){
-  if(!S||!S.cur||!S.cur.teach)return;
+  if(!S||!S.cur)return;
+  if(!S.cur.teach||!S.cur.teach.length){if(typeof say==="function")say("Read it slowly one more time. Cross out answers that can't be right, then pick the best one.");if(typeof toast==="function")toast("🦁 Read it again slowly, and cross out the wrong answers");return;}
   if(typeof sfx==="function")sfx("tick");
   T={q:S.cur,step:0,from:"help",praise:"Sure! Let's work through it together."};
   renderTeachStep();
