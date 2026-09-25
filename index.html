@@ -529,6 +529,31 @@ body.learningworld #app{max-width:1180px}
 .learning-actions{margin:26px auto 0;padding:16px;border:1px solid rgba(163,218,255,.18);background:rgba(4,23,44,.58);backdrop-filter:blur(20px);border-radius:24px;max-width:1040px}
 .learning-actions .btn.secondary{background:rgba(255,255,255,.09);color:#dcefff;border-color:rgba(170,219,255,.22);box-shadow:0 4px 0 rgba(0,0,0,.24)}
 @media(max-width:760px){.learning-shell .hero-card{grid-template-columns:82px 1fr;padding:18px;gap:14px}.learning-shell .hero-card .ananse-render{width:78px!important;height:78px!important}.mission-panel{grid-column:1/-1;text-align:left}.subject-map{grid-template-columns:1fr 1fr;grid-auto-rows:180px}.subject-map .subj-tile.vivid,.subject-map .subj-tile.vivid:nth-child(1),.subject-map .subj-tile.vivid:nth-child(2){grid-column:span 1;grid-row:span 1}.subject-map .subj-tile.vivid:last-child{grid-column:1/-1}}
+
+/* Homework Help */
+.hw-shell{max-width:720px;margin:0 auto;padding:6px 4px 30px}
+.hw-big{font-size:24px;padding:18px 26px;min-height:64px}
+.hw-tips{margin-top:14px;font-size:18px}
+.hw-list{display:flex;flex-direction:column;gap:12px;margin-top:14px}
+.hw-prob{font-size:20px;line-height:1.3}
+.hw-problem{margin-bottom:10px}.hw-ptext{font-size:21px;font-weight:700;margin-top:4px;line-height:1.35}
+.hw-steps{display:flex;align-items:center;gap:6px;margin:6px 0 12px}
+.hw-dot{width:16px;height:16px;border-radius:50%;background:#dbe8f7;display:inline-block}
+.hw-dot.done{background:var(--green,#3bb273)}.hw-dot.now{background:var(--gold,#f5a623);transform:scale(1.2)}
+.hw-speech{font-size:23px;line-height:1.4;margin:10px 0 14px}
+.hw-row{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap}
+.hw-in{font-size:34px;font-weight:800;text-align:center;width:180px;padding:12px;border-radius:16px;border:3px solid #b9d4f3}
+.hw-opts{display:flex;flex-direction:column;gap:12px}
+.hw-fb{margin:14px 0 4px;min-height:10px}
+.hw-good{font-size:24px;font-weight:800;color:#23864f}
+.hw-try{font-size:21px;font-weight:700;color:#c0572f;margin-bottom:6px}
+.hw-hint{font-size:21px;background:#fff7e0;border:2px solid #f5d27a;border-radius:16px;padding:14px 16px;line-height:1.4}
+.hw-show{font-size:22px;background:#eef6ff;border:2px solid #b9d4f3;border-radius:16px;padding:14px 16px}
+.hw-final{border:3px solid var(--gold,#f5a623)}.hw-ftext{font-size:24px;font-weight:800;margin-top:6px;line-height:1.4}
+.hw-dots{display:flex;gap:10px;justify-content:center;margin-top:16px}
+.hw-dots span{width:16px;height:16px;border-radius:50%;background:var(--gold,#f5a623);animation:hwb 1s infinite ease-in-out}
+.hw-dots span:nth-child(2){animation-delay:.15s}.hw-dots span:nth-child(3){animation-delay:.3s}
+@keyframes hwb{0%,80%,100%{transform:scale(.5);opacity:.4}40%{transform:scale(1);opacity:1}}
 </style>
 </head>
 <body>
@@ -4029,6 +4054,7 @@ function renderHome(){
    +tile("🎬","Story Replay","Read, then put events in order","startStoryReplay()","#ff6b4a")
    +tile("🧩","Spot the Pattern","Kente pattern puzzles","startPatterns()","#e0569a")
    +(window.ANANSE_ONLINE?tile("🦁","Ask Ananse","Your AI tutor is online","openAskAnanse()","#f5a623"):"")
+   +(window.ANANSE_ONLINE?tile("📸","Homework Help","Snap your maths page · step by step","hwOpen()","#3bb273"):"")
    +'</div></section>'
    +'<section class="kh-sec"><h2>🏆 My progress</h2><div class="kh-tiles kh-small">'
    +tile("🗺️","My Journey","Levels conquered","renderJourney()","#4aa3e0")
@@ -6296,6 +6322,228 @@ function renderJourney(){
    +'<div class="spacer"></div></div>';
   say(done>0?"Look how far you have come, "+P.name+"! "+done+" level"+(done===1?"":"s")+" conquered already.":"This is your journey map, "+P.name+". Every level you beat turns into a gold star!");
 }
+
+/* ============================================================
+   HOMEWORK HELP — Prince snaps his worksheet, Ananse tutors step by step.
+   Hints first; the answer only after 2 hints. Then 2 practice problems.
+   Talks to the Ask Ananse tutor (/homework/read, /homework/plan, /homework/log).
+   Photos are shrunk on the device and never saved anywhere.
+   ============================================================ */
+var HW=null;
+function hwOpen(){
+  if(!window.ANANSE_ONLINE){toast("Ananse is napping right now — try again soon");return;}
+  HW={page:null,plan:null,si:0,hints:0,log:null};
+  app.innerHTML='<div class="fadein hw-shell">'
+   +'<div class="center"><div class="ananse-wrap">'+ananseSVG(110,"teach")+'</div>'
+   +'<h1>📸 Homework Help</h1><p class="muted" style="font-size:20px">Take a photo of your maths page. I will help you, one small step at a time!</p></div>'
+   +'<div class="card hw-tips"><b>For a good photo:</b> hold the book flat · good light · the whole page in the picture</div>'
+   +'<div class="btn-row" style="margin-top:18px;flex-direction:column;align-items:stretch;gap:14px">'
+   +'<button class="btn hw-big" onclick="hwPick(true)">📷 Take a photo</button>'
+   +'<button class="btn secondary hw-big" onclick="hwPick(false)">🖼️ Choose a photo</button>'
+   +'<button class="btn secondary" onclick="renderHome()">⟵ Back</button></div>'
+   +'<input type="file" id="hwFile" accept="image/*" style="display:none">'
+   +'</div>';
+  $("hwFile").addEventListener("change",hwGotFile);
+  say("Take a photo of your maths page, and I will help you one small step at a time.");
+}
+function hwPick(camera){const f=$("hwFile");if(!f)return;if(camera)f.setAttribute("capture","environment");else f.removeAttribute("capture");f.click();}
+function hwShrink(file){
+  return new Promise((ok,bad)=>{
+    const url=URL.createObjectURL(file),img=new Image();
+    img.onload=()=>{
+      const m=1600,s=Math.min(1,m/Math.max(img.naturalWidth,img.naturalHeight));
+      const c=document.createElement("canvas");c.width=Math.round(img.naturalWidth*s);c.height=Math.round(img.naturalHeight*s);
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
+      ok(c.toDataURL("image/jpeg",0.82));
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);bad(new Error("img"));};
+    img.src=url;
+  });
+}
+function hwCall(path,body,ms){
+  let ctrl=null,t=null;try{ctrl=new AbortController();t=setTimeout(()=>ctrl.abort(),ms||120000);}catch(e){}
+  const go=()=>fetch(ananseBase()+path,{method:"POST",headers:ananseHeaders(),body:JSON.stringify(body),signal:ctrl?ctrl.signal:undefined})
+    .then(r=>r.ok?r.json():Promise.reject(new Error("http "+r.status)));
+  // the free tunnel can blip for a second: one quiet retry
+  return go().catch(e=>(ctrl&&ctrl.signal.aborted)?Promise.reject(e):new Promise(r=>setTimeout(r,1500)).then(go)).finally(()=>{if(t)clearTimeout(t);});
+}
+function hwWait(msg){
+  app.innerHTML='<div class="fadein center hw-shell"><div class="ananse-wrap">'+ananseSVG(110,"teach")+'</div>'
+   +'<h2>'+esc(msg)+'</h2><div class="hw-dots"><span></span><span></span><span></span></div></div>';
+}
+function hwOops(msg){
+  app.innerHTML='<div class="fadein center hw-shell"><div class="ananse-wrap">'+ananseSVG(110,"idle")+'</div>'
+   +'<h2>'+esc(msg)+'</h2><div class="btn-row" style="margin-top:16px"><button class="btn" onclick="hwOpen()">📷 Try again</button><button class="btn secondary" onclick="renderHome()">⟵ Home</button></div></div>';
+  say(msg);
+}
+async function hwGotFile(e){
+  const f=e.target.files&&e.target.files[0];if(!f)return;
+  hwWait("Ananse is reading your page…");say("Let me read your page.");
+  let data;try{data=await hwShrink(f);}catch(x){hwOops("I couldn't open that photo. Let's try another one.");return;}
+  try{
+    const r=await hwCall("/homework/read",{image:data},120000);
+    if(!r.readable||!r.problems||!r.problems.length){hwOops(r.message||"I couldn't read that page. Try a closer photo with good light.");return;}
+    HW.page=r;hwChoose();
+  }catch(x){hwOops("My web got tangled. Let's try that photo again.");}
+}
+function hwChoose(){
+  const r=HW.page;
+  app.innerHTML='<div class="fadein hw-shell">'
+   +'<div class="center"><h1>Which one are you stuck on?</h1>'
+   +(r.lesson||r.topic?'<p class="muted" style="font-size:19px">'+esc([r.lesson,r.topic].filter(Boolean).join(" · "))+'</p>':'')+'</div>'
+   +'<div class="hw-list">'+r.problems.map((p,i)=>'<button class="opt hw-prob" onclick="hwStart('+i+')"><span class="letter">'+esc(p.n||String(i+1))+'</span><span>'+esc(p.short||p.text)+'</span></button>').join("")+'</div>'
+   +'<div class="btn-row" style="margin-top:16px"><button class="btn secondary" onclick="hwOpen()">📷 New photo</button><button class="btn secondary" onclick="renderHome()">⟵ Home</button></div>'
+   +'</div>';
+  say("I found "+r.problems.length+" problem"+(r.problems.length===1?"":"s")+". Tap the one you are stuck on.");
+}
+async function hwStart(i){
+  const p=HW.page.problems[i];
+  hwWait("Ananse is thinking about number "+(p.n||i+1)+"…");say("Good choice. Let me think about how to help.");
+  try{
+    const plan=await hwCall("/homework/plan",{problem:p.text,method:HW.page.method,topic:HW.page.topic},180000);
+    if(!plan||!plan.steps||!plan.steps.length)throw new Error("empty");
+    HW.plan=plan;HW.si=0;HW.hints=0;HW.pi=0;
+    HW.log={child:P?P.name:"",lesson:HW.page.lesson,topic:HW.page.topic,problem:plan.problem||p.text,steps:plan.steps.length,solo_steps:0,hints:0,answers_shown:0,practice_right:0,practice_total:0,finished:false,stuck_on:[]};
+    hwIntro();
+  }catch(x){hwOops("My web got tangled. Tap to try that problem again.");}
+}
+function hwCard(inner){
+  const pl=HW.plan,n=pl.steps.length;
+  const dots=pl.steps.map((s,j)=>'<span class="hw-dot'+(j<HW.si?' done':j===HW.si?' now':'')+'"></span>').join("");
+  app.innerHTML='<div class="fadein hw-shell">'
+   +'<div class="card hw-problem"><div class="muted" style="font-size:16px">Your problem</div><div class="hw-ptext">'+esc(pl.problem)+'</div></div>'
+   +'<div class="hw-steps">'+dots+'<span class="muted" style="margin-left:8px">Step '+Math.min(HW.si+1,n)+' of '+n+'</span></div>'
+   +inner
+   +'<div class="btn-row" style="margin-top:14px"><button class="btn secondary" onclick="hwQuit()">⟵ Stop</button></div>'
+   +'</div>';
+}
+function hwIntro(){
+  hwCard('<div class="speech hw-speech">'+esc(HW.plan.intro||"Let's solve this together!")+'</div>'
+   +'<div class="btn-row"><button class="btn hw-big" onclick="hwStep()">Let\'s start ➜</button></div>');
+  say((HW.plan.intro||"Let's solve this together!"));
+}
+function hwStep(){
+  const s=HW.plan.steps[HW.si];HW.hints=0;
+  let input;
+  if(s.type==="choice"){
+    const opts=(s.options||[]).slice().sort(()=>Math.random()-0.5);
+    input='<div class="hw-opts">'+opts.map(o=>'<button class="opt" onclick="hwCheck(this.dataset.v)" data-v="'+esc(o)+'">'+esc(o)+'</button>').join("")+'</div>';
+  }else{
+    input='<div class="hw-row"><input id="hwIn" class="hw-in" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="?">'
+      +'<button class="btn" onclick="hwCheck($(\'hwIn\').value)">Check ✓</button></div>';
+  }
+  hwCard('<div class="speech hw-speech">'+esc(s.ask)+'</div>'+input
+   +'<div id="hwFb" class="hw-fb"></div>'
+   +'<div class="btn-row"><button class="btn secondary helpbtn" id="hwHintBtn" onclick="hwHint()">🦁 Give me a hint</button></div>');
+  const inp=$("hwIn");if(inp){inp.focus();inp.addEventListener("keydown",e=>{if(e.key==="Enter")hwCheck(inp.value);});}
+  say(s.ask);
+}
+function hwNorm(v){return String(v||"").replace(/[$,\s]/g,"").toLowerCase();}
+function hwCheck(v){
+  const s=HW.plan.steps[HW.si];if(v==null||String(v).trim()==="")return;
+  const ok=s.type==="choice"?String(v).trim()===String(s.answer).trim():hwNorm(v)===hwNorm(s.answer);
+  const fb=$("hwFb");
+  if(ok){
+    sfx("correct");if(HW.hints===0)HW.log.solo_steps++;
+    const praise=["Yes! Well done!","Correct! You're so clever!","That's it! Great thinking!","Brilliant, "+(P?P.name:"")+"!"][Math.floor(Math.random()*4)];
+    if(fb)fb.innerHTML='<div class="hw-good">✅ '+esc(praise)+'</div><div class="muted" style="font-size:18px;margin-top:6px">'+esc(s.explain||"")+'</div>'
+      +'<div class="btn-row" style="margin-top:12px"><button class="btn hw-big" onclick="hwNext()">Next ➜</button></div>';
+    const hb=$("hwHintBtn");if(hb)hb.style.display="none";
+    document.querySelectorAll(".hw-opts .opt,#hwIn").forEach(b=>b.disabled=true);
+    say(praise+" "+(s.explain||""));
+  }else{
+    sfx("wrong");
+    if(HW.hints<2){
+      if(fb)fb.innerHTML='<div class="hw-try">Not quite — that\'s OK! Let\'s look again.</div>';
+      hwHint(true);
+    }else{hwShow();}
+  }
+}
+function hwHint(fromWrong){
+  const s=HW.plan.steps[HW.si],fb=$("hwFb");if(!fb)return;
+  if(HW.hints>=2){hwShow();return;}
+  HW.hints++;HW.log.hints++;
+  const h=HW.hints===1?s.hint1:s.hint2;
+  fb.innerHTML=(fromWrong?'<div class="hw-try">Not quite — that\'s OK!</div>':'')
+    +'<div class="hw-hint">💡 Hint '+HW.hints+': '+esc(h)+'</div>'
+    +(HW.hints>=2?'<div class="btn-row" style="margin-top:10px"><button class="btn secondary" onclick="hwShow()">🙈 Show me the answer</button></div>':'');
+  const hb=$("hwHintBtn");if(hb&&HW.hints>=2)hb.style.display="none";
+  const inp=$("hwIn");if(inp){inp.value="";inp.focus();}
+  say((fromWrong?"Not quite, that's OK. ":"")+"Here's a hint. "+h);
+}
+function hwShow(){
+  const s=HW.plan.steps[HW.si],fb=$("hwFb");
+  HW.log.answers_shown++;HW.log.stuck_on.push(s.ask);
+  if(fb)fb.innerHTML='<div class="hw-show">The answer is <b>'+esc(s.answer)+'</b>.</div><div class="muted" style="font-size:18px;margin-top:6px">'+esc(s.explain||"")+'</div>'
+    +'<div class="btn-row" style="margin-top:12px"><button class="btn hw-big" onclick="hwNext()">Got it ➜</button></div>';
+  const hb=$("hwHintBtn");if(hb)hb.style.display="none";
+  document.querySelectorAll(".hw-opts .opt,#hwIn").forEach(b=>b.disabled=true);
+  say("The answer is "+s.answer+". "+(s.explain||""));
+}
+function hwNext(){HW.si++;if(HW.si<HW.plan.steps.length)hwStep();else hwFinal();}
+function hwFinal(){
+  const f=HW.plan.final||{};confetti();sfx("correct");
+  hwCard('<div class="center"><h2>🎉 You solved it!</h2></div>'
+   +'<div class="card hw-final"><div class="muted" style="font-size:16px">Write this on your page:</div><div class="hw-ftext">'+esc(f.answer||"")+'</div>'
+   +(f.explain?'<div class="muted" style="font-size:18px;margin-top:8px">'+esc(f.explain)+'</div>':'')+'</div>'
+   +'<div class="speech hw-speech">Now let\'s make sure you really know it. Try 2 on your own!</div>'
+   +'<div class="btn-row"><button class="btn hw-big" onclick="hwPractice()">Practice ➜</button></div>');
+  say("You solved it! Write this on your page. "+(f.answer||"")+". Now try two on your own!");
+}
+function hwPractice(){
+  const q=(HW.plan.practice||[])[HW.pi];
+  if(!q){hwDone();return;}
+  HW.pTries=0;
+  let input;
+  if(q.type==="choice"){
+    input='<div class="hw-opts">'+(q.options||[]).slice().sort(()=>Math.random()-0.5).map(o=>'<button class="opt" onclick="hwPCheck(this.dataset.v)" data-v="'+esc(o)+'">'+esc(o)+'</button>').join("")+'</div>';
+  }else{
+    input='<div class="hw-row"><input id="hwIn" class="hw-in" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="?"><button class="btn" onclick="hwPCheck($(\'hwIn\').value)">Check ✓</button></div>';
+  }
+  app.innerHTML='<div class="fadein hw-shell"><div class="center"><h2>⭐ Practice '+(HW.pi+1)+' of '+HW.plan.practice.length+'</h2></div>'
+   +'<div class="speech hw-speech">'+esc(q.problem)+'</div>'+input+'<div id="hwFb" class="hw-fb"></div>'
+   +'<div class="btn-row" style="margin-top:14px"><button class="btn secondary" onclick="hwQuit()">⟵ Stop</button></div></div>';
+  const inp=$("hwIn");if(inp){inp.focus();inp.addEventListener("keydown",e=>{if(e.key==="Enter")hwPCheck(inp.value);});}
+  say(q.problem);
+}
+function hwPCheck(v){
+  const q=HW.plan.practice[HW.pi];if(v==null||String(v).trim()==="")return;
+  const ok=q.type==="choice"?String(v).trim()===String(q.answer).trim():hwNorm(v)===hwNorm(q.answer);
+  const fb=$("hwFb");
+  if(ok||HW.pTries>=1){
+    if(ok){sfx("correct");if(HW.pTries===0)HW.log.practice_right++;}else{sfx("wrong");HW.log.stuck_on.push("Practice: "+q.problem);}
+    HW.log.practice_total++;
+    if(fb)fb.innerHTML=(ok?'<div class="hw-good">✅ Yes! '+(HW.pTries===0?'All by yourself!':'You got it!')+'</div>':'<div class="hw-show">The answer is <b>'+esc(q.answer)+'</b>.</div>')
+      +'<div class="btn-row" style="margin-top:12px"><button class="btn hw-big" onclick="HW.pi++;hwPractice()">Next ➜</button></div>';
+    document.querySelectorAll(".hw-opts .opt,#hwIn").forEach(b=>b.disabled=true);
+    say(ok?"Yes! "+(HW.pTries===0?"All by yourself!":"You got it!"):"The answer is "+q.answer+".");
+  }else{
+    HW.pTries++;sfx("wrong");
+    if(fb)fb.innerHTML='<div class="hw-hint">💡 '+esc(q.hint||"Try it the same way we just did.")+'</div>';
+    const inp=$("hwIn");if(inp){inp.value="";inp.focus();}
+    say("Not quite. Here's a hint. "+(q.hint||"Try it the same way we just did."));
+  }
+}
+function hwSendLog(){
+  if(!HW||!HW.log||HW.log._sent)return;HW.log._sent=true;
+  try{hwCall("/homework/log",HW.log,20000).catch(()=>{});}catch(e){}
+}
+function hwDone(){
+  HW.log.finished=true;hwSendLog();
+  const earned=10+HW.log.practice_right*5;
+  if(P){P.xp=(P.xp||0)+earned;save();}
+  confetti();
+  app.innerHTML='<div class="fadein center hw-shell"><div class="ananse-wrap">'+ananseSVG(120,"party")+'</div>'
+   +'<h1>Amazing work, '+esc(P?P.name:"friend")+'!</h1>'
+   +'<p style="font-size:22px">You got <b>'+HW.log.practice_right+' of '+HW.log.practice_total+'</b> practice problems on your own. +'+earned+' ⭐</p>'
+   +'<div class="btn-row" style="flex-direction:column;align-items:stretch;gap:12px;margin-top:16px">'
+   +(HW.page&&HW.page.problems.length>1?'<button class="btn hw-big" onclick="hwChoose()">📝 Another problem from this page</button>':'')
+   +'<button class="btn secondary hw-big" onclick="hwOpen()">📷 New photo</button>'
+   +'<button class="btn secondary" onclick="renderHome()">⟵ Home</button></div></div>';
+  say("Amazing work! You got "+HW.log.practice_right+" of "+HW.log.practice_total+" on your own.");
+}
+function hwQuit(){if(HW&&HW.log&&(HW.si>0||HW.log.hints>0)){hwSendLog();}if(HW&&HW.page)hwChoose();else renderHome();}
+
 </script>
 </body>
 </html>
