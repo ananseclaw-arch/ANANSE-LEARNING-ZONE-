@@ -438,7 +438,7 @@ function natType(t){
   $("natStep").innerHTML='<p class="center" style="font-weight:800">Step 2 · Take a photo of it (get close, hold still)</p>'
    +'<div class="center"><label class="btn" style="display:inline-block;cursor:pointer">📷 Take or choose a photo<input type="file" accept="image/*" capture="environment" style="display:none" onchange="natPhoto(event)"></label></div>'
    +'<div id="natPreview" class="center" style="margin-top:10px"></div>'
-   +'<div class="center" style="margin-top:8px"><button class="readbtn" onclick="natObs()">No camera — skip the photo →</button></div>';
+   +'<div class="btn-row" style="margin-top:8px"><button class="btn secondary" onclick="natStep1()">← Back</button><button class="readbtn" onclick="natObs()">No camera — skip the photo →</button></div>';
 }
 function natPhoto(ev){
   const f=ev.target.files&&ev.target.files[0];if(!f)return;
@@ -458,12 +458,17 @@ function natObs(){
   const step=()=>{
     const o=T.obs[LAB.n.oi];
     if(!o)return natIdentify();
-    $("natStep").innerHTML='<p class="center" style="font-weight:800">Step 3 · Scientist\'s eyes ('+(LAB.n.oi+1)+' of '+T.obs.length+')</p><p class="qtext" style="font-size:22px">'+esc(o.q)+'</p><div class="opts">'+o.o.map(v=>'<button class="opt" onclick="natAns(\''+o.k+'\',\''+v.replace(/'/g,"\\'")+'\')"><span>'+esc(v)+'</span></button>').join("")+'</div>';
+    $("natStep").innerHTML='<p class="center" style="font-weight:800">Step 3 · Scientist\'s eyes ('+(LAB.n.oi+1)+' of '+T.obs.length+')</p><p class="qtext" style="font-size:22px">'+esc(o.q)+'</p><div class="opts">'+o.o.map(v=>'<button class="opt" onclick="natAns(\''+o.k+'\',\''+v.replace(/'/g,"\\'")+'\')"><span>'+esc(v)+'</span></button>').join("")+'</div><div class="btn-row" style="margin-top:12px"><button class="btn secondary" onclick="natObsBack()">← Back</button></div>';
     say(o.q);
   };
   LAB.n.next=step;step();
 }
 function natAns(k,v){LAB.n.obs[k]=v;LAB.n.oi++;sfx("tick");LAB.n.next();}
+function natObsBack(){
+  const T=NATURE_TYPES[LAB.n.type];
+  if(!T||LAB.n.oi<=0){natType(LAB.n.type);return;}
+  LAB.n.oi--;delete LAB.n.obs[T.obs[LAB.n.oi].k];LAB.n.next();
+}
 async function natIdentify(){
   const n=LAB.n,T=NATURE_TYPES[n.type];
   $("natStep").innerHTML='<p class="center" style="font-weight:800">Step 4 · Ananse looks it up…</p><div class="center"><div class="ananse-wrap">'+ananseSVG(80,"teach")+'</div><p class="muted" id="natStatus">Thinking…</p></div>';
@@ -487,7 +492,8 @@ async function natIdentify(){
   natGuess(T.e+" What do you think it is? Type a name (like 'robin' or 'grey squirrel') and I will look it up.");
 }
 function natGuess(msg){
-  $("natStep").innerHTML='<p class="center" style="font-weight:800">Step 4 · Your best guess</p><p class="muted center">'+esc(msg)+'</p><div class="center"><input id="natName" placeholder="What is it?" style="max-width:320px;text-align:center;font-size:20px"><div class="spacer" style="height:8px"></div><button class="btn" onclick="natLookup()">🔎 Look it up</button></div>';
+  $("natStep").innerHTML='<p class="center" style="font-weight:800">Step 4 · Your best guess</p><p class="muted center">'+esc(msg)+'</p><div class="center"><input id="natName" value="'+esc(LAB.n.guess||"")+'" placeholder="What is it?" style="max-width:320px;text-align:center;font-size:20px"><div class="spacer" style="height:8px"></div><div class="btn-row"><button class="btn secondary" onclick="natObsBack()">← Back</button><button class="btn" onclick="natLookup()">🔎 Look it up</button></div></div>';
+  const inp=$("natName");if(inp){inp.focus();inp.addEventListener("keydown",e=>{if(e.key==="Enter")natLookup();});}
 }
 const NAT_HINT={bird:{w:" bird North America",re:/bird|species/i},other:{w:" animal North America",re:/animal|mammal|reptile|amphibian|rodent|species|fish|crab/i},plant:{w:" plant",re:/plant|tree|flower|shrub|species|genus/i},bug:{w:" insect",re:/insect|arthropod|spider|arachnid|species|beetle|bug/i}};
 async function wikiSummary(title){
@@ -510,13 +516,14 @@ async function wikiBest(q,type){
 }
 async function natLookup(){
   const q=($("natName").value||"").trim();if(!q){toast("Type a name first");return;}
+  LAB.n.guess=q;
   natCard({name:q,wiki:q,search:true});
 }
 function natPick(i){const c=LAB.n.cands[i];natCard({name:c.name,wiki:c.wiki});}
 async function natCard(x){
   LAB.n.id=x;
   let card='<div class="card gold" style="margin-top:10px"><h2>'+esc(x.name)+'</h2>'+(x.why?'<p style="font-weight:700">'+esc(x.why)+'</p>':'')+'<p class="muted" id="natWiki">Fetching Ananse\'s field guide…</p></div>';
-  $("natStep").innerHTML='<p class="center" style="font-weight:800">Step 5 · Field guide</p>'+card+'<div class="center" style="margin-top:10px"><button class="btn big" onclick="natSave()">📓 Add to my Field Journal</button></div>';
+  $("natStep").innerHTML='<p class="center" style="font-weight:800">Step 5 · Field guide</p>'+card+'<div class="btn-row" style="margin-top:10px">'+(x.search?'<button class="btn secondary" onclick="natGuess(\'Edit your guess, then look it up again.\')">← Edit my guess</button>':'')+'<button class="btn big" onclick="natSave()">📓 Add to my Field Journal</button></div>';
   try{
     if(!navigator.onLine)throw new Error("offline");
     const r=await fetch("https://en.wikipedia.org/api/rest_v1/page/summary/"+encodeURIComponent(x.wiki.replace(/ /g,"_")));
@@ -525,9 +532,9 @@ async function natCard(x){
     if(j.type==="disambiguation")throw new Error("no clear page");
     if(x.search&&j.title){LAB.n.id.name=j.title.toLowerCase()===x.name.toLowerCase()?j.title:x.name+" ("+j.title+")";}
     LAB.n.summary=(j.extract||"").split(". ").slice(0,3).join(". ")+".";
-    $("natWiki").innerHTML=(j.thumbnail?'<img src="'+j.thumbnail.source+'" style="float:right;max-width:140px;border-radius:12px;margin:0 0 8px 12px">':'')+'<b>'+esc(j.title)+'</b><br>'+esc(LAB.n.summary)+'<br><small class="muted">from Wikipedia</small>';
+    const wiki=$("natWiki");if(wiki)wiki.innerHTML=(j.thumbnail?'<img src="'+j.thumbnail.source+'" style="float:right;max-width:140px;border-radius:12px;margin:0 0 8px 12px">':'')+'<b>'+esc(j.title)+'</b><br>'+esc(LAB.n.summary)+'<br><small class="muted">from Wikipedia</small>';
     say(x.name+". "+LAB.n.summary);
-  }catch(e){$("natWiki").textContent="The field guide needs internet — your observation is still saved. "+(x.why||"");}
+  }catch(e){const wiki=$("natWiki");if(wiki)wiki.textContent="The field guide needs internet — your observation is still saved. "+(x.why||"");}
 }
 function natSave(){
   const n=LAB.n;P.nature=P.nature||[];

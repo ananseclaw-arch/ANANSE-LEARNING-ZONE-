@@ -137,6 +137,7 @@ label{font-size:16px;font-weight:700;color:var(--ink-dim);display:block;margin:1
 .pin-digit{width:54px;height:64px;border:3px solid #b9d4f3;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:900;background:var(--bg2);color:var(--ink)}
 .pin-pad{display:grid;grid-template-columns:repeat(3,72px);gap:12px;justify-content:center}
 .pin-pad button{height:64px;border-radius:16px;font-size:26px;font-weight:800;background:var(--panel);color:var(--ink);border:2px solid #b9d4f3;cursor:pointer;font-family:inherit;box-shadow:var(--shadow)}
+.pin-pad button.pin-action{font-size:15px;line-height:1.1;padding:4px;min-height:64px}
 .pin-pad button:active{background:var(--blue);color:#fff}
 
 /* ---------- Misc ---------- */
@@ -1362,7 +1363,7 @@ function natType(t){
   $("natStep").innerHTML='<p class="center" style="font-weight:800">Step 2 · Take a photo of it (get close, hold still)</p>'
    +'<div class="center"><label class="btn" style="display:inline-block;cursor:pointer">📷 Take or choose a photo<input type="file" accept="image/*" capture="environment" style="display:none" onchange="natPhoto(event)"></label></div>'
    +'<div id="natPreview" class="center" style="margin-top:10px"></div>'
-   +'<div class="center" style="margin-top:8px"><button class="readbtn" onclick="natObs()">No camera — skip the photo →</button></div>';
+   +'<div class="btn-row" style="margin-top:8px"><button class="btn secondary" onclick="natStep1()">← Back</button><button class="readbtn" onclick="natObs()">No camera — skip the photo →</button></div>';
 }
 function natPhoto(ev){
   const f=ev.target.files&&ev.target.files[0];if(!f)return;
@@ -1382,12 +1383,17 @@ function natObs(){
   const step=()=>{
     const o=T.obs[LAB.n.oi];
     if(!o)return natIdentify();
-    $("natStep").innerHTML='<p class="center" style="font-weight:800">Step 3 · Scientist\'s eyes ('+(LAB.n.oi+1)+' of '+T.obs.length+')</p><p class="qtext" style="font-size:22px">'+esc(o.q)+'</p><div class="opts">'+o.o.map(v=>'<button class="opt" onclick="natAns(\''+o.k+'\',\''+v.replace(/'/g,"\\'")+'\')"><span>'+esc(v)+'</span></button>').join("")+'</div>';
+    $("natStep").innerHTML='<p class="center" style="font-weight:800">Step 3 · Scientist\'s eyes ('+(LAB.n.oi+1)+' of '+T.obs.length+')</p><p class="qtext" style="font-size:22px">'+esc(o.q)+'</p><div class="opts">'+o.o.map(v=>'<button class="opt" onclick="natAns(\''+o.k+'\',\''+v.replace(/'/g,"\\'")+'\')"><span>'+esc(v)+'</span></button>').join("")+'</div><div class="btn-row" style="margin-top:12px"><button class="btn secondary" onclick="natObsBack()">← Back</button></div>';
     say(o.q);
   };
   LAB.n.next=step;step();
 }
 function natAns(k,v){LAB.n.obs[k]=v;LAB.n.oi++;sfx("tick");LAB.n.next();}
+function natObsBack(){
+  const T=NATURE_TYPES[LAB.n.type];
+  if(!T||LAB.n.oi<=0){natType(LAB.n.type);return;}
+  LAB.n.oi--;delete LAB.n.obs[T.obs[LAB.n.oi].k];LAB.n.next();
+}
 async function natIdentify(){
   const n=LAB.n,T=NATURE_TYPES[n.type];
   $("natStep").innerHTML='<p class="center" style="font-weight:800">Step 4 · Ananse looks it up…</p><div class="center"><div class="ananse-wrap">'+ananseSVG(80,"teach")+'</div><p class="muted" id="natStatus">Thinking…</p></div>';
@@ -1411,7 +1417,8 @@ async function natIdentify(){
   natGuess(T.e+" What do you think it is? Type a name (like 'robin' or 'grey squirrel') and I will look it up.");
 }
 function natGuess(msg){
-  $("natStep").innerHTML='<p class="center" style="font-weight:800">Step 4 · Your best guess</p><p class="muted center">'+esc(msg)+'</p><div class="center"><input id="natName" placeholder="What is it?" style="max-width:320px;text-align:center;font-size:20px"><div class="spacer" style="height:8px"></div><button class="btn" onclick="natLookup()">🔎 Look it up</button></div>';
+  $("natStep").innerHTML='<p class="center" style="font-weight:800">Step 4 · Your best guess</p><p class="muted center">'+esc(msg)+'</p><div class="center"><input id="natName" value="'+esc(LAB.n.guess||"")+'" placeholder="What is it?" style="max-width:320px;text-align:center;font-size:20px"><div class="spacer" style="height:8px"></div><div class="btn-row"><button class="btn secondary" onclick="natObsBack()">← Back</button><button class="btn" onclick="natLookup()">🔎 Look it up</button></div></div>';
+  const inp=$("natName");if(inp){inp.focus();inp.addEventListener("keydown",e=>{if(e.key==="Enter")natLookup();});}
 }
 const NAT_HINT={bird:{w:" bird North America",re:/bird|species/i},other:{w:" animal North America",re:/animal|mammal|reptile|amphibian|rodent|species|fish|crab/i},plant:{w:" plant",re:/plant|tree|flower|shrub|species|genus/i},bug:{w:" insect",re:/insect|arthropod|spider|arachnid|species|beetle|bug/i}};
 async function wikiSummary(title){
@@ -1434,13 +1441,14 @@ async function wikiBest(q,type){
 }
 async function natLookup(){
   const q=($("natName").value||"").trim();if(!q){toast("Type a name first");return;}
+  LAB.n.guess=q;
   natCard({name:q,wiki:q,search:true});
 }
 function natPick(i){const c=LAB.n.cands[i];natCard({name:c.name,wiki:c.wiki});}
 async function natCard(x){
   LAB.n.id=x;
   let card='<div class="card gold" style="margin-top:10px"><h2>'+esc(x.name)+'</h2>'+(x.why?'<p style="font-weight:700">'+esc(x.why)+'</p>':'')+'<p class="muted" id="natWiki">Fetching Ananse\'s field guide…</p></div>';
-  $("natStep").innerHTML='<p class="center" style="font-weight:800">Step 5 · Field guide</p>'+card+'<div class="center" style="margin-top:10px"><button class="btn big" onclick="natSave()">📓 Add to my Field Journal</button></div>';
+  $("natStep").innerHTML='<p class="center" style="font-weight:800">Step 5 · Field guide</p>'+card+'<div class="btn-row" style="margin-top:10px">'+(x.search?'<button class="btn secondary" onclick="natGuess(\'Edit your guess, then look it up again.\')">← Edit my guess</button>':'')+'<button class="btn big" onclick="natSave()">📓 Add to my Field Journal</button></div>';
   try{
     if(!navigator.onLine)throw new Error("offline");
     const r=await fetch("https://en.wikipedia.org/api/rest_v1/page/summary/"+encodeURIComponent(x.wiki.replace(/ /g,"_")));
@@ -1449,9 +1457,9 @@ async function natCard(x){
     if(j.type==="disambiguation")throw new Error("no clear page");
     if(x.search&&j.title){LAB.n.id.name=j.title.toLowerCase()===x.name.toLowerCase()?j.title:x.name+" ("+j.title+")";}
     LAB.n.summary=(j.extract||"").split(". ").slice(0,3).join(". ")+".";
-    $("natWiki").innerHTML=(j.thumbnail?'<img src="'+j.thumbnail.source+'" style="float:right;max-width:140px;border-radius:12px;margin:0 0 8px 12px">':'')+'<b>'+esc(j.title)+'</b><br>'+esc(LAB.n.summary)+'<br><small class="muted">from Wikipedia</small>';
+    const wiki=$("natWiki");if(wiki)wiki.innerHTML=(j.thumbnail?'<img src="'+j.thumbnail.source+'" style="float:right;max-width:140px;border-radius:12px;margin:0 0 8px 12px">':'')+'<b>'+esc(j.title)+'</b><br>'+esc(LAB.n.summary)+'<br><small class="muted">from Wikipedia</small>';
     say(x.name+". "+LAB.n.summary);
-  }catch(e){$("natWiki").textContent="The field guide needs internet — your observation is still saved. "+(x.why||"");}
+  }catch(e){const wiki=$("natWiki");if(wiki)wiki.textContent="The field guide needs internet — your observation is still saved. "+(x.why||"");}
 }
 function natSave(){
   const n=LAB.n;P.nature=P.nature||[];
@@ -3912,6 +3920,7 @@ function setupStart(){
   renderNewProfile(true);
 }
 let _newGrade=null;
+let _newName="",_newKidPin="";
 function pickNewGrade(g){_newGrade=g;[3,4,5].forEach(x=>{const b=$("ng"+x);if(b)b.classList.toggle("on",x===g);});}
 function renderNewProfile(setup){
   showAnanseCorner(false);
@@ -3922,14 +3931,25 @@ function renderNewProfile(setup){
    +'<h2>'+(setup?'Step 2 of 3 · Add your learner':'Add a learner')+'</h2>'
    +'<p class="muted">Parents fill this in. Your child picks a secret code they can remember.</p>'
    +'<div class="spacer"></div>'
-   +'<label style="text-align:left;display:block">Child\'s first name</label><input id="pname" placeholder="First name" maxlength="20" style="text-align:center;font-size:24px">'
+   +'<label style="text-align:left;display:block">Child\'s first name</label><input id="pname" value="'+esc(_newName)+'" placeholder="First name" maxlength="20" style="text-align:center;font-size:24px">'
    +'<label style="text-align:left;display:block;margin-top:12px">Grade</label><div class="grade-chips">'+[3,4,5].map(g=>'<button type="button" class="grade-chip'+(_newGrade===g?" on":"")+'" id="ng'+g+'" onclick="pickNewGrade('+g+')">'+GRADE_NAMES[g]+'</button>').join("")+'</div>'
-   +'<label style="text-align:left;display:block;margin-top:12px">Child\'s secret login code (4 digits)</label><input id="ppin" placeholder="0000" maxlength="4" inputmode="numeric" pattern="[0-9]*" style="text-align:center;font-size:24px;letter-spacing:8px">'
+   +'<label style="text-align:left;display:block;margin-top:12px">Child\'s secret login code (4 digits)</label><input id="ppin" value="'+esc(_newKidPin)+'" placeholder="0000" maxlength="4" inputmode="numeric" pattern="[0-9]*" style="text-align:center;font-size:24px;letter-spacing:8px">'
    +'<p class="muted" style="font-size:14px;margin-top:6px">The child types this to open their profile. Parents can reset it any time.</p>'
    +'<div class="spacer"></div>'
    +'<button class="btn big" onclick="createProfile('+(setup?'true':'false')+')">Save learner ▶</button>'
-   +'<div class="spacer"></div><button class="btn secondary" onclick="'+(DB.profiles.length?'renderProfiles()':'renderWelcome()')+'">⟵ Back</button>'
+   +'<div class="spacer"></div><button class="btn secondary" onclick="newProfileBack('+(setup?'true':'false')+')">← Back</button>'
    +'</div>';
+}
+function newProfileBack(setup){
+  _newName=($('pname')&&$('pname').value||'').slice(0,20);
+  _newKidPin=String(($('ppin')&&$('ppin').value)||'').replace(/\D/g,'').slice(0,4);
+  if(setup){
+    _pinAfter=()=>renderNewProfile(true);pinMode="set";pinBuf="";
+    renderPinPad("Step 1 of 3 · Create your parent PIN","This 4-digit PIN protects the parent dashboard and settings. Your child will have a separate login code.");
+  }else{
+    _newName="";_newKidPin="";_newGrade=null;
+    if(DB.profiles.length)renderProfiles();else renderWelcome();
+  }
 }
 function createProfile(setup){
   const name=($("pname").value||"").trim().slice(0,20);
@@ -3939,7 +3959,7 @@ function createProfile(setup){
   const pin=String((pinEl&&pinEl.value)||"").replace(/\D/g,"");
   if(pin.length!==4){toast("The secret code needs exactly 4 numbers");return}
   const p=newProfile(name,"");
-  p.pin=pin;p.grade=_newGrade;_newGrade=null;
+  p.pin=pin;p.grade=_newGrade;_newGrade=null;_newName="";_newKidPin="";
   const start={3:2,4:3,5:3}[p.grade]||1; // grade-based starting level until a placement check says otherwise
   Object.keys(p.levels).forEach(k=>p.levels[k]=start);
   p.color=PCOLORS[DB.profiles.length%PCOLORS.length];
@@ -3992,18 +4012,23 @@ function renderKidPin(){
    +'<div style="margin:10px 0">'+avatarHTML(p,64)+'</div>'
    +'<h2>'+title+'</h2><p class="muted">'+sub+'</p>'
    +'<div class="pin-display">'+[0,1,2,3].map(i=>'<div class="pin-digit">'+(kidBuf.length>i?"●":"")+'</div>').join("")+'</div>'
-   +'<div class="pin-pad">'+[1,2,3,4,5,6,7,8,9].map(n=>'<button onclick="kidKey('+n+')">'+n+'</button>').join("")
-   +'<button onclick="kidClear()">✕</button><button onclick="kidKey(0)">0</button><button onclick="renderProfiles()">⟵</button>'
+   +'<div class="pin-pad" id="kidPinPad">'+[1,2,3,4,5,6,7,8,9].map(n=>'<button onclick="kidKey('+n+')">'+n+'</button>').join("")
+   +'<button class="pin-action" onclick="kidBackspace()" aria-label="Backspace">⌫<br>Backspace</button><button onclick="kidKey(0)">0</button><button class="pin-action" onclick="kidClear()">Clear</button>'
    +'</div>'
+   +'<div class="spacer"></div><div class="btn-row"><button class="btn secondary" onclick="renderProfiles()">← Back</button><button class="btn" onclick="kidSubmit()" '+(kidBuf.length===4?'':'disabled')+'>'+(kidMode==="set"?'Save code':'Unlock')+' ✓</button></div>'
    +'<div class="spacer"></div>'
    +'<button class="btn secondary" style="font-size:16px;padding:10px 18px" onclick="parentGate()">🔑 Forgot code? Parent reset</button>'
    +'<p class="muted" style="font-size:13px;margin-top:10px">A grown-up enters the parent PIN, then taps "Reset Login Code" in the portal.</p>'
    +'</div>';
 }
 function kidClear(){kidBuf="";renderKidPin()}
+function kidBackspace(){kidBuf=kidBuf.slice(0,-1);renderKidPin()}
 function kidKey(n){
-  kidBuf+=n;
-  if(kidBuf.length<4){renderKidPin();return}
+  if(kidBuf.length<4)kidBuf+=n;
+  renderKidPin();
+}
+function kidSubmit(){
+  if(kidBuf.length!==4)return;
   if(kidMode==="set"){kidTarget.pin=kidBuf;save();toast("Secret code saved!");kidEnter(kidTarget)}
   else if(kidBuf===kidTarget.pin)kidEnter(kidTarget);
   else{toast("Oops — that's not it. Try again!");kidBuf="";renderKidPin()}
@@ -5403,18 +5428,34 @@ function renderPinPad(t,sb){
   app.innerHTML='<div class="fadein center" style="max-width:420px;margin:0 auto">'
    +'<h2>🔒 '+title+'</h2><p class="muted">'+sub+'</p>'
    +'<div class="pin-display">'+[0,1,2,3].map(i=>'<div class="pin-digit">'+(pinBuf.length>i?"●":"")+'</div>').join("")+'</div>'
-   +'<div class="pin-pad">'+[1,2,3,4,5,6,7,8,9].map(n=>'<button onclick="pinKey('+n+')">'+n+'</button>').join("")
-   +'<button onclick="pinClear()">✕</button><button onclick="pinKey(0)">0</button><button onclick="_pinTitle=_pinSub=null;_pinAfter=null;goHome()">⟵</button>'
-   +'</div></div>';
+   +'<div class="pin-pad" id="parentPinPad">'+[1,2,3,4,5,6,7,8,9].map(n=>'<button onclick="pinKey('+n+')">'+n+'</button>').join("")
+   +'<button class="pin-action" onclick="pinBackspace()" aria-label="Backspace">⌫<br>Backspace</button><button onclick="pinKey(0)">0</button><button class="pin-action" onclick="pinClear()">Clear</button>'
+   +'</div><div class="spacer"></div><div class="btn-row"><button class="btn secondary" onclick="pinPadBack()">← Back</button><button class="btn" onclick="pinSubmit()" '+(pinBuf.length===4?'':'disabled')+'>'+(pinMode==="set"?'Save PIN':'Unlock')+' ✓</button></div></div>';
 }
 function pinClear(){pinBuf="";renderPinPad()}
+function pinBackspace(){pinBuf=pinBuf.slice(0,-1);renderPinPad()}
 function pinKey(n){
-  pinBuf+=n;
-  if(pinBuf.length<4){renderPinPad();return}
+  if(pinBuf.length<4)pinBuf+=n;
+  renderPinPad();
+}
+function pinSubmit(){
+  if(pinBuf.length!==4)return;
   if(pinMode==="set"){DB.pin=pinBuf;save();toast("Parent PIN saved");_pinTitle=_pinSub=null;const f=_pinAfter;_pinAfter=null;if(f)f();else renderParent();}
   else if(pinBuf===DB.pin){_pinTitle=_pinSub=null;renderParent();}
   else{toast("Wrong PIN");pinBuf="";renderPinPad()}
 }
+function pinPadBack(){
+  const setupBack=!!_pinAfter;_pinTitle=_pinSub=null;_pinAfter=null;
+  if(setupBack){_newName="";_newKidPin="";_newGrade=null;renderWelcome();}
+  else if(parentFromLogin){P=null;renderProfiles();}else goHome();
+}
+document.addEventListener("keydown",e=>{
+  const kid=$("kidPinPad"),parent=$("parentPinPad");if(!kid&&!parent)return;
+  if(/^\d$/.test(e.key)){e.preventDefault();if(kid)kidKey(+e.key);else pinKey(+e.key);}
+  else if(e.key==="Backspace"){e.preventDefault();if(kid)kidBackspace();else pinBackspace();}
+  else if(e.key==="Delete"){e.preventDefault();if(kid)kidClear();else pinClear();}
+  else if(e.key==="Enter"){e.preventDefault();if(kid)kidSubmit();else pinSubmit();}
+});
 
 /* ---------- insights ---------- */
 const TOPIC_ACTIVITIES={
@@ -6392,7 +6433,7 @@ function hwChoose(){
    +'<div class="center"><h1>Which one are you stuck on?</h1>'
    +(r.lesson||r.topic?'<p class="muted" style="font-size:19px">'+esc([r.lesson,r.topic].filter(Boolean).join(" · "))+'</p>':'')+'</div>'
    +'<div class="hw-list">'+r.problems.map((p,i)=>'<button class="opt hw-prob" onclick="hwStart('+i+')"><span class="letter">'+esc(p.n||String(i+1))+'</span><span>'+esc(p.short||p.text)+'</span></button>').join("")+'</div>'
-   +'<div class="btn-row" style="margin-top:16px"><button class="btn secondary" onclick="hwOpen()">📷 New photo</button><button class="btn secondary" onclick="renderHome()">⟵ Home</button></div>'
+   +'<div class="btn-row" style="margin-top:16px"><button class="btn secondary" onclick="hwOpen()">← Back</button><button class="btn secondary" onclick="renderHome()">⟵ Home</button></div>'
    +'</div>';
   say("I found "+r.problems.length+" problem"+(r.problems.length===1?"":"s")+". Tap the one you are stuck on.");
 }
@@ -6407,20 +6448,25 @@ async function hwStart(i){
     hwIntro();
   }catch(x){hwOops("My web got tangled. Tap to try that problem again.");}
 }
-function hwCard(inner){
+function hwCard(inner,backAction){
   const pl=HW.plan,n=pl.steps.length;
   const dots=pl.steps.map((s,j)=>'<span class="hw-dot'+(j<HW.si?' done':j===HW.si?' now':'')+'"></span>').join("");
   app.innerHTML='<div class="fadein hw-shell">'
    +'<div class="card hw-problem"><div class="muted" style="font-size:16px">Your problem</div><div class="hw-ptext">'+esc(pl.problem)+'</div></div>'
    +'<div class="hw-steps">'+dots+'<span class="muted" style="margin-left:8px">Step '+Math.min(HW.si+1,n)+' of '+n+'</span></div>'
    +inner
-   +'<div class="btn-row" style="margin-top:14px"><button class="btn secondary" onclick="hwQuit()">⟵ Stop</button></div>'
+   +'<div class="btn-row" style="margin-top:14px"><button class="btn secondary" onclick="'+(backAction||'hwBackStep()')+'">← Back</button><button class="btn secondary" onclick="hwQuit()">Stop</button></div>'
    +'</div>';
 }
 function hwIntro(){
   hwCard('<div class="speech hw-speech">'+esc(HW.plan.intro||"Let's solve this together!")+'</div>'
-   +'<div class="btn-row"><button class="btn hw-big" onclick="hwStep()">Let\'s start ➜</button></div>');
+   +'<div class="btn-row"><button class="btn hw-big" onclick="hwStep()">Let\'s start ➜</button></div>','hwChoose()');
   say((HW.plan.intro||"Let's solve this together!"));
+}
+function hwBackStep(){
+  if(!HW||!HW.plan)return hwQuit();
+  if(HW.si<=0){hwIntro();return;}
+  HW.si--;HW.hints=0;hwStep();
 }
 function hwStep(){
   const s=HW.plan.steps[HW.si];HW.hints=0;
@@ -6434,7 +6480,7 @@ function hwStep(){
   }
   hwCard('<div class="speech hw-speech">'+esc(s.ask)+'</div>'+input
    +'<div id="hwFb" class="hw-fb"></div>'
-   +'<div class="btn-row"><button class="btn secondary helpbtn" id="hwHintBtn" onclick="hwHint()">🦁 Give me a hint</button></div>');
+   +'<div class="btn-row"><button class="btn secondary helpbtn" id="hwHintBtn" onclick="hwHint()">🦁 Give me a hint</button></div>','hwBackStep()');
   const inp=$("hwIn");if(inp){inp.focus();inp.addEventListener("keydown",e=>{if(e.key==="Enter")hwCheck(inp.value);});}
   say(s.ask);
 }
@@ -6468,7 +6514,7 @@ function hwHint(fromWrong){
     +'<div class="hw-hint">💡 Hint '+HW.hints+': '+esc(h)+'</div>'
     +(HW.hints>=2?'<div class="btn-row" style="margin-top:10px"><button class="btn secondary" onclick="hwShow()">🙈 Show me the answer</button></div>':'');
   const hb=$("hwHintBtn");if(hb&&HW.hints>=2)hb.style.display="none";
-  const inp=$("hwIn");if(inp){inp.value="";inp.focus();}
+  const inp=$("hwIn");if(inp){inp.focus();inp.setSelectionRange(inp.value.length,inp.value.length);}
   say((fromWrong?"Not quite, that's OK. ":"")+"Here's a hint. "+h);
 }
 function hwShow(){
@@ -6487,7 +6533,7 @@ function hwFinal(){
    +'<div class="card hw-final"><div class="muted" style="font-size:16px">Write this on your page:</div><div class="hw-ftext">'+esc(f.answer||"")+'</div>'
    +(f.explain?'<div class="muted" style="font-size:18px;margin-top:8px">'+esc(f.explain)+'</div>':'')+'</div>'
    +'<div class="speech hw-speech">Now let\'s make sure you really know it. Try 2 on your own!</div>'
-   +'<div class="btn-row"><button class="btn hw-big" onclick="hwPractice()">Practice ➜</button></div>');
+   +'<div class="btn-row"><button class="btn hw-big" onclick="hwPractice()">Practice ➜</button></div>','hwBackStep()');
   say("You solved it! Write this on your page. "+(f.answer||"")+". Now try two on your own!");
 }
 function hwPractice(){
@@ -6502,7 +6548,7 @@ function hwPractice(){
   }
   app.innerHTML='<div class="fadein hw-shell"><div class="center"><h2>⭐ Practice '+(HW.pi+1)+' of '+HW.plan.practice.length+'</h2></div>'
    +'<div class="speech hw-speech">'+esc(q.problem)+'</div>'+input+'<div id="hwFb" class="hw-fb"></div>'
-   +'<div class="btn-row" style="margin-top:14px"><button class="btn secondary" onclick="hwQuit()">⟵ Stop</button></div></div>';
+   +'<div class="btn-row" style="margin-top:14px"><button class="btn secondary" onclick="hwPracticeBack()">← Back</button><button class="btn secondary" onclick="hwQuit()">Stop</button></div></div>';
   const inp=$("hwIn");if(inp){inp.focus();inp.addEventListener("keydown",e=>{if(e.key==="Enter")hwPCheck(inp.value);});}
   say(q.problem);
 }
@@ -6520,10 +6566,11 @@ function hwPCheck(v){
   }else{
     HW.pTries++;sfx("wrong");
     if(fb)fb.innerHTML='<div class="hw-hint">💡 '+esc(q.hint||"Try it the same way we just did.")+'</div>';
-    const inp=$("hwIn");if(inp){inp.value="";inp.focus();}
+    const inp=$("hwIn");if(inp){inp.focus();inp.setSelectionRange(inp.value.length,inp.value.length);}
     say("Not quite. Here's a hint. "+(q.hint||"Try it the same way we just did."));
   }
 }
+function hwPracticeBack(){if(HW.pi>0){HW.pi--;hwPractice();}else hwFinal();}
 function hwSendLog(){
   if(!HW||!HW.log||HW.log._sent)return;HW.log._sent=true;
   try{hwCall("/homework/log",HW.log,20000).catch(()=>{});}catch(e){}
