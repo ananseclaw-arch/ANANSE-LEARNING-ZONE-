@@ -5632,7 +5632,7 @@ function renderParent(){
    +'<div class="adinkra-divider">✦</div>'
    +'<h3>📲 Daily Telegram Report</h3>'
    +'<p class="muted">Sent once per day at your chosen time, whenever the app is open and online. Create a bot with @BotFather, then enter its token and your chat ID.</p>'
-   +'<label>Bot token</label><input id="tgToken" value="'+esc(DB.telegram.token)+'" placeholder="123456:ABC-DEF...">'
+   +'<label>Bot token</label><input id="tgToken" type="password" autocomplete="off" spellcheck="false" value="'+esc(DB.telegram.token)+'" placeholder="123456:ABC-DEF...">'
    +'<label>Chat ID</label><input id="tgChat" value="'+esc(DB.telegram.chat)+'" placeholder="123456789">'
    +'<label>Send time</label><input id="tgTime" type="time" value="'+esc(DB.telegram.time)+'">'
    +'<div class="spacer" style="height:12px"></div>'
@@ -5642,19 +5642,19 @@ function renderParent(){
    +'<h3>🦁 Ask Ananse — AI Tutor (optional)</h3>'
    +'<p class="muted">Runs free and private on your own Mac mini. Do the one-time setup on the mini, then paste the address and key it prints. The chat button appears on '+esc(P.name)+'\'s home screen only when the mini is reachable — without it the app works exactly as before.</p>'
    +'<label>Tutor address</label><input id="anUrl" value="'+esc(DB.ananse.url)+'" placeholder="https://your-tunnel.trycloudflare.com">'
-   +'<label>Secret key</label><input id="anKey" value="'+esc(DB.ananse.key)+'" placeholder="paste the key from the mini">'
+   +'<label>Secret key</label><input id="anKey" type="password" autocomplete="off" spellcheck="false" value="'+esc(DB.ananse.key)+'" placeholder="paste the key from the mini">'
    +'<div class="spacer" style="height:12px"></div>'
    +'<div class="btn-row" style="justify-content:flex-start"><button class="btn secondary" onclick="saveAnanse()">Save</button><button class="btn secondary" onclick="testAnanse()">Test connection</button></div>'
    +'<p class="muted" id="anStatus" style="margin-top:8px"></p>'
    +'<div class="adinkra-divider">✦</div>'
    +'<h3>🍃 Nature Walk — plant identification (optional)</h3>'
    +'<p class="muted">The Science Lab\'s Nature Walk can name plants from a photo using Pl@ntNet, a free service run by French research institutes. Create a free account at my.plantnet.org, copy your API key, and paste it here. Bugs, birds and the Wikipedia field guide work without it.</p>'
-   +'<label>Pl@ntNet API key</label><input id="pnKey" value="'+esc(DB.plantnet.key||"")+'" placeholder="2b10...">'
+   +'<label>Pl@ntNet API key</label><input id="pnKey" type="password" autocomplete="off" spellcheck="false" value="'+esc(DB.plantnet.key||"")+'" placeholder="2b10...">'
    +'<div class="spacer" style="height:12px"></div><div class="btn-row" style="justify-content:flex-start"><button class="btn secondary" onclick="DB.plantnet.key=($(\'pnKey\').value||\'\').trim();save();toast(\'Pl@ntNet key saved\')">Save key</button></div>'
    +(P.nature&&P.nature.length?'<p class="muted" style="margin-top:8px">'+esc(P.name)+'\'s field journal: '+P.nature.length+' observation'+(P.nature.length===1?'':'s')+', latest '+esc(P.nature[P.nature.length-1].name)+' on '+esc(P.nature[P.nature.length-1].date)+'.</p>':'')
    +'<div class="adinkra-divider">✦</div>'
    +'<h3>💾 Backup</h3>'
-   +'<p class="muted">Save all profiles, progress and settings to a file you can keep safe or move to another device. Restore brings everything back.</p>'
+   +'<p class="muted">Save profiles and progress to a file you can keep safe or move to another device. For safety, bot tokens and API keys are not included; enter them again after restoring.</p>'
    +'<div class="btn-row" style="justify-content:flex-start;margin-top:10px"><button class="btn secondary" onclick="exportBackup()">⬇️ Save backup file</button><button class="btn secondary" onclick="importBackup()">⬆️ Restore from file</button></div>'
    +'<input type="file" id="restoreFile" accept="application/json,.json,.plz" style="display:none" onchange="handleRestoreFile(event)">'
    +'<div class="adinkra-divider">✦</div>'
@@ -5696,7 +5696,11 @@ function doResetApp(){
 }
 function exportBackup(){
   try{
-    const payload={app:"learning-zone",ver:3,saved:new Date().toISOString(),data:DB};
+    const data=JSON.parse(JSON.stringify(DB));
+    if(data.telegram)data.telegram.token="";
+    if(data.ananse)data.ananse.key="";
+    if(data.plantnet)data.plantnet.key="";
+    const payload={app:"learning-zone",ver:4,saved:new Date().toISOString(),data:data};
     const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
     const url=URL.createObjectURL(blob);
     const a=document.createElement("a");
@@ -5711,15 +5715,25 @@ function importBackup(){
   const f=$("restoreFile");
   if(f){f.value="";f.click();}
 }
+function backupHasUnsafeMarkup(value,depth){
+  if((depth||0)>30)return true;
+  if(typeof value==="string")return /<\s*\/?\s*(?:script|img|svg|iframe|object|embed|link|style|meta)\b|on[a-z]{3,}\s*=|javascript\s*:/i.test(value);
+  if(Array.isArray(value))return value.some(v=>backupHasUnsafeMarkup(v,(depth||0)+1));
+  if(value&&typeof value==="object")return Object.keys(value).some(k=>
+    k==="__proto__"||k==="constructor"||k==="prototype"||backupHasUnsafeMarkup(value[k],(depth||0)+1));
+  return false;
+}
 function handleRestoreFile(ev){
   const file=ev.target.files&&ev.target.files[0];
   if(!file)return;
+  if(file.size>5_000_000){toast("That backup file is too large");return;}
   const reader=new FileReader();
   reader.onload=function(){
     let parsed;
     try{parsed=JSON.parse(reader.result);}catch(e){toast("That file isn't a valid backup");return;}
     const incoming=parsed&&parsed.data?parsed.data:parsed;
     if(!incoming||!Array.isArray(incoming.profiles)){toast("That file isn't a Learning Zone backup");return;}
+    if(incoming.profiles.length>20||backupHasUnsafeMarkup(incoming,0)){toast("That backup contains unsafe data and was not restored");return;}
     const n=incoming.profiles.length;
     openOverlay('<div class="center"><h2>Restore this backup?</h2><p class="muted" style="margin-top:8px">It contains '+n+' profile'+(n===1?'':'s')+'. This will replace everything currently on this device. This cannot be undone.</p><div class="spacer"></div><div class="btn-row"><button class="btn secondary" onclick="closeOverlay()">Cancel</button><button class="btn" onclick="doRestore()">Yes, restore</button></div></div>');
     window._restorePending=incoming;
