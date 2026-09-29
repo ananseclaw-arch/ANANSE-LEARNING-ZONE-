@@ -162,7 +162,7 @@ body.focus #anansecorner{display:none}
 .focus-wrap{max-width:620px;margin:0 auto}
 
 /* ---------- Fable 5: scratchpad ---------- */
-.scratch{margin:18px 0 6px;border:3px dashed #c2b079;border-radius:18px;background:#fffdf4;padding:10px}
+.scratch{margin:18px 0 6px;border:3px dashed #c2b079;border-radius:18px;background:#fffdf4;padding:10px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .scratch .sc-top{display:flex;justify-content:space-between;align-items:center;font-size:15px;font-weight:800;color:#9a7d27;margin-bottom:6px}
 .scratch canvas{width:100%;height:150px;border-radius:12px;background:#fffef9;touch-action:none;display:block;border:1px solid #ece0bd}
 .sc-btn{background:#f3ead0;border:2px solid #d9c486;color:#7a611c;border-radius:10px;font-size:14px;font-weight:800;padding:6px 12px;cursor:pointer;font-family:inherit}
@@ -4314,25 +4314,310 @@ function manipCoin(v){_mtot+=v;_mcount++;const m=$("mmat");if(m)m.insertAdjacent
 function manipCounter(d){_mcount=Math.max(0,_mcount+d);const m=$("mmat");if(m){if(d>0)m.insertAdjacentHTML("beforeend",'<span class="token sm">🏀</span>');else if(m.lastChild)m.removeChild(m.lastChild);}const t=$("mtotal");if(t)t.textContent=_mcount;sfx("tick");}
 function manipClear(){_mtot=0;_mcount=0;const m=$("mmat");if(m)m.innerHTML="";const t=$("mtotal");if(t)t.textContent="0";}
 /* ---------- scratchpad (#4) ---------- */
-function scratchHTML(){
-  return '<div class="scratch"><div class="sc-top"><span>✏️ Scratchpad — work it out here</span>'
-    +'<button class="sc-btn" onclick="scratchClear()">↺ Clear</button></div>'
-    +'<canvas id="scpad" width="600" height="180"></canvas></div>';
+function scratchHTML() {
+  /*
+   * Do not specify fixed width/height attributes here. initScratch()
+   * creates a backing store matching the displayed size and DPR.
+   */
+  return '<div class="scratch">'
+    + '<div class="sc-top">'
+    + '<span>✏️ Scratchpad — work it out here</span>'
+    + '<button type="button" class="sc-btn" onclick="scratchClear()">↺ Clear</button>'
+    + '</div>'
+    + '<canvas id="scpad" aria-label="Scratchpad drawing area"></canvas>'
+    + '</div>';
 }
-let _scctx=null,_scdraw=false;
-function initScratch(){
-  const c=$("scpad");if(!c||!c.getContext)return;
-  _mtot=0;_mcount=0;
-  const ctx=c.getContext("2d");_scctx=ctx;
-  ctx.lineWidth=3;ctx.lineCap="round";ctx.strokeStyle="#1B4332";
-  const pos=e=>{const r=c.getBoundingClientRect();const t=e.touches?e.touches[0]:e;return{x:(t.clientX-r.left)*(c.width/r.width),y:(t.clientY-r.top)*(c.height/r.height)};};
-  const down=e=>{_scdraw=true;const p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);e.preventDefault();};
-  const move=e=>{if(!_scdraw)return;const p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke();e.preventDefault();};
-  const up=()=>{_scdraw=false;};
-  c.addEventListener("pointerdown",down);c.addEventListener("pointermove",move);
-  c.addEventListener("pointerup",up);c.addEventListener("pointerleave",up);
+
+let _scctx = null;
+let _scdraw = false;
+let _scCleanup = null;
+
+function initScratch() {
+  const c = $("scpad");
+  if (!c || !c.getContext) return;
+
+  /*
+   * Remove observers/listeners belonging to a previous canvas, or prevent
+   * duplicate listeners if initScratch() is called twice on the same one.
+   */
+  if (_scCleanup) {
+    _scCleanup();
+    _scCleanup = null;
+  }
+
+  _scdraw = false;
+
+  const state = {
+    pointerId: null,
+    pointerType: null,
+    lastX: 0,
+    lastY: 0
+  };
+
+  const aborter = typeof AbortController !== "undefined"
+    ? new AbortController()
+    : null;
+
+  let resizeObserver = null;
+
+  function setInkStyle(ctx) {
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "#1B4332";
+    ctx.fillStyle = "#1B4332";
+  }
+
+  /*
+   * Match the backing bitmap to the actual CSS dimensions and Retina DPR.
+   * Existing marks are retained if an orientation/layout change resizes it.
+   */
+  function resizeCanvas() {
+    const rect = c.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const newWidth = Math.max(1, Math.round(rect.width * dpr));
+    const newHeight = Math.max(1, Math.round(rect.height * dpr));
+
+    if (c.width === newWidth && c.height === newHeight) {
+      const current = c.getContext("2d");
+      current.setTransform(dpr, 0, 0, dpr, 0, 0);
+      setInkStyle(current);
+      _scctx = current;
+      return;
+    }
+
+    let old = null;
+    if (c.width && c.height) {
+      old = document.createElement("canvas");
+      old.width = c.width;
+      old.height = c.height;
+      old.getContext("2d").drawImage(c, 0, 0);
+    }
+
+    c.width = newWidth;
+    c.height = newHeight;
+
+    const ctx = c.getContext("2d");
+
+    if (old) {
+      /*
+       * Copy using device pixels before installing the CSS-pixel transform.
+       */
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.drawImage(
+        old,
+        0, 0, old.width, old.height,
+        0, 0, newWidth, newHeight
+      );
+    }
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    setInkStyle(ctx);
+    _scctx = ctx;
+  }
+
+  function position(e) {
+    const rect = c.getBoundingClientRect();
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    };
+  }
+
+  function releaseActivePointer() {
+    if (state.pointerId !== null) {
+      try {
+        if (c.hasPointerCapture(state.pointerId)) {
+          c.releasePointerCapture(state.pointerId);
+        }
+      } catch (_) {
+        /* The browser may already have released it. */
+      }
+    }
+
+    state.pointerId = null;
+    state.pointerType = null;
+    _scdraw = false;
+
+    if (_scctx) {
+      _scctx.closePath();
+    }
+  }
+
+  function down(e) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+
+    /*
+     * Let Pencil replace an active touch pointer, since the earlier touch
+     * is commonly a palm arriving just before the Pencil.
+     */
+    if (state.pointerId !== null) {
+      if (e.pointerType === "pen" && state.pointerType === "touch") {
+        releaseActivePointer();
+      } else {
+        return;
+      }
+    }
+
+    e.preventDefault();
+
+    resizeCanvas();
+
+    state.pointerId = e.pointerId;
+    state.pointerType = e.pointerType;
+    _scdraw = true;
+
+    try {
+      c.setPointerCapture(e.pointerId);
+    } catch (_) {
+      /* Continue drawing if capture is unavailable. */
+    }
+
+    const p = position(e);
+    state.lastX = p.x;
+    state.lastY = p.y;
+
+    /*
+     * Paint a real dot immediately so a tap produces a decimal point or
+     * other short mark.
+     */
+    _scctx.beginPath();
+    _scctx.arc(p.x, p.y, _scctx.lineWidth / 2, 0, Math.PI * 2);
+    _scctx.fill();
+
+    _scctx.beginPath();
+    _scctx.moveTo(p.x, p.y);
+  }
+
+  function move(e) {
+    if (!_scdraw || e.pointerId !== state.pointerId) return;
+
+    e.preventDefault();
+
+    const samples = typeof e.getCoalescedEvents === "function"
+      ? e.getCoalescedEvents()
+      : null;
+
+    const events = samples && samples.length ? samples : [e];
+
+    for (const sample of events) {
+      const p = position(sample);
+      _scctx.lineTo(p.x, p.y);
+      state.lastX = p.x;
+      state.lastY = p.y;
+    }
+
+    _scctx.stroke();
+
+    /*
+     * Start a new segment at the last point. This avoids repeatedly
+     * re-stroking the complete path and making early sections darker.
+     */
+    _scctx.beginPath();
+    _scctx.moveTo(state.lastX, state.lastY);
+  }
+
+  function finish(e) {
+    if (e.pointerId !== state.pointerId) return;
+    e.preventDefault();
+    releaseActivePointer();
+  }
+
+  function cancelled(e) {
+    if (e.pointerId !== state.pointerId) return;
+    releaseActivePointer();
+  }
+
+  function lostCapture(e) {
+    if (e.pointerId === state.pointerId) {
+      releaseActivePointer();
+    }
+  }
+
+  function preventContextMenu(e) {
+    e.preventDefault();
+  }
+
+  const listenerOptions = aborter
+    ? { passive: false, signal: aborter.signal }
+    : { passive: false };
+
+  c.addEventListener("pointerdown", down, listenerOptions);
+  c.addEventListener("pointermove", move, listenerOptions);
+  c.addEventListener("pointerup", finish, listenerOptions);
+  c.addEventListener("pointercancel", cancelled, listenerOptions);
+  c.addEventListener("lostpointercapture", lostCapture, listenerOptions);
+  c.addEventListener("contextmenu", preventContextMenu, listenerOptions);
+
+  resizeCanvas();
+
+  if (typeof ResizeObserver !== "undefined") {
+    resizeObserver = new ResizeObserver(function () {
+      /*
+       * Ending the stroke avoids joining two coordinate systems if a resize
+       * occurs halfway through a stroke.
+       */
+      releaseActivePointer();
+      resizeCanvas();
+    });
+    resizeObserver.observe(c);
+  } else {
+    window.addEventListener("resize", resizeCanvas, listenerOptions);
+  }
+
+  _scCleanup = function () {
+    releaseActivePointer();
+
+    if (resizeObserver) {
+      resizeObserver.disconnect();
+      resizeObserver = null;
+    }
+
+    if (aborter) {
+      aborter.abort();
+    } else {
+      c.removeEventListener("pointerdown", down);
+      c.removeEventListener("pointermove", move);
+      c.removeEventListener("pointerup", finish);
+      c.removeEventListener("pointercancel", cancelled);
+      c.removeEventListener("lostpointercapture", lostCapture);
+      c.removeEventListener("contextmenu", preventContextMenu);
+      window.removeEventListener("resize", resizeCanvas);
+    }
+
+    if (_scctx && _scctx.canvas === c) {
+      _scctx = null;
+    }
+  };
 }
-function scratchClear(){const c=$("scpad");if(c&&c.getContext)c.getContext("2d").clearRect(0,0,c.width,c.height);}
+
+function scratchClear() {
+  const c = $("scpad");
+  if (!c || !c.getContext) return;
+
+  const ctx = c.getContext("2d");
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+
+  /*
+   * Clear in backing-store coordinates, independent of the current
+   * CSS-pixel transform, then restore that transform and ink settings.
+   */
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, c.width, c.height);
+  ctx.restore();
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = "#1B4332";
+  ctx.fillStyle = "#1B4332";
+
+  _scctx = ctx;
+}
 function answer(pos){
   const q=S.cur;
   let leveledUp=false;
