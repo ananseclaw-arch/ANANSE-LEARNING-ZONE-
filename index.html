@@ -1853,6 +1853,28 @@ RV_WP.twoStepAdd=function(){const k=rnd(2);const nm=pick(RV_NAMES);const item=pi
   if(k===0)return RV_GEN.twoStepAdd();
   const a=150+rnd(300),b=100+rnd(250),c=50+rnd(150);const ans=a+b-c;
   return{q:nm+" has "+a+" "+item+". A friend gives "+nm+" "+b+" more, then "+nm+" donates "+c+". How many "+item+" does "+nm+" have now?",...rvOpts(ans,40),teach:[{i:"1️⃣",t:"First: "+a+" + "+b+" = "+(a+b)+"."},{i:"2️⃣",t:"Then: "+(a+b)+" − "+c+"."},{i:"🎯",t:ans+" "+item+"."}]};};
+/* ---------- Unit 3 word-problem versions (2026-10-02) ----------
+   Same skills as RV_GEN (equal groups, arrays, commutative, sharing, grouping,
+   relate, unknown), told as a short story. Original wording only. */
+const RV_PLACES=["bags","boxes","baskets","plates","jars","trays"];
+RV_WP.equalGroups=function(){const g=2+rnd(4),e=2+rnd(5);const ans=g*e;const nm=pick(RV_NAMES);const item=pick(RV_THINGS);const pl=pick(RV_PLACES);
+  const o=rvStrOpts(g+" × "+e+" = "+ans,[g+" + "+e+" = "+(g+e),e+" × "+e+" = "+(e*e),g+" × "+(e+1)+" = "+(g*(e+1))]);
+  return{q:nm+" puts "+e+" "+item+" in each of "+g+" "+pl+". Which multiplication equation shows how many "+item+" there are?",...o,teach:[{i:"👥",t:"There are "+g+" "+pl+" (groups) with "+e+" in each."},{i:"➕",t:Array(g).fill(e).join(" + ")+" = "+ans+"."},{i:"🎯",t:g+" × "+e+" = "+ans+" "+item+"."}]};};
+RV_WP.array=function(){const r=2+rnd(5),c=2+rnd(6);const ans=r*c;const nm=pick(RV_NAMES);const th=pick(["plants","chairs","tiles","desks","seeds","cups"]);
+  return{q:nm+" sets out "+th+" in "+r+" rows with "+c+" in every row. How many "+th+" are there in all?",...rvOpts(ans,5),teach:[{i:"↔️",t:"Rows go across: "+r+" rows."},{i:"↕️",t:"Each row has "+c+"."},{i:"🎯",t:r+" × "+c+" = "+ans+" "+th+"."}]};};
+RV_WP.commutative=function(){let a=2+rnd(8),b=2+rnd(8);while(a===b)b=2+rnd(8);const nm=pick(RV_NAMES);let f=pick(RV_NAMES);while(f===nm)f=pick(RV_NAMES);
+  const o=rvStrOpts(b+" × "+a+" = "+(a*b),[a+" + "+b+" = "+(a+b),b+" × "+b+" = "+(b*b),a+" × "+(b+1)+" = "+(a*(b+1))]);
+  return{q:nm+" lines up chairs in "+a+" rows of "+b+": "+a+" × "+b+" = "+(a*b)+". "+f+" turns the picture sideways. Which equation matches the turned picture?",...o,teach:[{i:"🔁",t:"Turning the array swaps rows and columns."},{i:"↩️",t:"Now it is "+b+" rows of "+a+"."},{i:"🎯",t:b+" × "+a+" = "+(a*b)+" too. Same total, factors switched."}]};};
+RV_WP.sharing=function(){const g=2+rnd(5),e=2+rnd(6);const total=g*e;const nm=pick(RV_NAMES);const item=pick(RV_THINGS);const pl=pick(RV_PLACES);
+  return{q:nm+" has "+total+" "+item+" and shares them equally into "+g+" "+pl+". How many "+item+" go in each?",...rvOpts(e,3),teach:[{i:"🤲",t:"Sharing equally is division: "+total+" ÷ "+g+"."},{i:"👥",t:"Deal them out one at a time into "+g+" "+pl+"."},{i:"🎯",t:e+" in each."}]};};
+RV_WP.grouping=function(){const g=2+rnd(6),e=2+rnd(5);const total=g*e;const nm=pick(RV_NAMES);const item=pick(RV_THINGS);const pl=pick(RV_PLACES);
+  return{q:nm+" has "+total+" "+item+" and puts "+e+" in each of the "+pl+". How many "+pl+" does "+nm+" fill?",...rvOpts(g,3),teach:[{i:"📦",t:"You know the size of each group ("+e+"). Find how many groups."},{i:"➗",t:total+" ÷ "+e+": count by "+e+"s up to "+total+"."},{i:"🎯",t:g+" "+pl+"."}]};};
+RV_WP.relate=function(){const r=2+rnd(6);let c=2+rnd(6);while(c===r)c=2+rnd(6);const p=r*c;const nm=pick(RV_NAMES);const th=pick(["seeds","stickers","stamps","shells"]);
+  const o=rvStrOpts(p+" ÷ "+r+" = "+c,[p+" ÷ "+c+" = "+(r*2),r+" ÷ "+c+" = "+p,p+" × "+r+" = "+c]);
+  return{q:nm+" plants "+r+" rows of "+c+" "+th+": "+r+" × "+c+" = "+p+". Which division equation tells how many "+th+" go in each row when "+p+" are split into "+r+" rows?",...o,teach:[{i:"🔗",t:"Multiplication and division are partners."},{i:"➗",t:p+" split into "+r+" rows gives "+c+" in each."},{i:"🎯",t:p+" ÷ "+r+" = "+c+"."}]};};
+RV_WP.unknown=function(){const a=2+rnd(8),b=2+rnd(8);const nm=pick(RV_NAMES);const item=pick(RV_THINGS);const pl=pick(RV_PLACES);
+  if(rnd(2)===0)return{q:nm+" has "+a+" "+pl+" with the same number of "+item+" in each. There are "+(a*b)+" "+item+" in all, so "+a+" × ? = "+(a*b)+". What is the unknown?",...rvOpts(b,3),teach:[{i:"❓",t:"Think: "+a+" times what makes "+(a*b)+"?"},{i:"➗",t:"Or divide: "+(a*b)+" ÷ "+a+"."},{i:"🎯",t:"? = "+b+" in each."}]};
+  return{q:nm+" shared some "+item+" equally among "+a+" friends and each friend got "+b+". The equation is ? ÷ "+a+" = "+b+". How many "+item+" did "+nm+" start with?",...rvOpts(a*b,6),teach:[{i:"❓",t:"Something split into "+a+" groups gives "+b+" each."},{i:"✖️",t:"Multiply back: "+a+" × "+b+"."},{i:"🎯",t:"? = "+(a*b)+"."}]};};
 function revealGen(L,wp){const g=(wp&&RV_WP[L.g])||RV_GEN[L.g];const q=g(L);q.topic=q.topic||"reveal "+L.id;q.subject="math";q.level=2;q.reveal=L.id;const pr=g(L);q.practice={q:pr.q,opts:pr.opts,a:pr.a};return q;}
 function revealLesson(id){return REVEAL_LESSONS.find(l=>l.id===id)}
 function revealRec(id){return P&&P.reveal&&P.reveal[id]}
@@ -1899,7 +1921,7 @@ function renderRevealLesson(id){
 function startReveal(id){
   const L=revealLesson(id);if(!L)return;
   const qs=[];const seen=new Set();
-  for(let i=0;i<40&&qs.length<8;i++){const q=revealGen(L,L.u===2&&qs.length%2===1);if(seen.has(q.q+(q.vis||"")))continue;seen.add(q.q+(q.vis||""));qs.push(q);}
+  for(let i=0;i<40&&qs.length<8;i++){const q=revealGen(L,(L.u===2||L.u===3)&&qs.length%2===1);if(seen.has(q.q+(q.vis||"")))continue;seen.add(q.q+(q.vis||""));qs.push(q);}
   S={subject:"math",total:qs.length,n:0,correct:0,results:[],consecR:0,consecW:0,
      sprintEnd:Date.now()+10*60*1000,qStart:0,cur:null,brokeAt:new Set(),xp:0,mode:"session",
      start:Date.now(),wpC:0,wpT:0,recallC:0,recallT:0,reviewC:0,reviewT:0,mfC:0,mfT:0,wpServed:true,phase:"main",seen:[],diff:0,tried:false,
