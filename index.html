@@ -1812,7 +1812,48 @@ const RV_GEN={
   if(draw||k2===1)return{q:"Which quadrilateral has "+Q.d+"?",...rvStrOpts(Q.n,keys.filter(x=>x!==k).map(x=>RV_QUADS[x].n)),teach:[{i:"🔍",t:"Check sides first, then angles."},{i:"📐",t:Q.n.charAt(0).toUpperCase()+Q.n.slice(1)+": "+Q.d+"."},{i:"🎯",t:"A "+Q.n+"."}]};
   return{q:"What is the best name for this quadrilateral?",vis:rvQuad(k),...rvStrOpts(Q.n,keys.filter(x=>x!==k).map(x=>RV_QUADS[x].n)),teach:[{i:"🔍",t:"Look at the sides: equal? parallel?"},{i:"📐",t:"Look at the angles: right angles?"},{i:"🎯",t:"It is a "+Q.n+" — "+Q.d+"."}]};}
 };
-function revealGen(L){const g=RV_GEN[L.g];const q=g(L);q.topic=q.topic||"reveal "+L.id;q.subject="math";q.level=2;q.reveal=L.id;const pr=g(L);q.practice={q:pr.q,opts:pr.opts,a:pr.a};return q;}
+/* ---------- word-problem versions (2026-10-01) ----------
+   Same skills as RV_GEN, told as a short story. Original wording only.
+   startReveal mixes these in so about half of each Unit 2 lesson is a story. */
+const RV_THINGS=["stickers","shells","stamps","beads","pencils","marbles","cards","buttons","coins","seeds"];
+const RV_WP={
+ blocks(){const n=1000+rnd(9000);const th=Math.floor(n/1000),h=Math.floor(n/100)%10,t=Math.floor(n/10)%10,o=n%10;const nm=pick(RV_NAMES);const item=pick(RV_THINGS);
+  const wrongs=[n+100,n-10,n+1000,n-100,n+10,n-1000,n+1].filter(x=>x>999&&x<10000&&x!==n);
+  return{q:nm+" packs "+item+" in boxes. "+nm+" fills "+th+" big crates of 1,000, "+h+" bags of 100, "+t+" bundles of 10, and has "+o+" left over. How many "+item+" is that in all?",...rvStrOpts(rvFmt(n),wrongs.slice(0,3).map(rvFmt)),teach:[{i:"1️⃣",t:"Each crate is 1,000, each bag is 100, each bundle is 10."},{i:"➕",t:th*1000+" + "+h*100+" + "+t*10+" + "+o+"."},{i:"🎯",t:rvFmt(n)+" "+item+"."}]};},
+ round(){const to=pick([10,100]);const n=to===10?(11+rnd(980)):(101+rnd(890));const ans=Math.round(n/to)*to;const nm=pick(RV_NAMES);
+  return{q:"A school sold "+n+" tickets. "+nm+" tells the class about how many, rounding to the nearest "+(to===10?"ten":"hundred")+". What number does "+nm+" say?",...rvOpts(ans,to),teach:[{i:"📏",t:"Find the two "+(to===10?"tens":"hundreds")+" that "+n+" sits between."},{i:"🔍",t:"Look at the "+(to===10?"ones":"tens")+" digit: 5 or more rounds up, less than 5 stays."},{i:"🎯",t:"About "+ans+"."}]};},
+ estimate(){const a=112+rnd(780),b=105+rnd(780),add=rnd(2)===0;const [x,y]=add?[a,b]:(a>b?[a,b]:[b,a]);const ra=Math.round(x/100)*100,rb=Math.round(y/100)*100;const ans=add?ra+rb:ra-rb;const nm=pick(RV_NAMES);const item=pick(RV_THINGS);
+  const q=add?nm+" has "+x+" "+item+" and gets "+y+" more. Round each number to the nearest hundred to estimate how many "+item+" "+nm+" has now.":nm+" had "+x+" "+item+" and gave away "+y+". Round each number to the nearest hundred to estimate how many are left.";
+  return{q:q,...rvOpts(ans,150),teach:[{i:"🔁",t:x+" rounds to "+ra+"; "+y+" rounds to "+rb+"."},{i:add?"➕":"➖",t:ra+(add?" + ":" − ")+rb+"."},{i:"🎯",t:"About "+ans+" "+item+"."}]};},
+ addProps(){const a=2+rnd(8),b=2+rnd(8),c=2+rnd(8);const nm=pick(RV_NAMES);const k=rnd(2);
+  if(k===0){return{q:nm+" counts "+a+" red kites and "+b+" blue kites. Her friend counts the blue kites first, then the red. Will the total be the same?",...rvStrOpts("Yes — "+a+" + "+b+" = "+b+" + "+a,["No — the order changes the total","Only if the numbers are even","No — blue kites count double"]),teach:[{i:"🔁",t:"You can add in any order. That is the commutative property."},{i:"✅",t:a+" + "+b+" = "+(a+b)+" and "+b+" + "+a+" = "+(a+b)+"."},{i:"🎯",t:"Same total."}]};}
+  const ans=a+b+c;return{q:nm+" has "+a+" apples, "+b+" pears and "+c+" plums. Group the numbers to add the easiest pair first. How many pieces of fruit in all?",...rvOpts(ans,6),teach:[{i:"🧩",t:"You can group numbers in any way. That is the associative property."},{i:"➕",t:"Try making a friendly pair first, like "+(a+b)+" + "+c+"."},{i:"🎯",t:"Total: "+ans+"."}]};},
+ addPatterns(){const n=123+rnd(760);const step=pick([10,100]);const nm=pick(RV_NAMES);const ans=n+3*step;
+  return{q:nm+" saves "+n+" points. Each week "+nm+" earns "+step+" more. How many points will "+nm+" have after 3 weeks?",...rvOpts(ans,step),teach:[{i:"1️⃣",t:"Week 1: "+n+" + "+step+" = "+(n+step)+"."},{i:"2️⃣",t:"Week 2: "+(n+step)+" + "+step+" = "+(n+2*step)+"."},{i:"🎯",t:"Week 3: "+ans+" points."}]};},
+ add3(){const a=134+rnd(500),b=112+rnd(380);const ans=a+b;const nm=pick(RV_NAMES);const item=pick(RV_THINGS);
+  return{q:"On Monday "+nm+" collects "+a+" "+item+". On Tuesday "+nm+" collects "+b+" more. How many "+item+" is that altogether?",...rvOpts(ans,40),teach:[{i:"💯",t:"Add the hundreds, then the tens, then the ones."},{i:"➕",t:a+" + "+b+": break each number into parts and add the parts."},{i:"🎯",t:ans+" "+item+"."}]};},
+ sub3(){const a=420+rnd(560),b=113+rnd(a-300);const ans=a-b;const nm=pick(RV_NAMES);const item=pick(RV_THINGS);
+  return{q:nm+" has "+a+" "+item+" and gives "+b+" to the class. How many "+item+" does "+nm+" have left?",...rvOpts(ans,40),teach:[{i:"✂️",t:"Break "+b+" into hundreds, tens and ones."},{i:"➖",t:"Take them away one part at a time from "+a+"."},{i:"🎯",t:ans+" left."}]};},
+ adjust(){const k=rnd(3);const A=pick(RV_NAMES);let B=pick(RV_NAMES);while(B===A)B=pick(RV_NAMES);
+  if(k===0){const a=100*(2+rnd(6))+pick([77,78,79,87,88,89]),b=100*(1+rnd(5))+pick([21,22,23,31,32,33]);const up=Math.ceil(a/10)*10-a;const t=a+b;
+   const valid=rnd(2)===0;            // is A's rewrite really the same sum?
+   const claimsRight=rnd(2)===0;      // does B say A is right?
+   const bCorrect=(claimsRight===valid);
+   const bad=valid?[a+up,b-up]:[a+up,b+up];
+   return{q:A+" and "+B+" are finding "+a+" + "+b+". "+A+" rewrites it as "+bad[0]+" + "+bad[1]+". "+B+" says "+A+" is "+(claimsRight?"right":"wrong")+". Is "+B+" correct?",opts:["Yes","No"],a:bCorrect?0:1,teach:[{i:"🔍",t:"To keep the same sum, if one number goes up, the other must go down by the same amount."},{i:"➕",t:a+" went to "+bad[0]+" and "+b+" went to "+bad[1]+"."},{i:"🎯",t:(valid?"Up "+up+" and down "+up+": the sum stays "+t+". "+A+" is right.":"Both numbers went up, so the sum changed. "+A+" is wrong.")+" So "+B+" is "+(bCorrect?"correct.":"not correct.")}]};}
+  if(k===1){const a=pick([198,298,398,497,299]),b=120+rnd(300);const ans=a+b;const r=Math.round(a/100)*100;const item=pick(RV_THINGS);
+   return{q:A+" has "+a+" "+item+" and finds "+b+" more. Make "+a+" a friendly number first. How many "+item+" now?",...rvOpts(ans,30),teach:[{i:"🎈",t:a+" is "+(r-a)+" less than "+r+"."},{i:"➕",t:r+" + "+b+" = "+(r+b)+", then take away "+(r-a)+"."},{i:"🎯",t:ans+"."}]};}
+  const b=pick([198,199,298,299,397]),a=b+120+rnd(300);const r=Math.round(b/100)*100;const ans=a-b;
+  return{q:A+" has "+a+" points and spends "+b+". Add "+(r-b)+" to BOTH numbers to make it easy. How many points are left?",...rvOpts(ans,30),teach:[{i:"⚖️",t:"Adding the same amount to both numbers keeps the difference the same."},{i:"➖",t:(a+r-b)+" − "+r+" = "+ans+"."},{i:"🎯",t:ans+" points left."}]};},
+ addToSub(){const a=pick([300,400,500,600,700,800]),b=a-100-rnd(200);const ans=a-b;const nm=pick(RV_NAMES);const up1=Math.ceil(b/100)*100-b;
+  return{q:nm+" is saving for a bike that costs $"+a+". "+nm+" has saved $"+b+". How much more does "+nm+" need? Count up from "+b+".",...rvOpts(ans,30),teach:[{i:"⬆️",t:"From "+b+" up to "+(b+up1)+" is "+up1+"."},{i:"⬆️",t:"From "+(b+up1)+" up to "+a+" is "+(a-b-up1)+"."},{i:"🎯",t:up1+" + "+(a-b-up1)+" = $"+ans+" more."}]};},
+ twoStepAdd(){return RV_GEN.twoStepAdd();}
+};
+RV_WP.twoStepAdd=function(){const k=rnd(2);const nm=pick(RV_NAMES);const item=pick(RV_THINGS);
+  if(k===0)return RV_GEN.twoStepAdd();
+  const a=150+rnd(300),b=100+rnd(250),c=50+rnd(150);const ans=a+b-c;
+  return{q:nm+" has "+a+" "+item+". A friend gives "+nm+" "+b+" more, then "+nm+" donates "+c+". How many "+item+" does "+nm+" have now?",...rvOpts(ans,40),teach:[{i:"1️⃣",t:"First: "+a+" + "+b+" = "+(a+b)+"."},{i:"2️⃣",t:"Then: "+(a+b)+" − "+c+"."},{i:"🎯",t:ans+" "+item+"."}]};};
+function revealGen(L,wp){const g=(wp&&RV_WP[L.g])||RV_GEN[L.g];const q=g(L);q.topic=q.topic||"reveal "+L.id;q.subject="math";q.level=2;q.reveal=L.id;const pr=g(L);q.practice={q:pr.q,opts:pr.opts,a:pr.a};return q;}
 function revealLesson(id){return REVEAL_LESSONS.find(l=>l.id===id)}
 function revealRec(id){return P&&P.reveal&&P.reveal[id]}
 /* ---------- screens ---------- */
@@ -1858,7 +1899,7 @@ function renderRevealLesson(id){
 function startReveal(id){
   const L=revealLesson(id);if(!L)return;
   const qs=[];const seen=new Set();
-  for(let i=0;i<40&&qs.length<8;i++){const q=revealGen(L);if(seen.has(q.q+(q.vis||"")))continue;seen.add(q.q+(q.vis||""));qs.push(q);}
+  for(let i=0;i<40&&qs.length<8;i++){const q=revealGen(L,L.u===2&&qs.length%2===1);if(seen.has(q.q+(q.vis||"")))continue;seen.add(q.q+(q.vis||""));qs.push(q);}
   S={subject:"math",total:qs.length,n:0,correct:0,results:[],consecR:0,consecW:0,
      sprintEnd:Date.now()+10*60*1000,qStart:0,cur:null,brokeAt:new Set(),xp:0,mode:"session",
      start:Date.now(),wpC:0,wpT:0,recallC:0,recallT:0,reviewC:0,reviewT:0,mfC:0,mfT:0,wpServed:true,phase:"main",seen:[],diff:0,tried:false,
