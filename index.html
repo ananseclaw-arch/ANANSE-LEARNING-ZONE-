@@ -3233,7 +3233,7 @@ function sayLive(text){
   };
   if(_spkCache[key]){play(_spkCache[key]);return;}
   const ctrl=(typeof AbortController!=="undefined")?new AbortController():null;
-  const t=ctrl?setTimeout(()=>ctrl.abort(),9000):null;
+  const t=ctrl?setTimeout(()=>ctrl.abort(),13000):null;   // long lesson lines take ~8 s to make the first time
   fetch(voiceBase()+"/speak",{method:"POST",headers:ananseHeaders(),body:JSON.stringify({text:key}),signal:ctrl?ctrl.signal:undefined})
     .then(r=>{if(t)clearTimeout(t);if(!r.ok)throw new Error("no voice");_voiceFails=0;return r.blob()})
     .then(b=>{const u=URL.createObjectURL(b);
