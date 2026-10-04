@@ -3213,18 +3213,23 @@ function sayLive(text){
   if(_spkCache[key]){play(_spkCache[key]);return;}
   const ctrl=(typeof AbortController!=="undefined")?new AbortController():null;
   const t=ctrl?setTimeout(()=>ctrl.abort(),9000):null;
-  fetch(ananseBase()+"/speak",{method:"POST",headers:ananseHeaders(),body:JSON.stringify({text:key}),signal:ctrl?ctrl.signal:undefined})
-    .then(r=>{if(t)clearTimeout(t);if(!r.ok)throw new Error("no voice");return r.blob()})
+  fetch(voiceBase()+"/speak",{method:"POST",headers:ananseHeaders(),body:JSON.stringify({text:key}),signal:ctrl?ctrl.signal:undefined})
+    .then(r=>{if(t)clearTimeout(t);if(!r.ok)throw new Error("no voice");_voiceFails=0;return r.blob()})
     .then(b=>{const u=URL.createObjectURL(b);
       const ks=Object.keys(_spkCache);if(ks.length>60){try{URL.revokeObjectURL(_spkCache[ks[0]])}catch(e){}delete _spkCache[ks[0]];}
       _spkCache[key]=u;play(u)})
-    .catch(()=>{if(t)clearTimeout(t);if(seq===_spkSeq)sayDevice(text)});
+    .catch(()=>{if(t)clearTimeout(t);if(++_voiceFails>=2)_voiceDownUntil=Date.now()+180000;if(seq===_spkSeq)sayDevice(text)});
 }
+/* The teacher voice works on EVERY device (Eb, 4 Oct 2026), not only ones with the tutor key: the voice
+   server address comes from tutor.json. After 2 failures in a row (offline / Mac asleep) go straight to the
+   device voice for 3 minutes so lines aren't delayed. */
+let _voiceFails=0,_voiceDownUntil=0;
+function voiceBase(){return ananseBase()||((DB.voiceUrl||"").trim().replace(/\/+$/,""))}
 function say(text){
   if(!DB.sound)return;
   if(sayRecorded(text))return;
   const k=voiceKey(text);
-  if(window.ANANSE_ONLINE&&DB.ananse&&DB.ananse.key&&ananseBase()&&k.length>1&&k.length<=320&&typeof fetch==="function"){sayLive(text);return;}
+  if(voiceBase()&&Date.now()>_voiceDownUntil&&k.length>1&&k.length<=320&&typeof fetch==="function"&&navigator.onLine!==false){sayLive(text);return;}
   sayDevice(text);
 }
 function sayDevice(text){
@@ -6361,12 +6366,14 @@ function testAnanse(){
    were already set up (have the key) — never auto-enable on a stranger's device. */
 function syncTutorUrl(done){
   try{
-    if(!(DB.ananse&&DB.ananse.key)||typeof fetch!=="function"){if(done)done();return;}
+    if(typeof fetch!=="function"){if(done)done();return;}
     fetch("tutor.json?t="+Date.now(),{cache:"no-store"})
       .then(r=>r.ok?r.json():null)
       .then(j=>{
         const u=j&&typeof j.url==="string"?j.url.trim().replace(/\/+$/,""):"";
-        if(/^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/.test(u)&&u!==ananseBase()){DB.ananse.url=u;save();}
+        if(!/^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/.test(u))return;
+        if(u!==DB.voiceUrl){DB.voiceUrl=u;_voiceDownUntil=0;_voiceFails=0;save();}   // voice for every device
+        if(DB.ananse&&DB.ananse.key&&u!==ananseBase()){DB.ananse.url=u;save();}       // tutor only with key
       })
       .catch(()=>{})
       .finally(()=>{if(done)done();});
