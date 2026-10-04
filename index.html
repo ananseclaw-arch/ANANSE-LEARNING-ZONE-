@@ -3172,6 +3172,27 @@ let _sayKeepAlive=null;
    Anything not in the manifest — generated maths, names — still falls back to
    the device voice. */
 let VOICE_MAP=null, _voiceAudio=null, _spkSeq=0;
+/* iPhone/iPad only let an <audio> play WITHOUT a fresh tap if that same element was started by a tap
+   before. Lines are spoken after a delay or a server fetch, so a brand-new Audio() each time was blocked
+   and fell back to the robot voice (Eb, 4 Oct 2026). Fix: ONE shared element, unlocked on the first tap. */
+const _VOICE_EL=(typeof Audio!=="undefined")?new Audio():null;
+let _voiceUnlocked=false;
+function unlockVoice(){
+  if(_voiceUnlocked||!_VOICE_EL)return;
+  try{
+    _VOICE_EL.src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYyLjEyLjEwMAAAAAAAAAAAAAAA//OEwAAAAAAAAAAAAEluZm8AAAAPAAAACQAABCAARUVFRUVFRUVFRUVdXV1dXV1dXV1dXXR0dHR0dHR0dHR0i4uLi4uLi4uLi4uioqKioqKioqKiorq6urq6urq6urq60dHR0dHR0dHR0dHo6Ojo6Ojo6Ojo6P//////////////AAAAAExhdmM2Mi4yOAAAAAAAAAAAAAAAACQD8AAAAAAAAAQgDeZekgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//NExAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExFMAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKYAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NExKwAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NExKwAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV";
+    const pr=_VOICE_EL.play();
+    if(pr&&pr.then)pr.then(()=>{_voiceUnlocked=true;try{_VOICE_EL.pause()}catch(e){}}).catch(()=>{});
+    else _voiceUnlocked=true;
+  }catch(e){}
+}
+["touchend","pointerup","click","keydown"].forEach(ev=>{try{document.addEventListener(ev,unlockVoice,{capture:true,passive:true})}catch(e){}});
+function voiceEl(url){
+  const a=_VOICE_EL||new Audio();
+  try{a.pause()}catch(e){}
+  a.src=url;a.playbackRate=(DB.voice&&DB.voice.rate)||1.0;
+  return a;
+}
 function voiceKey(t){
   return String(t).replace(/[*_#]/g,"").replace(/\s+/g," ").trim();
 }
@@ -3180,6 +3201,7 @@ fetch("voice/manifest.json").then(r=>r.ok?r.json():null)
 function stopRecorded(){
   _spkSeq++;
   if(_voiceAudio){try{_voiceAudio.pause()}catch(e){}_voiceAudio=null}
+  if(_VOICE_EL){try{_VOICE_EL.pause()}catch(e){}}
 }
 function sayRecorded(text){
   if(!VOICE_MAP)return false;
@@ -3188,8 +3210,7 @@ function sayRecorded(text){
   try{
     stopRecorded();
     try{speechSynthesis.cancel()}catch(e){}
-    const a=new Audio("voice/"+f);
-    a.playbackRate=(DB.voice&&DB.voice.rate)||1.0;
+    const a=voiceEl("voice/"+f);
     _voiceAudio=a;
     const pr=a.play();
     if(pr&&pr.catch)pr.catch(()=>{sayDevice(text)});  // autoplay blocked → fall back
@@ -3206,7 +3227,7 @@ function sayLive(text){
   const play=(url)=>{
     if(seq!==_spkSeq)return;                       // a newer line took over while we waited
     try{
-      const a=new Audio(url);a.playbackRate=(DB.voice&&DB.voice.rate)||1.0;_voiceAudio=a;
+      const a=voiceEl(url);_voiceAudio=a;
       const pr=a.play();if(pr&&pr.catch)pr.catch(()=>{if(seq===_spkSeq)sayDevice(text)});
     }catch(e){sayDevice(text)}
   };
