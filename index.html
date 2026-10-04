@@ -4378,7 +4378,21 @@ function buildTodayPlan(profile,focus,date,catalog){
     const bb=acc[b].t?acc[b].c/acc[b].t:(hasData?1.01:((profile.levels&&profile.levels[b])||1)/5);
     return aa-bb||(+weights[b]||0)-(+weights[a]||0)||order.indexOf(a)-order.indexOf(b);
   })[0]||"math";
-  steps.push({kind:"practice",id:weak,label:names[weak]+" practice",why:names[weak]+" needs a little more practice.",done:false});
+  /* 30 MINUTES OF MATHS (Eb, 4 Oct 2026): keep adding maths steps - the next lesson, then maths practice -
+     until the estimate reaches PLAN_MATH_MIN. Minutes per step come from his own past sessions when there
+     are at least 2 of that kind, otherwise defaults. */
+  const est=planMinutes(profile);
+  steps.forEach(x=>x.min=est[x.kind]||5);
+  const mathMin=()=>steps.reduce((n,x)=>n+(x.min||0),0);
+  const usedIds=new Set(steps.filter(x=>x.kind==="reveal").map(x=>x.id));
+  let practiceN=0;
+  for(let guard=0;guard<6&&mathMin()<PLAN_MATH_MIN;guard++){
+    const nextL=reveal.find(L=>!usedIds.has(L.id)&&!mastered((profile.reveal||{})[L.id])&&(!lesson||reveal.indexOf(L)>reveal.indexOf(lesson)));
+    if(guard%2===1&&nextL){usedIds.add(nextL.id);steps.push({kind:"reveal",id:nextL.id,label:"Lesson "+nextL.id+(nextL.t?" · "+nextL.t:""),why:"Ready for the next one - keep climbing!",done:false,min:est.reveal});}
+    else{practiceN++;steps.push({kind:"practice",id:"math",label:"Maths practice"+(practiceN>1?" "+practiceN:""),why:practiceN>1?"More practice makes it stick.":(weak==="math"?"Maths needs a little more practice.":"Practise what you just learned."),done:false,min:est.practice});}
+  }
+  // one short practice in another subject only when it is clearly weak (<70% this week)
+  if(weak!=="math"&&acc[weak].t>=5&&acc[weak].c/acc[weak].t<0.7)steps.push({kind:"practice",id:weak,label:names[weak]+" practice",why:names[weak]+" needs a little more practice.",done:false,min:est.practice});
 
   const seed=String(date).replace(/\D/g,"").split("").reduce((n,x)=>n+(+x||0),0)+String(profile.id||"").split("").reduce((n,x)=>n+x.charCodeAt(0),0);
   const fun=[
@@ -4386,8 +4400,25 @@ function buildTodayPlan(profile,focus,date,catalog){
     {kind:"daily",id:"daily",label:"Daily Mystery",why:"You earned it!",done:false},
     {kind:"race",id:"race",label:"Race time",why:"You earned it!",done:false}
   ];
-  for(let i=0;i<fun.length;i++){const x=fun[(seed+i)%fun.length];if(x.kind!=="daily"||!(profile.daily&&profile.daily.date===date&&profile.daily.done)){steps.push(x);break;}}
-  return{date,steps:steps.slice(0,4)};
+  for(let i=0;i<fun.length;i++){const x=fun[(seed+i)%fun.length];if(x.kind!=="daily"||!(profile.daily&&profile.daily.date===date&&profile.daily.done)){x.min=est[x.kind]||5;steps.push(x);break;}}
+  return{date,steps:steps.slice(0,8)};
+}
+const PLAN_MATH_MIN=30;
+function planMinutes(profile){
+  // his own average minutes per activity (last 14 days, needs 2+ sessions), else sensible defaults
+  const def={warmup:3,reveal:10,lesson:8,practice:6,story:5,daily:3,race:5};
+  const cut=Date.now()-14*86400000,bucket={reveal:[],lesson:[],practice:[],warmup:[]};
+  (profile.sessions||[]).forEach(se=>{
+    if(!se||!se.durMs||se.durMs<30000||se.durMs>3600000||(se.t||0)<cut)return;
+    const k=se.lesson?(String(se.lesson).indexOf("reveal:")===0?"reveal":"lesson"):(se.total<=3?"warmup":"practice");
+    bucket[k].push(se.durMs/60000);
+  });
+  Object.keys(bucket).forEach(k=>{const a=bucket[k];if(a.length>=2)def[k]=Math.max(2,Math.round(a.reduce((x,y)=>x+y,0)/a.length));});
+  return def;
+}
+function mathMinutesToday(){
+  // real minutes of maths he has done today
+  return Math.round((P.sessions||[]).filter(se=>se.date===today()&&se.subject==="math").reduce((n,se)=>n+(se.durMs||0),0)/60000);
 }
 function todayPlanFor(profile,focus,date,catalog){
   if(profile&&profile.plan&&profile.plan.date===date&&Array.isArray(profile.plan.steps))return profile.plan;
@@ -4402,7 +4433,15 @@ function markTodayPlanDone(kind,id){
   if(!P||!P.plan||P.plan.date!==today()||!Array.isArray(P.plan.steps))return;
   const step=P.plan.steps.find(x=>!x.done&&x.kind===kind&&(id==null||x.id===id));
   if(!step)return;
-  step.done=true;save();
+  step.done=true;
+  // finished all the maths early? add one more maths step so he still gets ~30 minutes (max 10 steps)
+  const learn=P.plan.steps.filter(x=>x.kind!=="story"&&x.kind!=="daily"&&x.kind!=="race");
+  if(learn.length&&learn.every(x=>x.done)&&mathMinutesToday()<PLAN_MATH_MIN-5&&P.plan.steps.length<10){
+    const funAt=P.plan.steps.findIndex(x=>(x.kind==="story"||x.kind==="daily"||x.kind==="race")&&!x.done);
+    const extra={kind:"practice",id:"math",label:"Bonus maths",why:"You're fast today - one more round!",done:false,min:planMinutes(P).practice};
+    if(funAt>=0)P.plan.steps.splice(funAt,0,extra);else P.plan.steps.push(extra);
+  }
+  save();
   if(P.plan.steps.length&&P.plan.steps.every(x=>x.done)){confetti();toast("🎉 Today's plan is done!");}
 }
 function startTodayPlanStep(i){
@@ -4417,8 +4456,8 @@ function startTodayPlanStep(i){
 }
 function todayPlanHTML(plan){
   const done=plan.steps.filter(x=>x.done).length,total=plan.steps.length,pct=total?Math.round(done/total*100):0;
-  const rows=plan.steps.map((s,i)=>'<button class="plan-step '+(s.done?'done':'')+'" onclick="startTodayPlanStep('+i+')" '+(s.done?'disabled':'')+'><span class="plan-step-mark">'+(s.done?'✓':(i+1))+'</span><span class="plan-step-copy"><b>'+esc(s.label)+'</b><small>'+esc(s.why)+'</small></span></button>').join("");
-  return '<section class="today-plan"><div class="today-plan-head"><h2>⭐ Today\'s Plan</h2><span class="today-plan-count">'+done+' of '+total+' done</span></div><div class="bar"><i style="width:'+pct+'%"></i></div><div class="plan-steps">'+rows+'</div>'
+  const rows=plan.steps.map((s,i)=>'<button class="plan-step '+(s.done?'done':'')+'" onclick="startTodayPlanStep('+i+')" '+(s.done?'disabled':'')+'><span class="plan-step-mark">'+(s.done?'✓':(i+1))+'</span><span class="plan-step-copy"><b>'+esc(s.label)+(s.min?' <span style="font-weight:600;opacity:.65">· ~'+s.min+' min</span>':'')+'</b><small>'+esc(s.why)+'</small></span></button>').join("");
+  return '<section class="today-plan"><div class="today-plan-head"><h2>⭐ Today\'s Plan</h2><span class="today-plan-count">'+done+' of '+total+' done'+(P&&typeof mathMinutesToday==="function"?' · '+mathMinutesToday()+' of '+PLAN_MATH_MIN+' maths min':'')+'</span></div><div class="bar"><i style="width:'+pct+'%"></i></div><div class="plan-steps">'+rows+'</div>'
     +(done===total?'<div class="plan-done">Amazing! You finished today\'s plan! 🎉<br>Free play - pick anything!</div>':'')+'</section>';
 }
 const _planGreeted={};
