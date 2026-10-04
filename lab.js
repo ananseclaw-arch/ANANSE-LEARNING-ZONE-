@@ -111,16 +111,18 @@ function labReflectQ(){
   const letters=["A","B","C","D"];
   openOverlay('<div><div class="center"><div class="ananse-wrap">'+ananseSVG(80,"teach")+'</div><div class="speech">Scientist\'s notebook — question '+(LAB.ri+1)+' of '+l.reflect.length+'</div></div><div class="spacer"></div>'
    +'<p class="qtext" style="font-size:22px">'+esc(r.q)+'</p><div class="opts">'+order.map((oi,pos)=>'<button class="opt" id="lopt'+pos+'" onclick="labReflectA('+pos+')"><span class="letter">'+letters[pos]+'</span><span>'+esc(r.opts[oi])+'</span></button>').join("")+'</div></div>');
+  LAB.qStart=Date.now();
   say(r.q);
 }
 function labReflectA(pos){
   const l=labById(LAB.id);const r=l.reflect[LAB.ri];
+  const labId=LAB.id,reflection=LAB.ri;
   const correct=LAB.order[pos]===0;
+  if(typeof logQuestion==="function")logQuestion("lab","science",l.id,null,r.q,correct,1,Date.now()-(LAB.qStart||Date.now()));
   LAB.order.forEach((oi,p)=>{const b=$("lopt"+p);if(!b)return;if(oi===0)b.classList.add("correct");else if(p===pos)b.classList.add("wrong");else b.classList.add("dim");b.onclick=null;});
   if(correct){LAB.rc++;sfx("correct");}else sfx("wrong");
   const msg=correct?"Exactly what the experiment showed!":"Look back at what happened in the lab: "+r.opts[0]+".";
-  say(msg);
-  setTimeout(()=>{LAB.ri++;labReflectQ();},1400);
+  sayAndThen(msg,()=>{if(!LAB||LAB.id!==labId||LAB.ri!==reflection)return;LAB.ri++;labReflectQ();},10000);
 }
 function labFinish(){
   closeOverlay();
@@ -130,8 +132,11 @@ function labFinish(){
   P.lab[l.id]={date:today(),notebook:LAB.rc+"/"+l.reflect.length};
   if(first){P.xp+=30;}
   P.sessions.push({date:today(),subject:"science",correct:LAB.rc,total:l.reflect.length,lvlAvg:3,xp:first?30:0,t:Date.now(),durMs:0,lab:l.id});
+  P.sessions=P.sessions.slice(-3000);
   if(first&&Object.keys(P.lab).length>=4&&!P.trophies.some(t=>t.type==="lab")&&typeof awardTrophy==="function")awardTrophy({type:"lab",icon:"🧪",label:"Lab Explorer",color:"#9ad8ff",detail:"Solved 4 science quests in Ananse's Lab."});
+  if(typeof markTodayPlanDone==="function")markTodayPlanDone("lab",l.id);
   save();
+  if(typeof syncProgress==="function")syncProgress("finish");
   app.innerHTML='<div class="fadein center"><div class="ananse-wrap ananse-celebrate">'+ananseSVG(150,"party")+'</div><h1>Quest Complete!</h1>'
    +'<div class="speech" style="max-width:480px;margin:14px auto">'+esc(l.title)+' solved. Notebook: '+LAB.rc+' of '+l.reflect.length+'. '+(first?'+30 XP for a first solve!':'You already earned XP for this one — but every experiment teaches something new.')+'</div>'
    +'<div class="spacer"></div><div class="btn-row"><button class="btn big" onclick="renderLab()">More quests 🧪</button><button class="btn secondary big" onclick="renderHome()">Home 🏠</button></div></div>';

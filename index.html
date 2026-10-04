@@ -436,6 +436,11 @@ body.storyworld:before{opacity:.45;mix-blend-mode:screen}
 .kh-tile .kh-tnm{font-weight:900;font-size:16px;line-height:1.2}.kh-tile .kh-tsub{font-size:12px;color:#c9e6ff;line-height:1.3}
 .kh-tile.pick{border-color:#ffd166;box-shadow:0 0 0 2px rgba(255,209,102,.4),0 0 26px rgba(255,209,102,.35),0 14px 30px rgba(0,0,0,.3)}
 .kh-tile.pick:after{content:"⭐ pick";position:absolute;top:10px;right:10px;font-size:11px;font-weight:900;color:#071b35;background:#ffd166;padding:2px 8px;border-radius:999px}
+.today-plan{padding:18px;border-radius:24px;background:linear-gradient(145deg,rgba(255,255,255,.14),rgba(10,45,78,.88));border:2px solid rgba(255,209,102,.75);box-shadow:0 18px 42px rgba(0,0,0,.32)}
+.today-plan-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}.today-plan-head h2{color:#fff;margin:0;font-size:24px}.today-plan-count{padding:7px 12px;border-radius:999px;background:#ffd166;color:#14365f;font-size:14px;font-weight:900}
+.today-plan .bar{height:14px;background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.2);margin-bottom:12px}.today-plan .bar i{background:linear-gradient(90deg,#3bb273,#8df0b8)}
+.plan-steps{display:grid;gap:9px}.plan-step{width:100%;min-height:76px;display:grid;grid-template-columns:46px 1fr;align-items:center;gap:12px;padding:11px 14px;border:2px solid rgba(159,208,255,.35);border-radius:18px;background:rgba(6,24,45,.72);color:#edf7ff;text-align:left;font-family:inherit;cursor:pointer}.plan-step:active{transform:scale(.985)}.plan-step:disabled{opacity:.72;cursor:default}.plan-step.done{border-color:rgba(59,178,115,.7);background:rgba(27,91,66,.58)}
+.plan-step-mark{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#4aa3e0;color:#fff;font-size:21px;font-weight:900}.plan-step.done .plan-step-mark{background:#3bb273}.plan-step-copy{display:flex;flex-direction:column;gap:3px}.plan-step-copy b{font-size:18px;line-height:1.2}.plan-step-copy small{font-size:14px;line-height:1.35;color:#c9e6ff}.plan-done{margin-top:12px;padding:12px 14px;border-radius:16px;background:rgba(59,178,115,.2);border:1px solid rgba(141,240,184,.5);color:#fff;font-weight:900;text-align:center}
 .kh-foot{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:22px 0 10px}
 /* ---------- parent portal nav ---------- */
 .pnav{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 4px;position:sticky;top:64px;z-index:5;padding:8px;border-radius:16px;background:rgba(255,255,255,.85);backdrop-filter:blur(10px);border:1px solid #b9d4f3}
@@ -1036,16 +1041,18 @@ function labReflectQ(){
   const letters=["A","B","C","D"];
   openOverlay('<div><div class="center"><div class="ananse-wrap">'+ananseSVG(80,"teach")+'</div><div class="speech">Scientist\'s notebook — question '+(LAB.ri+1)+' of '+l.reflect.length+'</div></div><div class="spacer"></div>'
    +'<p class="qtext" style="font-size:22px">'+esc(r.q)+'</p><div class="opts">'+order.map((oi,pos)=>'<button class="opt" id="lopt'+pos+'" onclick="labReflectA('+pos+')"><span class="letter">'+letters[pos]+'</span><span>'+esc(r.opts[oi])+'</span></button>').join("")+'</div></div>');
+  LAB.qStart=Date.now();
   say(r.q);
 }
 function labReflectA(pos){
   const l=labById(LAB.id);const r=l.reflect[LAB.ri];
+  const labId=LAB.id,reflection=LAB.ri;
   const correct=LAB.order[pos]===0;
+  if(typeof logQuestion==="function")logQuestion("lab","science",l.id,null,r.q,correct,1,Date.now()-(LAB.qStart||Date.now()));
   LAB.order.forEach((oi,p)=>{const b=$("lopt"+p);if(!b)return;if(oi===0)b.classList.add("correct");else if(p===pos)b.classList.add("wrong");else b.classList.add("dim");b.onclick=null;});
   if(correct){LAB.rc++;sfx("correct");}else sfx("wrong");
   const msg=correct?"Exactly what the experiment showed!":"Look back at what happened in the lab: "+r.opts[0]+".";
-  say(msg);
-  setTimeout(()=>{LAB.ri++;labReflectQ();},1400);
+  sayAndThen(msg,()=>{if(!LAB||LAB.id!==labId||LAB.ri!==reflection)return;LAB.ri++;labReflectQ();},10000);
 }
 function labFinish(){
   closeOverlay();
@@ -1055,8 +1062,11 @@ function labFinish(){
   P.lab[l.id]={date:today(),notebook:LAB.rc+"/"+l.reflect.length};
   if(first){P.xp+=30;}
   P.sessions.push({date:today(),subject:"science",correct:LAB.rc,total:l.reflect.length,lvlAvg:3,xp:first?30:0,t:Date.now(),durMs:0,lab:l.id});
+  P.sessions=P.sessions.slice(-3000);
   if(first&&Object.keys(P.lab).length>=4&&!P.trophies.some(t=>t.type==="lab")&&typeof awardTrophy==="function")awardTrophy({type:"lab",icon:"🧪",label:"Lab Explorer",color:"#9ad8ff",detail:"Solved 4 science quests in Ananse's Lab."});
+  if(typeof markTodayPlanDone==="function")markTodayPlanDone("lab",l.id);
   save();
+  if(typeof syncProgress==="function")syncProgress("finish");
   app.innerHTML='<div class="fadein center"><div class="ananse-wrap ananse-celebrate">'+ananseSVG(150,"party")+'</div><h1>Quest Complete!</h1>'
    +'<div class="speech" style="max-width:480px;margin:14px auto">'+esc(l.title)+' solved. Notebook: '+LAB.rc+' of '+l.reflect.length+'. '+(first?'+30 XP for a first solve!':'You already earned XP for this one — but every experiment teaches something new.')+'</div>'
    +'<div class="spacer"></div><div class="btn-row"><button class="btn big" onclick="renderLab()">More quests 🧪</button><button class="btn secondary big" onclick="renderHome()">Home 🏠</button></div></div>';
@@ -1697,7 +1707,7 @@ function rvRuler(inches,objLen){const u=90,w=inches*u+40;let t='';for(let i=0;i<
   return '<svg class="rv-svg" viewBox="0 0 '+w+' 90" style="max-width:'+w*1.3+'px"><rect x="20" y="8" width="'+(objLen*u)+'" height="22" rx="6" fill="#f5a623" stroke="#1f3c70" stroke-width="2"/><rect x="10" y="38" width="'+(w-20)+'" height="46" fill="#fff" stroke="#1f3c70" stroke-width="2"/>'+t+'</svg>';}
 function rvPolygon(n,size){const cx=70,cy=70,r=55;const pts=[];for(let i=0;i<n;i++){const a=i/n*Math.PI*2-Math.PI/2;pts.push((cx+Math.cos(a)*r).toFixed(1)+","+(cy+Math.sin(a)*r).toFixed(1));}
   return '<svg class="rv-svg" viewBox="0 0 140 140" style="max-width:'+(size||140)+'px"><polygon points="'+pts.join(" ")+'" fill="#ffe6a8" stroke="#1f3c70" stroke-width="3"/></svg>';}
-const RV_QUADS={square:{n:"square",svg:'<polygon points="30,30 110,30 110,110 30,110"/>',d:"4 equal sides and 4 right angles"},rectangle:{n:"rectangle",svg:'<polygon points="15,40 125,40 125,100 15,100"/>',d:"4 right angles, opposite sides equal"},rhombus:{n:"rhombus",svg:'<polygon points="70,20 120,70 70,120 20,70"/>',d:"4 equal sides, no right angles needed"},trapezoid:{n:"trapezoid",svg:'<polygon points="40,40 100,40 125,100 15,100"/>',d:"exactly one pair of parallel sides"},parallelogram:{n:"parallelogram",svg:'<polygon points="35,40 125,40 105,100 15,100"/>',d:"two pairs of parallel sides, no right angles needed"}};
+const RV_QUADS={square:{n:"square",svg:'<polygon points="30,30 110,30 110,110 30,110"/>',d:"4 equal sides and 4 right angles"},rectangle:{n:"rectangle",svg:'<polygon points="15,40 125,40 125,100 15,100"/>',d:"4 right angles, opposite sides equal"},rhombus:{n:"rhombus",svg:'<polygon points="70,20 120,70 70,120 20,70"/>',d:"4 equal sides, no right angles needed"},trapezoid:{n:"trapezoid",svg:'<polygon points="40,40 100,40 125,100 15,100"/>',d:"exactly one pair of parallel sides"},parallelogram:{n:"parallelogram",svg:'<polygon points="35,40 125,40 105,100 15,100"/>',d:"two pairs of parallel sides, no right angles needed"},kite:{n:"kite",svg:'<polygon points="70,15 112,70 70,125 42,70"/>',d:"two pairs of neighboring equal sides"},isosceles:{n:"isosceles trapezoid",svg:'<polygon points="42,35 98,35 120,105 20,105"/>',d:"one pair of parallel sides and two equal slanted sides"},concave:{n:"concave quadrilateral",svg:'<polygon points="20,25 120,25 70,70 120,115"/>',d:"4 sides with one corner pointing inward"}};
 function rvQuad(k){return '<svg class="rv-svg" viewBox="0 0 140 140" style="max-width:150px"><g fill="#ffe6a8" stroke="#1f3c70" stroke-width="3">'+RV_QUADS[k].svg+'</g></svg>';}
 function rvPicto(rows,key,icon){return '<table class="rv-table"><tr><th colspan="2">Key: each '+icon+' = '+key+'</th></tr>'+rows.map(r=>'<tr><td>'+esc(r[0])+'</td><td>'+Array(r[1]).fill(icon).join(" ")+'</td></tr>').join("")+'</table>';}
 function rvBars(rows,scale){const max=Math.max(...rows.map(r=>r[1]));return '<div class="rv-bars">'+rows.map(r=>'<div class="rv-barrow"><span>'+esc(r[0])+'</span><i style="width:'+Math.round(r[1]/max*100)+'%"></i><b>'+r[1]+'</b></div>').join("")+'<div class="muted" style="font-size:13px">scale: each step = '+scale+'</div></div>';}
@@ -1711,6 +1721,7 @@ function rvOpts(ans,spread){return numOpts(ans,spread);}
 function rvStrOpts(correct,wrongs){const u=[...new Set(wrongs.map(String).filter(w=>w!==String(correct)))].slice(0,3);const o=shuffle([String(correct)].concat(u));return {opts:o,a:o.indexOf(String(correct))};}
 /* ---------- generators ---------- */
 const RV_NAMES=["Ama","Kofi","Prince","Esi","Kwame","Abena","Yaw","Adwoa","Maya","Omar"];
+function rvFactor(tier){return tier<0?2+rnd(4):(tier>0?4+rnd(7):2+rnd(7));}
 const RV_GEN={
  blocks(){const n=1000+rnd(9000);const kind=rnd(3);
   if(kind===0)return{q:"What number do the base-ten blocks show?",vis:rvBlocks(n),...rvOpts(n,110),teach:[{i:"🧱",t:"Count the thousands cubes, then hundreds flats, tens rods and ones."},{i:"🔢",t:"Thousands "+Math.floor(n/1000)+", hundreds "+(Math.floor(n/100)%10)+", tens "+(Math.floor(n/10)%10)+", ones "+(n%10)+"."},{i:"🎯",t:"That is "+rvFmt(n)+"."}]};
@@ -1735,49 +1746,50 @@ const RV_GEN={
   const b=pick([197,298,299,396,498]),a=b+150+rnd(300);const d=Math.round(b/100)*100-b;const ans=a-b;return{q:a+" − "+b+" = ? (Hint: add the same amount to both numbers.)",...rvOpts(ans,30),teach:[{i:"⚖️",t:"Add "+d+" to both: "+(a+d)+" − "+(b+d)+"."},{i:"➖",t:"Subtracting a round number is easy: "+(a+d)+" − "+(b+d)+"."},{i:"🎯",t:"= "+ans+"."}]};},
  addToSub(){const a=pick([300,400,500,600,700,800]),b=a-100-rnd(200);const ans=a-b;const up1=Math.ceil(b/100)*100-b;return{q:a+" − "+b+" = ? Count up from "+b+".",vis:rvNumberLine(b,a,(a-b)>200?100:50,null,v=>v),...rvOpts(ans,30),teach:[{i:"⬆️",t:"From "+b+" up to "+(b+up1)+" is "+up1+"."},{i:"⬆️",t:"From "+(b+up1)+" up to "+a+" is "+(a-b-up1)+"."},{i:"🎯",t:up1+" + "+(a-b-up1)+" = "+ans+"."}]};},
  twoStepAdd(){const s=200+rnd(500),u=40+rnd(120),g=60+rnd(200);const ans=s-u+g;const n=pick(RV_NAMES);return{q:n+" had "+s+" beads. "+n+" used "+u+" for a bracelet, then bought "+g+" more. How many beads now?",...rvOpts(ans,40),teach:[{i:"1️⃣",t:"Hidden question: how many after using some? "+s+" − "+u+" = "+(s-u)+"."},{i:"2️⃣",t:"Then add the new beads: "+(s-u)+" + "+g+"."},{i:"🎯",t:"= "+ans+" beads."}]};},
- equalGroups(){const g=2+rnd(4),e=2+rnd(5);const ans=g*e;const o=rvStrOpts(g+" × "+e+" = "+ans,[g+" + "+e+" = "+(g+e),e+" × "+e+" = "+(e*e),g+" × "+(e+1)+" = "+(g*(e+1))]);return{q:"Which multiplication equation matches the equal groups?",vis:rvGroups(g,e),...o,teach:[{i:"👥",t:"Count the groups: "+g+". Count in each group: "+e+"."},{i:"➕",t:Array(g).fill(e).join(" + ")+" = "+ans+"."},{i:"🎯",t:g+" groups of "+e+" is "+g+" × "+e+" = "+ans+"."}]};},
- array(){const r=2+rnd(5),c=2+rnd(6);const ans=r*c;return{q:"How many dots are in the array? Write it as rows × columns.",vis:rvDots(r,c),...rvOpts(ans,5),teach:[{i:"↔️",t:"Rows go across: "+r+" rows."},{i:"↕️",t:"Columns go down: "+c+" in each row."},{i:"🎯",t:r+" × "+c+" = "+ans+"."}]};},
- commutative(){const a=2+rnd(8),b=2+rnd(8);const o=rvStrOpts(b+" × "+a+" = "+(a*b),[a+" + "+b+" = "+(a+b),b+" × "+b+" = "+(b*b),a+" × "+(b+1)+" = "+(a*(b+1))]);return{q:a+" × "+b+" = "+(a*b)+". Which equation shows the commutative property?",...o,teach:[{i:"🔁",t:"Commutative: switch the factors."},{i:"↩️",t:"Turn the array on its side: "+b+" rows of "+a+"."},{i:"🎯",t:b+" × "+a+" = "+(a*b)+" too."}]};},
- sharing(){const g=2+rnd(5),e=2+rnd(6);const total=g*e;const n=pick(RV_NAMES);return{q:n+" shares "+total+" stickers equally among "+g+" friends. How many stickers does each friend get?",...rvOpts(e,3),teach:[{i:"🤲",t:"Sharing equally is division: "+total+" ÷ "+g+"."},{i:"👥",t:"Deal them out to "+g+" friends until they are gone."},{i:"🎯",t:"Each gets "+e+"."}]};},
- grouping(){const g=2+rnd(6),e=2+rnd(5);const total=g*e;return{q:"There are "+total+" pencils. Each box holds "+e+". How many boxes are filled?",...rvOpts(g,3),teach:[{i:"📦",t:"You know the size of each group ("+e+"). Find how many groups."},{i:"➗",t:total+" ÷ "+e+" — count by "+e+"s up to "+total+"."},{i:"🎯",t:g+" boxes."}]};},
- relate(){const r=2+rnd(6),c=2+rnd(6);const p=r*c;const o=rvStrOpts(p+" ÷ "+r+" = "+c,[p+" ÷ "+c+" = "+r*2,r+" ÷ "+c+" = "+p,p+" × "+r+" = "+c]);return{q:"The array shows "+r+" × "+c+" = "+p+". Which division equation is related?",vis:rvDots(r,c),...o,teach:[{i:"🔗",t:"Multiplication and division are partners."},{i:"➗",t:p+" split into "+r+" rows gives "+c+" in each."},{i:"🎯",t:p+" ÷ "+r+" = "+c+" (and "+p+" ÷ "+c+" = "+r+")."}]};},
- unknown(){const a=2+rnd(8),b=2+rnd(8);const k=rnd(2);if(k===0)return{q:a+" × ? = "+(a*b)+". What is the unknown?",...rvOpts(b,3),teach:[{i:"❓",t:"Think: "+a+" times what makes "+(a*b)+"?"},{i:"➗",t:"Or divide: "+(a*b)+" ÷ "+a+"."},{i:"🎯",t:"? = "+b+"."}]};
+ equalGroups(L,tier){const g=rvFactor(tier),e=rvFactor(tier);const ans=g*e;const o=rvStrOpts(g+" × "+e+" = "+ans,[g+" + "+e+" = "+(g+e),e+" × "+e+" = "+(e*e),g+" × "+(e+1)+" = "+(g*(e+1))]);return{q:"Which multiplication equation matches the equal groups?",vis:rvGroups(g,e),...o,teach:[{i:"👥",t:"Count the groups: "+g+". Count in each group: "+e+"."},{i:"➕",t:Array(g).fill(e).join(" + ")+" = "+ans+"."},{i:"🎯",t:g+" groups of "+e+" is "+g+" × "+e+" = "+ans+"."}]};},
+ array(L,tier){const r=rvFactor(tier),c=rvFactor(tier);const ans=r*c;return{q:"How many dots are in the array? Write it as rows × columns.",vis:rvDots(r,c),...rvOpts(ans,5),teach:[{i:"↔️",t:"Rows go across: "+r+" rows."},{i:"↕️",t:"Columns go down: "+c+" in each row."},{i:"🎯",t:r+" × "+c+" = "+ans+"."}]};},
+ commutative(L,tier){const a=rvFactor(tier),b=rvFactor(tier);const o=rvStrOpts(b+" × "+a+" = "+(a*b),[a+" + "+b+" = "+(a+b),b+" × "+b+" = "+(b*b),a+" × "+(b+1)+" = "+(a*(b+1))]);return{q:a+" × "+b+" = "+(a*b)+". Which equation shows the commutative property?",...o,teach:[{i:"🔁",t:"Commutative: switch the factors."},{i:"↩️",t:"Turn the array on its side: "+b+" rows of "+a+"."},{i:"🎯",t:b+" × "+a+" = "+(a*b)+" too."}]};},
+ sharing(L,tier){const g=rvFactor(tier),e=rvFactor(tier);const total=g*e;const n=pick(RV_NAMES);return{q:n+" shares "+total+" stickers equally among "+g+" friends. How many stickers does each friend get?",...rvOpts(e,3),teach:[{i:"🤲",t:"Sharing equally is division: "+total+" ÷ "+g+"."},{i:"👥",t:"Deal them out to "+g+" friends until they are gone."},{i:"🎯",t:"Each gets "+e+"."}]};},
+ grouping(L,tier){const g=rvFactor(tier),e=rvFactor(tier);const total=g*e;return{q:"There are "+total+" pencils. Each box holds "+e+". How many boxes are filled?",...rvOpts(g,3),teach:[{i:"📦",t:"You know the size of each group ("+e+"). Find how many groups."},{i:"➗",t:total+" ÷ "+e+" — count by "+e+"s up to "+total+"."},{i:"🎯",t:g+" boxes."}]};},
+ relate(L,tier){const r=rvFactor(tier),c=rvFactor(tier);const p=r*c;const o=rvStrOpts(p+" ÷ "+r+" = "+c,[p+" ÷ "+c+" = "+r*2,r+" ÷ "+c+" = "+p,p+" × "+r+" = "+c]);return{q:"The array shows "+r+" × "+c+" = "+p+". Which division equation is related?",vis:rvDots(r,c),...o,teach:[{i:"🔗",t:"Multiplication and division are partners."},{i:"➗",t:p+" split into "+r+" rows gives "+c+" in each."},{i:"🎯",t:p+" ÷ "+r+" = "+c+" (and "+p+" ÷ "+c+" = "+r+")."}]};},
+ unknown(L,tier){const a=rvFactor(tier),b=rvFactor(tier);const k=rnd(2);if(k===0)return{q:a+" × ? = "+(a*b)+". What is the unknown?",...rvOpts(b,3),teach:[{i:"❓",t:"Think: "+a+" times what makes "+(a*b)+"?"},{i:"➗",t:"Or divide: "+(a*b)+" ÷ "+a+"."},{i:"🎯",t:"? = "+b+"."}]};
   return{q:"? ÷ "+a+" = "+b+". What is the unknown?",...rvOpts(a*b,6),teach:[{i:"❓",t:"Something split into "+a+" groups gives "+b+" each."},{i:"✖️",t:"Multiply back: "+a+" × "+b+"."},{i:"🎯",t:"? = "+(a*b)+"."}]};},
- mult(L){const f=pick(L.p||[2,5,10]);const b=(f===0||f===1)?rnd(10):1+rnd(9);const ans=f*b;const flip=rnd(2)===0;const [x,y]=flip?[b,f]:[f,b];
+ mult(L,tier){const f=pick(L.p||[2,5,10]);const b=(f===0||f===1)?rnd(10):rvFactor(tier);const ans=f*b;const flip=rnd(2)===0;const [x,y]=flip?[b,f]:[f,b];
   const tips={0:"Anything times 0 is 0.",1:"Anything times 1 is itself.",2:"Double it: "+b+" + "+b+".",3:"Use a 2s fact plus one more group: 2 × "+b+" + "+b+".",4:"Double, then double again: "+b+" → "+(2*b)+" → "+(4*b)+".",5:"Skip-count by 5: "+Array(b).fill(0).map((_,i)=>(i+1)*5).join(", ")+".",6:"5s fact plus one group: 5 × "+b+" + "+b+" = "+(5*b)+" + "+b+".",7:"5s plus 2s: 5 × "+b+" + 2 × "+b+" = "+(5*b)+" + "+(2*b)+".",8:"Double a 4s fact: 4 × "+b+" = "+(4*b)+", doubled.",9:"10s fact minus one group: 10 × "+b+" − "+b+" = "+(10*b)+" − "+b+".",10:"Add a zero to "+b+"."};
-  return{q:x+" × "+y+" = ?",...rvOpts(ans,f>5?8:4),teach:[{i:"💡",t:tips[f]},{i:"🔁",t:"Order does not matter: "+f+" × "+b+" = "+b+" × "+f+"."},{i:"🎯",t:x+" × "+y+" = "+ans+"."}]};},
- groupsWP(L){const f=pick(L.p||[2,5,10]),b=2+rnd(8);const ans=f*b;const items=pick([["packs of gum","sticks"],["boxes","crayons"],["bags","oranges"],["teams","players"]]);return{q:"There are "+b+" "+items[0]+" with "+f+" "+items[1]+" in each. How many "+items[1]+" in all?",...rvOpts(ans,6),teach:[{i:"👥",t:b+" groups, "+f+" in each."},{i:"✖️",t:b+" × "+f+"."},{i:"🎯",t:"= "+ans+" "+items[1]+"."}]};},
+  const prompt=tier>0&&rnd(2)===0?x+" × ? = "+ans:x+" × "+y+" = ?",answer=prompt.includes("× ?")?y:ans;
+  return{q:prompt,...rvOpts(answer,f>5?8:4),teach:[{i:"💡",t:tips[f]},{i:"🔁",t:"Order does not matter: "+f+" × "+b+" = "+b+" × "+f+"."},{i:"🎯",t:x+" × "+y+" = "+ans+"."}]};},
+ groupsWP(L,tier){const f=pick(L.p||[2,5,10]),b=rvFactor(tier);const ans=f*b;const items=pick([["packs of gum","sticks"],["boxes","crayons"],["bags","oranges"],["teams","players"]]);return{q:"There are "+b+" "+items[0]+" with "+f+" "+items[1]+" in each. How many "+items[1]+" in all?",...rvOpts(ans,6),teach:[{i:"👥",t:b+" groups, "+f+" in each."},{i:"✖️",t:b+" × "+f+"."},{i:"🎯",t:"= "+ans+" "+items[1]+"."}]};},
  distributive(){const a=pick([6,7,8,9]),b=pick([6,7,8,9]);const s1=pick([2,3,4,5]),s2=b-s1;const ans=a*b;const o=rvStrOpts(a+" × "+s1+" + "+a+" × "+s2,[a+" × "+s1+" × "+s2,a+" + "+s1+" + "+s2,a+" × "+s1+" + "+s2]);
   return{q:"Break apart "+b+" as "+s1+" + "+s2+". Which expression equals "+a+" × "+b+"?",vis:rvDots(a,s1)+rvDots(a,s2),...o,teach:[{i:"✂️",t:b+" = "+s1+" + "+s2+", so the array splits into two arrays."},{i:"✖️",t:a+" × "+s1+" = "+(a*s1)+" and "+a+" × "+s2+" = "+(a*s2)+"."},{i:"🎯",t:(a*s1)+" + "+(a*s2)+" = "+ans+"."}]};},
- arrayWP(){const r=3+rnd(6),c=3+rnd(7);const ans=r*c;const s=pick([["rows of chairs","chairs"],["rows in the garden","plants"],["shelves","books"],["rows of tiles","tiles"]]);return{q:"There are "+r+" "+s[0]+" with "+c+" "+s[1]+" in each row. How many "+s[1]+"?",vis:rvDots(r,c,"▪"),...rvOpts(ans,6),teach:[{i:"↔️",t:r+" rows."},{i:"✖️",t:r+" × "+c+"."},{i:"🎯",t:"= "+ans+" "+s[1]+"."}]};},
+ arrayWP(L,tier){const r=rvFactor(tier),c=rvFactor(tier);const ans=r*c;const s=pick([["rows of chairs","chairs"],["rows in the garden","plants"],["shelves","books"],["rows of tiles","tiles"]]);return{q:"There are "+r+" "+s[0]+" with "+c+" "+s[1]+" in each row. How many "+s[1]+"?",vis:rvDots(r,c,"▪"),...rvOpts(ans,6),teach:[{i:"↔️",t:r+" rows."},{i:"✖️",t:r+" × "+c+"."},{i:"🎯",t:"= "+ans+" "+s[1]+"."}]};},
  areaCount(){const r=2+rnd(4),c=3+rnd(5);const skipCorner=rnd(2)===0;const skip=skipCorner?(x,y)=>(x>=c-2&&y>=r-1):null;const ans=r*c-(skipCorner?2:0);return{q:"What is the area of the shape in square units?",vis:rvGrid(r,c,{skip}),...rvOpts(ans,4),teach:[{i:"⬛",t:"Area = how many unit squares cover it."},{i:"🔢",t:"Count row by row"+(skipCorner?" — the last row is missing 2 squares.":".")},{i:"🎯",t:ans+" square units."}]};},
  areaMult(){const r=3+rnd(6),c=3+rnd(7);return{q:"A rectangle is "+r+" units by "+c+" units. What is its area?",vis:rvGrid(r,c),...rvOpts(r*c,8),teach:[{i:"↔️",t:r+" rows of "+c+" squares."},{i:"✖️",t:"Area = length × width = "+r+" × "+c+"."},{i:"🎯",t:(r*c)+" square units."}]};},
  areaComposite(){const r1=2+rnd(3),c1=3+rnd(4),r2=2+rnd(3),c2=2+rnd(3);const ans=r1*c1+r2*c2;const skip=(x,y)=>(x>=c1&&y>=r2);return{q:"Find the area of the composite figure (split it into two rectangles).",vis:rvGrid(Math.max(r1,r2),c1+c2,{skip:(x,y)=>(x>=c1&&y>=r2)||(x<c1&&y>=r1)}),...rvOpts(ans,6),teach:[{i:"✂️",t:"Rectangle A: "+r1+" × "+c1+" = "+(r1*c1)+"."},{i:"✂️",t:"Rectangle B: "+r2+" × "+c2+" = "+(r2*c2)+"."},{i:"🎯",t:(r1*c1)+" + "+(r2*c2)+" = "+ans+" square units."}]};},
  areaDistrib(){const r=3+rnd(5),c=6+rnd(4);const s1=pick([2,3,4,5]),s2=c-s1;const ans=r*c;const o=rvStrOpts(r+" × "+s1+" + "+r+" × "+s2,[r+" + "+s1+" + "+s2,r+" × "+s1+" × "+s2,s1+" × "+s2+" + "+r]);return{q:"A "+r+" by "+c+" rectangle is split into "+r+" by "+s1+" and "+r+" by "+s2+". Which expression gives its area?",vis:rvGrid(r,c,{fill:(x,y)=>x<s1?"#ffe6a8":"#bfe3ff"}),...o,teach:[{i:"✂️",t:"Two smaller rectangles: "+r+" × "+s1+" and "+r+" × "+s2+"."},{i:"➕",t:(r*s1)+" + "+(r*s2)+"."},{i:"🎯",t:"= "+ans+" square units, same as "+r+" × "+c+"."}]};},
  areaWP(){const r=3+rnd(7),c=4+rnd(7);const ans=r*c;const s=pick(["rug","garden","poster","patio"]);return{q:"A "+s+" is "+r+" feet wide and "+c+" feet long. What is its area?",vis:rvRect(c+" ft",r+" ft"),...rvOpts(ans,10),teach:[{i:"📐",t:"Area = length × width."},{i:"✖️",t:r+" × "+c+"."},{i:"🎯",t:ans+" square feet."}]};},
- partition(){const n=pick([2,3,4,6,8]);const names={2:"halves",3:"thirds",4:"fourths",6:"sixths",8:"eighths"};const o=rvStrOpts(n+" equal parts — "+names[n],[(n+1)+" equal parts",n+" parts of different sizes","1 part"]);return{q:"A sandwich is cut into "+names[n]+". How is it partitioned?",vis:rvBar(n,0),...o,teach:[{i:"✂️",t:names[n].charAt(0).toUpperCase()+names[n].slice(1)+" means "+n+" EQUAL parts."},{i:"⚖️",t:"Parts of different sizes are not "+names[n]+"."},{i:"🎯",t:n+" equal parts."}]};},
+ partition(){const n=pick([2,3,4,5,6,7,8,9,10,12]);const names={2:"halves",3:"thirds",4:"fourths",5:"fifths",6:"sixths",7:"sevenths",8:"eighths",9:"ninths",10:"tenths",12:"twelfths"};const o=rvStrOpts(n+" equal parts — "+names[n],[(n+1)+" equal parts",n+" parts of different sizes","1 part"]);return{q:"A sandwich is cut into "+names[n]+". How is it partitioned?",vis:rvBar(n,0),...o,teach:[{i:"✂️",t:names[n].charAt(0).toUpperCase()+names[n].slice(1)+" means "+n+" EQUAL parts."},{i:"⚖️",t:"Parts of different sizes are not "+names[n]+"."},{i:"🎯",t:n+" equal parts."}]};},
  fracShade(){const d=pick([2,3,4,6,8]),n=1+rnd(d-1);const o=rvStrOpts(n+"/"+d,[d+"/"+n,(d-n)+"/"+d,n+"/"+(d+1)]);return{q:"What fraction of the bar is shaded?",vis:rvBar(d,n),...o,teach:[{i:"🔢",t:"Count all the equal parts: "+d+". That is the denominator."},{i:"🟧",t:"Count the shaded parts: "+n+". That is the numerator."},{i:"🎯",t:n+"/"+d+" is shaded."}]};},
  fracLine(L){const gt=(L.p||[])[0]==="gt1";const d=pick([2,3,4,6,8]);const n=gt?d+1+rnd(d-1):1+rnd(d-1);const span=gt?2:1;const o=rvStrOpts(n+"/"+d,[(n+1)+"/"+d,n+"/"+(d+2),d+"/"+n]);return{q:"What fraction does the point show on the number line?",vis:rvNumberLine(0,span*d,1,n,v=>v%d===0?String(v/d):""),...o,teach:[{i:"📏",t:"Each whole is cut into "+d+" equal parts, so each tick is 1/"+d+"."},{i:"🔢",t:"Count the ticks from 0: "+n+"."},{i:"🎯",t:"The point is at "+n+"/"+d+(gt?" — that is more than 1 whole.":".")}]};},
- fracWhole(){const d=pick([3,4,5,6,8]);const o=rvStrOpts(d+"/"+d,["1/"+d,d+"/1",(d-1)+"/"+d]);return{q:"Which fraction equals ONE WHOLE?",vis:rvBar(d,d),...o,teach:[{i:"🟧",t:"All "+d+" of the "+d+" parts are shaded."},{i:"🔢",t:"Numerator = denominator means one whole."},{i:"🎯",t:d+"/"+d+" = 1."}]};},
+ fracWhole(){const d=pick([2,3,4,5,6,7,8,9,10,12]);const o=rvStrOpts(d+"/"+d,["1/"+d,d+"/1",(d-1)+"/"+d]);return{q:"Which fraction equals ONE WHOLE?",vis:rvBar(d,d),...o,teach:[{i:"🟧",t:"All "+d+" of the "+d+" parts are shaded."},{i:"🔢",t:"Numerator = denominator means one whole."},{i:"🎯",t:d+"/"+d+" = 1."}]};},
  fracWholeNum(){const w=2+rnd(4);const k=rnd(2);if(k===0){const o=rvStrOpts(w+"/1",["1/"+w,w+"/"+w,(w+1)+"/1"]);return{q:"Write the whole number "+w+" as a fraction.",...o,teach:[{i:"1️⃣",t:"A whole number over 1 is the same number."},{i:"🍕",t:w+" wholes, each cut into 1 part."},{i:"🎯",t:w+" = "+w+"/1."}]};}
   const d=pick([2,3,4]);return{q:"How many wholes is "+(w*d)+"/"+d+"?",vis:rvBar(d,d)+rvBar(d,d)+(w>2?rvBar(d,d):"")+(w>3?rvBar(d,d):"")+(w>4?rvBar(d,d):""),...rvOpts(w,2),teach:[{i:"🔢",t:"Each whole has "+d+" parts."},{i:"➗",t:(w*d)+" parts ÷ "+d+" per whole."},{i:"🎯",t:"= "+w+" wholes."}]};},
  equiv(){const pairs=[[1,2,2,4],[1,2,3,6],[1,2,4,8],[1,3,2,6],[2,3,4,6],[1,4,2,8],[3,4,6,8],[2,4,4,8]];const p=pick(pairs);const flip=rnd(2)===0;const [a,b,c,d]=flip?[p[2],p[3],p[0],p[1]]:p;const o=rvStrOpts(c+"/"+d,[(c+1)+"/"+d,c+"/"+(d+1),b+"/"+a]);return{q:"Which fraction is equivalent to "+a+"/"+b+"?",vis:rvBar(b,a)+rvBar(d,c,"#6fd0ff"),...o,teach:[{i:"🟧",t:"The top bar shows "+a+"/"+b+"."},{i:"🟦",t:"The blue bar shows "+c+"/"+d+" — the same amount is shaded."},{i:"🎯",t:a+"/"+b+" = "+c+"/"+d+"."}]};},
- equivLine(){const p=pick([[1,2,2,4],[1,2,4,8],[1,3,2,6],[2,4,4,8],[3,4,6,8],[1,4,2,8]]);const [a,b,c,d]=p;const o=rvStrOpts(c+"/"+d,[(c+1)+"/"+d,a+"/"+d,c+"/"+b]);return{q:"The point is at "+a+"/"+b+". Which fraction in "+({2:"halves",4:"fourths",6:"sixths",8:"eighths"}[d])+" lands on the SAME point?",vis:rvNumberLine(0,d,1,c,v=>v%d===0?String(v/d):(v===c?c+"/"+d:"")),...o,teach:[{i:"📏",t:"Cut the same line into "+d+" parts."},{i:"📍",t:a+"/"+b+" and "+c+"/"+d+" are the same distance from 0."},{i:"🎯",t:"Equivalent fractions share a point."}]};},
- compareWholes(){const f=pick(["1/2","1/4","3/4","2/3"]);const o=rvStrOpts("The large pizza — same fraction of a bigger whole",["The small pizza","They are equal — same fraction","You cannot tell"]);return{q:pick(RV_NAMES)+" eats "+f+" of a SMALL pizza. "+pick(RV_NAMES)+" eats "+f+" of a LARGE pizza. Who eats more pizza?",...o,teach:[{i:"🍕",t:"The fractions match, but the wholes are different sizes."},{i:"⚖️",t:f+" of a large pizza is more food than "+f+" of a small one."},{i:"🎯",t:"Fractions compare only when the wholes are the same."}]};},
+ equivLine(){const p=pick([[1,2,2,4],[1,2,4,8],[1,3,2,6],[2,4,4,8],[3,4,6,8],[1,4,2,8],[1,3,3,9],[2,3,6,9],[1,5,2,10],[3,5,6,10]]);const [a,b,c,d]=p;const names={2:"halves",4:"fourths",6:"sixths",8:"eighths",9:"ninths",10:"tenths"};const o=rvStrOpts(c+"/"+d,[(c+1)+"/"+d,a+"/"+d,c+"/"+b]);return{q:"The point is at "+a+"/"+b+". Which fraction in "+names[d]+" lands on the SAME point?",vis:rvNumberLine(0,d,1,c,v=>v%d===0?String(v/d):(v===c?c+"/"+d:"")),...o,teach:[{i:"📏",t:"Cut the same line into "+d+" parts."},{i:"📍",t:a+"/"+b+" and "+c+"/"+d+" are the same distance from 0."},{i:"🎯",t:"Equivalent fractions share a point."}]};},
+ compareWholes(){const f=pick(["1/2","1/3","1/4","2/3","2/5","3/4","3/5","3/8","5/6","7/8"]);const o=rvStrOpts("The large pizza — same fraction of a bigger whole",["The small pizza","They are equal — same fraction","You cannot tell"]);return{q:pick(RV_NAMES)+" eats "+f+" of a SMALL pizza. "+pick(RV_NAMES)+" eats "+f+" of a LARGE pizza. Who eats more pizza?",...o,teach:[{i:"🍕",t:"The fractions match, but the wholes are different sizes."},{i:"⚖️",t:f+" of a large pizza is more food than "+f+" of a small one."},{i:"🎯",t:"Fractions compare only when the wholes are the same."}]};},
  compare(L){const mode=(L.p||["any"])[0];let a,b,c,d;if(mode==="den"){d=b=pick([4,6,8]);a=1+rnd(b-1);do{c=1+rnd(b-1)}while(c===a);}else if(mode==="num"){a=c=pick([1,2,3]);b=pick([3,4,6,8]);do{d=pick([3,4,6,8])}while(d===b);}else{const P=[[1,2,1,3],[3,4,1,2],[2,3,2,6],[1,4,1,8],[5,6,5,8],[2,4,1,2],[3,8,3,4]];const p=pick(P);[a,b,c,d]=rnd(2)?p:[p[2],p[3],p[0],p[1]];}
   const va=a/b,vb=c/d;const sym=va>vb?">":(va<vb?"<":"=");const o=rvStrOpts(a+"/"+b+" "+sym+" "+c+"/"+d,[">","<","="].filter(x=>x!==sym).map(x=>a+"/"+b+" "+x+" "+c+"/"+d));
   const why=mode==="den"?"Same denominator — same size pieces — so compare the numerators.":(mode==="num"?"Same numerator — same number of pieces — so the smaller denominator has bigger pieces.":"Picture both fractions of the same bar.");
   return{q:"Compare "+a+"/"+b+" and "+c+"/"+d+".",vis:rvBar(b,a)+rvBar(d,c,"#6fd0ff"),...o,teach:[{i:"⚖️",t:why},{i:"👀",t:"Look at the shaded bars: which shows more?"},{i:"🎯",t:a+"/"+b+" "+sym+" "+c+"/"+d+"."}]};},
- div(L){const f=pick(L.p||[2,5,10]);const q=1+rnd(9);const dividend=f*q;return{q:dividend+" ÷ "+f+" = ?",...rvOpts(q,3),teach:[{i:"❓",t:"Think: "+f+" × ? = "+dividend+"."},{i:"✖️",t:f+" × "+q+" = "+dividend+"."},{i:"🎯",t:"So "+dividend+" ÷ "+f+" = "+q+"."}]};},
- div10(){const n=1+rnd(9);const k=rnd(3);if(k===0)return{q:n+" ÷ 1 = ?",...rvOpts(n,3),teach:[{i:"1️⃣",t:"Dividing by 1 makes 1 group of everything."},{i:"✅",t:"1 × "+n+" = "+n+"."},{i:"🎯",t:n+" ÷ 1 = "+n+"."}]};
+ div(L,tier){const f=pick(L.p||[2,5,10]);const q=rvFactor(tier);const dividend=f*q;const form=rnd(tier>0?3:2);const prompt=form===0?dividend+" ÷ "+f+" = ?":(form===1?f+" × ? = "+dividend:dividend+" ÷ ? = "+q);const answer=form===0?q:(form===1?q:f);return{q:prompt,...rvOpts(answer,3),teach:[{i:"❓",t:"Think: "+f+" × "+q+" = "+dividend+"."},{i:"✖️",t:f+" × "+q+" = "+dividend+"."},{i:"🎯",t:"So "+dividend+" ÷ "+f+" = "+q+"."}]};},
+ div10(L,tier){const n=rvFactor(tier);const k=rnd(3);if(k===0)return{q:n+" ÷ 1 = ?",...rvOpts(n,3),teach:[{i:"1️⃣",t:"Dividing by 1 makes 1 group of everything."},{i:"✅",t:"1 × "+n+" = "+n+"."},{i:"🎯",t:n+" ÷ 1 = "+n+"."}]};
   if(k===1)return{q:"0 ÷ "+n+" = ?",...rvOpts(0,3),teach:[{i:"0️⃣",t:"Zero things shared by "+n+" is zero each."},{i:"✅",t:n+" × 0 = 0."},{i:"🎯",t:"0 ÷ "+n+" = 0."}]};
-  const m=2+rnd(8);const o=rvStrOpts("It cannot be done — you cannot divide by 0",["0","1",String(m)]);return{q:"What is "+m+" ÷ 0?",...o,teach:[{i:"🚫",t:"Splitting into 0 groups makes no sense."},{i:"❓",t:"0 × ? = "+n+" has no answer."},{i:"🎯",t:"Division by 0 is not allowed."}]};},
- fluent(){const a=2+rnd(8),b=2+rnd(8);const k=rnd(2);if(k===0)return{q:a+" × "+b+" = ?",...rvOpts(a*b,6),teach:[{i:"💡",t:"Use the strategy you like best for "+a+"s."},{i:"🔁",t:"Check with the flipped fact "+b+" × "+a+"."},{i:"🎯",t:a+" × "+b+" = "+(a*b)+"."}]};return{q:(a*b)+" ÷ "+a+" = ?",...rvOpts(b,3),teach:[{i:"❓",t:a+" × ? = "+(a*b)+"."},{i:"✅",t:a+" × "+b+" = "+(a*b)+"."},{i:"🎯",t:(a*b)+" ÷ "+a+" = "+b+"."}]};},
- mult10s(){const a=2+rnd(8),t=2+rnd(8);const ans=a*t*10;return{q:a+" × "+(t*10)+" = ?",...rvOpts(ans,40),teach:[{i:"🔟",t:(t*10)+" is "+t+" tens."},{i:"✖️",t:a+" × "+t+" tens = "+(a*t)+" tens."},{i:"🎯",t:(a*t)+" tens = "+ans+"."}]};},
- patterns(){const k=rnd(3);if(k===0){const b=2+rnd(8);const o=rvStrOpts("Even — any number times 2 is even",["Odd","Sometimes even","It depends on the day"]);return{q:"Is 2 × "+b+" even or odd? Why?",...o,teach:[{i:"👯",t:"Times 2 means pairs — everything has a partner."},{i:"✅",t:"2 × "+b+" = "+(2*b)+", which is even."},{i:"🎯",t:"Products of 2 are always even."}]};}
-  if(k===1){const b=2+rnd(8);const p=9*b;const o=rvStrOpts(String(Math.floor(p/10)+p%10),["10","18","1"]);return{q:"9 × "+b+" = "+p+". What do the digits of "+p+" add up to?",...rvStrOpts("9",["10","8","1"]),teach:[{i:"🔍",t:Math.floor(p/10)+" + "+(p%10)+" = 9."},{i:"🪄",t:"Every 9s fact up to 9 × 10 has digits that add to 9."},{i:"🎯",t:"That is a pattern you can use to check."}]};}
-  const b=1+rnd(9);const o=rvStrOpts("0 or 5",["1 or 2","3 or 7","9"]);return{q:"5 × "+b+" = "+(5*b)+". Products of 5 always end in...",...o,teach:[{i:"🔁",t:"5, 10, 15, 20, 25… look at the last digit."},{i:"✅",t:"Even × 5 ends in 0; odd × 5 ends in 5."},{i:"🎯",t:"0 or 5."}]};},
- associative(){const a=2+rnd(3),b=2+rnd(4),c=pick([2,5,10]);const ans=a*b*c;const o=rvStrOpts(a+" × ("+b+" × "+c+")",["("+a+" + "+b+") × "+c,a+" × "+b+" + "+c,"("+a+" × "+c+") + "+b]);return{q:"Which expression equals ("+a+" × "+b+") × "+c+" by the associative property?",...o,teach:[{i:"🧩",t:"Change the grouping, keep the order."},{i:"✅",t:"("+a+" × "+b+") × "+c+" = "+(a*b)+" × "+c+" = "+ans+"; "+a+" × ("+b+" × "+c+") = "+a+" × "+(b*c)+" = "+ans+"."},{i:"🎯",t:"Same product either way."}]};},
+  const m=rvFactor(tier);const o=rvStrOpts("It cannot be done — you cannot divide by 0",["0","1",String(m)]);return{q:"What is "+m+" ÷ 0?",...o,teach:[{i:"🚫",t:"Splitting into 0 groups makes no sense."},{i:"❓",t:"0 × ? = "+m+" has no answer."},{i:"🎯",t:"Division by 0 is not allowed."}]};},
+ fluent(L,tier){const a=rvFactor(tier),b=rvFactor(tier);const k=rnd(tier>0?3:2);if(k===0)return{q:a+" × "+b+" = ?",...rvOpts(a*b,6),teach:[{i:"💡",t:"Use the strategy you like best for "+a+"s."},{i:"🔁",t:"Check with the flipped fact "+b+" × "+a+"."},{i:"🎯",t:a+" × "+b+" = "+(a*b)+"."}]};if(k===2)return{q:a+" × ? = "+(a*b),...rvOpts(b,3),teach:[{i:"❓",t:"Use the related division fact."},{i:"➗",t:(a*b)+" ÷ "+a+" = "+b+"."},{i:"🎯",t:"? = "+b+"."}]};return{q:(a*b)+" ÷ "+a+" = ?",...rvOpts(b,3),teach:[{i:"❓",t:a+" × ? = "+(a*b)+"."},{i:"✅",t:a+" × "+b+" = "+(a*b)+"."},{i:"🎯",t:(a*b)+" ÷ "+a+" = "+b+"."}]};},
+ mult10s(L,tier){const a=rvFactor(tier),t=rvFactor(tier);const ans=a*t*10;return{q:a+" × "+(t*10)+" = ?",...rvOpts(ans,40),teach:[{i:"🔟",t:(t*10)+" is "+t+" tens."},{i:"✖️",t:a+" × "+t+" tens = "+(a*t)+" tens."},{i:"🎯",t:(a*t)+" tens = "+ans+"."}]};},
+ patterns(L,tier){const k=rnd(3);if(k===0){const b=rvFactor(tier);const o=rvStrOpts("Even — any number times 2 is even",["Odd","Sometimes even","It depends on the day"]);return{q:"Is 2 × "+b+" even or odd? Why?",...o,teach:[{i:"👯",t:"Times 2 means pairs — everything has a partner."},{i:"✅",t:"2 × "+b+" = "+(2*b)+", which is even."},{i:"🎯",t:"Products of 2 are always even."}]};}
+  if(k===1){const b=rvFactor(tier);const p=9*b;const o=rvStrOpts(String(Math.floor(p/10)+p%10),["10","18","1"]);return{q:"9 × "+b+" = "+p+". What do the digits of "+p+" add up to?",...rvStrOpts("9",["10","8","1"]),teach:[{i:"🔍",t:Math.floor(p/10)+" + "+(p%10)+" = 9."},{i:"🪄",t:"Every 9s fact up to 9 × 10 has digits that add to 9."},{i:"🎯",t:"That is a pattern you can use to check."}]};}
+  const b=rvFactor(tier);const o=rvStrOpts("0 or 5",["1 or 2","3 or 7","9"]);return{q:"5 × "+b+" = "+(5*b)+". Products of 5 always end in...",...o,teach:[{i:"🔁",t:"5, 10, 15, 20, 25… look at the last digit."},{i:"✅",t:"Even × 5 ends in 0; odd × 5 ends in 5."},{i:"🎯",t:"0 or 5."}]};},
+ associative(L,tier){const a=rvFactor(tier),b=rvFactor(tier),c=pick(tier<0?[2,5]:[2,5,10]);const ans=a*b*c;const o=rvStrOpts(a+" × ("+b+" × "+c+")",["("+a+" + "+b+") × "+c,a+" × "+b+" + "+c,"("+a+" × "+c+") + "+b]);return{q:"Which expression equals ("+a+" × "+b+") × "+c+" by the associative property?",...o,teach:[{i:"🧩",t:"Change the grouping, keep the order."},{i:"✅",t:"("+a+" × "+b+") × "+c+" = "+(a*b)+" × "+c+" = "+ans+"; "+a+" × ("+b+" × "+c+") = "+a+" × "+(b*c)+" = "+ans+"."},{i:"🎯",t:"Same product either way."}]};},
  twoStepMult(){const p=2+rnd(4),e=3+rnd(5),g=pick([2,3,4].filter(x=>(p*e)%x===0))||2;const ans=(p*e)/g;return{q:pick(RV_NAMES)+" buys "+p+" packs of "+e+" markers and shares them equally with "+g+" friends (including herself). How many markers does each person get?",...rvOpts(ans,3),teach:[{i:"1️⃣",t:"Hidden question: how many markers in all? "+p+" × "+e+" = "+(p*e)+"."},{i:"2️⃣",t:"Share: "+(p*e)+" ÷ "+g+"."},{i:"🎯",t:"= "+ans+" each."}]};},
  twoStepMix(){const k=rnd(2);if(k===0){const p=2+rnd(4),e=4+rnd(5),u=2+rnd(6);const ans=p*e-u;return{q:"There are "+p+" boxes of "+e+" pencils. "+pick(RV_NAMES)+" uses "+u+". How many pencils are left?",...rvOpts(ans,4),teach:[{i:"1️⃣",t:p+" × "+e+" = "+(p*e)+" pencils."},{i:"2️⃣",t:(p*e)+" − "+u+"."},{i:"🎯",t:"= "+ans+"."}]};}
   const a=10+rnd(20),b=5+rnd(15),g=pick([3,4,5]);const total=Math.ceil((a+b)/g)*g;const ans=total/g;return{q:pick(RV_NAMES)+" has "+total+" apples: some red, some green. They are packed "+g+" to a bag. How many bags?",...rvOpts(ans,3),teach:[{i:"➗",t:total+" apples, "+g+" per bag."},{i:"❓",t:g+" × ? = "+total+"."},{i:"🎯",t:ans+" bags."}]};},
@@ -1788,9 +1800,9 @@ const RV_GEN={
  areaPerimeter(){const l=3+rnd(6),w=2+rnd(5);const k=rnd(2);if(k===0)return{q:"A garden is "+l+" m by "+w+" m. How much fence goes around it (perimeter)?",vis:rvRect(l+" m",w+" m"),...rvOpts(2*(l+w),5),teach:[{i:"🧱",t:"Fence goes AROUND — that is perimeter."},{i:"➕",t:"2 × "+l+" + 2 × "+w+"."},{i:"🎯",t:(2*(l+w))+" m of fence."}]};
   return{q:"A garden is "+l+" m by "+w+" m. How much soil covers it (area)?",vis:rvRect(l+" m",w+" m"),...rvOpts(l*w,6),teach:[{i:"⬛",t:"Soil COVERS the inside — that is area."},{i:"✖️",t:l+" × "+w+"."},{i:"🎯",t:(l*w)+" square meters."}]};},
  measureWP(){const n=3+rnd(6),each=10+rnd(40);const ans=n*each;return{q:pick(RV_NAMES)+" cuts "+n+" pieces of ribbon, each "+each+" cm long. How much ribbon is that in all?",...rvOpts(ans,20),teach:[{i:"📏",t:n+" pieces of "+each+" cm."},{i:"✖️",t:n+" × "+each+"."},{i:"🎯",t:ans+" cm."}]};},
- volume(){const items=[["a spoonful of medicine","5 mL"],["a juice box","200 mL"],["a large soda bottle","2 L"],["a bathtub","150 L"],["a mug of cocoa","250 mL"],["a bucket","10 L"]];const it=pick(items);const o=rvStrOpts(it[1],items.filter(x=>x!==it).map(x=>x[1]));return{q:"About how much liquid does "+it[0]+" hold?",...o,teach:[{i:"🥄",t:"Milliliters (mL) are tiny — a spoon is 5 mL."},{i:"🧴",t:"Liters (L) are big — a large bottle is 2 L."},{i:"🎯",t:it[0].charAt(0).toUpperCase()+it[0].slice(1)+": about "+it[1]+"."}]};},
+ volume(){const items=[["a spoonful of medicine","5 mL"],["a juice box","200 mL"],["a large soda bottle","2 L"],["a bathtub","150 L"],["a mug of cocoa","250 mL"],["a bucket","10 L"],["an eye dropper","1 mL"],["a water bottle","500 mL"],["a kitchen pitcher","1 L"],["a small swimming pool","20,000 L"]];const it=pick(items);const o=rvStrOpts(it[1],items.filter(x=>x!==it).map(x=>x[1]));return{q:"About how much liquid does "+it[0]+" hold?",...o,teach:[{i:"🥄",t:"Milliliters (mL) are tiny — a spoon is 5 mL."},{i:"🧴",t:"Liters (L) are big — a large bottle is 2 L."},{i:"🎯",t:it[0].charAt(0).toUpperCase()+it[0].slice(1)+": about "+it[1]+"."}]};},
  volumeWP(){const n=2+rnd(5),each=pick([200,250,300,500]);const ans=n*each;return{q:"Each water bottle holds "+each+" mL. How much do "+n+" bottles hold?",...rvOpts(ans,each),teach:[{i:"🧴",t:n+" bottles × "+each+" mL."},{i:"✖️",t:n+" × "+each+"."},{i:"🎯",t:ans+" mL"+(ans>=1000?" (that is "+(ans/1000)+" L)":"")+"."}]};},
- mass(){const items=[["a paper clip","1 g"],["an apple","150 g"],["a basketball","600 g"],["a bag of rice","1 kg"],["a third grader","30 kg"],["a bicycle","12 kg"]];const it=pick(items);const o=rvStrOpts(it[1],items.filter(x=>x!==it).map(x=>x[1]));return{q:"About how much mass does "+it[0]+" have?",...o,teach:[{i:"📎",t:"Grams (g) are light — a paper clip is about 1 g."},{i:"🍚",t:"Kilograms (kg) are heavy — 1 kg = 1,000 g."},{i:"🎯",t:it[0].charAt(0).toUpperCase()+it[0].slice(1)+": about "+it[1]+"."}]};},
+ mass(){const items=[["a paper clip","1 g"],["an apple","150 g"],["a basketball","600 g"],["a bag of rice","1 kg"],["a third grader","30 kg"],["a bicycle","12 kg"],["a pencil","7 g"],["a medium dog","20 kg"],["a loaf of bread","500 g"],["a small car","1,200 kg"]];const it=pick(items);const o=rvStrOpts(it[1],items.filter(x=>x!==it).map(x=>x[1]));return{q:"About how much mass does "+it[0]+" have?",...o,teach:[{i:"📎",t:"Grams (g) are light — a paper clip is about 1 g."},{i:"🍚",t:"Kilograms (kg) are heavy — 1 kg = 1,000 g."},{i:"🎯",t:it[0].charAt(0).toUpperCase()+it[0].slice(1)+": about "+it[1]+"."}]};},
  massWP(){const n=2+rnd(5),each=pick([100,150,200,250]);const ans=n*each;return{q:"One apple has a mass of about "+each+" g. What is the mass of "+n+" apples?",...rvOpts(ans,each),teach:[{i:"🍎",t:n+" apples × "+each+" g."},{i:"✖️",t:n+" × "+each+"."},{i:"🎯",t:ans+" g."}]};},
  clock(){const h=1+rnd(12),m=rnd(60);const fmt=(hh,mm)=>hh+":"+(mm<10?"0":"")+mm;const wrongs=[fmt(h,(m+5)%60),fmt(m===0?h:(m%12||1),h%60),fmt(h%12+1,m)];return{q:"What time does the clock show?",vis:rvClock(h,m),...rvStrOpts(fmt(h,m),wrongs),teach:[{i:"🕐",t:"The short hand is the hour: it is past "+h+"."},{i:"🔢",t:"The long hand: count by 5s to "+(Math.floor(m/5)*5)+", then "+(m%5)+" more."},{i:"🎯",t:fmt(h,m)+"."}]};},
  elapsed(){const sh=1+rnd(10),sm=pick([0,15,30,45]);const dur=15+rnd(8)*15;let eh=sh,em=sm+dur;while(em>=60){em-=60;eh++;}const fmt=(hh,mm)=>hh+":"+(mm<10?"0":"")+mm;const k=rnd(2);
@@ -1806,7 +1818,7 @@ const RV_GEN={
  lineplot(){const vals=[];const base=pick([2,3]);for(let i=0;i<8;i++)vals.push(base+pick([0,0,0.5,0.5,1,1,1.5]));const k=rnd(2);const most=[...new Set(vals)].sort((a,b)=>vals.filter(v=>v===b).length-vals.filter(v=>v===a).length)[0];
   if(k===0)return{q:"How many pencils were measured in all?",vis:rvLinePlot(vals,"pencil length (inches)"),...rvOpts(vals.length,2),teach:[{i:"✕",t:"Each ✕ is one pencil."},{i:"🔢",t:"Count every ✕ above every number."},{i:"🎯",t:vals.length+" pencils."}]};
   return{q:"Which length was measured MOST often?",vis:rvLinePlot(vals,"pencil length (inches)"),...rvStrOpts(most+" inches",[...new Set(vals)].filter(v=>v!==most).map(v=>v+" inches").concat([(most+2)+" inches",(most+1.5)+" inches",(most-1)+" inches"])),teach:[{i:"👀",t:"Find the tallest stack of ✕s."},{i:"🔢",t:"That number has the most measurements."},{i:"🎯",t:most+" inches."}]};},
- polygon(){const shapes=[[3,"triangle"],[4,"quadrilateral"],[5,"pentagon"],[6,"hexagon"],[8,"octagon"]];const s=pick(shapes);const k=rnd(2);if(k===0)return{q:"What is this polygon called?",vis:rvPolygon(s[0]),...rvStrOpts(s[1],shapes.filter(x=>x!==s).map(x=>x[1])),teach:[{i:"🔢",t:"Count the sides: "+s[0]+"."},{i:"📚",t:"3 = triangle, 4 = quadrilateral, 5 = pentagon, 6 = hexagon, 8 = octagon."},{i:"🎯",t:"A "+s[1]+"."}]};
+ polygon(){const shapes=[[3,"triangle"],[4,"quadrilateral"],[5,"pentagon"],[6,"hexagon"],[7,"heptagon"],[8,"octagon"],[9,"nonagon"],[10,"decagon"],[12,"dodecagon"]];const s=pick(shapes);const k=rnd(2);if(k===0)return{q:"What is this polygon called?",vis:rvPolygon(s[0]),...rvStrOpts(s[1],shapes.filter(x=>x!==s).map(x=>x[1])),teach:[{i:"🔢",t:"Count the sides: "+s[0]+"."},{i:"📚",t:"A polygon's name tells how many sides it has."},{i:"🎯",t:"A "+s[1]+"."}]};
   return{q:"How many sides does a "+s[1]+" have?",...rvOpts(s[0],2),teach:[{i:"📚",t:"The name tells the number of sides."},{i:"🔢",t:s[1].charAt(0).toUpperCase()+s[1].slice(1)+" = "+s[0]+" sides."},{i:"🎯",t:s[0]+"."}]};},
  quad(L){const draw=(L.p||[])[0]==="draw";const keys=Object.keys(RV_QUADS);const k=pick(keys);const Q=RV_QUADS[k];const k2=rnd(2);
   if(draw||k2===1)return{q:"Which quadrilateral has "+Q.d+"?",...rvStrOpts(Q.n,keys.filter(x=>x!==k).map(x=>RV_QUADS[x].n)),teach:[{i:"🔍",t:"Check sides first, then angles."},{i:"📐",t:Q.n.charAt(0).toUpperCase()+Q.n.slice(1)+": "+Q.d+"."},{i:"🎯",t:"A "+Q.n+"."}]};
@@ -1857,25 +1869,32 @@ RV_WP.twoStepAdd=function(){const k=rnd(2);const nm=pick(RV_NAMES);const item=pi
    Same skills as RV_GEN (equal groups, arrays, commutative, sharing, grouping,
    relate, unknown), told as a short story. Original wording only. */
 const RV_PLACES=["bags","boxes","baskets","plates","jars","trays"];
-RV_WP.equalGroups=function(){const g=2+rnd(4),e=2+rnd(5);const ans=g*e;const nm=pick(RV_NAMES);const item=pick(RV_THINGS);const pl=pick(RV_PLACES);
+RV_WP.equalGroups=function(L,tier){const g=rvFactor(tier),e=rvFactor(tier);const ans=g*e;const nm=pick(RV_NAMES);const item=pick(RV_THINGS);const pl=pick(RV_PLACES);
   const o=rvStrOpts(g+" × "+e+" = "+ans,[g+" + "+e+" = "+(g+e),e+" × "+e+" = "+(e*e),g+" × "+(e+1)+" = "+(g*(e+1))]);
   return{q:nm+" puts "+e+" "+item+" in each of "+g+" "+pl+". Which multiplication equation shows how many "+item+" there are?",...o,teach:[{i:"👥",t:"There are "+g+" "+pl+" (groups) with "+e+" in each."},{i:"➕",t:Array(g).fill(e).join(" + ")+" = "+ans+"."},{i:"🎯",t:g+" × "+e+" = "+ans+" "+item+"."}]};};
-RV_WP.array=function(){const r=2+rnd(5),c=2+rnd(6);const ans=r*c;const nm=pick(RV_NAMES);const th=pick(["plants","chairs","tiles","desks","seeds","cups"]);
+RV_WP.array=function(L,tier){const r=rvFactor(tier),c=rvFactor(tier);const ans=r*c;const nm=pick(RV_NAMES);const th=pick(["plants","chairs","tiles","desks","seeds","cups"]);
   return{q:nm+" sets out "+th+" in "+r+" rows with "+c+" in every row. How many "+th+" are there in all?",...rvOpts(ans,5),teach:[{i:"↔️",t:"Rows go across: "+r+" rows."},{i:"↕️",t:"Each row has "+c+"."},{i:"🎯",t:r+" × "+c+" = "+ans+" "+th+"."}]};};
-RV_WP.commutative=function(){let a=2+rnd(8),b=2+rnd(8);while(a===b)b=2+rnd(8);const nm=pick(RV_NAMES);let f=pick(RV_NAMES);while(f===nm)f=pick(RV_NAMES);
+RV_WP.commutative=function(L,tier){let a=rvFactor(tier),b=rvFactor(tier);while(a===b)b=rvFactor(tier);const nm=pick(RV_NAMES);let f=pick(RV_NAMES);while(f===nm)f=pick(RV_NAMES);
   const o=rvStrOpts(b+" × "+a+" = "+(a*b),[a+" + "+b+" = "+(a+b),b+" × "+b+" = "+(b*b),a+" × "+(b+1)+" = "+(a*(b+1))]);
   return{q:nm+" lines up chairs in "+a+" rows of "+b+": "+a+" × "+b+" = "+(a*b)+". "+f+" turns the picture sideways. Which equation matches the turned picture?",...o,teach:[{i:"🔁",t:"Turning the array swaps rows and columns."},{i:"↩️",t:"Now it is "+b+" rows of "+a+"."},{i:"🎯",t:b+" × "+a+" = "+(a*b)+" too. Same total, factors switched."}]};};
-RV_WP.sharing=function(){const g=2+rnd(5),e=2+rnd(6);const total=g*e;const nm=pick(RV_NAMES);const item=pick(RV_THINGS);const pl=pick(RV_PLACES);
+RV_WP.sharing=function(L,tier){const g=rvFactor(tier),e=rvFactor(tier);const total=g*e;const nm=pick(RV_NAMES);const item=pick(RV_THINGS);const pl=pick(RV_PLACES);
   return{q:nm+" has "+total+" "+item+" and shares them equally into "+g+" "+pl+". How many "+item+" go in each?",...rvOpts(e,3),teach:[{i:"🤲",t:"Sharing equally is division: "+total+" ÷ "+g+"."},{i:"👥",t:"Deal them out one at a time into "+g+" "+pl+"."},{i:"🎯",t:e+" in each."}]};};
-RV_WP.grouping=function(){const g=2+rnd(6),e=2+rnd(5);const total=g*e;const nm=pick(RV_NAMES);const item=pick(RV_THINGS);const pl=pick(RV_PLACES);
+RV_WP.grouping=function(L,tier){const g=rvFactor(tier),e=rvFactor(tier);const total=g*e;const nm=pick(RV_NAMES);const item=pick(RV_THINGS);const pl=pick(RV_PLACES);
   return{q:nm+" has "+total+" "+item+" and puts "+e+" in each of the "+pl+". How many "+pl+" does "+nm+" fill?",...rvOpts(g,3),teach:[{i:"📦",t:"You know the size of each group ("+e+"). Find how many groups."},{i:"➗",t:total+" ÷ "+e+": count by "+e+"s up to "+total+"."},{i:"🎯",t:g+" "+pl+"."}]};};
-RV_WP.relate=function(){const r=2+rnd(6);let c=2+rnd(6);while(c===r)c=2+rnd(6);const p=r*c;const nm=pick(RV_NAMES);const th=pick(["seeds","stickers","stamps","shells"]);
+RV_WP.relate=function(L,tier){const r=rvFactor(tier);let c=rvFactor(tier);while(c===r)c=rvFactor(tier);const p=r*c;const nm=pick(RV_NAMES);const th=pick(["seeds","stickers","stamps","shells"]);
   const o=rvStrOpts(p+" ÷ "+r+" = "+c,[p+" ÷ "+c+" = "+(r*2),r+" ÷ "+c+" = "+p,p+" × "+r+" = "+c]);
   return{q:nm+" plants "+r+" rows of "+c+" "+th+": "+r+" × "+c+" = "+p+". Which division equation tells how many "+th+" go in each row when "+p+" are split into "+r+" rows?",...o,teach:[{i:"🔗",t:"Multiplication and division are partners."},{i:"➗",t:p+" split into "+r+" rows gives "+c+" in each."},{i:"🎯",t:p+" ÷ "+r+" = "+c+"."}]};};
-RV_WP.unknown=function(){const a=2+rnd(8),b=2+rnd(8);const nm=pick(RV_NAMES);const item=pick(RV_THINGS);const pl=pick(RV_PLACES);
+RV_WP.unknown=function(L,tier){const a=rvFactor(tier),b=rvFactor(tier);const nm=pick(RV_NAMES);const item=pick(RV_THINGS);const pl=pick(RV_PLACES);
   if(rnd(2)===0)return{q:nm+" has "+a+" "+pl+" with the same number of "+item+" in each. There are "+(a*b)+" "+item+" in all, so "+a+" × ? = "+(a*b)+". What is the unknown?",...rvOpts(b,3),teach:[{i:"❓",t:"Think: "+a+" times what makes "+(a*b)+"?"},{i:"➗",t:"Or divide: "+(a*b)+" ÷ "+a+"."},{i:"🎯",t:"? = "+b+" in each."}]};
   return{q:nm+" shared some "+item+" equally among "+a+" friends and each friend got "+b+". The equation is ? ÷ "+a+" = "+b+". How many "+item+" did "+nm+" start with?",...rvOpts(a*b,6),teach:[{i:"❓",t:"Something split into "+a+" groups gives "+b+" each."},{i:"✖️",t:"Multiply back: "+a+" × "+b+"."},{i:"🎯",t:"? = "+(a*b)+"."}]};};
-function revealGen(L,wp){const g=(wp&&RV_WP[L.g])||RV_GEN[L.g];const q=g(L);q.topic=q.topic||"reveal "+L.id;q.subject="math";q.level=2;q.reveal=L.id;const pr=g(L);q.practice={q:pr.q,opts:pr.opts,a:pr.a};return q;}
+function revealTier(L){const r=revealRec(L.id);if(!r||!r.tries)return 0;const a=(r.last!=null?r.last:r.best)/Math.max(1,r.total);return a>=0.85?1:(a<0.60?-1:0);} // latest attempt, so a bad day eases off
+function revealGen(L,wp,tier){
+  tier=Math.max(-1,Math.min(1,tier||0));const g=(wp&&RV_WP[L.g])||RV_GEN[L.g];
+  const q=g(L,tier);q.topic=q.topic||"reveal "+L.id;q.subject="math";q.level=3+tier;q.reveal=L.id;
+  let pr=g(L,tier),tries=0;pr.topic=q.topic;
+  while(questionSig(pr)===questionSig(q)&&tries++<120){pr=g(L,tier);pr.topic=q.topic;}
+  q.practice=questionSig(pr)===questionSig(q)?null:{q:pr.q,opts:pr.opts,a:pr.a};return q;
+}
 function revealLesson(id){return REVEAL_LESSONS.find(l=>l.id===id)}
 function revealRec(id){return P&&P.reveal&&P.reveal[id]}
 /* ---------- screens ---------- */
@@ -1909,7 +1928,7 @@ function renderRevealLesson(id){
   const L=revealLesson(id);if(!L)return renderReveal();
   clearTimers();closeOverlay();defocus();showAnanseCorner(false);
   const r=revealRec(id);
-  const sample=revealGen(L);
+  const sample=revealGen(L,false,revealTier(L));
   app.innerHTML='<div class="fadein" style="max-width:660px;margin:0 auto">'
    +'<div class="hud"><span class="pill">📘 <b>Reveal Math</b></span><span class="pill">Lesson '+esc(id)+'</span><span class="lvl-badge">Unit '+L.u+'</span></div>'
    +'<h1 style="margin-top:10px">'+esc(L.t)+'</h1>'
@@ -1920,14 +1939,25 @@ function renderRevealLesson(id){
 }
 function startReveal(id){
   const L=revealLesson(id);if(!L)return;
-  const qs=[];const seen=new Set();
-  for(let i=0;i<40&&qs.length<8;i++){const q=revealGen(L,(L.u===2||L.u===3)&&qs.length%2===1);if(seen.has(q.q+(q.vis||"")))continue;seen.add(q.q+(q.vis||""));qs.push(q);}
-  S={subject:"math",total:qs.length,n:0,correct:0,results:[],consecR:0,consecW:0,
+  P.revealAsked=P.revealAsked||{};P.revealAsked[id]=P.revealAsked[id]||{};
+  S={subject:"math",total:8,n:0,correct:0,results:[],consecR:0,consecW:0,
      sprintEnd:Date.now()+10*60*1000,qStart:0,cur:null,brokeAt:new Set(),xp:0,mode:"session",
      start:Date.now(),wpC:0,wpT:0,recallC:0,recallT:0,reviewC:0,reviewT:0,mfC:0,mfT:0,wpServed:true,phase:"main",seen:[],diff:0,tried:false,
-     lesson:"reveal:"+id,lessonQs:qs};
-  say("Lesson "+id+" practice. Take your time and think it through.");
+     lesson:"reveal:"+id,lessonQs:[],revealId:id,revealSeen:[],revealTier:revealTier(L),leadIn:"Lesson "+id+" practice. Take your time and think it through. "};
   nextQuestion();
+}
+function nextRevealQuestion(){
+  const L=revealLesson(S.revealId||S.lesson.slice(7));if(!L)return null;
+  const raised=S.n>=4&&S.results.slice(0,4).length===4&&S.results.slice(0,4).every(r=>r.correct);
+  const tier=Math.max(-1,Math.min(1,(S.revealTier||0)+(raised?1:0)));
+  const seen=new Set(S.revealSeen||[]),hist=(P.revealAsked||(P.revealAsked={}))[L.id]||{},cutoff=Date.now()-7*86400000;
+  const make=()=>revealGen(L,(L.u===2||L.u===3)&&S.n%2===1,tier);
+  let q=null,sig="";
+  for(let i=0;i<120;i++){const candidate=make(),s=questionSig(candidate);if(!seen.has(s)&&!(hist[s]>cutoff)){q=candidate;sig=s;break;}}
+  for(let i=0;!q&&i<120;i++){const candidate=make(),s=questionSig(candidate);if(!seen.has(s)){q=candidate;sig=s;break;}}
+  if(!q)return null;
+  S.revealSeen=S.revealSeen||[];S.revealSeen.push(sig);hist[sig]=Date.now();P.revealAsked[L.id]=capTimestampMap(hist,80);save();
+  return q;
 }
 
 </script>
@@ -2192,7 +2222,9 @@ function raceFinish(){
     P.xp+=xp;P.race=P.race||{};const prev=P.race[RC.T.id];
     P.race[RC.T.id]={time:prev&&prev.time<RC.time?prev.time:RC.time,place:Math.min(place,prev?prev.place:9),date:today()};
     if(place===1&&!P.trophies.some(t=>t.type==="race")&&typeof awardTrophy==="function")awardTrophy({type:"race",icon:"🏎️",label:"Grand Fable Champion",color:"#ffd166",detail:"Won a race on "+RC.T.name+"."});
+    if(typeof markTodayPlanDone==="function")markTodayPlanDone("race","race");
     save();
+    if(typeof syncProgress==="function")syncProgress("finish");
   }
   setTimeout(()=>{if(!RC)return;const wrap=document.querySelector(".race-wrap");if(wrap)wrap.insertAdjacentHTML("beforeend",'<div class="center fadein" style="margin-top:10px"><div class="btn-row"><button class="btn big" onclick="startRace2D(\''+RC.T.id+'\')">Race again 🔁</button><button class="btn secondary big" onclick="renderRace2D()">Circuits 🏁</button><button class="btn secondary big" onclick="'+(P?'renderHome()':'renderProfiles()')+'">Home 🏠</button></div></div>');},1200);
 }
@@ -2999,7 +3031,7 @@ function gpPlaySong(){GPA.init();const s=window._gpSong||[];if(!s.length){toast(
 function gpFinishFree(){R3.done=true;const got=R3.notesGot,tot=R3.notesTotal,tunes=Math.floor(got/8);const xp=10+Math.min(20,Math.floor(got/3));
   const w0=$("gp3");if(w0)w0.classList.add("done");GPA.play("fanfare");if(got>=tot*0.8)confetti();
   say("Trip complete! You collected "+got+" music notes.");
-  let earned=0;if(P){earned=xp;P.xp+=xp;P.race=P.race||{};const prev=P.race[R3.C.id]||{};P.race[R3.C.id]=Object.assign({},prev,{notes:Math.max(got,prev.notes||0),date:today()});save();}
+  let earned=0;if(P){earned=xp;P.xp+=xp;P.race=P.race||{};const prev=P.race[R3.C.id]||{};P.race[R3.C.id]=Object.assign({},prev,{notes:Math.max(got,prev.notes||0),date:today()});if(typeof markTodayPlanDone==="function")markTodayPlanDone("race","race");save();if(typeof syncProgress==="function")syncProgress("finish");}
   window._gpSong=R3.song.slice();
   setTimeout(()=>{if(!R3)return;GPA.stopEngine();const w=$("gp3");if(!w)return;w.insertAdjacentHTML("beforeend",'<div class="gp3-finish"><div class="fz-fin-t">Trip complete! 🎵</div><div class="fz-fin-s" style="font-size:1.25em;margin:8px 0">'+got+' of '+tot+' notes · '+tunes+' tune'+(tunes===1?'':'s')+' · '+gpFmt(R3.time)+(earned?' · +'+earned+' XP':'')+'</div><div class="btn-row" style="margin-top:12px"><button class="btn big" onclick="gpPlaySong()">▶ Play my song</button><button class="btn secondary big" onclick="startRace3D(\''+R3.C.id+'\')">Drive again 🔁</button><button class="btn secondary big" onclick="renderCircuits()">Routes 🗺️</button></div></div>');},1300);}
 function gpFinish(){
@@ -3010,7 +3042,7 @@ function gpFinish(){
   say(place===1?"You win at "+R3.C.name+"! Festival champion!":"You finished "+gpOrd(place)+". Great driving!");
   let earned=0;
   if(P){earned=xp;P.xp+=xp;P.race=P.race||{};const prev=P.race[R3.C.id]||{};P.race[R3.C.id]={time:prev.time&&prev.time<R3.time?prev.time:R3.time,place:Math.min(place,prev.place||9),skill:Math.max(skill,prev.skill||0),trap:Math.max(R3.trapBest,prev.trap||0),date:today()};
-    if(place===1&&!P.trophies.some(t=>t.type==="race")&&typeof awardTrophy==="function")awardTrophy({type:"race",icon:"🏎️",label:"Grand Fable Champion",color:"#ff2d87",detail:"Won the Grand Fable GP at "+R3.C.name+"."});save();}
+    if(place===1&&!P.trophies.some(t=>t.type==="race")&&typeof awardTrophy==="function")awardTrophy({type:"race",icon:"🏎️",label:"Grand Fable Champion",color:"#ff2d87",detail:"Won the Grand Fable GP at "+R3.C.name+"."});if(typeof markTodayPlanDone==="function")markTodayPlanDone("race","race");save();if(typeof syncProgress==="function")syncProgress("finish");}
   const rows=R3.board.map((k,i)=>'<div class="'+(k.player?"me":"")+'"><i>'+gpOrd(i+1)+'</i><span>'+esc(k.racer.n)+'</span><span>'+esc(k.racer.car.n)+'</span></div>').join("");
   setTimeout(()=>{if(!R3)return;GPA.stopEngine();const w=$("gp3");if(!w)return;w.insertAdjacentHTML("beforeend",'<div class="gp3-finish"><div class="fz-fin-t">'+gpOrd(place).toUpperCase()+' PLACE</div><div class="fz-res">'+rows+'</div><div class="fz-fin-s">'+gpFmt(R3.time)+' · Skill '+gpNum(skill)+(R3.trapBest?' · Speed trap '+R3.trapBest+' km/h':'')+(earned?' · +'+earned+' XP':'')+'</div><div class="btn-row" style="margin-top:12px"><button class="btn big" onclick="startRace3D(\''+R3.C.id+'\')">Race again 🔁</button><button class="btn secondary big" onclick="renderCircuits()">Routes 🏁</button><button class="btn secondary big" onclick="renderRace()">Cars 🚗</button></div></div>');},1300);
 }
@@ -3033,6 +3065,7 @@ const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth
 const addDays=(iso,n)=>{const d=new Date(iso+"T12:00:00");d.setDate(d.getDate()+n);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 const dayOfYear=()=>{const d=new Date();return Math.floor((d-new Date(d.getFullYear(),0,0))/864e5)};
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const appVersion="2026-10-04-review-fixes";
 /* Mix a hex color toward the brand ink — used for vivid gradient cards */
 function shadeInk(hex,f){
   const h=String(hex).replace("#",""),to=[31,60,112];
@@ -3046,6 +3079,7 @@ const fmtTime=ms=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.floor(s/60
 const DBKEY="plz_v1";
 function defaultDB(){return{profiles:[],pin:null,sound:true,telegram:{token:"",chat:"",time:"19:00",lastSent:""},ananse:{url:"",key:""},voice:{name:"",rate:1.0,pitch:1.05},kingdom:{enabled:true,v2:true},lastProfile:null}}
 let DB; try{DB=JSON.parse(localStorage.getItem(DBKEY))||defaultDB()}catch(e){DB=defaultDB()}
+let FOCUS=(DB.focus&&typeof DB.focus==="object")?DB.focus:{};
 if(!DB.ananse)DB.ananse={url:"",key:""};
 if(!DB.plantnet)DB.plantnet={key:""};
 if(!DB.voice)DB.voice={name:"",rate:1.0,pitch:1.05};
@@ -3068,6 +3102,26 @@ function save(){try{
   // Guardian copy: any time we have real profile data, keep a second snapshot
   if(DB.profiles&&DB.profiles.length)localStorage.setItem("plz_guard",JSON.stringify({saved:Date.now(),data:DB}));
 }catch(e){}}
+function cleanFocus(j){
+  if(!j||typeof j!=="object"||Array.isArray(j))return null;
+  const subjects={};
+  if(j.subjects&&typeof j.subjects==="object")Object.keys(j.subjects).forEach(k=>{const n=+j.subjects[k];if(Number.isFinite(n))subjects[k]=n;});
+  return{updated:typeof j.updated==="string"?j.updated:"",note:typeof j.note==="string"?j.note:"",
+    topics:Array.isArray(j.topics)?j.topics.filter(x=>typeof x==="string").slice(0,50):[],
+    reveal:Array.isArray(j.reveal)?j.reveal.filter(x=>typeof x==="string").slice(0,100):[],subjects};
+}
+function loadSchoolFocus(done){
+  let ctrl=null,timer=null;
+  try{
+    if(typeof fetch!=="function"){if(done)done();return;}
+    if(typeof AbortController!=="undefined"){ctrl=new AbortController();timer=setTimeout(()=>ctrl.abort(),5000);}
+    fetch("focus.json?t="+Date.now(),{cache:"no-store",signal:ctrl?ctrl.signal:undefined})
+      .then(r=>r.ok?r.json():Promise.reject())
+      .then(j=>{const good=cleanFocus(j);if(!good)return;FOCUS=good;DB.focus=good;save();})
+      .catch(()=>{})
+      .finally(()=>{if(timer)clearTimeout(timer);if(done)done();});
+  }catch(e){if(timer)clearTimeout(timer);if(done)done();}
+}
 /* Self-heal: if profiles ever vanish unexpectedly (stale tab overwrite,
    storage eviction), restore them from the guardian snapshot. */
 try{
@@ -3076,6 +3130,7 @@ try{
     if(_g&&_g.data&&_g.data.profiles&&_g.data.profiles.length){DB=_g.data;save();}
   }
 }catch(e){}
+if(DB.focus&&typeof DB.focus==="object")FOCUS=DB.focus;
 /* ---------- mid-lesson auto-save & resume ---------- */
 function sessSave(){
   try{
@@ -3101,6 +3156,42 @@ function sessTryResume(){
 function sessResumeBtn(){if(!sessTryResume()){toast("Nothing to continue");renderHome();}}
 let P=null; // active profile
 let S=null; // active session
+
+function logQuestion(mode,subject,topic,lesson,q,ok,tries,ms){
+  if(!P)return;
+  P.qlog=P.qlog||[];
+  P.qlog.push({t:Date.now(),mode:mode,subject:subject||"",topic:topic||"",lesson:lesson||null,
+    q:String(q||"").slice(0,140),ok:!!ok,tries:Math.max(0,+tries||0),ms:Math.max(0,Math.round(+ms||0))});
+  P.qlog=P.qlog.slice(-400);
+  save();
+}
+function sessionQuestionMode(){
+  if(!S)return"practice";
+  if(S.lesson&&S.lesson.indexOf("reveal:")===0)return"reveal";
+  if(S.lesson)return"lesson";
+  if(S.phase==="review"||S.warmupOnly)return"review";
+  return"practice";
+}
+let _progressSyncBusy=false,_progressSyncPending=false;
+function syncProgress(reason){
+  try{
+    if(!P||typeof fetch!=="function"||!voiceBase())return;
+    DB.progressSyncAt=DB.progressSyncAt||{};
+    if(reason==="open"&&Date.now()-(DB.progressSyncAt[P.id]||0)<600000)return;
+    if(_progressSyncBusy){if(reason!=="open")_progressSyncPending=true;return;}
+    const profile=P,base=voiceBase();
+    const payload={id:profile.id,name:profile.name,grade:profile.grade,levels:profile.levels,streak:profile.streak,
+      bestStreak:profile.bestStreak,trophies:(profile.trophies||[]).length,xp:profile.xp,
+      sessions:(profile.sessions||[]).slice(-300),reveal:profile.reveal||{},lessons:profile.lessons||{},lab:profile.lab||{},
+      wrongLog:(profile.wrongLog||[]).slice(-150),qlog:(profile.qlog||[]).slice(-400),sm2:profile.sm2||{},
+      schoolFocus:Array.isArray(FOCUS.topics)?FOCUS.topics:[],appVersion};
+    _progressSyncBusy=true;
+    fetch(base+"/progress",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)})
+      .then(r=>{if(!r.ok)throw new Error("progress");if(reason==="open"){DB.progressSyncAt[profile.id]=Date.now();save();}})
+      .catch(()=>{})
+      .finally(()=>{_progressSyncBusy=false;if(_progressSyncPending){_progressSyncPending=false;syncProgress("finish");}});
+  }catch(e){_progressSyncBusy=false;}
+}
 
 function newProfile(name,avatar){return{
   id:Date.now()+""+rnd(999),name,avatar,color:null,pin:null,created:today(),
@@ -3177,117 +3268,150 @@ let VOICE_MAP=null, _voiceAudio=null, _spkSeq=0;
    and fell back to the robot voice (Eb, 4 Oct 2026). Fix: ONE shared element, unlocked on the first tap. */
 const _VOICE_EL=(typeof Audio!=="undefined")?new Audio():null;
 let _voiceUnlocked=false;
+let _pendingSpeech="";
+let _voiceCtrl=null,_voiceFinish=null;
+let _voiceManifestDone=false;
+const voiceManifestReady=fetch("voice/manifest.json").then(r=>r.ok?r.json():{})
+  .then(m=>{VOICE_MAP=m||{};_voiceManifestDone=true;drainPendingSpeech();return VOICE_MAP;})
+  .catch(()=>{VOICE_MAP={};_voiceManifestDone=true;drainPendingSpeech();return VOICE_MAP;});
+function drainPendingSpeech(){
+  voiceManifestReady.then(()=>{if(_voiceUnlocked&&_pendingSpeech){const t=_pendingSpeech;_pendingSpeech="";say(t);}});
+}
 function unlockVoice(){
-  if(_voiceUnlocked||!_VOICE_EL)return;
+  if(_voiceUnlocked)return;
+  if(!_VOICE_EL){_voiceUnlocked=true;drainPendingSpeech();return;}
   try{
     _VOICE_EL.src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYyLjEyLjEwMAAAAAAAAAAAAAAA//OEwAAAAAAAAAAAAEluZm8AAAAPAAAACQAABCAARUVFRUVFRUVFRUVdXV1dXV1dXV1dXXR0dHR0dHR0dHR0i4uLi4uLi4uLi4uioqKioqKioqKiorq6urq6urq6urq60dHR0dHR0dHR0dHo6Ojo6Ojo6Ojo6P//////////////AAAAAExhdmM2Mi4yOAAAAAAAAAAAAAAAACQD8AAAAAAAAAQgDeZekgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//NExAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExFMAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKYAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NExKwAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NExKwAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV";
     const pr=_VOICE_EL.play();
-    if(pr&&pr.then)pr.then(()=>{_voiceUnlocked=true;try{_VOICE_EL.pause()}catch(e){}}).catch(()=>{});
-    else _voiceUnlocked=true;
+    if(pr&&pr.then)pr.then(()=>{_voiceUnlocked=true;try{_VOICE_EL.pause()}catch(e){}drainPendingSpeech();}).catch(()=>{});
+    else{_voiceUnlocked=true;drainPendingSpeech();}
   }catch(e){}
 }
 ["touchend","pointerup","click","keydown"].forEach(ev=>{try{document.addEventListener(ev,unlockVoice,{capture:true,passive:true})}catch(e){}});
 function voiceEl(url){
-  const a=_VOICE_EL||new Audio();
-  try{a.pause()}catch(e){}
-  a.src=url;a.playbackRate=(DB.voice&&DB.voice.rate)||1.0;
-  return a;
+  if(!_VOICE_EL)throw new Error("shared voice element unavailable");
+  try{_VOICE_EL.pause()}catch(e){}
+  _VOICE_EL.src=url;_VOICE_EL.playbackRate=1;
+  return _VOICE_EL;
 }
 function voiceKey(t){
-  return String(t).replace(/[*_#]/g,"").replace(/\s+/g," ").trim();
+  return String(t).normalize("NFC").replace(/[*_#]/g,"").replace(/\s+/g," ").trim();
 }
-fetch("voice/manifest.json").then(r=>r.ok?r.json():null)
-  .then(m=>{VOICE_MAP=m||{}}).catch(()=>{VOICE_MAP={}});
+function cancelVoiceWork(){
+  if(_voiceCtrl){try{_voiceCtrl.abort()}catch(e){}_voiceCtrl=null;}
+  if(_voiceFinish){const done=_voiceFinish;_voiceFinish=null;done(false);}
+  if(_voiceAudio){try{_voiceAudio.pause()}catch(e){}_voiceAudio=null;}
+  if(_VOICE_EL){_VOICE_EL.onended=null;_VOICE_EL.onerror=null;try{_VOICE_EL.pause()}catch(e){}}
+}
 function stopRecorded(){
   _spkSeq++;
-  if(_voiceAudio){try{_voiceAudio.pause()}catch(e){}_voiceAudio=null}
-  if(_VOICE_EL){try{_VOICE_EL.pause()}catch(e){}}
+  cancelVoiceWork();
 }
-function sayRecorded(text){
+function playVoiceUrl(url,seq){
+  return new Promise(resolve=>{
+    if(seq!==_spkSeq)return resolve(false);
+    try{
+      const a=voiceEl(url);_voiceAudio=a;
+      let settled=false;
+      const finish=ok=>{if(settled)return;settled=true;if(_voiceFinish===finish)_voiceFinish=null;a.onended=null;a.onerror=null;resolve(ok);};
+      _voiceFinish=finish;a.onended=()=>finish(seq===_spkSeq);a.onerror=()=>finish(false);
+      const pr=a.play();if(pr&&pr.catch)pr.catch(()=>finish(false));
+    }catch(e){resolve(false);}
+  });
+}
+function canUseLive(text){
+  return !!(voiceBase()&&text.length>1&&typeof fetch==="function"&&navigator.onLine!==false);
+}
+function fetchTeacherPart(text,seq){
+  const key=voiceKey(text);
+  if(!canUseLive(key)||Date.now()<=_voiceDownUntil)return Promise.resolve(false);
+  if(_spkCache[key])return playVoiceUrl(_spkCache[key],seq);
+  const ctrl=(typeof AbortController!=="undefined")?new AbortController():null;_voiceCtrl=ctrl;
+  const timer=ctrl?setTimeout(()=>ctrl.abort(),13000):null;
+  return fetch(voiceBase()+"/speak",{method:"POST",headers:ananseHeaders(),body:JSON.stringify({text:key}),signal:ctrl?ctrl.signal:undefined})
+    .then(r=>{if(timer)clearTimeout(timer);if(!r.ok)throw new Error("no voice");_voiceFails=0;_voiceDownUntil=0;return r.blob();})
+    .then(b=>{
+      if(seq!==_spkSeq)return false;
+      const u=URL.createObjectURL(b),ks=Object.keys(_spkCache);
+      if(ks.length>60){try{URL.revokeObjectURL(_spkCache[ks[0]])}catch(e){}delete _spkCache[ks[0]];}
+      _spkCache[key]=u;return playVoiceUrl(u,seq);
+    })
+    .catch(()=>{if(timer)clearTimeout(timer);if(seq===_spkSeq&&++_voiceFails>=3)_voiceDownUntil=Date.now()+60000;return false;})
+    .finally(()=>{if(_voiceCtrl===ctrl)_voiceCtrl=null;});
+}
+function sayDevice(text,seq){
+  return new Promise(resolve=>{
+    if(!DB.sound||!("speechSynthesis" in window)||seq!==_spkSeq)return resolve(false);
+    try{
+      speechSynthesis.cancel();try{speechSynthesis.resume();}catch(e){}
+      const clean=naturalise(String(text).replace(/[*_#]/g,""));
+      const u=new SpeechSynthesisUtterance(clean);if(!ananseVoice)pickVoice();if(ananseVoice)u.voice=ananseVoice;
+      u.rate=(DB.voice&&DB.voice.rate)||1.0;u.pitch=(DB.voice&&DB.voice.pitch)||1.05;
+      let settled=false;const finish=ok=>{if(settled)return;settled=true;resolve(ok);};
+      u.onend=()=>finish(seq===_spkSeq);
+      u.onerror=e=>{
+        const kind=e&&e.error;
+        if(seq!==_spkSeq||kind==="interrupted"||kind==="canceled"||u._retried)return finish(false);
+        u._retried=true;
+        try{ananseVoice=null;const v=new SpeechSynthesisUtterance(clean);v.rate=u.rate;v.pitch=u.pitch;v.onend=()=>finish(true);v.onerror=()=>finish(false);speechSynthesis.speak(v);}catch(err){finish(false);}
+      };
+      setTimeout(()=>{if(seq!==_spkSeq)return finish(false);try{speechSynthesis.speak(u);}catch(e){finish(false);}},60);
+      if(_sayKeepAlive)clearInterval(_sayKeepAlive);
+      _sayKeepAlive=setInterval(()=>{try{if(speechSynthesis.speaking){speechSynthesis.pause();speechSynthesis.resume();}else{clearInterval(_sayKeepAlive);_sayKeepAlive=null;}}catch(e){}},9000);
+    }catch(e){resolve(false);}
+  });
+}
+async function playTeacherPart(text,seq){
+  if(seq!==_spkSeq)return false;
+  const key=voiceKey(text),file=VOICE_MAP&&VOICE_MAP[key];
+  if(file&&await playVoiceUrl("voice/"+file,seq))return true;
+  if(seq!==_spkSeq)return false;
+  if(await fetchTeacherPart(key,seq))return true;
+  if(seq!==_spkSeq)return false;
+  return sayDevice(key,seq);
+}
+function voiceChunks(text,max){
+  max=max||300;const src=voiceKey(text),sentences=src.match(/[^.!?]+[.!?]+|[^.!?]+$/g)||[src],out=[];let part="";
+  const add=piece=>{for(let word of piece.trim().split(/\s+/)){if(!word)continue;while(word.length>max){if(part){out.push(part);part="";}out.push(word.slice(0,max));word=word.slice(max);}if(part&&(part+" "+word).length>max){out.push(part);part=word;}else part+=(part?" ":"")+word;}};
+  sentences.forEach(s=>{const clean=s.trim();if(part&&part.length+1+clean.length>max){out.push(part);part="";}add(clean);});
+  if(part)out.push(part);return out;
+}
+function finishSpeech(seq,opts){if(seq===_spkSeq&&opts&&typeof opts.onend==="function")opts.onend();}
+function sayRecorded(text,opts){
   if(!VOICE_MAP)return false;
-  const f=VOICE_MAP[voiceKey(text)];
+  const key=voiceKey(text),f=VOICE_MAP[key];
   if(!f)return false;
-  try{
-    stopRecorded();
-    try{speechSynthesis.cancel()}catch(e){}
-    const a=voiceEl("voice/"+f);
-    _voiceAudio=a;
-    const pr=a.play();
-    if(pr&&pr.catch)pr.catch(()=>{sayDevice(text)});  // autoplay blocked → fall back
-    return true;
-  }catch(e){return false}
+  const seq=++_spkSeq;cancelVoiceWork();try{speechSynthesis.cancel()}catch(e){}
+  (async()=>{if(!await playVoiceUrl("voice/"+f,seq)&&seq===_spkSeq){if(!await fetchTeacherPart(key,seq)&&seq===_spkSeq)await sayDevice(key,seq);}finishSpeech(seq,opts);})();
+  return true;
 }
 /* Lines made up on the spot (maths, names, results) get the SAME teacher voice from the Ananse
    server; the phone's own voice is only the last resort (server off, offline, or too slow). */
 let _spkCache={};
-function sayLive(text){
-  try{speechSynthesis.cancel()}catch(e){}
-  stopRecorded();                                  // also bumps _spkSeq, so take our number AFTER it
-  const seq=++_spkSeq, key=voiceKey(text);
-  const play=(url)=>{
-    if(seq!==_spkSeq)return;                       // a newer line took over while we waited
-    try{
-      const a=voiceEl(url);_voiceAudio=a;
-      const pr=a.play();if(pr&&pr.catch)pr.catch(()=>{if(seq===_spkSeq)sayDevice(text)});
-    }catch(e){sayDevice(text)}
-  };
-  if(_spkCache[key]){play(_spkCache[key]);return;}
-  const ctrl=(typeof AbortController!=="undefined")?new AbortController():null;
-  const t=ctrl?setTimeout(()=>ctrl.abort(),13000):null;   // long lesson lines take ~8 s to make the first time
-  fetch(voiceBase()+"/speak",{method:"POST",headers:ananseHeaders(),body:JSON.stringify({text:key}),signal:ctrl?ctrl.signal:undefined})
-    .then(r=>{if(t)clearTimeout(t);if(!r.ok)throw new Error("no voice");_voiceFails=0;return r.blob()})
-    .then(b=>{const u=URL.createObjectURL(b);
-      const ks=Object.keys(_spkCache);if(ks.length>60){try{URL.revokeObjectURL(_spkCache[ks[0]])}catch(e){}delete _spkCache[ks[0]];}
-      _spkCache[key]=u;play(u)})
-    .catch(()=>{if(t)clearTimeout(t);if(++_voiceFails>=2)_voiceDownUntil=Date.now()+180000;if(seq===_spkSeq)sayDevice(text)});
-}
+function sayLive(text,opts){const seq=++_spkSeq,key=voiceKey(text);cancelVoiceWork();try{speechSynthesis.cancel()}catch(e){};(async()=>{if(!await fetchTeacherPart(key,seq)&&seq===_spkSeq)await sayDevice(key,seq);finishSpeech(seq,opts);})();}
 /* The teacher voice works on EVERY device (Eb, 4 Oct 2026), not only ones with the tutor key: the voice
-   server address comes from tutor.json. After 2 failures in a row (offline / Mac asleep) go straight to the
-   device voice for 3 minutes so lines aren't delayed. */
+   server address comes from tutor.json. After 3 failures in a row (offline / Mac asleep) use a short
+   60-second cool-down so a recovered teacher voice returns quickly. */
 let _voiceFails=0,_voiceDownUntil=0;
 function voiceBase(){return ananseBase()||((DB.voiceUrl||"").trim().replace(/\/+$/,""))}
-function say(text){
-  if(!DB.sound)return;
-  if(sayRecorded(text))return;
-  const k=voiceKey(text);
-  if(voiceBase()&&Date.now()>_voiceDownUntil&&k.length>1&&k.length<=320&&typeof fetch==="function"&&navigator.onLine!==false){sayLive(text);return;}
-  sayDevice(text);
+function sayQueued(text,opts){
+  const seq=++_spkSeq;cancelVoiceWork();try{speechSynthesis.cancel()}catch(e){}
+  (async()=>{for(const part of voiceChunks(text,300)){if(seq!==_spkSeq)return;await playTeacherPart(part,seq);}finishSpeech(seq,opts);})();
 }
-function sayDevice(text){
-  if(!DB.sound||!("speechSynthesis" in window))return;
-  try{
-    speechSynthesis.cancel();
-    try{speechSynthesis.resume();}catch(e){}
-    const clean=naturalise(String(text).replace(/[*_#]/g,""));
-    const u=new SpeechSynthesisUtterance(clean);
-    if(!ananseVoice)pickVoice();
-    if(ananseVoice)u.voice=ananseVoice;
-    u.rate=(DB.voice&&DB.voice.rate)||1.0;
-    u.pitch=(DB.voice&&DB.voice.pitch)||1.05;
-    u.onerror=function(e){
-      // "interrupted"/"canceled" just means newer speech took over — never retry those
-      const kind=e&&e.error;
-      if(kind==="interrupted"||kind==="canceled"||u._retried)return;
-      u._retried=true;
-      // Real failure (e.g. a network voice while offline) — retry once with the device default
-      try{
-        ananseVoice=null;
-        const v=new SpeechSynthesisUtterance(clean);
-        v.rate=u.rate;v.pitch=u.pitch;
-        speechSynthesis.speak(v);
-      }catch(err){}
-    };
-    // Chrome drops speak() fired in the same tick as cancel(); tiny delay fixes it
-    setTimeout(()=>{try{speechSynthesis.speak(u);}catch(e){}},60);
-    // Chrome also freezes long readings after ~15s — nudge it awake while speaking
-    if(_sayKeepAlive)clearInterval(_sayKeepAlive);
-    _sayKeepAlive=setInterval(()=>{
-      try{
-        if(speechSynthesis.speaking){speechSynthesis.pause();speechSynthesis.resume();}
-        else{clearInterval(_sayKeepAlive);_sayKeepAlive=null;}
-      }catch(e){}
-    },9000);
-  }catch(e){}
+function say(text,opts){
+  if(!DB.sound){finishSpeech(_spkSeq,opts);return;}
+  const k=voiceKey(text);if(!k){finishSpeech(_spkSeq,opts);return;}
+  if(!_voiceUnlocked||!_voiceManifestDone){_pendingSpeech=k;return;}
+  if(sayRecorded(k,opts))return;
+  sayQueued(k,opts);
+}
+function sayAfterUnlock(text){
+  if(_voiceUnlocked){voiceManifestReady.then(()=>say(text));return;}
+  _pendingSpeech=text;
+}
+function sayAndThen(text,cb,maxMs){
+  let done=false;const finish=()=>{if(done)return;done=true;if(timer)clearTimeout(timer);cb();};
+  const timer=setTimeout(finish,maxMs||12000);say(text,{onend:finish});
 }
 // Browsers block audio/speech until the first user gesture — unlock both on first tap
 window.addEventListener("pointerdown",function(){
@@ -3731,13 +3855,27 @@ function(){const g=3+rnd(3),p=4+rnd(4);const total=g*p;const o=numOpts(total,6);
  teach:[{i:"📅",t:g+" games remain, "+p+" assists in each."},{i:"✖️",t:"Multiply the pace by the games: "+g+" × "+p+"."},{i:"🎯",t:g+" × "+p+" = "+total+" more assists."}]}}
 ]
 };
+function questionSig(q){
+  if(!q)return "";
+  if(q.sig)return String(q.sig);
+  const source=[q.q||"",q.opts&&q.a!=null?q.opts[q.a]:""].concat((q.teach||[]).map(x=>x.t||"")).join(" ");
+  const nums=source.match(/\d+(?:\.\d+)?(?:\/\d+)?/g)||[];
+  const topic=String(q.topic||q.subject||"question").toLowerCase().trim();
+  const words=(q.q||"")+"|"+(q.opts&&q.a!=null?q.opts[q.a]:"");
+  return topic+"|"+(nums.length?nums.join(","):voiceKey(words).toLowerCase());
+}
+function capTimestampMap(map,max){
+  const keys=Object.keys(map||{});if(keys.length<=max)return map;
+  keys.sort((a,b)=>(map[b]||0)-(map[a]||0));const kept={};keys.slice(0,max).forEach(k=>kept[k]=map[k]);return kept;
+}
 function genMath(lvl){
   const g=pick(MATH_GENS[lvl]);
   const q=g();
   q.topic=q.topic||"math";
   // practice = a fresh question of the same kind
-  const pr=g();
-  q.practice={q:pr.q,opts:pr.opts,a:pr.a};
+  let pr=g(),tries=0;
+  while(questionSig(pr)===questionSig(q)&&tries++<120)pr=g();
+  q.practice=questionSig(pr)===questionSig(q)?null:{q:pr.q,opts:pr.opts,a:pr.a};
   q.subject="math";q.level=lvl;
   return q;
 }
@@ -3763,7 +3901,12 @@ const WP_SINGLE=[
    teach:[{i:"🪙",t:"Show "+have+"¢ in coins."},{i:"➖",t:"Take away "+cost+"¢ for the card."},{i:"🎯",t:have+" − "+cost+" = "+ans+"¢ left."}]}}
 ];
 const WP_TWO=MATH_GENS[4].filter(f=>true); // reuse two-step gens (they carry topic:"word problems")
-function wpMastered(){return (P&&P.levels.math>=4)&&(P&&P.stats&&P.stats.strategy>=60)}
+function recentMetric(correctField,totalField,n){
+  const ss=((P&&P.sessions)||[]).filter(s=>(s[totalField]||0)>0).slice(-(n||3));
+  const correct=ss.reduce((sum,s)=>sum+(s[correctField]||0),0),total=ss.reduce((sum,s)=>sum+(s[totalField]||0),0);
+  return total?correct/total:null;
+}
+function wpMastered(){const a=recentMetric("wpC","wpT",3);return !!(P&&P.levels.math>=4&&a!==null&&a>=0.8)}
 function genWordProblem(){
   const two=wpMastered()&&Math.random()<0.6;
   let q;
@@ -3777,7 +3920,9 @@ function genWordProblem(){
     q=pick(WP_SINGLE)();
   }
   q.subject="math";q.level=two?4:Math.max(1,Math.min(3,P?P.levels.math:1));
-  const pr=(two?MATH_GENS[4][0]:pick(WP_SINGLE))();q.practice={q:pr.q,opts:pr.opts,a:pr.a};
+  const pg=two?MATH_GENS[4][0]:pick(WP_SINGLE);let pr=pg(),tries=0;
+  while(questionSig(pr)===questionSig(q)&&tries++<120)pr=pg();
+  q.practice=questionSig(pr)===questionSig(q)?null:{q:pr.q,opts:pr.opts,a:pr.a};
   return q;
 }
 
@@ -3797,21 +3942,19 @@ function topicSubject(topic){
 }
 
 function getQuestion(subject,lvl){
+  P.askedAt=P.askedAt||{};
   lvl=Math.max(1,Math.min(5,lvl));
   if(subject==="math"){
     // weekly goal weighting for math topics
     const goal=P&&P.weeklyGoal.topic;
-    /* Generated math can repeat the identical sum back-to-back. Keep a short
-       memory of recent prompts and re-roll when one comes up again. */
-    const recent=(P&&(P._recentMath=P._recentMath||[]))||[];
-    const isDupe=q=>q&&recent.indexOf(q.q)>=0;
-    const remember=q=>{if(!q||!P)return q;recent.push(q.q);if(recent.length>12)recent.shift();return q;};
+    const recent=P.mathAsked||(P.mathAsked={}),cutoff=Date.now()-7*86400000;
+    const isDupe=q=>q&&((recent[questionSig(q)]||0)>cutoff);
     if(goal&&topicSubject(goal)==="math"&&Math.random()<0.5){
-      for(let tries=0;tries<8;tries++){const q=genMath(lvl);if(q.topic===goal&&!isDupe(q))return remember(q)}
+      for(let tries=0;tries<24;tries++){const q=genMath(lvl);if(q.topic===goal&&!isDupe(q))return q;}
     }
     let q=genMath(lvl);
     for(let tries=0;tries<10&&isDupe(q);tries++)q=genMath(lvl);
-    return remember(q);
+    return q;
   }
   let pool=BANK[subject][lvl].slice();
   const goal=P&&P.weeklyGoal.topic;
@@ -3841,25 +3984,33 @@ function getQuestion(subject,lvl){
   const q=Object.assign({},chosen);
   q.id=idOf(chosen);
   P.askedAt[q.id]=Date.now();
+  P.askedAt=capTimestampMap(P.askedAt,300);
   P._lastQid=q.id;
   q.subject=subject;q.level=lvl;
   return q;
 }
 /* build one question for a specific topic (used by opening review #6) */
-function questionForTopic(topic){
+function questionForTopic(topic,exclude){
+  exclude=exclude||new Set();
   const subj=topicSubject(topic);
   const lvl=Math.max(1,Math.min(5,(P&&P.levels[subj])||1));
   if(subj==="math"){
-    if(topic==="word problems")return genWordProblem();
-    for(let i=0;i<12;i++){const q=genMath(lvl);if(q.topic===topic)return q;}
-    return genMath(lvl);
+    const make=()=>topic==="word problems"?genWordProblem():genMath(lvl);
+    for(let i=0;i<60;i++){
+      const q=make(),sig=questionSig(q),asked=(P.askedAt||(P.askedAt={}))["sig:"+sig]||0;
+      if(q.topic===topic&&!exclude.has(sig)&&Date.now()-asked>7*86400000){P.askedAt["sig:"+sig]=Date.now();P.askedAt=capTimestampMap(P.askedAt,300);return q;}
+    }
+    return null;
   }
   const bank=BANK[subj]&&BANK[subj][lvl]?BANK[subj][lvl]:null;
   if(!bank)return null;
   let pool=bank.filter(q=>q.topic===topic);
-  if(!pool.length)pool=lessonQuestions(subj).filter(q=>q.topic===topic); // lesson topics live in lessons.js
-  const src=pool.length?pool:bank;
-  const q=Object.assign({},pick(src));
+  if(!pool.length)pool=lessonQuestions(subj,P.grade).filter(q=>q.topic===topic); // stay at the learner's grade
+  if(!pool.length)return null;
+  const idOf=q=>q.id||q.qid||("review:"+subj+":"+voiceKey(q.q).toLowerCase());
+  pool.sort((a,b)=>((P.askedAt||(P.askedAt={}))[idOf(a)]||0)-((P.askedAt||(P.askedAt={}))[idOf(b)]||0));
+  const chosen=pool.find(x=>!exclude.has(questionSig(x)));if(!chosen)return null;
+  const q=Object.assign({},chosen);q.id=idOf(chosen);P.askedAt[q.id]=Date.now();P.askedAt=capTimestampMap(P.askedAt,300);
   q.subject=subj;q.level=lvl;
   return q;
 }
@@ -3872,16 +4023,16 @@ function lessonQuestions(subject,grade){
 }
 /* 2–3 warm-up questions from previously-seen (due) topics; intervention topics first;
    decoding/spelling capped to at most 1 (#6, #13) */
-function buildReview(subject){
+function buildReview(subject,topics){
   if(!P)return[];
-  const due=topicsDue();
+  const due=(topics&&topics.length?topics:topicsDue()).slice();
   if(!due.length)return[];
   const PRIORITY=["word problems","comprehension","story structure","inference"];
   const ordered=due.slice().sort((a,b)=>{
     const pa=PRIORITY.indexOf(a),pb=PRIORITY.indexOf(b);
     return (pa<0?9:pa)-(pb<0?9:pb)||Math.random()-0.5;
   });
-  const out=[];let englishUsed=0;
+  const out=[],seen=new Set();let englishUsed=0;
   /* Warm-up must match the subject he tapped (Eb, 2026-09-24: Prince opened
      Math and got Science questions). Reading-family subjects share topics. */
   const READING=["english","comprehension","reading"];
@@ -3890,9 +4041,10 @@ function buildReview(subject){
     if(out.length>=3)break;
     if(!sameSubj(t))continue;
     if(topicSubject(t)==="english"){if(englishUsed>=1)continue;englishUsed++;}
-    const q=questionForTopic(t);
-    if(q){q.review=true;out.push(q);}
+    const q=questionForTopic(t,seen);
+    if(q){const sig=questionSig(q);if(seen.has(sig))continue;seen.add(sig);q.review=true;out.push(q);}
   }
+  save();
   return out.slice(0,3);
 }
 
@@ -4031,7 +4183,7 @@ function renderWelcome(){
    +'<button class="btn big" onclick="setupStart()">👨‍👩‍👧 Parent: set up in 2 minutes ▶</button>'
    +'<p class="muted" style="margin-top:10px;font-size:14px">You will create a parent PIN, add your learner, then hand the device over for a short placement trail.</p>'
    +a2hsHTML()+'</main>';
-  say("Akwaaba! Welcome to the Ananse Learning Zone. Parents, tap set up to begin.");
+  sayAfterUnlock("Akwaaba! Welcome to the Ananse Learning Zone. Parents, tap set up to begin.");
 }
 let _pinAfter=null;
 function setupStart(){
@@ -4113,7 +4265,7 @@ function kidEnter(p){
   DB.lastProfile=p.id;save();   // remember this learner for next launch
   if(P.retest){startDiagnostic({retest:P.diagDone});return;} // only when a parent queued a placement check
   if(sessTryResume())return;   // reopen mid-lesson → land on the exact same question
-  say("Akwaaba, "+P.name+"!");renderHome();
+  renderHome();
 }
 /* kid login PIN */
 let kidBuf="",kidMode="check",kidTarget=null;
@@ -4162,7 +4314,126 @@ function dailyPathSubjects(){
   const order=Object.keys(SUBJECTS).sort((a,b)=>(last[a]-last[b])||Math.random()-0.5);
   return [order[0],order[1]];
 }
+function buildTodayPlan(profile,focus,date,catalog){
+  profile=profile||{};focus=focus||{};catalog=catalog||{};
+  const order=["math","english","comprehension","science","history"];
+  const names={math:"Math",english:"English",comprehension:"Reading",science:"Science",history:"Ghana History"};
+  const reveal=catalog.reveal||(typeof REVEAL_LESSONS!=="undefined"?REVEAL_LESSONS:[]);
+  const gradeLessons=catalog.lessons||(typeof lessonsFor==="function"?lessonsFor(profile.grade):[]);
+  const weights=focus.subjects&&typeof focus.subjects==="object"?focus.subjects:{};
+  const steps=[];
+  const dayMs=new Date(date+"T23:59:59").getTime(),cutoff=dayMs-7*86400000;
+  const inferSubject=topic=>{
+    topic=String(topic||"").toLowerCase();
+    if(/multipli|division|fraction|number|place value|round|add|subtract|area|perimeter|math|fact/.test(topic))return"math";
+    if(/grammar|spelling|phon|vocabulary|word|figurative|context clue/.test(topic))return"english";
+    if(/comprehension|story|inference|main idea|theme|sequence|recall/.test(topic))return"comprehension";
+    if(/science|space|animal|plant|body|earth|force|energy|sound/.test(topic))return"science";
+    if(/history|ghana|ashanti|kente|adinkra|independence|folklore/.test(topic))return"history";
+    return"";
+  };
+  const issues={};order.forEach(s=>issues[s]=0);
+  Object.keys(profile.sm2||{}).forEach(topic=>{const rec=profile.sm2[topic]||{};if(rec.due&&rec.due<=date){const s=inferSubject(topic);if(s)issues[s]+=2;}});
+  (profile.wrongLog||[]).forEach(w=>{const wt=w.t||new Date((w.date||"")+"T12:00:00").getTime();if(wt>=cutoff){const s=order.includes(w.subject)?w.subject:inferSubject(w.topic);if(s)issues[s]++;}});
+  const warmSubject=order.slice().sort((a,b)=>issues[b]-issues[a]||(+weights[b]||0)-(+weights[a]||0)||order.indexOf(a)-order.indexOf(b))[0];
+  if(warmSubject&&issues[warmSubject]>0)steps.push({kind:"warmup",id:warmSubject,label:"Quick warm-up",why:"These tripped you up before.",done:false});
+
+  const mastered=rec=>!!(rec&&rec.total&&rec.best/rec.total>=0.85);
+  const latestLesson=(profile.sessions||[]).filter(s=>s&&s.lesson&&s.total).slice(-1)[0];
+  const failed=latestLesson&&latestLesson.correct/latestLesson.total<0.60?latestLesson:null;
+  let lesson=null,lessonKind="",fromFocus=false,failedAgain=false;
+  if(failed){
+    if(String(failed.lesson).indexOf("reveal:")===0){const id=String(failed.lesson).slice(7),L=reveal.find(x=>x.id===id);if(L){lesson=L;lessonKind="reveal";failedAgain=true;}}
+    else{const L=gradeLessons.find(x=>x.id===failed.lesson);if(L){lesson=L;lessonKind="lesson";failedAgain=true;}}
+  }
+  if(!lesson&&profile.revealCurrent){
+    const rec=(profile.reveal||{})[profile.revealCurrent],L=reveal.find(x=>x.id===profile.revealCurrent);
+    if(L&&rec&&rec.total&&rec.best/rec.total<0.60){lesson=L;lessonKind="reveal";failedAgain=true;}
+  }
+  if(!lesson){
+    const focusIds=Array.isArray(focus.reveal)?focus.reveal:[];
+    lesson=focusIds.map(id=>reveal.find(x=>x.id===id)).find(L=>L&&!mastered((profile.reveal||{})[L.id]));
+    if(lesson){lessonKind="reveal";fromFocus=true;}
+  }
+  if(!lesson&&profile.revealCurrent){const L=reveal.find(x=>x.id===profile.revealCurrent);if(L&&!mastered((profile.reveal||{})[L.id])){lesson=L;lessonKind="reveal";}}
+  if(!lesson){const L=reveal.find(x=>!mastered((profile.reveal||{})[x.id]));if(L){lesson=L;lessonKind="reveal";}}
+  if(!lesson){const L=gradeLessons.find(x=>!(profile.lessons||{})[x.id]);if(L){lesson=L;lessonKind="lesson";}}
+  if(!lesson&&reveal.length){lesson=reveal[0];lessonKind="reveal";}
+  if(!lesson&&gradeLessons.length){lesson=gradeLessons[0];lessonKind="lesson";}
+  if(lesson){
+    const title=lessonKind==="reveal"?"Lesson "+lesson.id+(lesson.t?" · "+lesson.t:""):(lesson.title||"Lesson");
+    let why="Next step on your maths path.";
+    if(failedAgain)why="Let's try "+(lessonKind==="reveal"?"Lesson "+lesson.id:(lesson.title||"this lesson"))+" again - you're close!";
+    else if(fromFocus)why="Your class is working on "+((focus.topics&&focus.topics[0])||lesson.t||"this")+" - let's practise it!";
+    steps.push({kind:lessonKind,id:lesson.id,label:title,why,done:false});
+  }
+
+  const acc={};order.forEach(s=>acc[s]={c:0,t:0});
+  let usedQlog=false;
+  (profile.qlog||[]).forEach(q=>{if(q&&q.t>=cutoff&&order.includes(q.subject)){acc[q.subject].t++;if(q.ok)acc[q.subject].c++;usedQlog=true;}});
+  if(!usedQlog)(profile.sessions||[]).forEach(s=>{const st=s.t||new Date((s.date||"")+"T12:00:00").getTime();if(st>=cutoff&&order.includes(s.subject)&&s.total){acc[s.subject].c+=s.correct||0;acc[s.subject].t+=s.total;}});
+  const hasData=order.some(s=>acc[s].t>0);
+  const weak=order.slice().sort((a,b)=>{
+    const aa=acc[a].t?acc[a].c/acc[a].t:(hasData?1.01:((profile.levels&&profile.levels[a])||1)/5);
+    const bb=acc[b].t?acc[b].c/acc[b].t:(hasData?1.01:((profile.levels&&profile.levels[b])||1)/5);
+    return aa-bb||(+weights[b]||0)-(+weights[a]||0)||order.indexOf(a)-order.indexOf(b);
+  })[0]||"math";
+  steps.push({kind:"practice",id:weak,label:names[weak]+" practice",why:names[weak]+" needs a little more practice.",done:false});
+
+  const seed=String(date).replace(/\D/g,"").split("").reduce((n,x)=>n+(+x||0),0)+String(profile.id||"").split("").reduce((n,x)=>n+x.charCodeAt(0),0);
+  const fun=[
+    {kind:"story",id:"storyReplay",label:"Story time",why:"You earned it!",done:false},
+    {kind:"daily",id:"daily",label:"Daily Mystery",why:"You earned it!",done:false},
+    {kind:"race",id:"race",label:"Race time",why:"You earned it!",done:false}
+  ];
+  for(let i=0;i<fun.length;i++){const x=fun[(seed+i)%fun.length];if(x.kind!=="daily"||!(profile.daily&&profile.daily.date===date&&profile.daily.done)){steps.push(x);break;}}
+  return{date,steps:steps.slice(0,4)};
+}
+function todayPlanFor(profile,focus,date,catalog){
+  if(profile&&profile.plan&&profile.plan.date===date&&Array.isArray(profile.plan.steps))return profile.plan;
+  return buildTodayPlan(profile,focus,date,catalog);
+}
+function ensureTodayPlan(){
+  const old=P.plan,plan=todayPlanFor(P,FOCUS,today());
+  if(plan!==old){P.plan=plan;save();}
+  return plan;
+}
+function markTodayPlanDone(kind,id){
+  if(!P||!P.plan||P.plan.date!==today()||!Array.isArray(P.plan.steps))return;
+  const step=P.plan.steps.find(x=>!x.done&&x.kind===kind&&(id==null||x.id===id));
+  if(!step)return;
+  step.done=true;save();
+  if(P.plan.steps.length&&P.plan.steps.every(x=>x.done)){confetti();toast("🎉 Today's plan is done!");}
+}
+function startTodayPlanStep(i){
+  const plan=ensureTodayPlan(),step=plan.steps[i];if(!step||step.done)return;
+  if(step.kind==="warmup")startSession(step.id,{warmupOnly:true});
+  else if(step.kind==="reveal")startReveal(step.id);
+  else if(step.kind==="lesson")startLesson(step.id);
+  else if(step.kind==="practice")startSession(step.id,{short:true});
+  else if(step.kind==="story")startStoryReplay();
+  else if(step.kind==="daily")startDaily();
+  else if(step.kind==="race")renderRace();
+}
+function todayPlanHTML(plan){
+  const done=plan.steps.filter(x=>x.done).length,total=plan.steps.length,pct=total?Math.round(done/total*100):0;
+  const rows=plan.steps.map((s,i)=>'<button class="plan-step '+(s.done?'done':'')+'" onclick="startTodayPlanStep('+i+')" '+(s.done?'disabled':'')+'><span class="plan-step-mark">'+(s.done?'✓':(i+1))+'</span><span class="plan-step-copy"><b>'+esc(s.label)+'</b><small>'+esc(s.why)+'</small></span></button>').join("");
+  return '<section class="today-plan"><div class="today-plan-head"><h2>⭐ Today\'s Plan</h2><span class="today-plan-count">'+done+' of '+total+' done</span></div><div class="bar"><i style="width:'+pct+'%"></i></div><div class="plan-steps">'+rows+'</div>'
+    +(done===total?'<div class="plan-done">Amazing! You finished today\'s plan! 🎉<br>Free play - pick anything!</div>':'')+'</section>';
+}
+const _planGreeted={};
+function greetTodayPlan(plan){
+  const key=P.id+":"+plan.date;if(_planGreeted[key])return;_planGreeted[key]=true;
+  if(plan.steps.length&&plan.steps.every(x=>x.done)){sayAfterUnlock("Hi "+P.name+"! Your plan is done. Pick anything you like.");return;}
+  const bits=plan.steps.filter(x=>!x.done).map(x=>x.kind==="warmup"?"a warm-up":(x.kind==="reveal"?"lesson "+x.id:(x.kind==="lesson"?x.label.toLowerCase():(x.kind==="practice"?namesForPlan(x.id)+" practice":x.label.toLowerCase()))));
+  const list=bits.length<2?(bits[0]||"some fun learning"):bits.slice(0,-1).join(", ")+", and "+bits[bits.length-1];
+  sayAfterUnlock("Hi "+P.name+"! Today: "+list+".");
+}
+function namesForPlan(subject){return subject==="comprehension"?"reading":((SUBJECTS[subject]&&SUBJECTS[subject].name)||subject).toLowerCase();}
 function renderHome(){
+  const plan=ensureTodayPlan();
+  syncProgress("open");
+  greetTodayPlan(plan);
   if(typeof kingdomWants==="function"&&kingdomWants()){renderKingdom();return;}
   clearTimers();closeOverlay();defocus();showAnanseCorner(false);
   document.body.classList.add("learningworld");
@@ -4182,6 +4453,7 @@ function renderHome(){
     tile("🕵️","Daily Mystery",dailyDone?"Solved today ✓":"One cross-subject case a day","startDaily()","#7c5cf0",dailyDone?"":"")
   ].join("");
   app.innerHTML='<div class="fadein kh-shell">'
+   +todayPlanHTML(plan)
    +'<div class="kh-hero"><div class="kh-lion">'+ananseSVG(120,"idle")+'</div>'
    +'<div class="kh-player"><span class="kh-av" style="background:'+(P.color||"#4aa3e0")+'">'+esc((P.name||"?").charAt(0).toUpperCase())+'</span>'
    +'<div><div class="kh-hi">Akwaaba, '+esc(P.name)+'!</div><div class="kh-meta">'+(P.grade?GRADE_NAMES[P.grade]+' · ':'')+'Level '+lvAvg+' · '+LEVEL_NAMES[lvAvg]+'</div></div>'
@@ -4208,41 +4480,52 @@ function renderHome(){
    +'</div></section>'
    +'<div class="kh-foot"><button class="btn secondary" onclick="DB.lastProfile=null;save();P=null;renderProfiles()">👥 Switch learner</button><button class="btn" onclick="parentGate()">🔒 Parent Portal</button></div>'
    +'</div>';
-  say("Welcome back, "+P.name+"! Pick a subject to start today's path.");
   checkTelegramDue();
 }
 
 /* ---------- session ---------- */
-function startSession(subject){
-  S={subject,total:10,n:0,correct:0,results:[],consecR:0,consecW:0,
+function startSession(subject,opts){
+  opts=opts||{};
+  S={subject,total:opts.warmupOnly?3:(opts.short?6:10),n:0,correct:0,results:[],consecR:0,consecW:0,
      sprintEnd:Date.now()+10*60*1000,qStart:0,cur:null,brokeAt:new Set(),xp:0,mode:"session",
-     start:Date.now(),wpC:0,wpT:0,recallC:0,recallT:0,reviewC:0,reviewT:0,mfC:0,mfT:0,wpServed:false,phase:"main",seen:[],diff:0,tried:false};
+     start:Date.now(),wpC:0,wpT:0,recallC:0,recallT:0,reviewC:0,reviewT:0,mfC:0,mfT:0,wpServed:false,phase:"main",seen:[],storyIds:[],diff:0,tried:false,leadIn:"",warmupOnly:!!opts.warmupOnly};
   // #6: open with 2–3 review questions from earlier sessions
-  const review=buildReview(subject);
+  let reviewTopics=null;
+  if(opts.warmupOnly){
+    const cutoff=addDays(today(),-7),seen={};
+    topicsDue().forEach(t=>seen[t]=true);
+    (P.wrongLog||[]).forEach(w=>{if(w.date>=cutoff&&w.subject===subject&&w.topic)seen[w.topic]=true;});
+    reviewTopics=Object.keys(seen);
+  }
+  const review=buildReview(subject,reviewTopics);
   if(review.length){
-    S.reviewQ=review;S.reviewIdx=0;S.phase="review";S.total=10+review.length;
-    say("First, a quick warm-up from what we learned before. Then we play "+SUBJECTS[subject].name+"!");
+    S.reviewQ=review;S.reviewIdx=0;S.phase="review";S.total=opts.warmupOnly?review.length:S.total+review.length;
+    S.leadIn="First, a quick warm-up from what we learned before. ";
     nextQuestion();
     return;
   }
   if(subject==="comprehension"){
-    say("Story time! Read carefully, then I will quiz you like a detective.");
     showStory();
     return;
   }
   if(subject==="history")sfx("drum");
-  say("Let's play "+SUBJECTS[subject].name+"! Take your time and think it through.");
+  S.leadIn="Let's play "+SUBJECTS[subject].name+"! Take your time and think it through. ";
   nextQuestion();
 }
 // regenerate a question until it isn't one we've shown recently this session (no repeats)
 function freshQuestion(genFn){
   let q=genFn(),tries=0;
-  while(q&&q.q&&S&&S.seen&&S.seen.includes(q.q)&&tries<14){q=genFn();tries++;}
+  const cutoff=Date.now()-7*86400000;
+  const blocked=x=>{const sig=questionSig(x);return !!(x&&S&&((S.seen||[]).includes(sig)||((x.subject==="math"||S.subject==="math")&&P.mathAsked&&(P.mathAsked[sig]||0)>cutoff)));};
+  while(blocked(q)&&tries<40){q=genFn();tries++;}
   return q;
 }
 function nextQuestion(){
   if(S.n>=S.total)return endSession();
   if(S.lesson){ // grade lesson: fixed question list, in order
+    if(S.lesson.indexOf("reveal:")===0&&typeof nextRevealQuestion==="function"){
+      S.cur=nextRevealQuestion();if(!S.cur)return endSession();renderQuestion();return;
+    }
     if(!S.lessonQs||S.n>=S.lessonQs.length)return endSession();
     S.cur=S.lessonQs[S.n];renderQuestion();return;
   }
@@ -4251,6 +4534,7 @@ function nextQuestion(){
     if(S.reviewQ&&S.reviewIdx<S.reviewQ.length){
       S.cur=S.reviewQ[S.reviewIdx];S.reviewIdx++;renderQuestion();return;
     }
+    if(S.warmupOnly)return endSession();
     S.phase="main";
     if(S.subject==="comprehension"){showStory();return;}
   }
@@ -4300,7 +4584,14 @@ function introThenAsk(){
 function showStory(){
   clearTimers();showAnanseCorner(false);
   const lvl=Math.max(1,Math.min(5,P.levels.comprehension));
-  const st=pick(STORIES[lvl]);
+  P.storyHistory=P.storyHistory||[];S.storyIds=S.storyIds||[];
+  const currentStory=S.story&&STORIES[lvl].find(st=>st.id===S.story.id||st.title===S.story.title);
+  if(currentStory&&!S.storyIds.includes(currentStory.id))S.storyIds.push(currentStory.id);
+  const cutoff=Date.now()-7*86400000,recent=new Set(P.storyHistory.filter(x=>x&&x.t>cutoff).map(x=>x.id));
+  let pool=STORIES[lvl].filter(st=>!S.storyIds.includes(st.id)&&!recent.has(st.id));
+  if(!pool.length)pool=STORIES[lvl].filter(st=>!S.storyIds.includes(st.id));
+  if(!pool.length)return endSession();
+  const st=pick(pool);S.storyIds.push(st.id);P.storyHistory.push({id:st.id,t:Date.now()});P.storyHistory=P.storyHistory.slice(-30);save();
   S.story=st;S.storyLvl=lvl;S.storyQs=st.qs.slice(0,5);S.storyIdx=0;S.cur=null;
   ambientStart(); // gentle focus loop while reading (#12)
   app.innerHTML='<div class="fadein" style="max-width:640px;margin:0 auto">'
@@ -4318,7 +4609,7 @@ function storyDone(){ambientStop();nextQuestion()}
 function renderQuestion(){
   clearTimers();
   const q=S.cur;
-  if(S){S.seen=S.seen||[];if(q&&q.q){S.seen.push(q.q);if(S.seen.length>14)S.seen.shift();}}
+  if(S){S.seen=S.seen||[];if(q){const sig=questionSig(q);S.seen.push(sig);if(S.seen.length>40)S.seen.shift();if(q.subject==="math"||S.subject==="math"){P.mathAsked=P.mathAsked||{};P.mathAsked[sig]=Date.now();P.mathAsked=capTimestampMap(P.mathAsked,300);}}}
   const order=shuffle(q.opts.map((_,i)=>i));
   S.order=order;
   const letters=["A","B","C","D"];
@@ -4353,11 +4644,12 @@ function renderQuestion(){
    +(gate?'<div class="center" id="revealwrap"><div class="spacer"></div><button class="btn big" onclick="revealOptions()">I worked it out — show my choices ▶</button></div>':'')
    +'<div class="center" id="skipbar" style="margin-top:14px"><button class="readbtn" onclick="skipQuestion()">Skip this one →</button></div>'
    +'</div></div>';
-  S.qStart=Date.now();
+  S.qStart=Date.now();S.qShownAt=S.qStart;S.qTries=0;
   S.tried=false;               // fresh mastery slate for this question
   sessSave();                  // auto-save: reopening resumes exactly here
   if(showScratch)initScratch();
-  say(q.q+(gate?". Use your scratchpad to work it out first, then show your choices.":""));
+  const lead=S.leadIn||"";S.leadIn="";
+  say(lead+q.q+(gate?". Use your scratchpad to work it out first, then show your choices.":""));
 }
 /* Always-available forward path: skipping counts as a "needs practice" miss
    (first attempt only) so the adaptive engine still learns from it. */
@@ -4371,10 +4663,15 @@ function skipQuestion(){
     if(isRecall(q)||S.subject==="comprehension")S.recallT++;
     if(isMathFacts(q))S.mfT++;
     sm2Update(q.topic,2);
-    S.consecR=0;S.diff=Math.max(-2,(S.diff||0)-1);
+    if(!S.lesson&&S.phase!=="review"){
+      S.consecW=(S.consecW||0)+1;S.consecR=0;
+      if(S.consecW>=2){S.diff=Math.max(-1,(S.diff||0)-1);S.consecW=0;}
+    }
     P.wrongLog.push({date:today(),topic:q.topic,subject:S.subject});
+    P.wrongLog=P.wrongLog.slice(-1500);
     save();
   }
+  logQuestion(sessionQuestionMode(),q.subject||S.subject,q.topic,S.lesson||null,q.q,false,S.qTries||0,Date.now()-(S.qShownAt||S.qStart));
   S.n++;sessSave();
   sfx("tick");
   nextQuestion();
@@ -4712,8 +5009,8 @@ function scratchClear() {
 }
 function answer(pos){
   const q=S.cur;
-  let leveledUp=false;
   const elapsed=Date.now()-S.qStart;
+  S.qTries=(S.qTries||0)+1;
   const chosen=S.order[pos];
   const correct=chosen===q.a;
   const firstTry=!S.tried;
@@ -4739,46 +5036,44 @@ function answer(pos){
     if(isMathFacts(q)){S.mfT++;if(correct)S.mfC++;}
     sm2Update(q.topic,correct?(elapsed<15000?5:4):2);
     if(correct){
-      S.correct++;S.consecR++;S.consecW=0;
-      S.diff=Math.min(2,(S.diff||0)+1);      // ⬆ next question comes in harder
+      S.correct++;
+      if(!S.lesson&&S.phase!=="review"){
+        S.consecR=(S.consecR||0)+1;S.consecW=0;
+        if(S.consecR>=3){S.diff=Math.min(1,(S.diff||0)+1);S.consecR=0;}
+      }
       S.xp+=10*q.level;P.xp+=10*q.level;
       P.streak++;if(P.streak>P.bestStreak)P.bestStreak=P.streak;
       checkStreakTrophy();
       growStats(q,true);
-      if(S.consecR>=2){if(P.levels[S.subject]<5){P.levels[S.subject]++;leveledUp=true;S.diff=0}S.consecR=0}
     }else{
-      S.consecW++;S.consecR=0;P.streak=0;
-      S.diff=Math.max(-2,(S.diff||0)-1);     // ⬇ next question comes in easier
+      P.streak=0;
+      if(!S.lesson&&S.phase!=="review"){
+        S.consecW=(S.consecW||0)+1;S.consecR=0;
+        if(S.consecW>=2){S.diff=Math.max(-1,(S.diff||0)-1);S.consecW=0;}
+      }
       P.wrongLog.push({date:today(),topic:q.topic,subject:S.subject});
+      P.wrongLog=P.wrongLog.slice(-1500);
       growStats(q,false);
-      if(S.consecW>=2){if(P.levels[S.subject]>1){P.levels[S.subject]--;toast("Let's build it back up — Level "+P.levels[S.subject])}S.consecW=0}
     }
     save();sessSave();
   }
   if(correct){
+    logQuestion(sessionQuestionMode(),q.subject||S.subject,q.topic,S.lesson||null,q.q,firstTry,S.qTries,Date.now()-(S.qShownAt||S.qStart));
     S.n++;
     save();sessSave();
     sfx("correct");
     if(P.streak>0&&P.streak%5===0)confetti();
-    if(leveledUp){
-      say("Level up!");
-      setTimeout(()=>{
-        heroMoment({title:"LEVEL UP!",sub:LEVEL_NAMES[P.levels[S.subject]]+" unlocked!",mood:"party",sound:"levelup",hold:2800});
-        setTimeout(()=>{closeOverlay();nextQuestion();},2900);
-      },750);
-    }else{
-      // reward + a clear, prominent NEXT — advancing happens on the child's tap
-      const w=$("optwrap");
-      const tb=$("trybar");if(tb)tb.remove();
-      const sb=$("skipbar");if(sb)sb.remove();
-      if(w&&!$("nextbar")){
-        w.insertAdjacentHTML("afterend",
-          '<div class="center fadein" id="nextbar" style="margin-top:16px">'
-          +'<div class="hero-chip" style="font-size:16px">🎯 '+esc(pick(CORRECT_PRAISE))+'</div>'
-          +'<div class="spacer" style="height:10px"></div>'
-          +'<button class="btn big" onclick="nextQuestion()">'+(S.n>=S.total?"Finish! 🏁":"Next ▶")+'</button></div>');
-      }else if(!w){setTimeout(()=>{nextQuestion();},1200);} // safety net: never dead-end
-    }
+    // reward + a clear, prominent NEXT — advancing happens on the child's tap
+    const w=$("optwrap");
+    const tb=$("trybar");if(tb)tb.remove();
+    const sb=$("skipbar");if(sb)sb.remove();
+    if(w&&!$("nextbar")){
+      w.insertAdjacentHTML("afterend",
+        '<div class="center fadein" id="nextbar" style="margin-top:16px">'
+        +'<div class="hero-chip" style="font-size:16px">🎯 '+esc(pick(CORRECT_PRAISE))+'</div>'
+        +'<div class="spacer" style="height:10px"></div>'
+        +'<button class="btn big" onclick="nextQuestion()">'+(S.n>=S.total?"Finish! 🏁":"Next ▶")+'</button></div>');
+    }else if(!w){setTimeout(()=>{nextQuestion();},1200);} // safety net: never dead-end
   }else{
     sfx("wrong");
     const enc=pick(TRY_AGAIN);
@@ -4881,12 +5176,14 @@ function renderPractice(){
    +'<p class="qtext" style="font-size:23px">'+esc(pr.q)+'</p>'
    +'<div class="opts">'+order.map((oi,pos)=>'<button class="opt" id="popt'+pos+'" onclick="answerPractice('+pos+')"><span class="letter">'+letters[pos]+'</span><span>'+esc(pr.opts[oi])+'</span></button>').join("")+'</div>'
    +'</div>');
+  T.qStart=Date.now();
   say("Your turn! "+pr.q);
 }
 function answerPractice(pos){
   const pr=T.q.practice;
   const chosen=T.order[pos];
   const correct=chosen===pr.a;
+  if(S)logQuestion(sessionQuestionMode(),S.subject,T.q.topic,S.lesson||null,pr.q,correct,1,Date.now()-(T.qStart||Date.now()));
   T.order.forEach((oi,p)=>{
     const b=$("popt"+p);if(!b)return;
     if(oi===pr.a)b.classList.add("correct");
@@ -4957,6 +5254,17 @@ function awardTrophy(t){
 }
 
 /* ---------- session end ---------- */
+function updateSubjectLevel(subject){
+  const ss=(P.sessions||[]).filter(s=>s.subject===subject&&!s.lesson&&!s.lab).slice(-3);
+  const total=ss.reduce((n,s)=>n+(s.total||0),0);if(total<10)return;
+  const acc=ss.reduce((n,s)=>n+(s.correct||0),0)/total;
+  const rt=ss.reduce((n,s)=>n+(s.reviewT||0),0);
+  const racc=rt?ss.reduce((n,s)=>n+(s.reviewC||0),0)/rt:null;
+  let lvl=P.levels[subject]||1;
+  if(total>=20&&acc>=0.85&&(racc===null||racc>=0.75))lvl++;
+  else if(ss.length>=2&&ss.slice(-2).every(s=>s.total&&s.correct/s.total<0.60))lvl--;
+  P.levels[subject]=Math.max(1,Math.min(5,lvl));
+}
 function endSession(){
   clearTimers();closeOverlay();defocus();sessClear();
   const acc=S.results.length?S.correct/S.results.length:0;
@@ -4964,8 +5272,10 @@ function endSession(){
   const durMs=Date.now()-(S.start||(S.sprintEnd-10*60*1000));
   const mins=Math.round(durMs/60000);
   P.sessions.push({date:today(),subject:S.subject,correct:S.correct,total:S.results.length,lvlAvg:Math.round(lvlAvg*10)/10,xp:S.xp,t:Date.now(),
-    durMs:durMs,wpC:S.wpC,wpT:S.wpT,recallC:S.recallC,recallT:S.recallT,reviewC:S.reviewC,reviewT:S.reviewT,mfC:S.mfC,mfT:S.mfT,lesson:S.lesson||null});
-  if(S.lesson&&S.lesson.indexOf("reveal:")===0){const rid=S.lesson.slice(7);P.reveal=P.reveal||{};const prev=P.reveal[rid];const best=Math.max(prev?prev.best:0,S.correct);P.reveal[rid]={date:today(),best,total:S.results.length,tries:(prev?prev.tries:0)+1};}
+    durMs:durMs,wpC:S.wpC,wpT:S.wpT,recallC:S.recallC,recallT:S.recallT,reviewC:S.reviewC,reviewT:S.reviewT,mfC:S.mfC,mfT:S.mfT,lesson:S.lesson||null,warmup:!!S.warmupOnly});
+  P.sessions=P.sessions.slice(-3000);
+  if(!S.lesson&&!S.warmupOnly)updateSubjectLevel(S.subject);
+  if(S.lesson&&S.lesson.indexOf("reveal:")===0){const rid=S.lesson.slice(7);P.reveal=P.reveal||{};const prev=P.reveal[rid];const best=Math.max(prev?prev.best:0,S.correct);P.reveal[rid]={date:today(),best,last:S.correct,total:S.results.length,tries:(prev?prev.tries:0)+1};}
   else if(S.lesson){P.lessons=P.lessons||{};const prev=P.lessons[S.lesson];const rec={date:today(),correct:S.correct,total:S.results.length,tries:(prev?prev.tries:0)+1};if(!prev||rec.correct>=prev.correct)P.lessons[S.lesson]=rec;else{prev.tries=rec.tries;prev.date=rec.date;}}
   if(typeof checkAlerts==="function")checkAlerts();
   const earned=[];
@@ -4980,7 +5290,12 @@ function endSession(){
     earned.push({type:"challenge",icon:"🌟",label:"Level 5 Legend",color:"#ffd97a",detail:"Crushed a session at Challenge level in "+SUBJECTS[S.subject].name+"."});
   }
   earned.forEach(awardTrophy);
+  if(S.lesson&&S.lesson.indexOf("reveal:")===0)markTodayPlanDone("reveal",S.lesson.slice(7));
+  else if(S.lesson)markTodayPlanDone("lesson",S.lesson);
+  else if(S.warmupOnly)markTodayPlanDone("warmup",S.subject);
+  else{if(S.reviewT)markTodayPlanDone("warmup",S.subject);markTodayPlanDone("practice",S.subject);}
   save();
+  syncProgress("finish");
   const mood=earned.length?"party":"idle";
   if(earned.length)confetti();
   const praiseLine=acc>=0.8?"You earned every bit of this with focus and effort.":(acc>=0.5?"You worked hard on tough questions today — that effort is building your brain.":"Tough session — but you kept going, and that is what real training looks like. Tomorrow we grow stronger.");
@@ -5159,8 +5474,11 @@ function replayDone(){
   // log a lightweight session for tracking
   P.sessions.push({date:today(),subject:"comprehension",correct:R.correct,total:R.total,lvlAvg:1,xp:R.correct*8,t:Date.now(),
     durMs:0,wpC:0,wpT:0,recallC:R.correct,recallT:R.total,reviewC:0,reviewT:0,mfC:0,mfT:0,replay:true});
+  P.sessions=P.sessions.slice(-3000);
   if(R.correct===R.total&&R.total>=3){awardTrophy({type:"recall",icon:"🎬",label:"Replay Master",color:"#3bb273",detail:"Perfect story order — "+R.correct+"/"+R.total+"!"});}
+  markTodayPlanDone("story","storyReplay");
   save();
+  syncProgress("finish");
   if(typeof checkAlerts==="function")checkAlerts();
   confetti();
   app.innerHTML='<div class="fadein center">'
@@ -5333,6 +5651,9 @@ const STORIES={
 ]}
 ]
 };
+Object.keys(STORIES).forEach(lvl=>STORIES[lvl].forEach((story,i)=>{
+  story.id=story.id||("story-"+lvl+"-"+(i+1)+"-"+story.title.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""));
+}));
 </script>
 <script>
 "use strict";
@@ -5431,6 +5752,7 @@ function diagQuestion(){
    +'<div class="opts">'+order.map((oi,pos)=>'<button class="opt" id="dopt'+pos+'" onclick="diagAnswer('+pos+')"><span class="letter">'+letters[pos]+'</span><span>'+esc(q.opts[oi])+'</span></button>').join("")+'</div>'
    +'<div class="center" style="margin-top:14px"><button class="readbtn" onclick="diagAnswer(null)">Not sure yet — skip →</button></div>'
    +'</div></div>';
+  D.qStart=Date.now();
   say(q.q);
 }
 function diagStoryAgain(){
@@ -5439,15 +5761,16 @@ function diagStoryAgain(){
 }
 function diagAnswer(pos){
   const st=D.plan[D.si],q=D.q;
+  const step=D.i;
   const correct=pos!==null&&D.order[pos]===q.a;
+  logQuestion("diag",q.subject||st.s,q.topic||st.s,null,q.q,correct,pos===null?0:1,Date.now()-(D.qStart||Date.now()));
   D.order.forEach((oi,p)=>{const b=$("dopt"+p);if(b){b.classList.add(p===pos?(correct?"correct":"dim"):"dim");b.onclick=null}});
   st.asked++;if(correct)st.correct++;
-  st.hist.push({lvl:q.level,ok:correct,skipped:pos===null});
+  st.hist.push({qid:questionSig(q),lvl:q.level,ok:correct,skipped:pos===null});
   if(st.s!=="comprehension")st.lvl=Math.max(1,Math.min(5,st.lvl+(correct?1:-1))); // staircase: harder after right, easier after wrong
   D.i++;
   const cheer=pos===null?pick(["No problem — onward!","Skipping is allowed. Next stone!"]):(correct?pick(["Nice thinking!","You found the path!","Onward, explorer!"]):pick(["Good try — onward!","Tricky stone! Keep walking.","Every step teaches us. Onward!"]));
-  toast(cheer);say(cheer);
-  setTimeout(diagNextQ,1000);
+  toast(cheer);sayAndThen(cheer,()=>{if(D&&D.i===step+1)diagNextQ();},8000);
 }
 function diagPlacement(st){
   if(st.s==="comprehension"){const c=st.correct;return c>=4?4:(c===3?3:(c===2?2:1));}
@@ -5464,7 +5787,9 @@ function diagReport(){
   const rec={date:today(),grade:P.grade,score,levels:lvls,retest:D.retest};
   P.levels=lvls;P.diagDone=true;P.retest=false;P.diag=rec;
   P.diagHistory=P.diagHistory||[];P.diagHistory.push(rec);
+  P.diagHistory=P.diagHistory.slice(-30);
   save();
+  syncProgress("finish");
   app.innerHTML='<div class="fadein" style="max-width:620px;margin:0 auto">'
    +'<div class="center"><div class="ananse-wrap ananse-celebrate">'+ananseSVG(140,"party")+'</div>'
    +'<h1>Trail Complete! 🎉</h1>'
@@ -5540,12 +5865,17 @@ function renderLesson(id){
 function lessonRead(id){const L=lessonById(id);if(L)say(L.title+". "+(L.intro||"")+" "+(L.teach||[]).map(c=>c.t).join(" "));}
 function startLesson(id){
   const L=lessonById(id);if(!L)return;
-  S={subject:L.subject,total:L.qs.length,n:0,correct:0,results:[],consecR:0,consecW:0,
+  P.lessonAsked=P.lessonAsked||{};
+  const variants=L.qs.map((q,i)=>Object.assign({},q,{qid:id+":"+i,subject:L.subject,level:L.lvl,lesson:id}));
+  variants.sort((a,b)=>(P.lessonAsked[a.qid]||0)-(P.lessonAsked[b.qid]||0));
+  const chosen=shuffle(variants.slice(0,Math.min(5,variants.length)));
+  chosen.forEach(q=>P.lessonAsked[q.qid]=Date.now());P.lessonAsked=capTimestampMap(P.lessonAsked,300);save();
+  S={subject:L.subject,total:chosen.length,n:0,correct:0,results:[],consecR:0,consecW:0,
      sprintEnd:Date.now()+10*60*1000,qStart:0,cur:null,brokeAt:new Set(),xp:0,mode:"session",
      start:Date.now(),wpC:0,wpT:0,recallC:0,recallT:0,reviewC:0,reviewT:0,mfC:0,mfT:0,wpServed:true,phase:"main",seen:[],diff:0,tried:false,
-     lesson:id,lessonQs:L.qs.map(q=>Object.assign({},q,{subject:L.subject,level:L.lvl,lesson:id}))};
+     lesson:id,lessonQs:chosen,leadIn:""};
   if(L.story){S.story=L.story;S.storyLvl=L.lvl;showLessonStory();return;}
-  say("Practice time! Take your turn.");
+  S.leadIn="Practice time! Take your turn. ";
   nextQuestion();
 }
 function showLessonStory(){
@@ -5579,7 +5909,7 @@ function startDaily(){
     return;
   }
   const q=DAILY_BANK[(dayOfYear()+P.id.length)%DAILY_BANK.length];
-  DC={q};
+  DC={q,qStart:0};
   clearTimers();showAnanseCorner(false);
   const order=shuffle(q.opts.map((_,i)=>i));
   DC.order=order;
@@ -5593,11 +5923,14 @@ function startDaily(){
    +'<div class="card gold"><p class="qtext">'+esc(q.q)+'</p>'
    +'<div class="opts">'+order.map((oi,pos)=>'<button class="opt" id="yopt'+pos+'" onclick="dailyAnswer('+pos+')"><span class="letter">'+letters[pos]+'</span><span>'+esc(q.opts[oi])+'</span></button>').join("")+'</div>'
    +'</div></div>';
+  DC.qStart=Date.now();
   say("Detective "+P.name+", here is today's mystery. "+q.q);
 }
+function dailySubject(q){const m=String(q&&q.mix||"").toLowerCase();return m.indexOf("math")>=0?"math":(m.indexOf("reading")>=0?"comprehension":(m.indexOf("science")>=0?"science":(m.indexOf("history")>=0?"history":"comprehension")));}
 function dailyAnswer(pos){
   const q=DC.q;
   const correct=DC.order[pos]===q.a;
+  logQuestion("daily",dailySubject(q),q.mix||"daily mystery",null,q.q,correct,1,Date.now()-(DC.qStart||Date.now()));
   DC.order.forEach((oi,p)=>{const b=$("yopt"+p);if(!b)return;
     if(oi===q.a)b.classList.add("correct");else if(p===pos&&!correct)b.classList.add("wrong");else b.classList.add("dim");b.onclick=null});
   const praise=pick(PRAISE);
@@ -5632,7 +5965,9 @@ function finishDaily(won,praise){
     awardTrophy({type:"mystery",icon:"🔍",label:"Mystery "+new Date().toLocaleDateString(undefined,{month:"short",day:"numeric"}),color:dailyColor(),detail:"Solved the Daily Mystery: "+DC.q.mix+"."});
     confetti();
   }
+  markTodayPlanDone("daily","daily");
   save();
+  syncProgress("finish");
   closeOverlay();
   const msg=won?"CASE SOLVED! You cracked a two-subject mystery. A one-of-a-kind Mystery Trophy is now in your trophy room!":"The case is studied and understood — that is real detective work. A brand new mystery arrives at midnight!";
   app.innerHTML='<div class="fadein center">'
@@ -6283,7 +6618,7 @@ renderSoundBtn();
 })();
 /* Remember who was here. A returning learner on their own device should land
    straight in the app — no profile tile, no PIN pad, no diagnostic re-run. */
-(function autoResume(){
+function autoResume(){
   try{
     const last=DB.lastProfile;
     if(!last)return renderProfiles();
@@ -6291,10 +6626,10 @@ renderSoundBtn();
     if(!p||!p.diagDone)return renderProfiles();  // finish onboarding properly first
     P=p;
     if(sessTryResume())return;                   // mid-lesson → exact same question
-    say("Akwaaba, "+P.name+"!");
     renderHome();
   }catch(e){renderProfiles();}
-})();
+}
+loadSchoolFocus(autoResume);
 </script>
 <script>
 /* ============================================================
@@ -6315,7 +6650,7 @@ function checkAnanseHealth(cb){
     try{ctrl=new AbortController();t=setTimeout(()=>ctrl.abort(),6000);}catch(e){}
     fetch(base+"/health",{headers:ananseHeaders(),signal:ctrl?ctrl.signal:undefined})
       .then(r=>r.ok?r.json():Promise.reject())
-      .then(j=>{if(t)clearTimeout(t);window.ANANSE_ONLINE=!!(j&&j.ok);if(cb)cb(window.ANANSE_ONLINE);})
+      .then(j=>{if(t)clearTimeout(t);window.ANANSE_ONLINE=!!(j&&j.ok);if(window.ANANSE_ONLINE){_voiceFails=0;_voiceDownUntil=0;}if(cb)cb(window.ANANSE_ONLINE);})
       .catch(()=>{if(t)clearTimeout(t);window.ANANSE_ONLINE=false;if(cb)cb(false);});
   }catch(e){window.ANANSE_ONLINE=false;if(cb)cb(false);}
 }
@@ -6533,8 +6868,8 @@ function kdShow(){
   KD.labelBox.style.cssText="position:absolute;inset:0;pointer-events:none";
   wrap.appendChild(KD.labelBox);
   const top=document.createElement("div");
-  top.style.cssText="position:absolute;top:14px;left:0;right:0;display:flex;justify-content:center;pointer-events:none";
-  top.innerHTML='<div class="hero-chip" style="font-size:16px;background:rgba(255,255,255,.75);backdrop-filter:blur(10px)">🦁 Akwaaba to the Web Kingdom, '+esc(P.name)+'! · 🔥 '+(P.streak||0)+' · ⭐ '+(P.xp||0)+'</div>';
+  top.style.cssText="position:absolute;z-index:8;top:10px;left:10px;width:min(620px,calc(100% - 20px));max-height:58vh;overflow:auto;pointer-events:auto";
+  top.innerHTML=todayPlanHTML(ensureTodayPlan());
   wrap.appendChild(top);
   const bottom=document.createElement("div");
   bottom.style.cssText="position:absolute;left:0;right:0;bottom:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:0 12px";

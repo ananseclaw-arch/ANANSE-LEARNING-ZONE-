@@ -257,7 +257,9 @@ function raceFinish(){
     P.xp+=xp;P.race=P.race||{};const prev=P.race[RC.T.id];
     P.race[RC.T.id]={time:prev&&prev.time<RC.time?prev.time:RC.time,place:Math.min(place,prev?prev.place:9),date:today()};
     if(place===1&&!P.trophies.some(t=>t.type==="race")&&typeof awardTrophy==="function")awardTrophy({type:"race",icon:"🏎️",label:"Grand Fable Champion",color:"#ffd166",detail:"Won a race on "+RC.T.name+"."});
+    if(typeof markTodayPlanDone==="function")markTodayPlanDone("race","race");
     save();
+    if(typeof syncProgress==="function")syncProgress("finish");
   }
   setTimeout(()=>{if(!RC)return;const wrap=document.querySelector(".race-wrap");if(wrap)wrap.insertAdjacentHTML("beforeend",'<div class="center fadein" style="margin-top:10px"><div class="btn-row"><button class="btn big" onclick="startRace2D(\''+RC.T.id+'\')">Race again 🔁</button><button class="btn secondary big" onclick="renderRace2D()">Circuits 🏁</button><button class="btn secondary big" onclick="'+(P?'renderHome()':'renderProfiles()')+'">Home 🏠</button></div></div>');},1200);
 }
