@@ -207,3 +207,35 @@ parked around that bend.
   full-height line, no pole or rail at the camera, grid rows visible on every route at the
   countdown, Fuji ahead on the start and main straights, HUD rows unique and CHAIN BROKEN never
   shown next to a live combo.
+
+## F1 circuits + thumb pedals (commit "Fable: F1-style circuits + gas/brake pedals")
+
+- Rebuilt Kawaguchi, Hakone and Tokyo from closed straight/arc segment lists. Each 1.10–1.16 km
+  road circuit now has a long start straight, 17 m hairpin, quick opposite-direction chicane,
+  flowing esses, 80–100 m fast sweeper, medium 90-degree turns and a route-specific crest/dip
+  profile. The generated points also drive the route cards and live mini-map.
+- Added circuit analysis at build time: signed curvature, corner/apex regions, grip-limited speed,
+  backwards braking profiles and an outside–inside–outside racing line. Rivals follow the line and
+  brake before the corner instead of running every bend flat; the player gets a BRAKE cue when the
+  speed profile says the next corner needs it. Excess lateral load now pushes a car wide and scrubs
+  speed, so the tight corners have a real braking consequence.
+- Added red/white apex and exit kerbs, white limits, asphalt/gravel run-off, stacked tyre barriers,
+  catch fencing, 300/200/100 boards, pit wall and lane, pit garages, roofed grandstands, grid boxes,
+  chequered line and a start-light gantry. The Fuji horizon, cherry trees, torii and Gemini photo
+  cars/world art remain in all three settings.
+- Replaced the old throttle/brake/drift buttons with large pedal-shaped BRAKE and GAS controls and
+  a full left-half steering slide pad. Independent captured pointer IDs allow steering and a pedal
+  together; pressed pedals tilt/light, and touch scrolling, zoom gestures, dragging and long-press
+  menus are blocked during play. Gas is bound only to the visible GAS pedal. Up/Down and Space
+  remain gas/brake/drift keyboard controls; BRAKE + steer initiates a drift and BRAKE reverses slowly
+  once stopped.
+- Added the per-profile `gpAuto` route-screen choice. `Auto gas (easy)` persists through `save()`;
+  missing/older profile values default to OFF. Free-drive notes, song progress and lap reset continue
+  to use the generated circuit.
+- Three visual rounds are in `lz-fable-shots` (`r1k_*`, `r2h_*` / `r2t_*`, `r3g_*`), covering the
+  grid/main straight, pedals, chicanes, hairpins and completed laps. `fz_f1.py` exercises two-pointer
+  input and a scripted speed-profile/racing-line driver while recording rival braking; `fz_f1b.py`
+  covers persisted auto gas, free-drive notes, keyboard pedals, reverse and the start-line guard.
+  A deterministic all-route lap check also completed two laps per circuit with distinct straight and
+  corner speeds for both the scripted player and rivals.
+- `sw.js` cache advanced to `learning-zone-v69`.
