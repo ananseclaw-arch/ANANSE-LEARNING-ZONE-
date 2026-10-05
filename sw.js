@@ -1,5 +1,5 @@
-const CACHE = "learning-zone-v65";
-const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png", "./ananse-lion.png"];
+const CACHE = "learning-zone-v66";
+const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png", "./ananse-lion.png", "./assets/cars/red.webp", "./assets/cars/silver.webp"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(f => new Request(f, {cache: "reload"})))).then(() => self.skipWaiting()));
 });
@@ -16,6 +16,9 @@ self.addEventListener("fetch", e => {
   const url = new URL(req.url);
   // The tutor address changes; never serve it from cache.
   if (/\/(tutor|focus)\.json$/.test(url.pathname)) return;   // focus.json = school focus, always fresh
+  // Videos stream straight from the network (Safari needs real 206 range replies, and the
+  // 1.5 MB racer intro should never sit in the app cache). Car pictures are cached on first use.
+  if (/\.(mp4|webm|m4v)$/.test(url.pathname)) return;
   const isShell = req.mode === "navigate" || /\/(index\.html)?$/.test(url.pathname) || /\.(js|webmanifest)$/.test(url.pathname);
   if (isShell) {
     e.respondWith(fetch(req, {cache: "no-cache"}).then(resp => {

@@ -72,3 +72,38 @@ music-note free drive and the 2D fallback when WebGL or Three.js is missing.
   the storybook look. Fixes made from them: Fuji colour/size/shape, far-plane
   double colour conversion that rendered the Tokyo bay black, bay placement,
   washed-out paint, floating spoilers, oversized cherry crowns, glare size.
+
+## Real car pictures + intro film (commit "Gemini car sprites + intro video")
+- **Sprite cars, Out Run style.** The Rosso Falcon (red) and Silver Arrow
+  (silver) are now Gemini-rendered photos instead of built meshes. Each car is
+  one upright plane that turns to face the camera (`gpBuildPicCar`,
+  `gpPicUpdate`); the frame is picked from the car's angle to the line of sight
+  (nose-right / straight / nose-left, with hysteresis). For the player the
+  steering input is folded in so the car leans the moment a button is pressed;
+  rivals use their real relative yaw. Flame frames flash on up-shifts from 3rd,
+  when a skill chain banks, and now and then on fast rivals (`gpFlame`).
+  Physics, collisions, the skid/smoke effects and the soft contact shadow are
+  unchanged; the 3D model is still used for the other four cars, for any car
+  whose picture fails to load (or takes more than 7 s), and under the Storybook
+  look, whose ink filter buries a photo.
+- **Assets** (`assets/cars/red.webp`, `assets/cars/silver.webp`, ~85 KB each):
+  6-frame sheets (3 views, then the same 3 with exhaust flames) cut from the
+  green-screen videos by `key_cars.py` (ffmpeg frame grab, alpha from green
+  dominance, edge unmixing + despill, floor shadows and sun glints dropped,
+  neighbouring cars separated with a lowest-cost seam, every view tight-cropped
+  onto one shared ground line). Scale comes from the straight view's width
+  (`GP_PICS[id].ppm` px/m, the straight car = 2.3 m with mirrors).
+- **Intro film** (`assets/intro_race.mp4`, 1.5 MB, faststart): plays once per
+  session before the first race with a big SKIP button (`gpIntro`); it starts
+  inside the route tap so iOS allows sound, is muted when the app's sound or the
+  racer's mute is off, and can be replayed from the routes screen
+  ("🎬 Watch the intro"). It is only requested when a race starts.
+- **Car picker** shows the straight picture for the two photo cars; the paint
+  swatches hide for them ("This car comes in its own colour").
+- **Service worker** (`learning-zone-v66`): the two sheets are precached, video
+  files bypass the worker entirely (Safari needs real range replies and the film
+  must not sit in the app cache).
+- Verified with four headless-Chrome rounds (`lz-fable-shots/fz_cars.py`):
+  picker, intro playing + skip, grid, flames, steering left/right frames,
+  rivals at distance, second race without intro, Hakone in Storybook (3D cars),
+  Tokyo free drive with the silver car.
