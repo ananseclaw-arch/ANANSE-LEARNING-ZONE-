@@ -158,3 +158,52 @@ gated on the Realistic look; the Storybook look keeps the painted 3D world.
 - **Race grid**: verified in race mode — five cars on the grid, position HUD shown.
 - Verified with five headless-Chrome rounds (`lz-fable-shots/fz_world.py`) across all
   three routes, race and free drive, Realistic and Storybook, all three photo cars.
+
+## Cleanup pass (commit "Fable: cleanup pass (artefacts, grid, HUD, seams)")
+An independent review of the screenshots found eight problems. Most of them had one root
+cause: every route's point list closed back on its first point at a 134° hairpin *at the
+start/finish line* (headings 45° → 119° → −174° within 20 m, a 9 m radius), so the torii
+gate, the Horizon flag poles and the guard rails stood on the outside of a corner that cars
+slid through at 100 mph, the chase camera clipped straight through them, and the grid was
+parked around that bend.
+
+- **Routes re-closed** (`GP_CIRCUITS[].pts`): each loop now starts in the middle of a gentle
+  straight (heading drifts ~30° over the 80 m around the line; sharpest corner anywhere is
+  ~27 m radius; no two stretches pass within 49 m). Laps are 946 / 987 / 1007 m.
+- **1 · orange vertical line** = a torii pillar sliced by the camera's near plane. Gone with
+  the re-closed loops, the wider gate (`W+3.6`) and the tighter lateral limits.
+- **2 · pale-green pole** = a flag pole (bare metal reflecting the green ground) 2 m from the
+  camera. Flag poles moved to `W+5.2`, banners / chevrons / speed-trap pole to `W+5`, lanterns
+  and street lights to `W+4.8`, delineators to `W+1.9`; the photo-prop shader discards any
+  billboard within 3 m of the camera. Players are now clamped at `x=±1.22` (outer wheels on
+  the shoulder, 1.5 m inside the rail) and rivals at `±1.1`, instead of `±1.5` (= in the rail).
+- **3 · road seam**: that was the verge and the guard rail seen from above while the car ran
+  on the shoulder beyond the rail line. Same fix as above.
+- **4 · HUD**: one row per skill name (a repeat adds to its row and shows `×2`), the multiplier
+  grows with each new skill type or each repeated discrete skill, nothing is scored for 1 s
+  after a chain breaks, no PASS credit within 1 s of a bump, and a fresh chain clears a
+  lingering CHAIN BROKEN banner.
+- **5 · rival clipping the camera**: rivals are hidden when they are less than 3.2 m ahead of
+  the camera plane; photo cars fade out between 5.4 m and 3.2 m first. Rivals near the camera
+  emit no smoke or dust.
+- **6 · grid**: staggered two-wide rows 8 m apart, all ahead of the player, with white grid
+  boxes painted in each slot and a chequered start line. The countdown camera is a raised
+  chase view that eases down into the normal one (the old side orbit hid the rows).
+- **7 · photo cars** take a mild multiply tint toward the route's sun colour and tint
+  (`shared.carTint`: warm cream in Tokyo, faintly warm by the lake, faintly cool on Hakone).
+- **8 · Fuji**: the sky band is now aimed at the mean heading of the start straight and the
+  speed-trap straight (they agree within 30° on every route), so Fuji is ahead on both.
+- Also fixed: the sky band's `toneMapped=false; userData.lin=1` had been swallowed by a
+  trailing comment, so the photo horizon was being ACES-mapped while the photo props and cars
+  were not.
+- Also fixed: skid marks were one 1 m tile per frame, so at 140 mph (and any low frame rate)
+  they read as a lattice of separate rectangles; each mark now spans the distance covered since
+  the last one. Photo cars switch to their nose-left/right frame only past ~15° (was ~6°), so
+  rivals on the grid no longer look parked sideways.
+- `sw.js` → `learning-zone-v68`.
+- Verified with headless Chrome (`lz-fable-shots/fz_world.py` ×4 rounds covering all three routes,
+  photo and 3D player cars, Realistic and Storybook; plus the new `fz_edge.py`, which pins the car
+  to its lateral limit for long stretches on Kawaguchi and Tokyo). 93 frames scanned: no
+  full-height line, no pole or rail at the camera, grid rows visible on every route at the
+  countdown, Fuji ahead on the start and main straights, HUD rows unique and CHAIN BROKEN never
+  shown next to a live combo.
