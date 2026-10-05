@@ -256,8 +256,8 @@ function gpCss(){if(document.getElementById("gpV4Css"))return;const s=document.c
 .gp3-wrap.v3 .race-btn.on{background:#fff;color:#111;transform:scale(.94)}
 /* pedals: GAS tall and narrow on the right, BRAKE wide on its left; a rubber tread with a hinge at the foot, pressed = tipped forward and lit */
 .gp3-wrap.v3 .fz-pedal{position:relative;display:block;border:0;padding:0;margin:0;background:none;color:#fff;font-family:inherit;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;transform-origin:50% 100%;transition:transform .07s,filter .07s;outline:0}
-.gp3-wrap.v3 .fz-pedal.gas{width:clamp(96px,10.5vw,124px);height:var(--ped)}
-.gp3-wrap.v3 .fz-pedal.brake{width:clamp(152px,15.5vw,196px);height:calc(var(--ped)*.9)}
+.gp3-wrap.v3 .fz-pedal.gas{width:clamp(124px,13.5vw,164px);height:var(--ped)}
+.gp3-wrap.v3 .fz-pedal.brake{width:clamp(124px,13vw,160px);height:calc(var(--ped)*.9)}
 .gp3-wrap.v3 .fz-pedal i{position:absolute;left:0;right:0;top:0;bottom:12px;border-radius:16px;background:repeating-linear-gradient(180deg,#464a53 0 9px,#23262c 9px 14px);border:3px solid #a8aeb8;box-shadow:inset 0 2px 0 rgba(255,255,255,.3),inset 0 -8px 14px rgba(0,0,0,.6),0 10px 18px rgba(0,0,0,.6)}
 .gp3-wrap.v3 .fz-pedal.gas i{border-color:#58c76b;background:repeating-linear-gradient(180deg,#3f5a46 0 9px,#1e2b22 9px 14px)}
 .gp3-wrap.v3 .fz-pedal.brake i{border-color:#e0485a;background:repeating-linear-gradient(90deg,#5a2a31 0 11px,#2a1418 11px 16px)}
