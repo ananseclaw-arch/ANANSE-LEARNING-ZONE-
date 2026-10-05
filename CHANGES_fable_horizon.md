@@ -239,3 +239,43 @@ parked around that bend.
   A deterministic all-route lap check also completed two laps per circuit with distinct straight and
   corner speeds for both the scripted player and rivals.
 - `sw.js` cache advanced to `learning-zone-v69`.
+
+## Wednesday art drop: photo cars for every racer, F1 track dressing, win flow, menu flyover
+- New pipeline `wed_assets.py` (PIL/numpy + ffmpeg, picks per `lz-fable-assets/CHOICES.md`): keys the
+  green-screen art, trims it and writes WebP sheets ≤ 1024 px wide and ≤ 250 KB each (≈ 0.8 MB of
+  images + 2.1 MB of video in total). Sheets are laid out as grids (`cols`/`rows` in `GP_PICS`);
+  the view order is always nose-right → straight → nose-left, worked out from the picture itself.
+- Cars: Alpine Rally, Kumasi V8 and Lemon Kei are photo sprites now (ChatGPT 3-view sheets, 512 px
+  frames); the Rosso Falcon uses the Gemini five-view sheet (`red5.webp`, hard/slight/straight) and
+  the view follows a smoothed steer amount with hysteresis, so turning walks straight → slight → hard.
+  Sheets without baked flames get an additive exhaust-flame sprite cut from the old red sheet. The
+  3D lofted cars remain only as the storybook look / load-failure fallback.
+- Track: ChatGPT start gantry over the line (five lamps all red on the grid, going out one by one
+  through the count, covers hide each lamp; the blank LED screen is a live canvas: title, then
+  LAP x/y · Pn, then FINISH), ChatGPT pit building with a depth block along the main straight, ChatGPT
+  grandstands opposite (alternate copies mirrored), a crowd strip cut from the grandstand on sloped
+  stands behind the hairpin fences, photo tyre walls at the other big corners, Gemini ad boards along
+  the straights, Gemini 100/200/300 plates on the braking boards, ChatGPT kerb tile on every kerb.
+  Procedural versions stay as fallbacks when the art has not loaded (and in the storybook look).
+- Win flow: 1st place plays the 7 s finish celebration (`assets/video/win.mp4`, skippable, muted
+  unless the app sound is on, hard 9 s timeout) and then the podium screen; 2nd/3rd go straight to
+  the podium: the podium art with the top three cars and names on the steps and the sunset podium
+  clip looping quietly behind. 4th/5th keep the plain results panel.
+- Routes screen: the drone flyover (4 s calm aerial played forwards then backwards, 0.7 MB) loops
+  muted behind the pickers; it is lazy-loaded 0.5 s after the screen opens, skipped for Save-Data
+  and reduced-motion, has a poster fallback and is never precached (`sw.js` leaves mp4 to the network).
+- Car select: every card is a hero shot (blurred aerial backdrop + the car's straight view);
+  `GP_PICS[id].hero` can point at a dedicated hero image later (wed_gpt2 pass).
+- Fixes: rivals no longer fade to see-through when passed (visibility toggle only, alphaTest 0.3);
+  trees/houses/lamps keep out of a zone around the pit building and grandstands; the contact shadow is
+  a dense core plus a wide soft blob; tyre smoke is its own points shader (≤ 80 puffs, each capped to
+  14% of the screen height, per-puff growth/fade, and the cloud dims whenever it would paint more than
+  ~15% of the screen).
+- Verified: `node --check` on race3d.js/sw.js and all 15 inline script blocks, `inline_lessons.py`,
+  `check.py` (only the pre-existing reveal `questionSig`/mascot-emoji items remain, same as main), and
+  `lz-fable-shots/fz_sim.py` headless Chrome runs (autopilot on the racing line, 6× time steps):
+  2 laps for the player and all four rivals on Kawaguchi, Hakone and Tokyo, plus a storybook race and
+  a free drive, with no console errors; screenshots `s1*_*.jpg` cover grid, lights, lap 2 and finish.
+- Still to come (second pass): wed_gpt2 extras (five-view sheets for the other cars, hero shots,
+  trees sheet, crowd, sky variants, title screen).
+- `sw.js` cache advanced to `learning-zone-v70`; the new WebP files are precached, videos are not.

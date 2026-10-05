@@ -33,14 +33,21 @@ const GP_SHAPE={
  muscle:{len:4.9,w:1.98,ride:0.26,rad:0.38,radR:0.4,xf:1.5,xr:-1.45,nose:0.64,hood:0.94,belt:0.98,deck:0.94,tail:0.84,cabF:0.1,roofF:-0.55,roofR:-1.3,cabR:-1.95,roof:1.32,wing:"duck",tyreW:0.3,tyreWR:0.36,hip:0.03},
  kei:{len:3.4,w:1.6,ride:0.3,rad:0.3,radR:0.3,xf:1.05,xr:-1.05,nose:0.7,hood:0.92,belt:0.98,deck:1.02,tail:1.0,cabF:0.75,roofF:0.2,roofR:-1.1,cabR:-1.5,roof:1.52,wing:"none",tyreW:0.24,tyreWR:0.24}
 };
-/* Real car pictures (Gemini renders keyed off a green screen by key_cars.py): one WebP sheet
-   per car with 6 frames of equal size on a shared ground line: nose-right, straight, nose-left,
-   then the same three with exhaust flames. ppm = pixels per metre of the straight view. */
+/* Real car pictures keyed off a green screen (key_cars.py, world_assets.py, wed_assets.py): one WebP sheet per car,
+   frames of equal size on a shared ground line laid out in a cols x rows grid (frame f at column f%cols, row f/cols).
+   Angle order is always nose-right ... straight ... nose-left (3 or 5 views); the old 6-frame sheets repeat their three
+   views with baked exhaust flames, the newer sheets get a separate flame sprite. ppm = pixels per metre, straight view. */
 const GP_PICS={
- falcon:{src:"assets/cars/red.webp",frames:6,fw:498,fh:286,ppm:152.17},
- arrow:{src:"assets/cars/silver.webp",frames:6,fw:500,fh:286,ppm:153.48},
- shogun:{src:"assets/cars/white.webp",frames:3,fw:308,fh:150,ppm:91}
+ falcon:{src:"assets/cars/red5.webp",frames:5,cols:2,rows:3,fw:322,fh:312,ppm:109.77},
+ arrow:{src:"assets/cars/silver.webp",frames:6,cols:6,rows:1,fw:500,fh:286,ppm:153.48},
+ shogun:{src:"assets/cars/white.webp",frames:3,cols:3,rows:1,fw:308,fh:150,ppm:91},
+ rally:{src:"assets/cars/rally.webp",frames:3,cols:2,rows:2,fw:512,fh:350,ppm:202.84},
+ kumasi:{src:"assets/cars/muscle.webp",frames:3,cols:2,rows:2,fw:512,fh:277,ppm:187.01},
+ kei:{src:"assets/cars/kei.webp",frames:3,cols:2,rows:2,fw:512,fh:403,ppm:227.43}
 };
+function gpPicFrames(D){return D.frames>=6?{angles:3,flames:true}:{angles:D.frames,flames:false};}   // 6-frame sheets = 3 views + 3 flame views
+function gpPicOffset(D,f){const c=f%D.cols,r=Math.floor(f/D.cols);return[c/D.cols,1-(r+1)/D.rows];}
+function gpPicMid(D){return D.frames>=6?1:(D.frames-1)>>1;}
 /* Gemini world pictures (world_assets.py): a 360-degree sky band with Fuji in the middle, a billboard
    atlas (cherry, cedar, torii, lantern, banner), one guard-rail bay, tileable asphalt, the dial face. */
 const GP_WORLD={
@@ -49,9 +56,21 @@ const GP_WORLD={
  rail:{src:"assets/world/rail.webp",len:2.4,hgt:0.86},
  road:{src:"assets/world/road.webp"},
  speedo:{src:"assets/world/speedo.webp",a0:137,a1:404.5,max:200},
- logo:"assets/world/logo.webp",hero:"assets/world/hero.webp"
+ logo:"assets/world/logo.webp",hero:"assets/world/hero.webp",card:"assets/world/card.webp",
+ /* Wednesday drop (wed_assets.py): exhaust flame sprite, start gantry (lamp centres + LED screen as fractions of the picture),
+    pit building, grandstand, crowd strip, kerb tile, trackside atlas (ad boards, tyre wall, 100/200/300 plates), podium */
+ flame:{src:"assets/world/flame.webp",w:131,h:56,cx:-0.001,bottom:0.084,relW:0.263},
+ gantry:{src:"assets/world/gantry.webp",w:1024,h:484,lights:[[0.3873,0.5472,0.0156],[0.4429,0.5466,0.0159],[0.4991,0.546,0.0159],[0.5536,0.5466,0.0159],[0.6095,0.5466,0.0159]],screen:[0.2532,0.1472,0.5058,0.2577],posts:[0.06,0.9386]},
+ pits:{src:"assets/world/pits.webp",w:1024,h:212,hgt:13},
+ stand:{src:"assets/world/stand.webp",w:1024,h:513,hgt:15},
+ crowd:{src:"assets/world/crowd.webp",w:512,h:64},
+ kerb:{src:"assets/world/kerb.webp",w:128,h:32},
+ boards:{src:"assets/world/boards.webp",w:1015,h:150,cells:{ad1:{x:4,y:31,w:161,h:115,m:2.6},ad2:{x:169,y:31,w:167,h:115,m:2.6},ad3:{x:340,y:31,w:162,h:115,m:2.6},tyres:{x:506,y:4,w:325,h:142,m:2.2},b100:{x:835,y:106,w:56,h:40,m:1.5},b200:{x:895,y:103,w:56,h:43,m:1.5},b300:{x:955,y:106,w:56,h:40,m:1.5}}},
+ podium:{src:"assets/world/podium.webp",w:1024,h:656,steps:{p2:[0.23,0.7607],p1:[0.5,0.6784],p3:[0.77,0.814]}}
 };
 const GP_INTRO="assets/intro_race.mp4";
+/* videos stream from the network on demand (never precached): finish celebration, podium loop, menu flyover loop */
+const GP_VIDEO={win:"assets/video/win.mp4",podium:"assets/video/podium.mp4",flyover:"assets/video/flyover.mp4",poster:"assets/video/flyover_poster.webp"};
 const GP_PAINTS=["#d1121c","#d7dbe0","#f2f2f2","#1d5fd1","#f28a1c","#f7e85c","#0d0f14","#2e9e57","#8e3bd6","#ff5fa2"];
 const GP_SCALE=[392,440,523.25,587.33,659.25,783.99,880,1046.5,1174.66];
 const GP_DRIVERS=["Kofi","Ama","Esi","Kwame","Abena"];
@@ -178,9 +197,28 @@ const GPA={ctx:null,master:null,eng:null,muted:false,
 /* ---------- one-time CSS: Horizon look (default) + storybook modifier ---------- */
 function gpCss(){if(document.getElementById("gpV4Css"))return;const s=document.createElement("style");s.id="gpV4Css";s.textContent=`
 .fz-pic{position:relative;display:block;width:100%;aspect-ratio:2.4;overflow:hidden;border-radius:10px;background:linear-gradient(#5f8fd0,#c9dcf0 55%,#4a5a3c 56%,#2b3524)}
+.fz-pic.hero{background:#0a0d18 var(--bg) center/cover no-repeat}
+.fz-pic.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,13,24,0) 40%,rgba(10,13,24,.55) 100%)}
 .fz-pic i{position:absolute;left:50%;top:5%;height:90%;aspect-ratio:var(--ar,1.74);transform:translateX(-50%);overflow:hidden;filter:drop-shadow(0 10px 8px rgba(0,0,0,.45))}
 .fz-pic img{display:block;height:100%;width:auto;margin-left:-100%}
+.fz-thumb{display:block;background-repeat:no-repeat;z-index:1}
+.fz-pic.hero .fz-thumb{top:8%;height:88%;filter:drop-shadow(0 12px 10px rgba(0,0,0,.6))}
+.fz-pic.shot{background:#0a0d18 var(--bg) center/cover no-repeat}
 .story .fz-pic{background:linear-gradient(#e3f1ef,#f7f0e1);border:2px solid #2b2735}
+.fz-bgvid{position:absolute;inset:0;overflow:hidden;border-radius:18px;z-index:0;pointer-events:none}
+.fz-bgvid video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55;filter:saturate(1.1)}
+.fz-bgvid::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,13,24,.2),rgba(10,13,24,.55) 60%,rgba(10,13,24,.92) 100%)}
+.fz-shell>*:not(.fz-bgvid){position:relative;z-index:1}
+.fz-shell.story .fz-bgvid{display:none}
+.fz-podium{position:relative;width:min(560px,92%);aspect-ratio:1024/656;margin:2px auto 0;background:var(--pod) center bottom/contain no-repeat}
+.fz-podium .fz-step{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;gap:2px;width:30%}
+.fz-podium .fz-step .fz-thumb{height:clamp(34px,7.5vw,74px);filter:drop-shadow(0 6px 6px rgba(0,0,0,.6))}
+.fz-podium .fz-step b{font-size:clamp(11px,1.5vw,15px);font-style:italic;text-transform:uppercase;background:rgba(10,12,25,.78);padding:2px 8px;border-radius:4px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.fz-podium .fz-step.me b{background:linear-gradient(90deg,#ff2d87,#ff7a00)}
+.gp3-wrap.v3 .gp3-finish video.fz-podvid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.45;z-index:-1}
+.gp3-wrap.v3 .gp3-finish.pod{justify-content:flex-start;padding-top:2%;overflow:hidden}
+.gp3-wrap.v3 .gp3-finish.pod .fz-res{margin:4px 0;font-size:clamp(11px,1.4vw,14px)}.gp3-wrap.v3 .gp3-finish.pod .fz-res div{padding:2px 10px}
+@media (max-height:520px){.fz-podium{width:min(300px,60%)}.gp3-wrap.v3 .gp3-finish.pod .fz-res{display:none}}
 .fz-paint-note{display:none;text-align:center;color:#cdd6e6;font-size:14px;margin-top:12px}
 .fz-shell.pic .fz-paints{display:none}.fz-shell.pic .fz-paint-note{display:block}
 .fz-intro{position:fixed;inset:0;z-index:4000;background:#000;display:flex;align-items:center;justify-content:center;opacity:1;transition:opacity .3s}
@@ -347,6 +385,7 @@ function gpCss(){if(document.getElementById("gpV4Css"))return;const s=document.c
 
 /* ---------- menus: car select → route select → race ---------- */
 function gpStop(){
+  gpStopVideos();
   document.querySelectorAll(".fz-intro").forEach(e=>{try{const v=e.querySelector("video");if(v){v.pause();v.removeAttribute("src");v.load();}}catch(x){}e.remove();});
   if(window._gpPrev){try{window._gpPrev.r.dispose();window._gpPrev.r.forceContextLoss();}catch(e){}window._gpPrev=null;}
   if(!R3)return;
@@ -362,6 +401,12 @@ function gpStop(){
   try{R3.renderer.dispose();R3.renderer.forceContextLoss();}catch(e){}
   R3=null;
 }
+/* the straight view of a car sheet as a CSS-cropped thumbnail (works for one-row and grid sheets) */
+function gpThumb(id,extra){const D=GP_PICS[id];if(!D)return"";const mid=gpPicMid(D),c=mid%D.cols,r=Math.floor(mid/D.cols);const px=D.cols>1?c*100/(D.cols-1):0,py=D.rows>1?r*100/(D.rows-1):0;
+  return '<i class="fz-thumb" style="aspect-ratio:'+(D.fw/D.fh).toFixed(3)+';background-image:url('+D.src+');background-size:'+(D.cols*100)+'% '+(D.rows*100)+'%;background-position:'+px.toFixed(2)+'% '+py.toFixed(2)+'%;'+(extra||'')+'"></i>';}
+function gpCardPic(c){const D=GP_PICS[c.id];if(!D)return'<canvas width="480" height="200" data-prev="'+c.id+'"></canvas>';
+  if(D.hero)return'<span class="fz-pic shot" style="--bg:url('+D.hero+')"></span>';   // a real hero shot when one exists
+  return'<span class="fz-pic hero" style="--bg:url('+GP_WORLD.card+')">'+gpThumb(c.id,"position:absolute;left:50%;transform:translateX(-50%)")+'</span>';}
 function gpHead(sub){return '<div class="fz-head" style="background-image:url('+GP_WORLD.hero+')"><img class="fz-logo" src="'+GP_WORLD.logo+'" alt="Grand Fable Horizon" decoding="async"><div class="fz-sub">'+sub+'</div></div>';}
 function gpShellClass(){return "fadein fz-shell"+(gpStory()?" story":"");}
 function renderRace(){
@@ -369,7 +414,7 @@ function renderRace(){
   if(typeof kdWebgl==="function"&&!kdWebgl()){renderRace2D();return;}
   gpCss();document.body.classList.add("learningworld");
   const sel=gpCar().id,paint=gpPaint();
-  const cards=GP_CARS.map(c=>'<button class="fz-car'+(c.id===sel?" on":"")+'" data-car="'+c.id+'" onclick="gpPickCar(\''+c.id+'\')">'+(GP_PICS[c.id]?'<span class="fz-pic"><i style="--ar:'+(GP_PICS[c.id].fw/GP_PICS[c.id].fh).toFixed(3)+'"><img src="'+GP_PICS[c.id].src+'" alt="'+esc(c.n)+'" decoding="async"></i></span>':'<canvas width="480" height="200" data-prev="'+c.id+'"></canvas>')+'<span class="fz-cls"><i>'+c.cls+'</i><em>'+c.pi+'</em></span><b>'+esc(c.n)+'</b>'
+  const cards=GP_CARS.map(c=>'<button class="fz-car'+(c.id===sel?" on":"")+'" data-car="'+c.id+'" onclick="gpPickCar(\''+c.id+'\')">'+gpCardPic(c)+'<span class="fz-cls"><i>'+c.cls+'</i><em>'+c.pi+'</em></span><b>'+esc(c.n)+'</b>'
     +'<span class="fz-bar"><i>Speed</i><s><em style="width:'+(c.speed*20)+'%"></em></s></span><span class="fz-bar"><i>Handling</i><s><em style="width:'+(c.handle*20)+'%"></em></s></span><span class="fz-bar"><i>Launch</i><s><em style="width:'+(c.accel*20)+'%"></em></s></span>'
     +'<small>'+esc(c.bio)+'</small></button>').join("");
   const sw=GP_PAINTS.map(h=>'<button class="fz-sw'+(h===paint?" on":"")+'" style="background:'+h+'" data-paint="'+h+'" onclick="gpPickPaint(\''+h+'\')" aria-label="Paint colour"></button>').join("");
@@ -399,6 +444,7 @@ function renderCircuits(){
   clearTimers();closeOverlay();showAnanseCorner(false);gpStop();gpCss();
   const best=P&&P.race?P.race:{};
   app.innerHTML='<div class="'+gpShellClass()+'" id="fzShell" style="max-width:980px;margin:0 auto;padding:0 8px">'
+   +'<div class="fz-bgvid"><video id="fzFly" muted loop playsinline webkit-playsinline preload="none" poster="'+GP_VIDEO.poster+'" disablepictureinpicture aria-hidden="true"></video></div>'
    +gpHead(esc(gpCar().n)+" · choose a route")
    +'<div class="fz-mode fz-pace"><button data-p="gentle" class="'+(gpPace()==="gentle"?"on":"")+'" onclick="gpPickPace(\'gentle\')">🐢 Gentle speed</button><button data-p="normal" class="'+(gpPace()==="normal"?"on":"")+'" onclick="gpPickPace(\'normal\')">🚗 Normal speed</button></div>'
    +'<div class="fz-mode fz-m"><button data-m="free" class="'+(gpMode()==="free"?"on":"")+'" onclick="gpPickMode(\'free\')">🎵 Free drive: collect the music</button><button data-m="race" class="'+(gpMode()==="race"?"on":"")+'" onclick="gpPickMode(\'race\')">🏁 Race: beat 4 rivals</button></div>'
@@ -408,8 +454,14 @@ function renderCircuits(){
    +'<div class="card fz-card" style="margin-top:14px"><b>How to play</b><p style="margin-top:6px">🎵 <b>Free drive</b>: cruise Japan and drive through the floating music notes. Every 8 notes makes a tune, and at the end you can play your whole song.<br>🏁 <b>Race</b>: beat 4 rivals. Score skill points for drifting, near misses, passing and clean driving.<br>Left thumb: ◀ ▶ steer. Right thumb: hold the <b>GAS</b> pedal to go, <b>BRAKE</b> to slow down (brake before the tight corners — watch the 300·200·100 boards). Hold BRAKE while steering at speed to drift. <b>Auto gas</b> makes the car speed up by itself. Keyboard: ← → steer, ↑ gas, ↓ brake, Space drift, M mute, Esc quit.</p></div>'
    +'<div class="btn-row" style="margin-top:12px"><button class="btn secondary" onclick="renderRace()">⟵ Cars</button><button class="btn secondary" onclick="gpIntro(true)">🎬 Watch the intro</button></div><div class="spacer"></div></div>';
   GP_CIRCUITS.forEach((c,i)=>gpDrawMini($("gpMini"+i),c,null));
+  gpFlyover();
   say("Choose a route.");
 }
+/* the drone flyover starts a moment after the routes screen is up, only when nothing asks for data saving or still motion */
+function gpFlyover(){const v=$("fzFly");if(!v||gpStory())return;
+  try{if(navigator.connection&&navigator.connection.saveData)return;if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches)return;}catch(e){}
+  setTimeout(()=>{const el=$("fzFly");if(!el||!document.contains(el))return;el.muted=true;el.src=GP_VIDEO.flyover;const p=el.play();if(p&&p.catch)p.catch(()=>{});},500);}
+function gpStopVideos(){document.querySelectorAll(".fz-bgvid video,.gp3-finish video").forEach(v=>{try{v.pause();v.removeAttribute("src");v.load();}catch(e){}});}
 function gpDrawMini(cv,c,karts){
   if(!cv)return;const x=cv.getContext("2d");x.clearRect(0,0,cv.width,cv.height);const story=gpStory();
   const xs=c.pts.map(p=>p[0]),zs=c.pts.map(p=>p[1]);const minX=Math.min(...xs)-15,maxX=Math.max(...xs)+15,minZ=Math.min(...zs)-15,maxZ=Math.max(...zs)+15;
@@ -520,20 +572,25 @@ function gpLoadWorld(){
   const gl2=!!(window.WebGL2RenderingContext&&document.createElement("canvas").getContext("webgl2"));
   const tex=(k,rep,pot)=>new Promise(res=>{if(W[k]!==undefined)return res();L.load(GP_WORLD[k].src,t=>{if(T.sRGBEncoding)t.encoding=T.sRGBEncoding;if(rep)t.wrapS=t.wrapT=T.RepeatWrapping;const mip=gl2||pot;t.generateMipmaps=mip;t.minFilter=mip?T.LinearMipmapLinearFilter:T.LinearFilter;t.anisotropy=window._gpAniso||4;W[k]=t;res();},undefined,()=>{W[k]=null;res();});});
   const img=new Promise(res=>{if(W.speedo!==undefined)return res();const im=new Image();im.onload=()=>{W.speedo=im;res();};im.onerror=()=>{W.speedo=null;res();};im.src=GP_WORLD.speedo.src;});
-  return Promise.all([tex("sky",false,false),tex("props",false,false),tex("rail",true,true),tex("road",true,true),img]).then(()=>W);
+  return Promise.all([tex("sky",false,false),tex("props",false,false),tex("rail",true,true),tex("road",true,true),img,
+    tex("flame",false,false),tex("gantry",false,false),tex("pits",false,false),tex("stand",false,false),tex("crowd",true,true),tex("kerb",true,true),tex("boards",false,false)]).then(()=>W);
 }
 /* A picture car: one upright plane that turns to face the camera (Out Run style), showing the
    nose-right / straight / nose-left frame chosen from the car's angle to the line of sight.
    Physics, collisions and the soft contact shadow are exactly the same as the 3D cars. */
 function gpBuildPicCar(T,car,tex,shared){
-  const S=GP_SHAPE[car.type],D=GP_PICS[car.id],g=new T.Group(),b=new T.Group();g.add(b);
-  const t=tex.clone();t.needsUpdate=true;t.repeat.set(1/D.frames,1);t.offset.set(1/D.frames,0);
+  const S=GP_SHAPE[car.type],D=GP_PICS[car.id],g=new T.Group(),b=new T.Group();g.add(b);const PF=gpPicFrames(D),mid=gpPicMid(D);
+  const t=tex.clone();t.needsUpdate=true;t.repeat.set(1/D.cols,1/D.rows);const o0=gpPicOffset(D,mid);t.offset.set(o0[0],o0[1]);
   const w=D.fw/D.ppm,h=D.fh/D.ppm;
-  const mat=new T.MeshBasicMaterial({map:t,transparent:true,alphaTest:0.08,side:T.DoubleSide,depthWrite:true,color:shared.carTint||0xffffff});mat.toneMapped=false;mat.userData.lin=1;
+  const mat=new T.MeshBasicMaterial({map:t,transparent:true,alphaTest:0.3,side:T.DoubleSide,depthWrite:true,color:shared.carTint||0xffffff});mat.toneMapped=false;mat.userData.lin=1;
   const pl=new T.Mesh(new T.PlaneGeometry(w,h),mat);pl.position.set(0,h/2+0.012,-0.1);pl.castShadow=false;pl.receiveShadow=false;b.add(pl);
-  // contact shadow: a dense dark core the size of the car's footprint that softens outwards, so the picture sits on the road
-  const blob=new T.Mesh(new T.PlaneGeometry(S.w*1.6,S.len*1.0),new T.MeshBasicMaterial({map:shared.ao,color:0x000000,transparent:true,opacity:0.86,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}));blob.material.userData.lin=1;blob.rotation.x=-Math.PI/2;blob.position.y=0.03;blob.position.z=-0.3;g.add(blob);
-  return{g,body:b,wheels:[],steers:[],tailMat:{emissiveIntensity:0.9},bodyMat:mat,S,xr:S.xr,hw:z=>S.w/2,pic:{pl,t,D,frame:1,side:0,flameT:0}};}
+  // exhaust flames for sheets without baked flame frames: a small additive sprite under the tail, shown while flameT runs
+  let flame=null;if(!PF.flames&&shared.flameTex){const FL=GP_WORLD.flame,fw=w*FL.relW,fh=fw*FL.h/FL.w;const fm=new T.MeshBasicMaterial({map:shared.flameTex,transparent:true,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide});fm.toneMapped=false;fm.userData.lin=1;
+    flame=new T.Mesh(new T.PlaneGeometry(fw,fh),fm);flame.position.set(FL.cx*w,-h/2+FL.bottom*h+fh/2,0.01);flame.visible=false;pl.add(flame);}
+  // contact shadow: a dense dark core under the body plus a wider soft blob, so the picture sits firmly on the road
+  const mk=(sw,sl,op,y,z)=>{const m=new T.Mesh(new T.PlaneGeometry(sw,sl),new T.MeshBasicMaterial({map:shared.ao,color:0x000000,transparent:true,opacity:op,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}));m.material.userData.lin=1;m.rotation.x=-Math.PI/2;m.position.y=y;m.position.z=z;g.add(m);return m;};
+  mk(S.w*1.75,S.len*1.1,0.8,0.03,-0.3);mk(S.w*1.15,S.len*0.82,0.75,0.035,-0.25);
+  return{g,body:b,wheels:[],steers:[],tailMat:{emissiveIntensity:0.9},bodyMat:mat,S,xr:S.xr,hw:z=>S.w/2,pic:{pl,t,D,angles:PF.angles,flames:PF.flames,flame,frame:mid,bin:0,rel:0,flameT:0}};}
 function gpWrapAng(a){while(a>Math.PI)a-=Math.PI*2;while(a<-Math.PI)a+=Math.PI*2;return a;}
 /* per frame: face the camera and pick the frame */
 function gpPicUpdate(kt,dt,camPos,inp){
@@ -542,26 +599,37 @@ function gpPicUpdate(kt,dt,camPos,inp){
   let rel=gpWrapAng(carYaw-losYaw);                 // + = nose turned to the viewer's left
   if(kt.player)rel=-(inp*0.36+(kt.sv||0)*0.12+(kt.drift||0)*0.4); // straight unless the player steers or slides (never yawed while parked)
   pc.pl.rotation.y=gpWrapAng(losYaw+Math.PI-carYaw);
-  const on=0.26,off=0.14;                           // the side frames show a ~30° view, so only use them past ~15°; hysteresis so the frame does not flicker
-  if(pc.side===0){if(rel>on)pc.side=1;else if(rel<-on)pc.side=-1;}else if(Math.abs(rel)<off||Math.sign(rel)!==pc.side)pc.side=rel>on?1:(rel<-on?-1:0);
+  pc.rel+=(rel-pc.rel)*Math.min(1,dt*9);           // the steer amount eases, so a five-view sheet walks straight → slight → hard instead of jumping
+  const a=pc.rel,m=Math.abs(a),sg=a<0?-1:1,cur=Math.abs(pc.bin);let lvl=cur;
+  if(pc.angles>=5){const H=[0.07,0.22],hys=0.035;if(cur<2&&m>H[cur]+(cur?0:0))lvl=cur+1;if(cur>0&&m<H[cur-1]-hys)lvl=cur-1;}   // thresholds ~4° and ~12.5° with hysteresis so the view does not flicker
+  else{if(cur<1&&m>0.26)lvl=1;if(cur>0&&m<0.14)lvl=0;}
+  if(lvl>0&&cur>0&&sg!==Math.sign(pc.bin))lvl=0;    // changing direction passes through the straight view
+  pc.bin=lvl*sg;
   if(pc.flameT>0)pc.flameT-=dt;
-  const f=(pc.side===1?2:(pc.side===-1?0:1))+(pc.flameT>0&&pc.D.frames>=6?3:0);
-  if(f!==pc.frame){pc.frame=f;pc.t.offset.x=f/pc.D.frames;}
+  const half=(pc.angles-1)>>1,f=(half+pc.bin)+(pc.flameT>0&&pc.flames?pc.angles:0);   // bin + = nose to the viewer's left = later frames
+  if(f!==pc.frame){pc.frame=f;const o=gpPicOffset(pc.D,f);pc.t.offset.set(o[0],o[1]);}
+  if(pc.flame){const v=pc.flameT>0;if(pc.flame.visible!==v)pc.flame.visible=v;if(v)pc.flame.scale.set(0.8+Math.random()*0.4,0.75+Math.random()*0.5,1);}
 }
 function gpFlame(kt,sec){if(kt&&kt.pic)kt.pic.flameT=Math.max(kt.pic.flameT,sec);}
 /* cinematic intro: plays once per session before the first race (or on demand from the routes
    screen) with a big SKIP button; muted when the app's sound is off. */
 function gpIntro(force){
+  if(window._gpIntroDone&&!force)return Promise.resolve();window._gpIntroDone=true;
+  return gpVideo(GP_INTRO,"GRAND FABLE HORIZON · JAPAN",16000);
+}
+/* full-screen video overlay with a big SKIP button (tap anywhere skips too); muted when the app's sound is off; a video that
+   never starts, errors or runs past maxMs ends the overlay so the game can never get stuck behind it */
+function gpVideo(src,tag,maxMs){
   return new Promise(res=>{
-    if(window._gpIntroDone&&!force)return res();window._gpIntroDone=true;
     if(P&&typeof P.gpMute==="boolean")GPA.muted=P.gpMute;
     gpCss();const ov=document.createElement("div");ov.className="fz-intro";
-    ov.innerHTML='<video playsinline webkit-playsinline preload="auto" disablepictureinpicture></video><div class="fz-tag">GRAND FABLE HORIZON · JAPAN</div><button class="fz-skip" aria-label="Skip intro">SKIP ▶</button>';
-    document.body.appendChild(ov);const v=ov.querySelector("video");v.muted=!!GPA.muted||!(typeof DB!=="undefined"&&DB&&DB.sound);v.volume=0.9;v.src=GP_INTRO;
+    ov.innerHTML='<video playsinline webkit-playsinline preload="auto" disablepictureinpicture></video><div class="fz-tag">'+esc(tag||"")+'</div><button class="fz-skip" aria-label="Skip video">SKIP ▶</button>';
+    document.body.appendChild(ov);const v=ov.querySelector("video");v.muted=!!GPA.muted||!(typeof DB!=="undefined"&&DB&&DB.sound);v.volume=0.9;v.src=src;
     let over=false;const done=()=>{if(over)return;over=true;clearTimeout(to);try{v.pause();}catch(e){}ov.classList.add("out");setTimeout(()=>{try{v.removeAttribute("src");v.load();}catch(e){}ov.remove();},320);res();};
     v.addEventListener("ended",done);v.addEventListener("error",done);v.addEventListener("stalled",()=>{if(v.currentTime<0.2)setTimeout(()=>{if(!over&&v.currentTime<0.2)done();},4000);});
-    ov.querySelector(".fz-skip").addEventListener("click",ev=>{ev.preventDefault();sfx("tick");done();});
-    const to=setTimeout(done,16000);
+    ov.querySelector(".fz-skip").addEventListener("click",ev=>{ev.preventDefault();ev.stopPropagation();sfx("tick");done();});
+    ov.addEventListener("click",()=>{done();});
+    const to=setTimeout(done,maxMs||16000);
     const p=v.play();if(p&&p.catch)p.catch(()=>{v.muted=true;const q=v.play();if(q&&q.catch)q.catch(done);});
   });
 }
@@ -580,12 +648,12 @@ function gpCarDraw(cv,car,paint){if(!cv||!window.THREE||!car)return;const pv=gpP
 /* One draw call of camera-facing photo props: an instanced quad per prop with its atlas cell, size and
    mirror flag; the vertex shader turns each quad about Y towards the camera. Photo colours are shown as
    they are (like the picture cars) with the scene fog mixed in; a soft blob under each one grounds it. */
-function gpBillboards(T,scene,atlas,BB,fogCol,near,far,tint,blobTex){
-  if(!BB.length)return;const cells=GP_WORLD.props.cells,AW=GP_WORLD.props.w,AH=GP_WORLD.props.h,n=BB.length;
+function gpBillboards(T,scene,atlas,BB,fogCol,near,far,tint,blobTex,ATL){
+  if(!BB.length)return;const A=ATL||GP_WORLD.props,cells=A.cells,AW=A.w,AH=A.h,n=BB.length;
   const base=new T.PlaneGeometry(1,1);base.translate(0,0.5,0);const g=new T.InstancedBufferGeometry();g.index=base.index;g.attributes.position=base.attributes.position;g.attributes.uv=base.attributes.uv;
   const pos=new Float32Array(n*3),size=new Float32Array(n*2),uv=new Float32Array(n*4),lum=new Float32Array(n);
   const dummy=new T.Object3D(),blobs=new T.InstancedMesh(new T.PlaneGeometry(1,1).rotateX(-Math.PI/2),new T.MeshBasicMaterial({map:blobTex,color:0x000000,transparent:true,opacity:0.4,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}),n);blobs.material.userData.lin=1;
-  BB.forEach((b,i)=>{const c=cells[b[0]]||cells.cherry;const h=c.m*b[4],w=h*c.w/c.h;pos[i*3]=b[1];pos[i*3+1]=b[2]-0.05;pos[i*3+2]=b[3];size[i*2]=b[5]?-w:w;size[i*2+1]=h;
+  BB.forEach((b,i)=>{const c=cells[b[0]]||cells[Object.keys(cells)[0]];const h=c.m*b[4],w=h*c.w/c.h;pos[i*3]=b[1];pos[i*3+1]=b[2]-0.05;pos[i*3+2]=b[3];size[i*2]=b[5]?-w:w;size[i*2+1]=h;
     uv[i*4]=c.x/AW;uv[i*4+1]=1-(c.y+c.h)/AH;uv[i*4+2]=c.w/AW;uv[i*4+3]=c.h/AH;lum[i]=0.9+((i*37)%7)/7*0.18;
     dummy.position.set(b[1],b[2]+0.02,b[3]);dummy.rotation.set(0,0,0);dummy.scale.set(w*0.9,1,w*0.55);dummy.updateMatrix();blobs.setMatrixAt(i,dummy.matrix);});
   g.setAttribute("iPos",new T.InstancedBufferAttribute(pos,3));g.setAttribute("iSize",new T.InstancedBufferAttribute(size,2));g.setAttribute("iUV",new T.InstancedBufferAttribute(uv,4));g.setAttribute("iLum",new T.InstancedBufferAttribute(lum,1));
@@ -605,6 +673,25 @@ function gpParticles(T,scene,n,size,additive,opacity,tex){
       this.vel[k+1]-=grav*dt;this.pos[k]+=this.vel[k]*dt;this.pos[k+1]+=this.vel[k+1]*dt;this.pos[k+2]+=this.vel[k+2]*dt;
       const f=this.life[i]/this.max[i];if(this.additive){this.col[k]=this.c0[k]*f;this.col[k+1]=this.c0[k+1]*f;this.col[k+2]=this.c0[k+2]*f;}}
       this.live=any;this.g.attributes.position.needsUpdate=true;this.g.attributes.color.needsUpdate=true;}};
+}
+/* Tyre smoke: a points cloud with its own shader so every puff grows and fades on its own; at most `cap` puffs live,
+   each capped to a fraction of the screen height, and the whole cloud dims whenever it would paint more than ~15% of
+   the screen (the old PointsMaterial smoke could white the whole view out in a long drift). */
+function gpSmoke(T,scene,n,tex,fog){
+  const g=new T.BufferGeometry();const pos=new Float32Array(n*3),life=new Float32Array(n),size=new Float32Array(n);for(let i=0;i<n;i++)pos[i*3+1]=-999;
+  g.setAttribute("position",new T.BufferAttribute(pos,3));g.setAttribute("aLife",new T.BufferAttribute(life,1));g.setAttribute("aSize",new T.BufferAttribute(size,1));
+  const mat=new T.ShaderMaterial({uniforms:{map:{value:tex},opacity:{value:0.3},scale:{value:300},maxPx:{value:120},tint:{value:new T.Color(0.94,0.94,0.96)},fogColor:{value:fog?fog.color.clone():new T.Color(1,1,1)},fogNear:{value:fog?fog.near:1},fogFar:{value:fog?fog.far:1000}},transparent:true,depthWrite:false,depthTest:true,
+    vertexShader:"attribute float aLife;attribute float aSize;uniform float scale;uniform float maxPx;varying float vA;varying float vFog;void main(){vec4 mv=modelViewMatrix*vec4(position,1.0);float age=1.0-aLife;float px=aSize*(0.6+1.6*age)*scale/max(1.0,-mv.z);gl_PointSize=min(px,maxPx);vA=aLife*(1.0-0.35*age);vFog=-mv.z;gl_Position=projectionMatrix*mv;}",
+    fragmentShader:"uniform sampler2D map;uniform float opacity;uniform vec3 tint;uniform vec3 fogColor;uniform float fogNear;uniform float fogFar;varying float vA;varying float vFog;void main(){vec4 c=texture2D(map,gl_PointCoord);float f=smoothstep(fogNear,fogFar,vFog);gl_FragColor=vec4(mix(tint,fogColor,f),c.a*vA*opacity);}"});
+  const pts=new T.Points(g,mat);pts.frustumCulled=false;scene.add(pts);
+  return{pts,g,pos,life,size,n,max:new Float32Array(n),vel:new Float32Array(n*3),next:0,liveN:0,cap:Math.min(n,80),base:0.3,mat,dirty:0,
+    emit(x,y,z,vx,vy,vz,sz,lf){if(this.liveN>=this.cap)return;const i=this.next;this.next=(i+1)%this.n;if(this.life[i]>0)return;const k=i*3;this.pos[k]=x;this.pos[k+1]=y;this.pos[k+2]=z;this.vel[k]=vx;this.vel[k+1]=vy;this.vel[k+2]=vz;this.size[i]=sz;this.life[i]=1;this.max[i]=lf;this.liveN++;this.dirty=1;},
+    update(dt,camPos,W,H){if(!this.liveN&&!this.dirty)return;let live=0,cov=0;const sc=this.mat.uniforms.scale.value,mx=this.mat.uniforms.maxPx.value;
+      for(let i=0;i<this.n;i++){if(this.life[i]<=0)continue;this.life[i]-=dt/this.max[i];const k=i*3;if(this.life[i]<=0){this.life[i]=0;this.pos[k+1]=-999;continue;}live++;
+        this.vel[k+1]+=0.9*dt;this.vel[k]*=1-dt*0.9;this.vel[k+2]*=1-dt*0.9;this.pos[k]+=this.vel[k]*dt;this.pos[k+1]+=this.vel[k+1]*dt;this.pos[k+2]+=this.vel[k+2]*dt;
+        const dx=this.pos[k]-camPos.x,dy=this.pos[k+1]-camPos.y,dz=this.pos[k+2]-camPos.z;const d=Math.max(1,Math.sqrt(dx*dx+dy*dy+dz*dz));const px=Math.min(mx,this.size[i]*(0.6+1.6*(1-this.life[i]))*sc/d);cov+=px*px*0.55*this.life[i];}
+      this.liveN=live;const frac=cov/Math.max(1,W*H);this.mat.uniforms.opacity.value=frac>0.15?this.base*0.15/frac:this.base;
+      this.g.attributes.position.needsUpdate=true;this.g.attributes.aLife.needsUpdate=true;this.g.attributes.aSize.needsUpdate=true;this.dirty=live?1:0;}};
 }
 /* ---------- the race ---------- */
 async function startRace3D(cid){
@@ -745,6 +832,8 @@ function gpBuild(C){
   const s0=samples[0],sStart=s0.pos.clone();
   const hdgAt=i=>Math.atan2(samples[(i+M)%M].tan.x,samples[(i+M)%M].tan.z),hdgMean=(a,b)=>{let sx=0,sz=0;for(let i=a;i<=b;i++){sx+=Math.sin(hdgAt(i));sz+=Math.cos(hdgAt(i));}return Math.atan2(sx,sz);};const stA=Math.round(C.mainS[0]*0.62/ds),stB=Math.round(C.mainS[1]*0.72/ds);const standRanges=[[M-stA,M],[0,stB]];const inStands=i=>standRanges.some(([a,b])=>i>=a-4&&i<=b+4);   // pit wall + grandstands along the main straight
   const pitSide=corners.length?corners[0].sgn:1,busy=i=>inStands(i)||inRun(i);   // pits on the inside of turn 1, the big grandstand opposite
+  let trapI=Math.floor(M*0.3),bestStr=-9;for(let i=Math.floor(M*0.12);i<Math.floor(M*0.88);i+=4){if(inStands(i))continue;const a=samples[(i-25+M)%M].tan,b=samples[(i+25)%M].tan;const d=a.x*b.x+a.z*b.z;if(d>bestStr){bestStr=d;trapI=i;}}   // speed trap on the straightest stretch away from the pits
+  const nearBld=(x,z)=>{const n=nearest(x,z);return inStands(n[0])&&n[1]<W+38;};   // nothing grows on the pit building or in the grandstands
   // ---- guard rails (white steel) with posts, and red-white delineator posts that streak past ----
   const railPic=WD.rail||null;
   const railMat=railPic?new T.MeshStandardMaterial({map:railPic,transparent:true,alphaTest:0.5,side:T.DoubleSide,roughness:0.5,metalness:0.3}):new T.MeshStandardMaterial({color:story?0xd9785f:0xe8e9ea,roughness:0.4,metalness:0.6,side:T.DoubleSide});
@@ -774,11 +863,15 @@ function gpBuild(C){
   flags.forEach((f,k)=>{dummy.rotation.set(0,0,0);dummy.scale.set(1,1,1);dummy.position.set(f[0],f[1]+3.25,f[2]);dummy.updateMatrix();fpIM.setMatrixAt(k,dummy.matrix);dummy.position.set(f[0]+f[4].x*0.6*f[3],f[1]+5.1,f[2]+f[4].z*0.6*f[3]);dummy.lookAt(f[0]+f[4].x*5,f[1]+5.1,f[2]+f[4].z*5);dummy.updateMatrix();flIM.setMatrixAt(k,dummy.matrix);});
   fpIM.castShadow=true;flIM.castShadow=true;scene.add(fpIM);scene.add(flIM);
   // ---- F1 trackside: kerbs, run-off, tyre walls, catch fencing, braking boards, pit wall and garages, grandstands, the start gantry ----
-  const ribbonR=(i0,i1,inner,outer,mat,yIn,yOut,uPerM)=>{const g=new T.BufferGeometry();const v=[],uv=[],idx=[];let d=0,n=0;for(let i=i0;i<=i1;i++){const s=samples[wrapI(i)];if(i>i0)d+=ds;const a=s.pos.clone().addScaledVector(s.nor,inner),b=s.pos.clone().addScaledVector(s.nor,outer);v.push(a.x,s.pos.y+yIn,a.z,b.x,s.pos.y+yOut,b.z);uv.push(0,d*uPerM,1,d*uPerM);if(i<i1){const k=n*2;idx.push(k,k+1,k+2,k+1,k+3,k+2);}n++;}g.setAttribute("position",new T.Float32BufferAttribute(v,3));g.setAttribute("uv",new T.Float32BufferAttribute(uv,2));g.setIndex(idx);g.computeVertexNormals();const m=new T.Mesh(g,mat);m.receiveShadow=true;scene.add(m);return m;};
+  const ribbonR=(i0,i1,inner,outer,mat,yIn,yOut,uPerM,swap,vMax)=>{const g=new T.BufferGeometry();const v=[],uv=[],idx=[];let d=0,n=0;for(let i=i0;i<=i1;i++){const s=samples[wrapI(i)];if(i>i0)d+=ds;const a=s.pos.clone().addScaledVector(s.nor,inner),b=s.pos.clone().addScaledVector(s.nor,outer);v.push(a.x,s.pos.y+yIn,a.z,b.x,s.pos.y+yOut,b.z);if(swap)uv.push(d*uPerM,0,d*uPerM,vMax||1);else uv.push(0,d*uPerM,1,d*uPerM);if(i<i1){const k=n*2;idx.push(k,k+1,k+2,k+1,k+3,k+2);}n++;}g.setAttribute("position",new T.Float32BufferAttribute(v,3));g.setAttribute("uv",new T.Float32BufferAttribute(uv,2));g.setIndex(idx);g.computeVertexNormals();const m=new T.Mesh(g,mat);m.receiveShadow=true;scene.add(m);return m;};
   const wallR=(i0,i1,off,side,y0,y1,mat,uPerM)=>{const g=new T.BufferGeometry();const v=[],uv=[],idx=[];let d=0,n=0;for(let i=i0;i<=i1;i++){const s=samples[wrapI(i)];if(i>i0)d+=ds;const a=s.pos.clone().addScaledVector(s.nor,side*off);const gy=groundAt(a.x,a.z);v.push(a.x,gy+y0,a.z,a.x,gy+y1,a.z);uv.push(d*uPerM,0,d*uPerM,1);if(i<i1){const k=n*2;idx.push(k,k+2,k+1,k+1,k+2,k+3);}n++;}g.setAttribute("position",new T.Float32BufferAttribute(v,3));g.setAttribute("uv",new T.Float32BufferAttribute(uv,2));g.setIndex(idx);g.computeVertexNormals();const m=new T.Mesh(g,mat);scene.add(m);return m;};
   const poMat=o=>{o.polygonOffset=true;o.polygonOffsetFactor=-1;o.polygonOffsetUnits=-1;return o;};
+  // photo props are shown as they are (sun already baked in), tinted to the route light and fogged like everything else
+  const picMat=(t,extra)=>{const m=new T.MeshBasicMaterial(Object.assign({map:t,transparent:true,alphaTest:0.5,side:T.DoubleSide,color:TINT.clone()},extra||{}));m.toneMapped=false;m.userData.lin=1;return m;};
+  const BA=GP_WORLD.boards,atlasMat=WD.boards?picMat(WD.boards):null;
+  const atlasGeo=(cell,hM)=>{const c=BA.cells[cell];const g=new T.PlaneGeometry(hM*c.w/c.h,hM);const uv=g.attributes.uv;const u0=c.x/BA.w,u1=(c.x+c.w)/BA.w,v0=1-(c.y+c.h)/BA.h,v1=1-c.y/BA.h;for(let i=0;i<uv.count;i++)uv.setXY(i,u0+uv.getX(i)*(u1-u0),v0+uv.getY(i)*(v1-v0));return g;};
   const kerbTex=gpCanvasTex(128,32,(x,w,h)=>{x.fillStyle="#e8e6e0";x.fillRect(0,0,w,h);x.fillStyle="#d81e2a";x.fillRect(0,0,w/2,h);x.fillStyle="rgba(0,0,0,.18)";x.fillRect(0,h-4,w,4);},true);
-  const kerbMat=poMat(new T.MeshLambertMaterial({map:kerbTex}));
+  const kerbMat=poMat(new T.MeshLambertMaterial({map:WD.kerb||kerbTex}));   // photo kerb tile (one red + one white block per 2 m) when the world art loaded
   corners.forEach(c=>{if(c.n*ds<8)return;const si=-c.sgn,so=c.sgn;   // inside kerb through the whole corner, exit kerb on the outside from the apex
     const kIn=(i0,i1,side)=>ribbonR(i0,i1,side*(W-0.45),side*(W+1.35),kerbMat,0.06,0.0,0.5);
     kIn(c.a,c.b,si);kIn(c.apex,c.b+Math.round(10/ds),so);});
@@ -798,8 +891,8 @@ function gpBuild(C){
   const fenceMat=new T.MeshBasicMaterial({map:fenceTex,transparent:true,alphaTest:0.3,side:T.DoubleSide,depthWrite:false});fenceMat.userData.lin=1;
   fenceRanges.forEach(([a,b,so])=>wallR(a,b,runW+1.8,so,0,4.2,fenceMat,0.6));
   if(fencePosts.length){const fpg=new T.CylinderGeometry(0.07,0.07,4.3,6);fpg.translate(0,2.15,0);const fpIM2=new T.InstancedMesh(fpg,new T.MeshLambertMaterial({color:0x8d939c}),fencePosts.length);fencePosts.forEach((p,k)=>{dummy.position.set(p[0],p[1],p[2]);dummy.rotation.set(0,0,0);dummy.scale.set(1,1,1);dummy.updateMatrix();fpIM2.setMatrixAt(k,dummy.matrix);});scene.add(fpIM2);}
-  if(boards.length){const bTex={};[100,200,300].forEach(d=>{bTex[d]=gpCanvasTex(128,128,(x,w,h)=>{x.fillStyle="#f4f4f4";x.fillRect(0,0,w,h);x.fillStyle="#d81e2a";x.fillRect(0,0,w,18);x.fillRect(0,h-18,w,18);x.fillStyle="#111";x.font="900 62px system-ui";x.textAlign="center";x.textBaseline="middle";x.fillText(String(d),w/2,h/2+2);});});
-    [100,200,300].forEach(d=>{const list=boards.filter(b=>b[4]===d);if(!list.length)return;const im=new T.InstancedMesh(new T.PlaneGeometry(1.5,1.5),new T.MeshLambertMaterial({map:bTex[d],side:T.DoubleSide}),list.length),pm=new T.InstancedMesh(new T.BoxGeometry(0.12,1.0,0.12),new T.MeshLambertMaterial({color:0x6b6f78}),list.length);
+  if(boards.length){const bTex={};if(!atlasMat)[100,200,300].forEach(d=>{bTex[d]=gpCanvasTex(128,128,(x,w,h)=>{x.fillStyle="#f4f4f4";x.fillRect(0,0,w,h);x.fillStyle="#d81e2a";x.fillRect(0,0,w,18);x.fillRect(0,h-18,w,18);x.fillStyle="#111";x.font="900 62px system-ui";x.textAlign="center";x.textBaseline="middle";x.fillText(String(d),w/2,h/2+2);});});
+    [100,200,300].forEach(d=>{const list=boards.filter(b=>b[4]===d);if(!list.length)return;const im=new T.InstancedMesh(atlasMat?atlasGeo("b"+d,1.2):new T.PlaneGeometry(1.5,1.5),atlasMat||new T.MeshLambertMaterial({map:bTex[d],side:T.DoubleSide}),list.length),pm=new T.InstancedMesh(new T.BoxGeometry(0.12,1.0,0.12),new T.MeshLambertMaterial({color:0x6b6f78}),list.length);
       list.forEach((b,k)=>{dummy.position.set(b[0],b[1]+1.75,b[2]);dummy.rotation.set(0,0,0);dummy.scale.set(1,1,1);dummy.lookAt(b[0]-b[3].x,b[1]+1.75,b[2]-b[3].z);dummy.updateMatrix();im.setMatrixAt(k,dummy.matrix);dummy.rotation.set(0,0,0);dummy.position.set(b[0],b[1]+0.5,b[2]);dummy.updateMatrix();pm.setMatrixAt(k,dummy.matrix);});im.castShadow=true;scene.add(im);scene.add(pm);});}
   // main straight: concrete walls both sides, pit lane + garages on the pit side, a stepped grandstand with a roof opposite
   const concMat=new T.MeshLambertMaterial({color:story?0xe9e2d2:0xc9c7c0}),concTop=new T.MeshLambertMaterial({color:story?0xd9cfb8:0xb3b1aa});
@@ -810,29 +903,56 @@ function gpBuild(C){
   const garTex=gpCanvasTex(256,128,(x,w,h)=>{x.fillStyle="#d9dbe0";x.fillRect(0,0,w,h);const cols=["#d1121c","#1d5fd1","#f28a1c","#2e9e57","#8e3bd6","#d7dbe0"];for(let k=0;k<4;k++){x.fillStyle="#2a2d33";x.fillRect(k*64+6,40,52,88);x.fillStyle=cols[k%cols.length];x.fillRect(k*64+6,16,52,20);}x.fillStyle="#f4f4f4";x.font="900 14px system-ui";x.textAlign="center";[0,1,2,3].forEach(k=>x.fillText("PIT "+(k+1),k*64+32,31));});
   const crowdTex=gpCanvasTex(256,64,(x,w,h)=>{x.fillStyle="#3a3f4c";x.fillRect(0,0,w,h);x.fillStyle="#2a2e38";x.fillRect(0,0,w,10);x.fillRect(0,h-6,w,6);const cols=["#ff2d87","#ffd23f","#39c0ff","#f4f4f4","#ff7a00","#2e9e57","#d1121c","#7a4bd6"];for(let r=0;r<2;r++)for(let c=0;c<40;c++){x.fillStyle=cols[(rnd()*cols.length)|0];x.beginPath();x.arc(4+c*6.4+rnd()*2,22+r*22+rnd()*3,2.6,0,7);x.fill();x.fillStyle="#f1c9a5";x.beginPath();x.arc(4+c*6.4+rnd()*2,15+r*22,1.7,0,7);x.fill();}},true);crowdTex.repeat.set(10,1);
   const chunks=[];for(let i=SR0+6;i<=SR1-16;i+=Math.round(20/ds))chunks.push(wrapI(i));
-  if(chunks.length){const garIM=new T.InstancedMesh(new T.BoxGeometry(20,6.5,11),new T.MeshLambertMaterial({map:garTex}),chunks.length),garRoof=new T.InstancedMesh(new T.BoxGeometry(21,0.5,12.5),new T.MeshLambertMaterial({color:0x5a6070}),chunks.length);
-    const tiers=5,tierIM=[];for(let t=0;t<tiers;t++)tierIM.push(new T.InstancedMesh(new T.BoxGeometry(20,1.4,2.4),new T.MeshLambertMaterial({map:crowdTex}),chunks.length));
-    const roofIM=new T.InstancedMesh(new T.BoxGeometry(20.5,0.4,13.5),new T.MeshLambertMaterial({color:story?0xe8604c:0x3b4150}),chunks.length),poleIM=new T.InstancedMesh(new T.CylinderGeometry(0.16,0.16,10.5,6),new T.MeshLambertMaterial({color:0x9aa0ab}),chunks.length*2);
+  const picPits=!!WD.pits,picStand=!!WD.stand;
+  if(chunks.length){const garIM=picPits?null:new T.InstancedMesh(new T.BoxGeometry(20,6.5,11),new T.MeshLambertMaterial({map:garTex}),chunks.length),garRoof=picPits?null:new T.InstancedMesh(new T.BoxGeometry(21,0.5,12.5),new T.MeshLambertMaterial({color:0x5a6070}),chunks.length);
+    const tiers=picStand?0:5,tierIM=[];for(let t=0;t<tiers;t++)tierIM.push(new T.InstancedMesh(new T.BoxGeometry(20,1.4,2.4),new T.MeshLambertMaterial({map:crowdTex}),chunks.length));
+    const roofIM=picStand?null:new T.InstancedMesh(new T.BoxGeometry(20.5,0.4,13.5),new T.MeshLambertMaterial({color:story?0xe8604c:0x3b4150}),chunks.length),poleIM=picStand?null:new T.InstancedMesh(new T.CylinderGeometry(0.16,0.16,10.5,6),new T.MeshLambertMaterial({color:0x9aa0ab}),chunks.length*2);
     chunks.forEach((i,k)=>{const s=samples[wrapI(i+Math.round(10/ds))];const yaw=Math.atan2(s.tan.x,s.tan.z);
-      const place=(im,idx,off,y,sx,sy,sz)=>{const p=s.pos.clone().addScaledVector(s.nor,off);const gy=groundAt(p.x,p.z);dummy.position.set(p.x,gy+y,p.z);dummy.rotation.set(0,yaw,0);dummy.scale.set(sx||1,sy||1,sz||1);dummy.updateMatrix();im.setMatrixAt(idx,dummy.matrix);};
+      const place=(im,idx,off,y,sx,sy,sz)=>{if(!im)return;const p=s.pos.clone().addScaledVector(s.nor,off);const gy=groundAt(p.x,p.z);dummy.position.set(p.x,gy+y,p.z);dummy.rotation.set(0,yaw,0);dummy.scale.set(sx||1,sy||1,sz||1);dummy.updateMatrix();im.setMatrixAt(idx,dummy.matrix);};
       place(garIM,k,pitSide*(W+16.5),3.25);place(garRoof,k,pitSide*(W+16.5),6.7);
       for(let t=0;t<tiers;t++)place(tierIM[t],k,-pitSide*(W+8.2+t*2.4),0.7+t*1.3);
       place(roofIM,k,-pitSide*(W+13.4),10.6);place(poleIM,k*2,-pitSide*(W+7.2),5.25);place(poleIM,k*2+1,-pitSide*(W+19.6),5.25);});
-    [garIM,garRoof,roofIM,poleIM].concat(tierIM).forEach(m=>{m.castShadow=true;m.receiveShadow=true;scene.add(m);});}
+    [garIM,garRoof,roofIM,poleIM].concat(tierIM).forEach(m=>{if(!m)return;m.castShadow=true;m.receiveShadow=true;scene.add(m);});}
+  // photo buildings: a flat picture facing the track with a dark block behind it for depth, repeated along the straight
+  const bldBox=new T.MeshLambertMaterial({color:story?0xd9cfb8:0x3a3e48});
+  const alongStraight=(i0,i1,lenM,gapM,mk)=>{const step=Math.round((lenM+gapM)/ds);let k=0;for(let i=i0;i+Math.round(lenM/ds)<=i1;i+=step){mk(samples[wrapI(i+Math.round(lenM/2/ds))],k++);}};
+  if(picPits){const PT=GP_WORLD.pits,ph=PT.hgt,pw=ph*PT.w/PT.h,pm=picMat(WD.pits);
+    alongStraight(SR0+8,SR1-10,pw,8,(s,k)=>{const p=s.pos.clone().addScaledVector(s.nor,pitSide*(W+16.5));const gy=groundAt(p.x,p.z);const m=new T.Mesh(new T.PlaneGeometry(pw,ph),pm);m.position.set(p.x,gy+ph/2-0.1,p.z);m.lookAt(p.x-s.nor.x*pitSide*10,gy+ph/2-0.1,p.z-s.nor.z*pitSide*10);scene.add(m);
+      const bx=new T.Mesh(new T.BoxGeometry(13,ph*0.92,pw*0.985),bldBox);bx.position.set(p.x+s.nor.x*pitSide*6.6,gy+ph*0.46-0.1,p.z+s.nor.z*pitSide*6.6);bx.rotation.y=Math.atan2(s.tan.x,s.tan.z);bx.castShadow=true;bx.receiveShadow=true;scene.add(bx);});}
+  if(picStand){const ST=GP_WORLD.stand,sh=ST.hgt,sw=sh*ST.w/ST.h,sm=picMat(WD.stand);
+    alongStraight(SR0+8,SR1-10,sw,3,(s,k)=>{const p=s.pos.clone().addScaledVector(s.nor,-pitSide*(W+12.5));const gy=groundAt(p.x,p.z);const m=new T.Mesh(new T.PlaneGeometry(sw,sh),sm);m.position.set(p.x,gy+sh/2-0.1,p.z);m.lookAt(p.x+s.nor.x*pitSide*10,gy+sh/2-0.1,p.z+s.nor.z*pitSide*10);if(k%2)m.scale.x=-1;scene.add(m);});}   // every other stand mirrored: pairs read as one long symmetric tribune
+  // crowd slopes behind the catch fence at the hairpins, photo tyre walls at the other big corners, ad boards along the straights
+  const BB2=[];
+  if(WD.crowd){const cm=picMat(WD.crowd,{alphaTest:0});big.forEach(c=>{if(c.R>=23)return;const so=c.sgn,a=c.a-4,b=c.b+6;ribbonR(a,b,so*(runW+3.4),so*(runW+9.8),cm,1.2,5.6,1/9,true,1.6);wallR(a,b,runW+3.4,so,0,1.25,concMat,0.1);});}
+  if(atlasMat){big.forEach(c=>{if(c.R<23)return;const so=c.sgn;for(let i=c.a-6;i<=c.b+8;i+=Math.round(4.6/ds)){const s=samples[wrapI(i)];const p=s.pos.clone().addScaledVector(s.nor,so*(runW+3.2));BB2.push(["tyres",p.x,groundAt(p.x,p.z),p.z,1,(i>>2)%2===0]);}});
+    const ads=[];for(let i=18;i<M;i+=Math.round(52/ds)){if(busy(i)||Math.abs(kap[i])>1/100||Math.abs(i-trapI)<14)continue;const s=samples[i];const side=(ads.length%2)?-1:1;const p=s.pos.clone().addScaledVector(s.nor,side*(W+5.4));const y=groundAt(p.x,p.z);if(y>0.8)ads.push([p.x,y,p.z,side,s.nor.clone()]);}
+    ["ad1","ad2","ad3"].forEach((cell,ci)=>{const list=ads.filter((a,k)=>k%3===ci);if(!list.length)return;const im=new T.InstancedMesh(atlasGeo(cell,2.6),atlasMat,list.length);
+      list.forEach((a,k)=>{dummy.position.set(a[0],a[1]+1.3,a[2]);dummy.rotation.set(0,0,0);dummy.scale.set(1,1,1);dummy.lookAt(a[0]-a[4].x*a[3],a[1]+1.3,a[2]-a[4].z*a[3]);dummy.updateMatrix();im.setMatrixAt(k,dummy.matrix);});scene.add(im);});}
   // the start/finish gantry: steel truss over the line, five start lights facing the grid, a sign over the track
   const steel=new T.MeshStandardMaterial({color:0x3a3d44,roughness:0.5,metalness:0.6}),gantry=new T.Group(),gw=W+2.0;
-  [-1,1].forEach(sd=>{const pl=new T.Mesh(new T.BoxGeometry(0.7,8.2,0.7),steel);pl.position.set(sd*gw,4.1,0);pl.castShadow=true;gantry.add(pl);});
-  const beam=new T.Mesh(new T.BoxGeometry(gw*2+0.7,1.5,1.0),steel);beam.position.set(0,8.0,0);beam.castShadow=true;gantry.add(beam);
-  const signMat=new T.MeshBasicMaterial({map:gpTextTex("GRAND FABLE HORIZON GP",["#ff2d87","#ff7a00"],"#fff",1024,160,92)});signMat.userData.lin=1;
-  const signF=new T.Mesh(new T.PlaneGeometry(gw*2+0.4,1.3),signMat);signF.position.set(0,8.0,-0.52);signF.rotation.y=Math.PI;gantry.add(signF);
-  const signB=new T.Mesh(new T.PlaneGeometry(gw*2+0.4,1.3),signMat);signB.position.set(0,8.0,0.52);gantry.add(signB);
-  const lightPanel=new T.Mesh(new T.BoxGeometry(4.2,1.0,0.3),new T.MeshLambertMaterial({color:0x111216}));lightPanel.position.set(0,6.7,0.1);gantry.add(lightPanel);
-  const lights=[];for(let k=0;k<5;k++){const lm=new T.MeshBasicMaterial({color:0x3a0a0a});lm.userData.lin=1;const lb=new T.Mesh(new T.SphereGeometry(0.3,12,8),lm);lb.position.set(-1.6+k*0.8,6.7,0.3);gantry.add(lb);lights.push(lm);}
+  const lights=[],covers=[];let screenTex=null,screenCv=null;
+  if(WD.gantry){const GA=GP_WORLD.gantry,gwM=2*(W+3.6)/(GA.posts[1]-GA.posts[0]),ghM=gwM*GA.h/GA.w;
+    const gpl=new T.Mesh(new T.PlaneGeometry(gwM,ghM),picMat(WD.gantry));gpl.rotation.y=Math.PI;gpl.position.y=ghM/2-0.05;gantry.add(gpl);   // turned to face the grid
+    GA.lights.forEach(([lx,ly,lr])=>{const cm=new T.MeshBasicMaterial({color:0x1a1214});cm.userData.lin=1;const c=new T.Mesh(new T.CircleGeometry(lr*gwM*1.25,18),cm);c.position.set((lx-0.5)*gwM,(0.5-ly)*ghM,0.04);c.visible=false;gpl.add(c);covers.push(c);});   // a cover hides a lamp once it has gone out
+    screenCv=document.createElement("canvas");screenCv.width=512;screenCv.height=128;screenTex=new T.CanvasTexture(screenCv);if(T.sRGBEncoding)screenTex.encoding=T.sRGBEncoding;
+    const [sx,sy,sw,sh]=GA.screen;const sm=new T.MeshBasicMaterial({map:screenTex});sm.toneMapped=false;sm.userData.lin=1;const scr=new T.Mesh(new T.PlaneGeometry(sw*gwM*0.98,sh*ghM*0.94),sm);scr.position.set((sx+sw/2-0.5)*gwM,(0.5-(sy+sh/2))*ghM,0.04);gpl.add(scr);}
+  else [-1,1].forEach(sd=>{const pl=new T.Mesh(new T.BoxGeometry(0.7,8.2,0.7),steel);pl.position.set(sd*gw,4.1,0);pl.castShadow=true;gantry.add(pl);});
+  if(!WD.gantry){const beam=new T.Mesh(new T.BoxGeometry(gw*2+0.7,1.5,1.0),steel);beam.position.set(0,8.0,0);beam.castShadow=true;gantry.add(beam);
+    const signMat=new T.MeshBasicMaterial({map:gpTextTex("GRAND FABLE HORIZON GP",["#ff2d87","#ff7a00"],"#fff",1024,160,92)});signMat.userData.lin=1;
+    const signF=new T.Mesh(new T.PlaneGeometry(gw*2+0.4,1.3),signMat);signF.position.set(0,8.0,-0.52);signF.rotation.y=Math.PI;gantry.add(signF);
+    const signB=new T.Mesh(new T.PlaneGeometry(gw*2+0.4,1.3),signMat);signB.position.set(0,8.0,0.52);gantry.add(signB);
+    const lightPanel=new T.Mesh(new T.BoxGeometry(4.2,1.0,0.3),new T.MeshLambertMaterial({color:0x111216}));lightPanel.position.set(0,6.7,0.1);gantry.add(lightPanel);
+    for(let k=0;k<5;k++){const lm=new T.MeshBasicMaterial({color:0xff2020});lm.userData.lin=1;const lb=new T.Mesh(new T.SphereGeometry(0.3,12,8),lm);lb.position.set(-1.6+k*0.8,6.7,0.3);gantry.add(lb);lights.push(lm);}}
   gantry.position.copy(sStart);gantry.lookAt(sStart.clone().add(s0.tan));scene.add(gantry);
+  // start lights: all five red on the grid, going out one by one through the count, all out at GO
+  const setLights=on=>{lights.forEach((m,k)=>m.color.setHex(k<on?0xff2020:0x3a0a0a));covers.forEach((c,k)=>{c.visible=k>=on;});};setLights(5);
+  const setScreen=txt=>{if(!screenCv)return;const x=screenCv.getContext("2d"),w=512,h=128;const g=x.createLinearGradient(0,0,w,0);g.addColorStop(0,"#ff2d87");g.addColorStop(1,"#ff7a00");x.fillStyle=g;x.fillRect(0,0,w,h);
+    x.fillStyle="rgba(0,0,0,.35)";for(let i=0;i<32;i++){if(i%2)x.fillRect(i*16,0,16,10);else x.fillRect(i*16,h-10,16,10);}
+    x.fillStyle="#fff";x.textAlign="center";x.textBaseline="middle";x.shadowColor="rgba(0,0,0,.5)";x.shadowBlur=6;let fs=60;x.font="italic 900 "+fs+"px system-ui";const tw=x.measureText(txt).width;if(tw>w-40){fs=Math.floor(fs*(w-40)/tw);x.font="italic 900 "+fs+"px system-ui";}x.fillText(txt,w/2,h/2+3);screenTex.needsUpdate=true;};setScreen("GRAND FABLE HORIZON GP");
   // ---- lakeside town: tiled hipped roofs, white and timber walls ----
   const winTex=gpCanvasTex(128,128,(x,w,h)=>{x.fillStyle="#fff";x.fillRect(0,0,w,h);x.fillStyle="#2c3a4a";[[20,30],[76,30],[20,78],[76,78]].forEach(q=>{x.fillRect(q[0],q[1],32,30);});x.strokeStyle="#e9e2d3";x.lineWidth=3;[[20,30],[76,30],[20,78],[76,78]].forEach(q=>{x.beginPath();x.moveTo(q[0]+16,q[1]);x.lineTo(q[0]+16,q[1]+30);x.stroke();x.beginPath();x.moveTo(q[0],q[1]+15);x.lineTo(q[0]+32,q[1]+15);x.stroke();});x.fillStyle="#6b4a2e";x.fillRect(50,100,26,28);});
   const wallCols=story?[0xf7f0e1,0xf4e3c3,0xe9f0ee,0xf6d9cf,0xdfe8f5]:[0xf3efe6,0xe8dcc6,0xd9d4c8,0x8a6a48,0xf0ece2],roofCols=story?[0xd9624a,0xc9553f,0xe07a55,0x6d8fb3]:[0x3f4756,0x4a5468,0x2f3542,0x5a5f6b,0x6b4a3a];
-  const houses=[];const addHouse=(x,z,ang,sz,hh)=>{const y=groundAt(x,z);if(y<0.8||lakeF(x,z)>0.05||nearest(x,z)[1]<W+13)return;houses.push([x,y,z,sz,hh,ang]);};
+  const houses=[];const addHouse=(x,z,ang,sz,hh)=>{const y=groundAt(x,z);if(y<0.8||lakeF(x,z)>0.05||nearest(x,z)[1]<W+13||nearBld(x,z))return;houses.push([x,y,z,sz,hh,ang]);};
   if((C.town||C.city)&&(!bbOn||C.city>0.5)){for(let i=0;i<M;i+=6){if(rnd()<0.45||busy(i))continue;const s=samples[i];const side=rnd()<0.5?-1:1;const p=s.pos.clone().addScaledVector(s.nor,side*(W+(bbOn?22:12)+rnd()*(bbOn?28:22)));addHouse(p.x,p.z,Math.atan2(s.tan.x,s.tan.z)+(rnd()-0.5)*0.3,3+rnd()*2.4,2.6+rnd()*2.2);}}
   if(LK&&C.town){for(let k=0;k<110;k++){const a=rnd()*6.28,r=0.95+rnd()*0.5;const x=cx+LK.x+Math.cos(a)*LK.rx*r,z=cz+LK.z+Math.sin(a)*LK.rz*r;if(nearest(x,z)[1]<W+14)continue;addHouse(x,z,a+Math.PI/2,3+rnd()*3,2.6+rnd()*2.6);}}
   if(houses.length){const hb=new T.InstancedMesh(new T.BoxGeometry(1,1,1),new T.MeshLambertMaterial({map:winTex}),houses.length);const rg=new T.ConeGeometry(0.78,0.62,4);rg.rotateY(Math.PI/4);const hr=new T.InstancedMesh(rg,new T.MeshLambertMaterial({color:0xffffff}),houses.length);
@@ -850,9 +970,9 @@ function gpBuild(C){
   // ---- trees: cherry blossom, cedar forest or a mix; lining the road and filling the fields ----
   const spots=[],lineSpots=[];
   const lineStep=C.tree==="cedar"?3:(C.tree==="cherry"?8:7),lineOff=C.tree==="cedar"?5.5:8;
-  for(let i=0;i<M;i+=lineStep){if(busy(i))continue;const s=samples[i];[-1,1].forEach(side=>{if(rnd()<(C.tree==="cedar"?0.12:0.3)||runOut[wrapI(i-12)]===side||runOut[wrapI(i+12)]===side)return;const p=s.pos.clone().addScaledVector(s.nor,side*(W+lineOff+rnd()*2.5));const y=groundAt(p.x,p.z);if(y<0.8||nearest(p.x,p.z)[1]<W+4)return;lineSpots.push([p.x,y,p.z,0.85+rnd()*0.5,rnd()*6.28,rnd()]);});}
-  for(let i=0;i<M;i+=5){if(inStands(i))continue;const s=samples[i];for(let r=0;r<3;r++){if(r&&rnd()<0.45)continue;const side=rnd()<0.5?-1:1;const p=s.pos.clone().addScaledVector(s.nor,side*(W+16+r*16+rnd()*16));const y=groundAt(p.x,p.z);if(y<0.8||lakeF(p.x,p.z)>0.05||nearest(p.x,p.z)[1]<runW+4)continue;if(houses.some(h=>Math.abs(h[0]-p.x)<5&&Math.abs(h[2]-p.z)<5))continue;spots.push([p.x,y,p.z,0.8+rnd()*0.7,rnd()*6.28,rnd()]);}}
-  for(let k=0;k<420;k++){const a=rnd()*6.28,r=150+rnd()*520;const x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r;if(nearest(x,z)[1]<W+22)continue;const y=groundAt(x,z);if(y<0.8||lakeF(x,z)>0.05)continue;spots.push([x,y,z,0.9+rnd()*0.9,rnd()*6.28,rnd()]);}
+  for(let i=0;i<M;i+=lineStep){if(busy(i))continue;const s=samples[i];[-1,1].forEach(side=>{if(rnd()<(C.tree==="cedar"?0.12:0.3)||runOut[wrapI(i-12)]===side||runOut[wrapI(i+12)]===side)return;const p=s.pos.clone().addScaledVector(s.nor,side*(W+lineOff+rnd()*2.5));const y=groundAt(p.x,p.z);if(y<0.8||nearest(p.x,p.z)[1]<W+4||nearBld(p.x,p.z))return;lineSpots.push([p.x,y,p.z,0.85+rnd()*0.5,rnd()*6.28,rnd()]);});}
+  for(let i=0;i<M;i+=5){if(inStands(i))continue;const s=samples[i];for(let r=0;r<3;r++){if(r&&rnd()<0.45)continue;const side=rnd()<0.5?-1:1;const p=s.pos.clone().addScaledVector(s.nor,side*(W+16+r*16+rnd()*16));const y=groundAt(p.x,p.z);if(y<0.8||lakeF(p.x,p.z)>0.05||nearest(p.x,p.z)[1]<runW+4||nearBld(p.x,p.z))continue;if(houses.some(h=>Math.abs(h[0]-p.x)<5&&Math.abs(h[2]-p.z)<5))continue;spots.push([p.x,y,p.z,0.8+rnd()*0.7,rnd()*6.28,rnd()]);}}
+  for(let k=0;k<420;k++){const a=rnd()*6.28,r=150+rnd()*520;const x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r;if(nearest(x,z)[1]<W+22||nearBld(x,z))continue;const y=groundAt(x,z);if(y<0.8||lakeF(x,z)>0.05)continue;spots.push([x,y,z,0.9+rnd()*0.9,rnd()*6.28,rnd()]);}
   const all=lineSpots.concat(spots);
   if(bbOn){const cf=C.tree==="cherry"?0.85:(C.tree==="mixed"?0.4:0.08);all.forEach(s=>{const cherryT=s[5]<cf;bbAdd(cherryT?"cherry":"cedar",s[0],s[1],s[2],(cherryT?0.95:1)*s[3]*(0.9+(s[5]*7%1)*0.25),s[4]>3.14);});all.length=0;}
   const trunkMat=new T.MeshLambertMaterial({color:0x5a4030});
@@ -890,7 +1010,6 @@ function gpBuild(C){
   if(chev.length){const bIM=new T.InstancedMesh(new T.PlaneGeometry(1.3,0.95),new T.MeshStandardMaterial({map:chevTex,roughness:0.5,side:T.DoubleSide}),chev.length);const pIM=new T.InstancedMesh(new T.CylinderGeometry(0.05,0.05,1.3,5),poleMat,chev.length);
     chev.forEach((c,i)=>{dummy.position.set(c[0],c[1]+1.55,c[2]);dummy.rotation.set(0,0,0);dummy.scale.set(1,1,1);dummy.lookAt(new T.Vector3(c[0]-c[3].x,c[1]+1.55,c[2]-c[3].z));dummy.scale.set(c[4]?1:-1,1,1);dummy.updateMatrix();bIM.setMatrixAt(i,dummy.matrix);
       dummy.scale.set(1,1,1);dummy.rotation.set(0,0,0);dummy.position.set(c[0],c[1]+0.65,c[2]);dummy.updateMatrix();pIM.setMatrixAt(i,dummy.matrix);});bIM.castShadow=true;scene.add(bIM);scene.add(pIM);}
-  let trapI=Math.floor(M*0.3),bestStr=-9;for(let i=Math.floor(M*0.12);i<Math.floor(M*0.88);i+=4){if(inStands(i))continue;const a=samples[(i-25+M)%M].tan,b=samples[(i+25)%M].tan;const d=a.x*b.x+a.z*b.z;if(d>bestStr){bestStr=d;trapI=i;}}
   if(band){const h0=hdgMean(-26,12),dh=gpWrapAng(hdgMean(trapI-25,trapI+25)-h0);band.rotation.y=(Math.abs(dh)<1.05?h0+dh*0.5:h0)-Math.PI;}   // Fuji sits ahead on the start straight and on the main straight
   if(gpMode()==="race"){const s=samples[trapI];const p=s.pos.clone().addScaledVector(s.nor,W+5);const y=groundAt(p.x,p.z);const pole=new T.Mesh(new T.CylinderGeometry(0.12,0.14,4.4,8),poleMat);pole.position.set(p.x,y+2.2,p.z);pole.castShadow=true;scene.add(pole);
     const sign=new T.Mesh(new T.BoxGeometry(3.6,1.3,0.2),new T.MeshStandardMaterial({map:gpTextTex("SPEED TRAP",["#0a4dcc","#0a2a88"],"#fff",512,180,78),roughness:0.4}));sign.position.set(p.x,y+4.6,p.z);sign.lookAt(sign.position.clone().sub(s.tan));sign.castShadow=true;scene.add(sign);
@@ -898,6 +1017,7 @@ function gpBuild(C){
   if(bbOn){for(let i=36;i<M;i+=30){if(busy(i)||Math.abs(i-trapI)<16)continue;const s=samples[i];const side=(i/30)%2?1:-1;const p=s.pos.clone().addScaledVector(s.nor,side*(W+5));const y=groundAt(p.x,p.z);if(y>0.8)bbAdd("banner",p.x,y,p.z,1,side>0);}
     [0.42,0.74].forEach((f,k)=>{const s=samples[Math.floor(M*f)];const side=k?-1:1;const p=s.pos.clone().addScaledVector(s.nor,side*(W+15));const y=groundAt(p.x,p.z);if(y>0.8&&lakeF(p.x,p.z)<0.05)bbAdd("torii",p.x,y,p.z,1,false);});
     gpBillboards(T,scene,WD.props,BB,new T.Color(hazeHex),scene.fog.near,scene.fog.far,TINT,shared0.blob);}
+  if(BB2.length)gpBillboards(T,scene,WD.boards,BB2,new T.Color(hazeHex),scene.fog.near,scene.fog.far,TINT,shared0.blob,GP_WORLD.boards);
   // ---- distant ridges (lower in front of Fuji), clouds, sun glare ----
   const hillMat=new T.MeshStandardMaterial({color:new T.Color(L.hill),roughness:1,flatShading:true});
   const fujiAng=Math.atan2(C.fuji[1],C.fuji[0]);
@@ -907,7 +1027,7 @@ function gpBuild(C){
   for(let i=0;i<(bandOn?0:5);i++){const sp=new T.Sprite(new T.SpriteMaterial({map:cloudTex,transparent:true,fog:false,opacity:0.75,depthWrite:false}));const s=160+rnd()*120;sp.scale.set(s,s/3,1);sp.position.set(fx+(rnd()-0.5)*700,FH*0.3+rnd()*FH*0.18-6,fz+120+rnd()*300);scene.add(sp);}
   const glare=new T.Sprite(new T.SpriteMaterial({map:gpSoftDot(),color:new T.Color(L.glow),transparent:true,opacity:story?0.55:0.2,blending:T.AdditiveBlending,depthWrite:false,fog:false}));glare.material.userData.lin=1;glare.scale.set(bandOn?100:140,bandOn?100:140,1);scene.add(glare);
   // ---- cars on the grid ----
-  const shared=shared0;
+  const shared=shared0;shared.flameTex=WD.flame||null;
   if(!story){const ct=new T.Color(1,1,1).lerp(gpLin(L.sun),0.3).multiply(TINT);ct.multiplyScalar(1/Math.max(ct.r,ct.g,ct.b));shared.carTint=ct;}   // sunset rim/tint for the photo cars, matched to the route light
   const others=GP_CARS.filter(c=>c.id!==myCar.id);
   const pname=(P&&typeof P.name==="string"&&P.name.trim())?P.name.trim().split(/\s+/)[0]:"You";
@@ -926,7 +1046,7 @@ function gpBuild(C){
     for(let i=24;i<M-10;i+=19){const k=notes.length;const sp=new T.Sprite(new T.SpriteMaterial({map:noteTex[k%noteTex.length],transparent:true,depthWrite:false}));sp.scale.set(2,2,1);const t=i/M,x=Math.max(-0.7,Math.min(0.7,Math.sin(i*0.37)*0.62));
       const pp=curve.getPointAt(t),tn=curve.getTangentAt(t).normalize(),nn=new T.Vector3(-tn.z,0,tn.x).normalize();pp.addScaledVector(nn,x*(W-1.2));sp.position.set(pp.x,pp.y+1.5,pp.z);scene.add(sp);notes.push({t,x,mesh:sp,alive:true,col:noteCols[k%noteCols.length],k,y:pp.y+1.5});}}
   // ---- particles: tyre smoke, dust, sparks, cherry petals; skid marks ----
-  const smoke=gpParticles(T,scene,300,2.6,false,0.55),dust=gpParticles(T,scene,160,2.0,false,0.5),sparks=gpParticles(T,scene,120,0.6,true);
+  const smoke=gpSmoke(T,scene,96,gpSoftDot(),scene.fog),dust=gpParticles(T,scene,120,1.6,false,0.4),sparks=gpParticles(T,scene,120,0.6,true);
   const petals=C.tree==="cherry"?gpParticles(T,scene,160,0.32,false,0.9):null;
   const skidGeo=new T.PlaneGeometry(0.26,1.0);skidGeo.rotateX(-Math.PI/2);const SK=700;
   const skids=new T.InstancedMesh(skidGeo,new T.MeshBasicMaterial({color:0x0a0a0a,transparent:true,opacity:0.42,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}),SK);skids.material.userData.lin=1;
@@ -934,8 +1054,8 @@ function gpBuild(C){
   // convert plain colours from sRGB to linear once (colours look right with sRGB output + tone mapping)
   const seen=new Set();scene.traverse(o=>{if(o===sky||o===fuji)return;const ms=Array.isArray(o.material)?o.material:(o.material?[o.material]:[]);ms.forEach(m=>{if(!m||seen.has(m)||m.isShaderMaterial||m.isPointsMaterial)return;seen.add(m);if(m.userData.lin)return;m.userData.lin=1;
     if(m.color&&!(o.isInstancedMesh&&o.instanceColor)&&!m.map)m.color.convertSRGBToLinear();if(m.emissive&&!m.emissiveMap)m.emissive.convertSRGBToLinear();});});
-  R3={T,C,renderer,scene,camera,curve,samples,M,W,len,karts,me:karts.find(k=>k.player),keys:{},touchDir:0,brake:false,gas:false,drift:false,autoGas:gpAuto(),kap,vProf,lineX,corners,big,grip:GRIP,lights,t0:performance.now(),time:0,countdown:3.8,lastN:null,done:false,raf:null,last:performance.now(),camPos:new T.Vector3(),msgT:0,place:5,board:[],
-    sun,sky,band,glare,sunDir,sunOff:sunDir.clone().multiplyScalar(170),envRT,smoke,dust,sparks,petals,skids,skN:0,dummy,shake:0,fov:60,pr:pr0,fpsT:0,fpsN:0,fps:0,lowT:0,shadowsOn:true,tmpV:new T.Vector3(),tmpV2:new T.Vector3(),UP,story,
+  R3={T,C,renderer,scene,camera,curve,samples,M,W,len,karts,me:karts.find(k=>k.player),keys:{},touchDir:0,brake:false,gas:false,drift:false,autoGas:gpAuto(),kap,vProf,lineX,corners,big,grip:GRIP,t0:performance.now(),time:0,countdown:3.8,lastN:null,done:false,raf:null,last:performance.now(),camPos:new T.Vector3(),msgT:0,place:5,board:[],
+    sun,sky,band,glare,sunDir,sunOff:sunDir.clone().multiplyScalar(170),envRT,smoke,dust,sparks,petals,skids,skN:0,dummy,setLights,setScreen,screenTxt:"",shake:0,fov:60,pr:pr0,fpsT:0,fpsN:0,fps:0,lowT:0,shadowsOn:true,tmpV:new T.Vector3(),tmpV2:new T.Vector3(),UP,story,
     trapT:trapI/M,trapBest:0,gear:1,tachT:0,post,mode:gpMode(),notes,notesGot:0,notesTotal:notes.length*C.laps,song:[],lastDeg:4,songDirty:1,water,waterTex,fx:$("gp3Fx"),fxW:16,fxH:9,sk:{chain:0,mult:1,total:0,idle:0,list:[],dirty:1,clean:0,cool:0},bumpT:9};
   window.__gp={fps:0,pr:pr0,shadows:true};
   // keyboard
@@ -962,7 +1082,7 @@ function gpBuild(C){
   document.addEventListener("touchmove",R3.blockTouch,{passive:false});document.addEventListener("gesturestart",R3.blockTouch,{passive:false});
   R3.onVis=()=>{if(!GPA.ctx)return;if(document.hidden)GPA.ctx.suspend();else GPA.ctx.resume();};document.addEventListener("visibilitychange",R3.onVis);
   const wrapEl=$("gp3");
-  R3.onResize=()=>{if(!R3)return;const w=wrapEl.clientWidth||720,h=wrapEl.clientHeight||Math.round(w*9/16);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();if(R3.post)R3.post.resize(w,h,renderer.getPixelRatio());if(R3.fx){R3.fxW=Math.max(16,Math.round(w/2));R3.fxH=Math.max(9,Math.round(h/2));R3.fx.width=R3.fxW;R3.fx.height=R3.fxH;}};
+  R3.onResize=()=>{if(!R3)return;const w=wrapEl.clientWidth||720,h=wrapEl.clientHeight||Math.round(w*9/16);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();const pr=renderer.getPixelRatio();R3.vpW=w*pr;R3.vpH=h*pr;R3.smoke.mat.uniforms.scale.value=h*pr*0.87;R3.smoke.mat.uniforms.maxPx.value=h*pr*0.14;if(R3.post)R3.post.resize(w,h,renderer.getPixelRatio());if(R3.fx){R3.fxW=Math.max(16,Math.round(w/2));R3.fxH=Math.max(9,Math.round(h/2));R3.fx.width=R3.fxW;R3.fx.height=R3.fxH;}};
   R3.onOrient=()=>{[150,400,900].forEach(ms=>setTimeout(()=>{if(R3)R3.onResize();},ms));};
   window.addEventListener("resize",R3.onResize);window.addEventListener("orientationchange",R3.onOrient);R3.onResize();
   setTimeout(()=>{const c=$("gp3Card");if(c)c.classList.add("hide");},2000);
@@ -1012,12 +1132,12 @@ function gpTach(mph,gear,rf){const cv=$("gp3Tach");if(!cv)return;const x=cv.getC
   x.fillStyle="#fff";x.font="italic 900 "+(S*0.11)+"px system-ui";x.fillText(String(gear),c,c-S*0.165);}
 function gpFrame(now){
   if(!R3)return;
-  const raw=(now-R3.last)/1000;const dt=Math.min(0.05,raw);R3.last=now;
+  const raw=Math.max(0,(now-R3.last)/1000);const dt=Math.min(0.05,raw);R3.last=now;   // a frame stamp can sit just before the build's clock
   R3.fpsT+=raw;R3.fpsN++;if(R3.fpsT>=2){R3.fps=R3.fpsN/R3.fpsT;R3.fpsT=0;R3.fpsN=0;window.__gp.fps=Math.round(R3.fps);
     if(R3.fps<45&&!document.hidden){R3.lowT++;if(R3.lowT>=2){R3.lowT=0;if(R3.pr>1){R3.pr=Math.max(1,R3.pr-0.25);R3.renderer.setPixelRatio(R3.pr);R3.onResize();}else if(R3.shadowsOn){R3.shadowsOn=false;R3.sun.castShadow=false;}}}else R3.lowT=0;
     window.__gp.pr=R3.pr;window.__gp.shadows=R3.shadowsOn;}
-  if(R3.countdown>0){R3.countdown-=dt;const lit=R3.countdown>0.3?Math.min(5,Math.floor((3.8-R3.countdown)/0.68)):0;if(lit!==R3.litN){R3.litN=lit;R3.lights.forEach((m,k)=>m.color.setHex(k<lit?0xff2020:0x3a0a0a));}const c=$("gp3Count");if(c){const n=Math.min(3,Math.ceil(R3.countdown-0.3));if(n!==R3.lastN){R3.lastN=n;GPA.play(n>0?"beep":"go");}c.textContent=n>0?String(n):"GO!";c.classList.add("show");if(R3.countdown<=0)setTimeout(()=>{const cc=$("gp3Count");if(cc)cc.classList.remove("show");},700);}}
-  else{if(R3.litN!==0){R3.litN=0;R3.lights.forEach(m=>m.color.setHex(0x3a0a0a));}if(!R3.done)R3.time=now-R3.t0-3800;}
+  if(R3.countdown>0){R3.countdown-=dt;const lit=R3.countdown>0.3?Math.max(0,5-Math.min(5,Math.floor((3.8-R3.countdown)/0.68))):0;if(lit!==R3.litN){R3.litN=lit;R3.setLights(lit);}const c=$("gp3Count");if(c){const n=Math.min(3,Math.ceil(R3.countdown-0.3));if(n!==R3.lastN){R3.lastN=n;GPA.play(n>0?"beep":"go");}c.textContent=n>0?String(n):"GO!";c.classList.add("show");if(R3.countdown<=0)setTimeout(()=>{const cc=$("gp3Count");if(cc)cc.classList.remove("show");},700);}}
+  else{if(R3.litN!==0){R3.litN=0;R3.setLights(0);}if(!R3.done)R3.time=now-R3.t0-3800;}
   gpUpdate(dt,R3.countdown>0);gpRender(dt);
   R3.raf=requestAnimationFrame(gpFrame);
 }
@@ -1091,7 +1211,7 @@ function gpUpdate(dt,waiting){
     const skid=!offroad&&((kt.drift&&spd>0.35)||(kt.brakeOn&&spd>0.55)||(kt.slip>0.25&&spd>0.3));if(!skid)kt.skidD=0;
     if(near&&(skid||(offroad&&spd>0.2))){kt.g.updateMatrixWorld(true);
       [-1,1].forEach(sd=>{V.set(sd*(kt.S.w/2-0.04),0.1,kt.xr);kt.g.localToWorld(V);
-        if(skid){if(Math.random()<0.8)R3.smoke.emit(V.x,V.y+0.2,V.z,(Math.random()-0.5)*1.5-tan.x*2,0.6+Math.random()*0.9,(Math.random()-0.5)*1.5-tan.z*2,0.92,0.92,0.94,1.2);}
+        if(skid){kt.smk=(kt.smk||0)+dt*9;if(kt.smk>=1){kt.smk-=1;R3.smoke.emit(V.x,V.y+0.25,V.z,(Math.random()-0.5)*1.2-tan.x*1.6,0.3+Math.random()*0.5,(Math.random()-0.5)*1.2-tan.z*1.6,0.9+Math.random()*0.5,0.7+Math.random()*0.4);}}
         else if(Math.random()<0.6)R3.dust.emit(V.x,V.y+0.2,V.z,-tan.x*3+(Math.random()-0.5)*2,0.8+Math.random()*1.2,-tan.z*3+(Math.random()-0.5)*2,0.6,0.5,0.35,0.9);});}
     if(skid&&near){kt.skidD+=kt.speed*dt;if(kt.skidD>0.9){const dl=Math.min(6,kt.skidD);kt.skidD=0;const D=R3.dummy;const fw=Math.atan2(tan.x,tan.z)+(kt.drift?-kt.drift*0.42:0);   // each mark spans the distance since the last one, so the trail is continuous at any frame rate
       [-1,1].forEach(sd=>{V.set(sd*(kt.S.w/2-0.04),0,kt.xr);kt.g.localToWorld(V);D.position.set(V.x-tan.x*dl*0.5,kt.pos.y+0.045,V.z-tan.z*dl*0.5);D.rotation.set(0,fw,0);D.scale.set(1,1,dl+0.1);D.updateMatrix();R3.skids.setMatrixAt(R3.skN,D.matrix);R3.skN=(R3.skN+1)%700;});R3.skids.instanceMatrix.needsUpdate=true;}}
@@ -1109,12 +1229,13 @@ function gpUpdate(dt,waiting){
   if(R3.notes.length){const tn=performance.now()/1000;R3.notes.forEach(n=>{if(!n.alive)return;n.mesh.position.y=n.y+Math.sin(tn*2.2+n.k)*0.25;if(waiting||R3.done)return;const d=(n.t-me.t+1)%1;if(d<0.006&&Math.abs(n.x-me.x)<0.45){n.alive=false;n.mesh.visible=false;gpNote(n);}});}
   if(R3.petals){const p=R3.petals;if(Math.random()<0.5){const tn=R3.curve.getTangentAt((me.t+0.01)%1);const px=me.pos.x+tn.x*(10+Math.random()*25)+(Math.random()-0.5)*26,pz=me.pos.z+tn.z*(10+Math.random()*25)+(Math.random()-0.5)*26;p.emit(px,me.pos.y+4+Math.random()*5,pz,(Math.random()-0.5)*2,-0.6-Math.random()*0.6,(Math.random()-0.5)*2,0.98,0.72,0.84,5);}p.update(dt,0.02);}
   if(R3.waterTex){R3.waterTex.offset.x+=dt*0.006;R3.waterTex.offset.y+=dt*0.003;}
-  R3.smoke.update(dt,-1.2);R3.dust.update(dt,-0.4);R3.sparks.update(dt,9);
+  R3.smoke.update(dt,R3.camPos,R3.vpW||1280,R3.vpH||720);R3.dust.update(dt,-0.4);R3.sparks.update(dt,9);
   // standings + HUD
   const all=karts.slice().sort((a,b)=>(b.lap+b.t)-(a.lap+a.t));R3.board=all;R3.place=all.indexOf(me)+1;
   if(R3.msgT>0){R3.msgT-=dt;if(R3.msgT<=0){const e=$("gp3Msg");if(e)e.classList.remove("show");}}
   const el=(id,v)=>{const e=$(id);if(e&&e.textContent!==v)e.textContent=v;};
   el("gp3Lap","LAP "+Math.min(R3.C.laps,me.lap+1)+"/"+R3.C.laps);el("gp3Time",gpFmt(Math.max(0,R3.time)));
+  if(!waiting){const st=R3.done?(R3.mode==="race"?"FINISH  P"+R3.place:"TRIP DONE"):(R3.mode==="race"?"LAP "+Math.min(R3.C.laps,me.lap+1)+"/"+R3.C.laps+"   P"+R3.place:"LAP "+Math.min(R3.C.laps,me.lap+1)+"/"+R3.C.laps+"  ♪ "+R3.notesGot);if(st!==R3.screenTxt){R3.screenTxt=st;R3.setScreen(st);}}
   const pe=$("gp3Pos");if(pe&&pe.dataset.p!==String(R3.place)){pe.dataset.p=String(R3.place);pe.innerHTML=R3.place+"<small>"+gpSuf(R3.place)+"</small><em>/"+karts.length+"</em>";}
   gpSkillHud();
   {const i=Math.floor(me.t*M)%M;const ahead=R3.vProf[(i+Math.round(8/(len/M)))%M];const cue=!waiting&&!R3.done&&me.speed>ahead*1.1&&ahead<me.max*0.9&&!me.brakeOn;const ce=$("gp3Cue");if(ce&&ce.classList.contains("on")!==cue)ce.classList.toggle("on",cue);}
@@ -1144,7 +1265,7 @@ function gpRender(dt){
     // smooth the offset from the car, not the absolute position: the camera never trails further at speed
     const off=target.sub(me.pos);if(!R3.camOff)R3.camOff=R3.camPos.clone().sub(me.pos);R3.camOff.lerp(off,Math.min(1,dt*4.5));R3.camPos.copy(me.pos).add(R3.camOff);}
   R3.camera.position.copy(R3.camPos);
-  R3.karts.forEach(k=>{if(k.player)return;const fwd=(k.pos.x-R3.camPos.x)*flat.x+(k.pos.z-R3.camPos.z)*flat.z;const vis=fwd>3.2;if(k.g.visible!==vis)k.g.visible=vis;if(k.pic){const o=Math.max(0,Math.min(1,(fwd-3.2)/2.2));if(k.pic.pl.material.opacity!==o)k.pic.pl.material.opacity=o;}});
+  R3.karts.forEach(k=>{if(k.player)return;const fwd=(k.pos.x-R3.camPos.x)*flat.x+(k.pos.z-R3.camPos.z)*flat.z;const vis=fwd>2.4;if(k.g.visible!==vis)k.g.visible=vis;});   // a solid car until it passes the camera (an opacity fade made rivals see-through)
   const sh=R3.shake;if(sh>0){R3.shake=Math.max(0,R3.shake-dt*1.6);const a=sh*0.35;R3.camera.position.x+=(Math.random()-0.5)*a;R3.camera.position.y+=(Math.random()-0.5)*a;}
   if(spd>0.8&&R3.countdown<=0){const a=(spd-0.8)*0.06;R3.camera.position.y+=(Math.random()-0.5)*a;}
   R3.camera.lookAt(look);
@@ -1173,5 +1294,9 @@ function gpFinish(){
   if(P){earned=xp;P.xp+=xp;P.race=P.race||{};const prev=P.race[R3.C.id]||{};P.race[R3.C.id]={time:prev.time&&prev.time<R3.time?prev.time:R3.time,place:Math.min(place,prev.place||9),skill:Math.max(skill,prev.skill||0),trap:Math.max(R3.trapBest,prev.trap||0),date:today()};
     if(place===1&&!P.trophies.some(t=>t.type==="race")&&typeof awardTrophy==="function")awardTrophy({type:"race",icon:"🏎️",label:"Grand Fable Champion",color:"#ff2d87",detail:"Won the Grand Fable Horizon race at "+R3.C.name+"."});if(typeof markTodayPlanDone==="function")markTodayPlanDone("race","race");save();if(typeof syncProgress==="function")syncProgress("finish");}
   const rows=R3.board.map((k,i)=>'<div class="'+(k.player?"me":"")+'"><i>'+gpOrd(i+1)+'</i><span>'+esc(k.racer.n)+'</span><span>'+esc(k.racer.car.n)+'</span></div>').join("");
-  setTimeout(()=>{if(!R3)return;GPA.stopEngine();const w=$("gp3");if(!w)return;w.insertAdjacentHTML("beforeend",'<div class="gp3-finish"><div class="fz-fin-t">'+gpOrd(place).toUpperCase()+' PLACE</div><div class="fz-res">'+rows+'</div><div class="fz-fin-s">'+gpFmt(R3.time)+' · Skill '+gpNum(skill)+(R3.trapBest?' · Speed trap '+R3.trapBest+' mph':'')+(earned?' · +'+earned+' XP':'')+'</div><div class="btn-row" style="margin-top:12px"><button class="btn big" onclick="startRace3D(\''+R3.C.id+'\')">Race again 🔁</button><button class="btn secondary big" onclick="renderCircuits()">Routes 🏁</button><button class="btn secondary big" onclick="renderRace()">Cars 🚗</button></div></div>');},1300);
+  const board=R3.board.slice(),story=R3.story,cid=R3.C.id,timeS=gpFmt(R3.time),trap=R3.trapBest,podium=place<=3&&!story&&board.length>=3;
+  const steps=GP_WORLD.podium.steps,stepHtml=podium?'<div class="fz-podium" style="--pod:url('+GP_WORLD.podium.src+')">'+[["p1",0],["p2",1],["p3",2]].map(([k,i])=>{const r=board[i];const st=steps[k];return'<div class="fz-step'+(r.player?" me":"")+'" style="left:'+(st[0]*100).toFixed(1)+'%;top:'+(st[1]*100).toFixed(1)+'%">'+gpThumb(r.racer.car.id)+'<b>'+esc(r.racer.n)+'</b></div>';}).join("")+'</div>':"";
+  const panel=()=>{if(!R3)return;const w=$("gp3");if(!w)return;w.insertAdjacentHTML("beforeend",'<div class="gp3-finish'+(podium?" pod":"")+'">'+(podium?'<video class="fz-podvid" muted loop playsinline webkit-playsinline preload="none" disablepictureinpicture aria-hidden="true"></video>':'')+'<div class="fz-fin-t">'+gpOrd(place).toUpperCase()+' PLACE'+(place===1?' 🏆':'')+'</div>'+stepHtml+'<div class="fz-res">'+rows+'</div><div class="fz-fin-s">'+timeS+' · Skill '+gpNum(skill)+(trap?' · Speed trap '+trap+' mph':'')+(earned?' · +'+earned+' XP':'')+'</div><div class="btn-row" style="margin-top:10px"><button class="btn big" onclick="startRace3D(\''+cid+'\')">Race again 🔁</button><button class="btn secondary big" onclick="renderCircuits()">Routes 🏁</button><button class="btn secondary big" onclick="renderRace()">Cars 🚗</button></div></div>');
+    const pv=w.querySelector(".fz-podvid");if(pv){setTimeout(()=>{if(!document.contains(pv))return;pv.src=GP_VIDEO.podium;const p=pv.play();if(p&&p.catch)p.catch(()=>{});},400);}};
+  setTimeout(()=>{if(!R3)return;GPA.stopEngine();if(place===1&&!story){gpVideo(GP_VIDEO.win,"HORIZON CHAMPION · "+R3.C.name.toUpperCase(),9000).then(panel);}else panel();},1300);
 }
