@@ -279,3 +279,44 @@ parked around that bend.
 - Still to come (second pass): wed_gpt2 extras (five-view sheets for the other cars, hero shots,
   trees sheet, crowd, sky variants, title screen).
 - `sw.js` cache advanced to `learning-zone-v70`; the new WebP files are precached, videos are not.
+
+## Wednesday art drop, second pass: wed_gpt2 extras (commit "Fable: wed_gpt2 extras")
+- New pipeline `wed_assets2.py` (same green key / trim / WebP rules as `wed_assets.py`; previews and
+  `wed2_meta.json` in `lz-fable-assets/out4/`). All 17 ChatGPT pictures were checked by eye; none were
+  skipped outright. Parts not used: the fx sheet's drift-trail, exhaust-flame and sparks sprites (the
+  smoke system builds trails from puffs, the flame is a side-on burst that does not match the rear-view
+  exhausts cut from the red sheet, and the sparks spray has a fixed direction that point sprites cannot
+  turn). Everything else went in. New images total 1.37 MB; the five superseded 3-view sheets are deleted.
+- Cars: Silver Arrow, Shogun GT, Alpine Rally, Kumasi V8 and Lemon Kei now use five-view sheets
+  (`assets/cars/<car>5.webp`, 2x3 grid, hard/slight/straight like red5), so steering walks through the
+  slight and hard views for every car. Each sheet showed five clearly different angles in the prompted
+  order; where the nose heuristic was not monotonic (small bodies) the picture order is used, checked in
+  the keyboard-steering shots (right = frame 0, left = frame 4). Rear windows that reflected the green
+  screen are filled as dark glass. Same colour and shape as before, so the cards and the race agree.
+- Car select: hero shots for those five cars (`GP_PICS[id].hero`, cropped to the card's 2.4:1 with the car
+  whole; Fuji may lose its tip). The Rosso Falcon keeps its current card. The car-select (title) header
+  shows the ChatGPT title art under the logo; the routes header keeps the red hero shot.
+- Sky: the Fuji band is rebuilt from `sky_fuji.png` (2048 px wide, pano over 140 degrees ahead, the back
+  filled with a sideways-blurred mirror of the pano plus its own treeline, cross-faded over 190 px at both
+  junctions so the wrap is seamless; band height and metres-per-texel now come from `GP_WORLD.sky`).
+  `sky_dusk.png` becomes `sky_dusk.webp`, used by Tokyo Bay (`sky:"dusk"` on the circuit) with its own
+  top/haze colours; the other two circuits keep golden hour.
+- Trees: `trees.webp` atlas (cherry S/M/L, two cedars, a maple) replaces the two-cell props trees as
+  billboards; same spots, pit/grandstand exclusion zones and lake checks as before; the old cells remain
+  the fallback when the atlas has not loaded.
+- Crowd: `crowd.webp` is the keyed ChatGPT fans-with-flags strip, made seamless sideways and stacked as
+  four staggered rows (1024x576, alpha above the flags), tiled every 12 m along the hairpin banks with one
+  repeat up the slope (`alphaTest` 0.4 so the sky shows above the heads).
+- Effects: tyre smoke uses the ChatGPT puff (`smoke.webp`, its own shading, mirrored four ways per puff
+  from the size attribute so the cloud never looks cloned; the 15% screen cap is unchanged); cherry-route
+  petals use a real petal sprite (`petal.webp`); the podium screen gets a canvas of confetti and petals
+  (`fx.webp` cells) tumbling for ~9 s, skipped for prefers-reduced-motion.
+- Kerb: `kerb.webp` is one red + one white block cut from `road_kerb.png`, 64 px across and 128 px along
+  the road (was 128x32 along), road side first.
+- Verified: `node --check race3d.js sw.js`, `python3 inline_lessons.py`, `node --check` on all 15 inline
+  non-JSON scripts, `check.py` (only the pre-existing reveal `questionSig` items), and headless Chrome:
+  `lz-fable-shots/fz_sim.py` 2 laps for the player and all rivals on Kawaguchi, Hakone and Tokyo (no
+  console errors, podium rendered), `fz_cars.py` keyboard steering (muscle car frames 0/4), and a new
+  `lz-fable-shots/fz_spot.py` that shoots at set track fractions (hairpin crowd banks, sky in every
+  direction). Screenshots: `s3*_cars/routes/grid/lap2/finish.jpg`, `s2c_left/right.jpg`, `sp_*.jpg`.
+- `sw.js` cache advanced to `learning-zone-v71`; the new WebP files are precached.
