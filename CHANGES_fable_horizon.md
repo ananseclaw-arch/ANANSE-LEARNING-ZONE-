@@ -107,3 +107,54 @@ music-note free drive and the 2D fallback when WebGL or Three.js is missing.
   picker, intro playing + skip, grid, flames, steering left/right frames,
   rivals at distance, second race without intro, Hakone in Storybook (3D cars),
   Tokyo free drive with the silver car.
+
+## Gemini world art (commit "Gemini world art (Fuji sky, road, props, HUD, white car)")
+The photo cars no longer sit in a low-poly toy world: the far world, road, roadside
+props, rails, HUD dial and menus now come from the Gemini pictures too. All of it is
+gated on the Realistic look; the Storybook look keeps the painted 3D world.
+
+- **Assets** (`world_assets.py`, run with `/usr/bin/python3`; reuses `key()`/`clean()`
+  from `key_cars.py`, whose main body is now under `if __name__ == "__main__"`):
+  `assets/world/sky.webp` (61 KB, 3072×326 360° band: the Fuji panel in the middle,
+  the hazy hills strip from under the divider mirrored into the back 240°, feathered
+  top and bottom, pre-mirrored because it is seen from inside a cylinder),
+  `props.webp` (50 KB atlas: cherry, cedar, torii, lantern, banner), `rail.webp`
+  (one guard-rail bay, 128×64 so it repeats on WebGL1), `road.webp` (269 KB),
+  `speedo.webp` (dial with the baked "GEAR 4" painted out), `logo.webp`, `hero.webp`
+  (74 KB) and `assets/cars/white.webp` (22 KB, 3 views of the white GT). Everything is
+  precached by `sw.js` (`learning-zone-v67`) but only requested when a race starts
+  (`gpLoadWorld`, same 7 s race as the car pictures) or the picker opens.
+- **Sky**: a camera-following cylinder band (`GP_WORLD.sky`, r 1500 m, 3.3 m/px,
+  horizon 55 m up) drawn in the opaque pass right after the sky dome with custom alpha
+  blending, so it only shows where nothing else is drawn. It is rotated so Fuji sits
+  on the start straight. The 3D Fuji, the 20 low-poly far ridges and the flank clouds
+  are skipped when the band is on; fog and the dome's lower stops take the band's own
+  colours, tinted per route (`look.tint`: cool for Hakone, warm for Tokyo).
+- **Road**: the asphalt photo (edge lines + dashed centre) repeats every 30 m along
+  the ribbon with anisotropic filtering; the white rails are now the photo bay repeated
+  every 2.4 m (alpha-tested, no shadow caster), the grey posts go with it.
+- **Props**: one draw call of camera-facing billboards (`gpBillboards`: instanced quad
+  with per-instance position, size/mirror, atlas cell; vertex shader turns them about Y;
+  photo colours shown as-is with scene fog mixed in) replaces every low-poly tree,
+  the stone lanterns on the lake route, and adds purple banners every 30 samples and two
+  photo torii off-road. Each prop has a soft ground blob. Grass is warmed and darkened
+  to match the golden hour, the pink HORIZON flags are halved, roadside houses are
+  dropped on the lake and mountain routes and pushed back on the bay route.
+- **Shogun GT** is the third photo car (3-frame sheet, no flame frames).
+- **Grounding**: a dense ambient-occlusion blob (`gpAoTex`), 1.6× car width, under every
+  photo car.
+- **Chase camera**: closer and lower as speed builds (6.3 → 5.3 m, 2.1 → 1.75 m), and it
+  smooths its *offset* from the car instead of its absolute position, which removed a
+  ~12 m lag at 147 mph.
+- **Frames**: the player car uses the straight frame unless the steer button / steering
+  velocity / drift says otherwise — never yawed while parked on the grid.
+- **HUD**: the photo dial is the speedometer face: live needle, the baked rev arc is
+  masked beyond the needle, mph digits and gear bubble in the glass centre, live
+  "GEAR n" pill where the baked text was. Countdown is smaller and higher; the route
+  card is smaller, sits at the top and fades after 2 s (an old `.gp3-card{bottom}`
+  rule was stretching it).
+- **Menus**: the logo and the red-car hero shot head both the car picker and the
+  route screen (storybook keeps the logo on paper).
+- **Race grid**: verified in race mode — five cars on the grid, position HUD shown.
+- Verified with five headless-Chrome rounds (`lz-fable-shots/fz_world.py`) across all
+  three routes, race and free drive, Realistic and Storybook, all three photo cars.

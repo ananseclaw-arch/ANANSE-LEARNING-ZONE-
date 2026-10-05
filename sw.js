@@ -1,5 +1,5 @@
-const CACHE = "learning-zone-v66";
-const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png", "./ananse-lion.png", "./assets/cars/red.webp", "./assets/cars/silver.webp"];
+const CACHE = "learning-zone-v67";
+const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png", "./ananse-lion.png", "./assets/cars/red.webp", "./assets/cars/silver.webp", "./assets/cars/white.webp", "./assets/world/sky.webp", "./assets/world/props.webp", "./assets/world/rail.webp", "./assets/world/road.webp", "./assets/world/speedo.webp", "./assets/world/logo.webp", "./assets/world/hero.webp"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(f => new Request(f, {cache: "reload"})))).then(() => self.skipWaiting()));
 });

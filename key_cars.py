@@ -124,73 +124,74 @@ def bbox(alpha, thr=0.5):
     ys, xs = np.where(alpha > thr)
     return int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1
 
-meta = {}
-for name, (video, t_clean, t_flame) in CARS.items():
-    frames = []
-    for t in (t_clean, t_flame):
-        rgb = grab(video, t)
-        fg, al = key(rgb)
-        al = clean(al)
-        frames.append((fg, al))
-    # per-frame, per-view alpha masks cut along the seams
-    H0, W0 = frames[0][1].shape
-    xx = np.arange(W0)[None, :]
-    masked = []  # masked[frame][view] = alpha
-    for fi, (fg, al) in enumerate(frames):
-        s1, s2 = splits(al, fg)
-        print(name, "frame", fi, "seam1 range", s1.min(), s1.max(), "seam2 range", s2.min(), s2.max())
-        m0 = al * (xx < s1[:, None]); m1 = al * ((xx >= s1[:, None]) & (xx < s2[:, None])); m2 = al * (xx >= s2[:, None])
-        if name == "silver":
-            m0[:380, :27] = 0           # the left wing bar runs past its end plate into the frame edge
-        masked.append([m0, m1, m2])
-        dbg = fg.copy(); dbg[np.arange(H0), s1] = (255, 0, 255); dbg[np.arange(H0), s2] = (255, 0, 255)
-        Image.fromarray(dbg.astype(np.uint8)).crop((380, 260, 900, 580)).save(os.path.join(OUT, f"{name}_seam{fi}.png"))
-    boxes = []
-    for vi in range(3):
-        bx = None
-        for fi in range(len(frames)):
-            x0, y0, x1, y1 = bbox(masked[fi][vi])
-            bx = (x0, y0, x1, y1) if bx is None else (min(bx[0], x0), min(bx[1], y0), max(bx[2], x1), max(bx[3], y1))
-        boxes.append(bx)
-    # middle car only: its own clean box defines the metre scale
-    mx0, my0, mx1, my1 = bbox(masked[0][1])
-    mid_w = mx1 - mx0
-    W = max(b[2] - b[0] for b in boxes) + 4
-    base = max(b[3] for b in boxes)                 # shared ground line (lowest tyre)
-    top = min(b[1] for b in boxes)
-    H = base - top + 4
-    print(name, "boxes", boxes, "canvas", W, H, "mid width px", mid_w, "baseline y", base)
-    sheet = np.zeros((H, W * 6, 4), np.float32)
-    for fi, (fg, _) in enumerate(frames):
-        for vi, (x0, y0, x1, y1) in enumerate(boxes):
-            al = masked[fi][vi]
-            cw = x1 - x0
-            ox = (W - cw) // 2
-            # paste with the bottom aligned to the shared baseline (2 px margin)
-            yoff = H - 2 - (y1 - y0)       # every view sits on the canvas floor
-            dst_y0 = yoff; dst_y1 = yoff + (y1 - y0)
-            cell = fi * 3 + vi
-            sheet[dst_y0:dst_y1, cell * W + ox: cell * W + ox + cw, :3] = fg[y0:y1, x0:x1]
-            sheet[dst_y0:dst_y1, cell * W + ox: cell * W + ox + cw, 3] = al[y0:y1, x0:x1] * 255
-    # premultiplied-looking fringe fix: where alpha is 0, copy colour from nearest (keeps WebP edges clean)
-    img = Image.fromarray(np.clip(sheet, 0, 255).astype(np.uint8), "RGBA")
-    # scale so the sheet is not wasteful: keep native res but cap frame width at 560 px
-    scale = min(1.0, 560 / W)
-    if scale < 1:
-        img = img.resize((int(img.width * scale), int(img.height * scale)), Image.LANCZOS)
-    fw, fh = img.width // 6, img.height
-    path = os.path.join(OUT, f"{name}.webp")
-    img.save(path, "WEBP", quality=84, method=6, alpha_quality=90, exact=False)
-    # a standalone middle frame for the car picker is just the sheet cropped in CSS; no extra file
-    # car width in metres for the middle view: body + mirrors ~ 2.3 m
-    ppm = (mid_w * scale) / 2.3
-    meta[name] = {"src": f"assets/cars/{name}.webp", "frames": 6, "fw": fw, "fh": fh, "ppm": round(ppm, 2),
-                  "w": round(fw / ppm, 3), "h": round(fh / ppm, 3)}
-    print(name, "->", path, os.path.getsize(path) // 1024, "KB", meta[name])
-    # debug preview on a checker background
-    chk = Image.new("RGBA", img.size, (90, 90, 90, 255))
-    px = np.asarray(chk).copy(); yy, xx = np.mgrid[0:img.height, 0:img.width]
-    px[((yy // 16 + xx // 16) % 2) == 1] = (140, 140, 140, 255)
-    chk = Image.fromarray(px); chk.alpha_composite(img); chk.convert("RGB").save(os.path.join(OUT, f"{name}_preview.png"))
-json.dump(meta, open(os.path.join(OUT, "meta.json"), "w"), indent=1)
-print(json.dumps(meta))
+if __name__ == "__main__":
+    meta = {}
+    for name, (video, t_clean, t_flame) in CARS.items():
+        frames = []
+        for t in (t_clean, t_flame):
+            rgb = grab(video, t)
+            fg, al = key(rgb)
+            al = clean(al)
+            frames.append((fg, al))
+        # per-frame, per-view alpha masks cut along the seams
+        H0, W0 = frames[0][1].shape
+        xx = np.arange(W0)[None, :]
+        masked = []  # masked[frame][view] = alpha
+        for fi, (fg, al) in enumerate(frames):
+            s1, s2 = splits(al, fg)
+            print(name, "frame", fi, "seam1 range", s1.min(), s1.max(), "seam2 range", s2.min(), s2.max())
+            m0 = al * (xx < s1[:, None]); m1 = al * ((xx >= s1[:, None]) & (xx < s2[:, None])); m2 = al * (xx >= s2[:, None])
+            if name == "silver":
+                m0[:380, :27] = 0           # the left wing bar runs past its end plate into the frame edge
+            masked.append([m0, m1, m2])
+            dbg = fg.copy(); dbg[np.arange(H0), s1] = (255, 0, 255); dbg[np.arange(H0), s2] = (255, 0, 255)
+            Image.fromarray(dbg.astype(np.uint8)).crop((380, 260, 900, 580)).save(os.path.join(OUT, f"{name}_seam{fi}.png"))
+        boxes = []
+        for vi in range(3):
+            bx = None
+            for fi in range(len(frames)):
+                x0, y0, x1, y1 = bbox(masked[fi][vi])
+                bx = (x0, y0, x1, y1) if bx is None else (min(bx[0], x0), min(bx[1], y0), max(bx[2], x1), max(bx[3], y1))
+            boxes.append(bx)
+        # middle car only: its own clean box defines the metre scale
+        mx0, my0, mx1, my1 = bbox(masked[0][1])
+        mid_w = mx1 - mx0
+        W = max(b[2] - b[0] for b in boxes) + 4
+        base = max(b[3] for b in boxes)                 # shared ground line (lowest tyre)
+        top = min(b[1] for b in boxes)
+        H = base - top + 4
+        print(name, "boxes", boxes, "canvas", W, H, "mid width px", mid_w, "baseline y", base)
+        sheet = np.zeros((H, W * 6, 4), np.float32)
+        for fi, (fg, _) in enumerate(frames):
+            for vi, (x0, y0, x1, y1) in enumerate(boxes):
+                al = masked[fi][vi]
+                cw = x1 - x0
+                ox = (W - cw) // 2
+                # paste with the bottom aligned to the shared baseline (2 px margin)
+                yoff = H - 2 - (y1 - y0)       # every view sits on the canvas floor
+                dst_y0 = yoff; dst_y1 = yoff + (y1 - y0)
+                cell = fi * 3 + vi
+                sheet[dst_y0:dst_y1, cell * W + ox: cell * W + ox + cw, :3] = fg[y0:y1, x0:x1]
+                sheet[dst_y0:dst_y1, cell * W + ox: cell * W + ox + cw, 3] = al[y0:y1, x0:x1] * 255
+        # premultiplied-looking fringe fix: where alpha is 0, copy colour from nearest (keeps WebP edges clean)
+        img = Image.fromarray(np.clip(sheet, 0, 255).astype(np.uint8), "RGBA")
+        # scale so the sheet is not wasteful: keep native res but cap frame width at 560 px
+        scale = min(1.0, 560 / W)
+        if scale < 1:
+            img = img.resize((int(img.width * scale), int(img.height * scale)), Image.LANCZOS)
+        fw, fh = img.width // 6, img.height
+        path = os.path.join(OUT, f"{name}.webp")
+        img.save(path, "WEBP", quality=84, method=6, alpha_quality=90, exact=False)
+        # a standalone middle frame for the car picker is just the sheet cropped in CSS; no extra file
+        # car width in metres for the middle view: body + mirrors ~ 2.3 m
+        ppm = (mid_w * scale) / 2.3
+        meta[name] = {"src": f"assets/cars/{name}.webp", "frames": 6, "fw": fw, "fh": fh, "ppm": round(ppm, 2),
+                      "w": round(fw / ppm, 3), "h": round(fh / ppm, 3)}
+        print(name, "->", path, os.path.getsize(path) // 1024, "KB", meta[name])
+        # debug preview on a checker background
+        chk = Image.new("RGBA", img.size, (90, 90, 90, 255))
+        px = np.asarray(chk).copy(); yy, xx = np.mgrid[0:img.height, 0:img.width]
+        px[((yy // 16 + xx // 16) % 2) == 1] = (140, 140, 140, 255)
+        chk = Image.fromarray(px); chk.alpha_composite(img); chk.convert("RGB").save(os.path.join(OUT, f"{name}_preview.png"))
+    json.dump(meta, open(os.path.join(OUT, "meta.json"), "w"), indent=1)
+    print(json.dumps(meta))
