@@ -2274,14 +2274,17 @@ const GP_SHAPE={
    Angle order is always nose-right ... straight ... nose-left (3 or 5 views); the old 6-frame sheets repeat their three
    views with baked exhaust flames, the newer sheets get a separate flame sprite. ppm = pixels per metre, straight view. */
 const GP_PICS={
- falcon:{src:"assets/cars/red5.webp",frames:5,cols:2,rows:3,fw:322,fh:312,ppm:109.77,tyreBottom:[308,308,308,308,308]},
- arrow:{src:"assets/cars/silver5.webp",frames:5,cols:2,rows:3,fw:474,fh:277,ppm:176,tyreBottom:[274,274,274,275,275],hero:"assets/world/hero_arrow.webp"},
- shogun:{src:"assets/cars/white5.webp",frames:5,cols:2,rows:3,fw:499,fh:268,ppm:198.77,tyreBottom:[265,265,266,266,267],hero:"assets/world/hero_shogun.webp"},
- rally:{src:"assets/cars/rally5.webp",frames:5,cols:2,rows:3,fw:512,fh:345,ppm:179.15,tyreBottom:[342,342,343,343,344],hero:"assets/world/hero_rally.webp"},
- kumasi:{src:"assets/cars/muscle5.webp",frames:5,cols:2,rows:3,fw:489,fh:259,ppm:169.71,tyreBottom:[256,256,256,256,257],hero:"assets/world/hero_kumasi.webp"},
- kei:{src:"assets/cars/kei5.webp",frames:5,cols:2,rows:3,fw:492,fh:370,ppm:209.83,tyreBottom:[367,367,368,368,369],hero:"assets/world/hero_kei.webp"},
- ridge:{src:"assets/cars/ridge5.webp",frames:5,cols:2,rows:3,fw:466,fh:289,ppm:151.71,tyreBottom:[286,286,286,286,286],hero:"assets/world/hero_ridge.webp"}
-};   // wed_assets2.py: ChatGPT five-view sheets (hard/slight/straight) + hero shots; the Rosso Falcon keeps the Gemini red5 sheet
+ falcon:{src:"assets/cars/red5.webp",frames:5,cols:2,rows:3,fw:322,fh:312,ppm:109.77,tyreBottom:[308,308,308,308,308],tyres:[[[62,303,30],[250,300,34],[300,250,26]],[[78,305,30],[272,300,30]],[[48,300,26],[272,300,26]],[[50,300,30],[244,305,30]],[[22,250,26],[72,300,34],[260,303,30]]]},
+ arrow:{src:"assets/cars/silver5.webp",frames:5,cols:2,rows:3,fw:474,fh:277,ppm:176,tyreBottom:[274,274,274,275,275],tyres:[[[40,262,40],[340,274,72],[405,240,36]],[[75,270,50],[365,272,60]],[[86,271,64],[388,271,64]],[[110,272,60],[400,270,50]],[[65,240,36],[132,275,71],[435,262,40]]],hero:"assets/world/hero_arrow.webp"},
+ shogun:{src:"assets/cars/white5.webp",frames:5,cols:2,rows:3,fw:499,fh:268,ppm:198.77,tyreBottom:[265,265,266,266,267],tyres:[[[53,248,61],[319,265,63],[472,216,34]],[[96,264,52],[401,265,53]],[[88,266,56],[409,266,57]],[[100,266,53],[404,262,54]],[[27,218,34],[178,267,62],[445,250,61]]],hero:"assets/world/hero_shogun.webp"},
+ rally:{src:"assets/cars/rally5.webp",frames:5,cols:2,rows:3,fw:512,fh:345,ppm:179.15,tyreBottom:[342,342,343,343,344],tyres:[[[40,305,72],[338,342,83],[480,238,44]],[[102,340,62],[400,342,58]],[[102,343,58],[408,343,58]],[[112,343,57],[410,341,61]],[[32,240,44],[172,344,82],[470,307,70]]],hero:"assets/world/hero_rally.webp"},
+ kumasi:{src:"assets/cars/muscle5.webp",frames:5,cols:2,rows:3,fw:489,fh:259,ppm:169.71,tyreBottom:[256,256,256,256,257],tyres:[[[22,186,40],[166,256,68],[404,242,58]],[[120,256,59],[388,254,58]],[[100,256,54],[385,256,53]],[[102,254,58],[368,256,60]],[[86,242,60],[324,257,66],[466,188,40]]],rev:true,hero:"assets/world/hero_kumasi.webp"},
+ kei:{src:"assets/cars/kei5.webp",frames:5,cols:2,rows:3,fw:492,fh:370,ppm:209.83,tyreBottom:[367,367,368,368,369],tyres:[[[47,337,61],[320,367,64],[462,268,44]],[[82,360,57],[380,367,55],[447,262,36]],[[94,368,52],[397,368,53]],[[43,262,36],[112,368,54],[408,361,56]],[[28,268,44],[171,369,61],[443,339,57]]],hero:"assets/world/hero_kei.webp"},
+ ridge:{src:"assets/cars/ridge5.webp",frames:5,cols:2,rows:3,fw:466,fh:289,ppm:151.71,tyreBottom:[286,286,286,286,286],tyres:[[[65,279,57],[296,286,56],[422,257,56]],[[84,282,52],[326,286,50],[396,250,30]],[[108,286,46],[355,286,45]],[[75,255,40],[142,286,51],[383,282,53]],[[42,258,52],[168,286,57],[396,280,58]]],hero:"assets/world/hero_ridge.webp"}
+};   // wed_assets2.py: ChatGPT five-view sheets (hard/slight/straight) + hero shots; the Rosso Falcon keeps the Gemini red5 sheet.
+/* tyres: every photographed tyre bottom per packed frame as [centre x px, lowest tyre row px, tread width px] (lz-wheels-shots/fable/overlay/tyres2.py
+   plus hand checks); the contact shadows are placed from these, so each one sits under the tyre the picture shows. rev: the sheet is packed
+   nose-left ... nose-right (the muscle sheet), so logical frame f shows packed frame angles-1-f. */
 /* Wheel openings measured in each packed frame (frame-local pixels, top-left origin). Each ellipse is [cx,cy,w,h,tilt].
    Turning views patch exposed rim faces; every straight view patches the two photographed rear tyre backs with scrolling tread. */
 const GP_WHEEL_VIEWS={
@@ -2291,12 +2294,13 @@ const GP_WHEEL_VIEWS={
  rally:[{dir:1,p:[[382,254,47,99,0.02],[495,187,31,70,0.02]]},null,{kind:"tread",dir:1,p:[[111,316,20,54,0],[401,316,20,54,0]]},null,{dir:-1,p:[[130,260,47,99,-0.02],[17,202,31,70,-0.02]]}],
  kumasi:[{dir:1,p:[[135,190,38,81,0.02],[16,145,25,57,0.02]]},{dir:1,p:[[89,190,17,61,0.01]]},{kind:"tread",dir:1,p:[[92,228,25,57,0],[397,228,25,57,0]]},{dir:-1,p:[[400,190,17,61,-0.01]]},{dir:-1,p:[[352,204,38,81,-0.02],[475,153,25,57,-0.02]]}],
  kei:[{dir:1,p:[[350,288,51,108,0.03],[464,215,39,78,0.02]]},{dir:1,p:[[410,276,31,86,0.01],[448,218,21,61,0.01]]},{kind:"tread",dir:1,p:[[75,330,27,74,0],[417,330,27,74,0]]},{dir:-1,p:[[57,229,23,65,-0.01]]},{dir:-1,p:[[147,290,51,108,-0.03],[30,223,39,78,-0.02]]}],
- ridge:[{dir:1,p:[[315,218,47,84,0.02],[435,197,39,65,0.02]]},{dir:1,p:[[312,220,33,74,0.01],[397,195,29,57,0.01]]},{kind:"tread",dir:1,p:[[100,255,20,57,0],[366,255,20,57,0]]},{dir:-1,p:[[80,222,33,74,-0.01]]},{dir:-1,p:[[150,219,47,84,-0.02],[30,195,39,65,-0.02]]}]
+ ridge:[{dir:1,p:[[315,218,47,84,0.02],[435,197,39,65,0.02]]},{dir:1,p:[[347,214,18,86,0.01],[396,209,27,80,0.01]]},{kind:"tread",dir:1,p:[[100,255,20,57,0],[366,255,20,57,0]]},{dir:-1,p:[[124,229,20,88,-0.01]]},{dir:-1,p:[[150,219,47,84,-0.02],[30,195,39,65,-0.02]]}]
 };
 function gpPicFrames(D){return D.frames>=6?{angles:3,flames:true}:{angles:D.frames,flames:false};}   // 6-frame sheets = 3 views + 3 flame views
 function gpPicOffset(D,f){const c=f%D.cols,r=Math.floor(f/D.cols);return[c/D.cols,1-(r+1)/D.rows];}
 function gpPicMid(D){return D.frames>=6?1:(D.frames-1)>>1;}
-function gpPicAnchor(pc,frame){const D=pc.D,f=frame%pc.angles,b=D.tyreBottom?D.tyreBottom[f]:D.fh-1;pc.bottomPx=b;pc.bottomLocalY=(D.fh/2-b-1)/D.ppm;pc.pl.position.y=-pc.bottomLocalY;}
+function gpPicPacked(D,f,angles){return D.rev?(angles-1-(f%angles))+(f-f%angles):f;}   // logical (nose-right first) → packed frame index
+function gpPicAnchor(pc,frame){const D=pc.D,f=gpPicPacked(D,frame,pc.angles)%pc.angles,b=D.tyreBottom?D.tyreBottom[f]:D.fh-1;pc.bottomPx=b;pc.bottomLocalY=(D.fh/2-b-1)/D.ppm;pc.pl.position.y=-pc.bottomLocalY;}
 /* Gemini world pictures (world_assets.py): a 360-degree sky band with Fuji in the middle, a billboard
    atlas (cherry, cedar, torii, lantern, banner), one guard-rail bay, tileable asphalt, the dial face. */
 const GP_WORLD={
@@ -2735,6 +2739,7 @@ function gpCanvasTex(w,h,draw,repeat){const cv=document.createElement("canvas");
 function gpTextTex(text,bg,fg,w,h,size){return gpCanvasTex(w||512,h||128,(x,W,H)=>{if(Array.isArray(bg)){const g=x.createLinearGradient(0,0,W,0);bg.forEach((c,i)=>g.addColorStop(i/(bg.length-1),c));x.fillStyle=g;}else x.fillStyle=bg;x.fillRect(0,0,W,H);x.fillStyle=fg;x.font="italic 900 "+(size||64)+"px system-ui";x.textAlign="center";x.textBaseline="middle";x.shadowColor="rgba(0,0,0,.4)";x.shadowBlur=6;x.fillText(text,W/2,H/2+2);});}
 function gpSoftDot(){return gpCanvasTex(64,64,(x,w,h)=>{const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,"rgba(255,255,255,1)");g.addColorStop(0.35,"rgba(255,255,255,.7)");g.addColorStop(1,"rgba(255,255,255,0)");x.fillStyle=g;x.fillRect(0,0,w,h);});}
 function gpAoTex(){return gpCanvasTex(128,128,(x,w,h)=>{x.clearRect(0,0,w,h);x.save();x.translate(64,64);x.scale(1,1);const g=x.createRadialGradient(0,0,0,0,0,64);g.addColorStop(0,"rgba(255,255,255,1)");g.addColorStop(0.5,"rgba(255,255,255,.96)");g.addColorStop(0.72,"rgba(255,255,255,.55)");g.addColorStop(1,"rgba(255,255,255,0)");x.fillStyle=g;x.beginPath();x.ellipse(0,0,64,64,0,0,7);x.fill();x.restore();});}
+function gpContactTex(){return gpCanvasTex(64,64,(x,w,h)=>{x.clearRect(0,0,w,h);const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,"rgba(255,255,255,1)");g.addColorStop(0.4,"rgba(255,255,255,.93)");g.addColorStop(0.68,"rgba(255,255,255,.42)");g.addColorStop(1,"rgba(255,255,255,0)");x.fillStyle=g;x.fillRect(0,0,w,h);});}
 function gpRimTex(){return gpCanvasTex(128,128,(x,w,h)=>{x.clearRect(0,0,w,h);const c=64;x.fillStyle="#17181c";x.beginPath();x.arc(c,c,62,0,7);x.fill();
   const g=x.createRadialGradient(c,c,10,c,c,60);g.addColorStop(0,"#d9dde3");g.addColorStop(0.7,"#aeb4bd");g.addColorStop(1,"#6d737c");x.fillStyle=g;x.beginPath();x.arc(c,c,62,0,7);x.arc(c,c,54,0,7,true);x.fill();
   x.fillStyle=g;for(let k=0;k<5;k++){const a=k*Math.PI*2/5;x.save();x.translate(c,c);x.rotate(a);x.beginPath();x.moveTo(-9,0);x.lineTo(-5,-56);x.lineTo(5,-56);x.lineTo(9,0);x.closePath();x.fill();x.restore();}
@@ -2742,19 +2747,19 @@ function gpRimTex(){return gpCanvasTex(128,128,(x,w,h)=>{x.clearRect(0,0,w,h);co
 /* One atlas shared by every photo car: twelve sharp six-spoke rim phases, one radial rim blur,
    six scrolling rear-tread phases and one vertically smeared tread state. Each car keeps one geometry/material. */
 function gpWheelPatchShared(T){
-  const phases=12,treadPhases=6,cols=20,cell=64,blurCell=12,treadCell=13,treadBlurCell=19;
+  const phases=12,treadPhases=6,cols=32,cell=64,blurCell=12,treadCell=13,treadBlurCell=19,semiCell=20;
   const tex=gpCanvasTex(cols*cell,cell,(x,W,H)=>{const tyre=(cx)=>{const tg=x.createRadialGradient(cx-2,29,8,cx,32,31);tg.addColorStop(0,"rgba(58,61,66,.98)");tg.addColorStop(0.56,"rgba(25,27,31,.98)");tg.addColorStop(0.82,"rgba(7,8,10,.94)");tg.addColorStop(1,"rgba(2,3,4,0)");x.fillStyle=tg;x.beginPath();x.arc(cx,32,31,0,7);x.fill();};
     const rim=(cx,phase,blur)=>{tyre(cx);const rg=x.createRadialGradient(cx-4,27,2,cx,32,23);rg.addColorStop(0,"#8c929a");rg.addColorStop(0.38,"#555b64");rg.addColorStop(0.76,"#30353d");rg.addColorStop(1,"#121519");x.fillStyle=rg;x.beginPath();x.arc(cx,32,22,0,7);x.fill();x.fillStyle="#171a1f";x.beginPath();x.arc(cx,32,17,0,7);x.fill();
       const spokes=a=>{x.save();x.translate(cx,32);x.rotate(a);for(let k=0;k<6;k++){x.rotate(Math.PI/3);x.beginPath();x.moveTo(-2.2,1.2);x.lineTo(-1,-17.5);x.lineTo(2.1,-17.5);x.lineTo(2.8,0);x.closePath();x.fill();}x.restore();};
-      x.fillStyle="#626973";if(blur){x.save();x.globalAlpha=0.035;for(let q=0;q<30;q++)spokes(q*Math.PI/90);x.restore();x.strokeStyle="rgba(132,139,148,.25)";x.lineWidth=2.2;[9,13,17].forEach(r=>{x.beginPath();x.arc(cx,32,r,0,7);x.stroke();});}else spokes(phase);
+      x.fillStyle="#626973";if(blur==="semi"){x.save();x.globalAlpha=0.2;for(let q=-3;q<=3;q++)spokes(phase+q*0.04);x.restore();}else if(blur){x.save();x.globalAlpha=0.035;for(let q=0;q<30;q++)spokes(q*Math.PI/90);x.restore();x.strokeStyle="rgba(132,139,148,.25)";x.lineWidth=2.2;[9,13,17].forEach(r=>{x.beginPath();x.arc(cx,32,r,0,7);x.stroke();});}else spokes(phase);
       x.fillStyle="#262a31";x.beginPath();x.arc(cx,32,6,0,7);x.fill();x.fillStyle="#9ca2aa";x.beginPath();x.arc(cx,32,2.2,0,7);x.fill();};
     const tread=(cx,phase,blur)=>{x.save();x.beginPath();x.arc(cx,32,31,0,7);x.clip();const bg=x.createRadialGradient(cx-5,27,3,cx,32,33);bg.addColorStop(0,"rgba(54,57,61,.94)");bg.addColorStop(0.5,"rgba(25,27,30,.98)");bg.addColorStop(0.82,"rgba(8,9,11,.94)");bg.addColorStop(1,"rgba(2,3,4,0)");x.fillStyle=bg;x.fillRect(cx-32,0,64,64);
       if(blur){const sm=x.createLinearGradient(cx-23,0,cx+23,0);sm.addColorStop(0,"rgba(105,108,112,0)");sm.addColorStop(0.25,"rgba(105,108,112,.08)");sm.addColorStop(0.5,"rgba(145,147,150,.16)");sm.addColorStop(0.75,"rgba(105,108,112,.08)");sm.addColorStop(1,"rgba(105,108,112,0)");x.fillStyle=sm;for(let k=-18;k<=18;k+=7)x.fillRect(cx+k,5,2,54);
       }else{x.fillStyle="rgba(119,122,126,.38)";const shift=phase*2;for(let yy=-12;yy<76;yy+=12){const y=yy+shift;x.save();x.translate(cx,y);x.rotate((yy/12)%2?0.16:-0.16);x.fillRect(-23,-2.2,18,4.4);x.fillRect(5,-2.2,18,4.4);x.restore();}x.strokeStyle="rgba(8,9,10,.7)";x.lineWidth=2;x.beginPath();x.moveTo(cx,2);x.lineTo(cx,62);x.stroke();}x.restore();};
-    for(let i=0;i<phases;i++)rim(i*cell+32,i*(Math.PI/3)/phases,false);rim(blurCell*cell+32,0,true);for(let i=0;i<treadPhases;i++)tread((treadCell+i)*cell+32,i,false);tread(treadBlurCell*cell+32,0,true);});
+    for(let i=0;i<phases;i++)rim(i*cell+32,i*(Math.PI/3)/phases,false);rim(blurCell*cell+32,0,true);for(let i=0;i<phases;i++)rim((semiCell+i)*cell+32,i*(Math.PI/3)/phases,"semi");for(let i=0;i<treadPhases;i++)tread((treadCell+i)*cell+32,i,false);tread(treadBlurCell*cell+32,0,true);});
   tex.magFilter=T.LinearFilter;tex.minFilter=T.LinearMipmapLinearFilter;tex.generateMipmaps=true;
   const mat=new T.MeshBasicMaterial({map:tex,transparent:true,alphaTest:0.025,depthWrite:false,side:T.DoubleSide});mat.toneMapped=false;mat.userData.lin=1;
-  return{tex,mat,phases,treadPhases,cols,blurCell,treadCell,treadBlurCell};
+  return{tex,mat,phases,treadPhases,cols,blurCell,treadCell,treadBlurCell,semiCell};
 }
 function gpWheelPatchCell(wp,cell){if(cell===wp.cell)return;wp.cell=cell;const u0=cell/wp.shared.cols,u1=(cell+1)/wp.shared.cols,uv=wp.uv;
   for(let q=0;q<2;q++){const k=q*8;uv[k]=u0;uv[k+1]=0;uv[k+2]=u1;uv[k+3]=0;uv[k+4]=u1;uv[k+5]=1;uv[k+6]=u0;uv[k+7]=1;}wp.geo.attributes.uv.needsUpdate=true;}
@@ -2763,9 +2768,9 @@ function gpWheelPatchView(wp,D,frame){const V=(GP_WHEEL_VIEWS[wp.id]||[])[frame]
     corn.forEach((p,j)=>{const x=p[0]*co-p[1]*si,y=p[0]*si+p[1]*co;a[k+j*3]=cx+x;a[k+j*3+1]=cy+y;a[k+j*3+2]=0;});}wp.geo.attributes.position.needsUpdate=true;wp.geo.computeBoundingSphere();}
 function gpBuildWheelPatch(T,id,D,shared,frame){const views=GP_WHEEL_VIEWS[id];if(!views)return null;const geo=new T.BufferGeometry(),pos=new Float32Array(24),uv=new Float32Array(16);geo.setAttribute("position",new T.BufferAttribute(pos,3));geo.setAttribute("uv",new T.BufferAttribute(uv,2));geo.setIndex([0,1,2,0,2,3,4,5,6,4,6,7]);
   const mesh=new T.Mesh(geo,shared.mat),wp={id,mesh,geo,pos,uv,shared,cell:-1,view:-1,dir:1,kind:"rim",state:"sharp"};mesh.position.z=0.012;mesh.renderOrder=3;gpWheelPatchCell(wp,0);gpWheelPatchView(wp,D,frame);return wp;}
-function gpWheelPatchUpdate(kt){const wp=kt.pic&&kt.pic.wheelPatch;if(!wp)return;const omega=Math.abs(kt.speed)/Math.max(0.01,kt.wheelRadius);if(wp.state==="blur"){if(omega<5.5)wp.state="sharp";}else if(omega>7.5)wp.state="blur";
+function gpWheelPatchUpdate(kt){const wp=kt.pic&&kt.pic.wheelPatch;if(!wp)return;const omega=Math.abs(kt.speed)/Math.max(0.01,kt.wheelRadius);let st=wp.state;if(st==="blur"){if(omega<10)st="semi";}else if(st==="semi"){if(omega>13)st="blur";else if(omega<5.5)st="sharp";}else if(omega>7.5)st="semi";wp.state=st;   // sharp → semi-blurred spokes → full radial blur, with hysteresis both ways
   if(wp.kind==="tread"){if(wp.state==="blur")gpWheelPatchCell(wp,wp.shared.treadBlurCell);else{const turn=((kt.wheelPhase*wp.dir)%(Math.PI*2)+Math.PI*2)%(Math.PI*2);gpWheelPatchCell(wp,wp.shared.treadCell+(Math.floor(turn/(Math.PI*2)*wp.shared.treadPhases+0.5)%wp.shared.treadPhases));}}
-  else if(wp.state==="blur")gpWheelPatchCell(wp,wp.shared.blurCell);else{const turn=((kt.wheelPhase*wp.dir*6)%(Math.PI*2)+Math.PI*2)%(Math.PI*2);gpWheelPatchCell(wp,Math.floor(turn/(Math.PI*2)*wp.shared.phases+0.5)%wp.shared.phases);}}
+  else if(wp.state==="blur")gpWheelPatchCell(wp,wp.shared.blurCell);else{const turn=((kt.wheelPhase*wp.dir*6)%(Math.PI*2)+Math.PI*2)%(Math.PI*2);gpWheelPatchCell(wp,(wp.state==="semi"?wp.shared.semiCell:0)+Math.floor(turn/(Math.PI*2)*wp.shared.phases+0.5)%wp.shared.phases);}}
 /* ---------- the car: a smooth lofted hull, glass canopy, lights, diffuser, rims ---------- */
 function gpLoft(T,stations,closed,caps){
   const N=stations.length,K=stations[0].length;const pos=[],idx=[];
@@ -2873,13 +2878,28 @@ function gpBuildPicCar(T,car,tex,shared){
   // exhaust flames for sheets without baked flame frames: a small additive sprite under the tail, shown while flameT runs
   let flame=null;if(!PF.flames&&shared.flameTex){const FL=GP_WORLD.flame,fw=w*FL.relW,fh=fw*FL.h/FL.w;const fm=new T.MeshBasicMaterial({map:shared.flameTex,transparent:true,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide});fm.toneMapped=false;fm.userData.lin=1;
     flame=new T.Mesh(new T.PlaneGeometry(fw,fh),fm);flame.position.set(FL.cx*w,-h/2+FL.bottom*h+fh/2,0.01);flame.visible=false;pl.add(flame);}
-  // contact shadow: a centred soft footprint plus four small tyre-contact ovals, both aligned with the car root/yaw
-  const mk=(sw,sl,op,y,z)=>{const m=new T.Mesh(new T.PlaneGeometry(sw,sl),new T.MeshBasicMaterial({map:shared.ao,color:0x000000,transparent:true,opacity:op,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}));m.material.userData.lin=1;m.rotation.x=-Math.PI/2;m.position.y=y;m.position.z=z;g.add(m);return m;};
-  const footprint=mk(S.w*1.12,S.len*0.7,0.46,0.018,0),cg=new T.BufferGeometry(),cp=[],cu=[],ci=[];let cv=0;
-  [-1,1].forEach(sd=>[S.xr,S.xf].forEach(z=>{const cx=sd*S.w*0.4,hw=S.w*0.115,hl=S.radR*0.68;cp.push(cx-hw,0,z-hl,cx+hw,0,z-hl,cx+hw,0,z+hl,cx-hw,0,z+hl);cu.push(0,0,1,0,1,1,0,1);ci.push(cv,cv+1,cv+2,cv,cv+2,cv+3);cv+=4;}));cg.setAttribute("position",new T.Float32BufferAttribute(cp,3));cg.setAttribute("uv",new T.Float32BufferAttribute(cu,2));cg.setIndex(ci);cg.computeBoundingSphere();
-  const cm=new T.MeshBasicMaterial({map:shared.ao,color:0x000000,transparent:true,opacity:0.64,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});cm.userData.lin=1;const contacts=new T.Mesh(cg,cm);contacts.position.y=0.022;g.add(contacts);const shadows=[footprint,contacts];
-  const pic={pl,t,D,angles:PF.angles,flames:PF.flames,flame,wheelPatch,frame:mid,bin:0,rel:0,flameT:0,bottomPx:0,bottomLocalY:0};gpPicAnchor(pic,mid);
+  // contact shadow: a centred soft footprint on the car root (ambient darkening under the body) plus one tight patch under every photographed
+  // tyre. The patches live in a group that turns with the sprite plane; gpContactUpdate() puts each one where the camera ray through that
+  // tyre's bottom row meets the road, so it sits exactly under the tyre the picture shows (the far tyres of a three-quarter photo sit higher).
+  const mk=(sw,sl,op,y,z,tex)=>{const m=new T.Mesh(new T.PlaneGeometry(sw,sl),new T.MeshBasicMaterial({map:tex,color:0x000000,transparent:true,opacity:op,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}));m.material.userData.lin=1;m.rotation.x=-Math.PI/2;m.position.y=y;m.position.z=z;g.add(m);return m;};
+  const footprint=mk(S.w*1.1,S.len*0.68,0.5,0.04,0,shared.ao);
+  if(!shared.contact)shared.contact=gpContactTex();
+  const NC=4,cg=new T.BufferGeometry(),cp=new Float32Array(NC*12),cu=new Float32Array(NC*8),ci=[];for(let q=0;q<NC;q++){cu.set([0,0,1,0,1,1,0,1],q*8);const v=q*4;ci.push(v,v+1,v+2,v,v+2,v+3);}
+  cg.setAttribute("position",new T.BufferAttribute(cp,3));cg.setAttribute("uv",new T.BufferAttribute(cu,2));cg.setIndex(ci);
+  const cm=new T.MeshBasicMaterial({map:shared.contact,color:0x000000,transparent:true,opacity:0.88,depthWrite:false,side:T.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});cm.userData.lin=1;
+  const contacts=new T.Mesh(cg,cm);contacts.frustumCulled=false;const cgrp=new T.Group();cgrp.position.set(0,0.045,-0.1);cgrp.add(contacts);g.add(cgrp);
+  const shadows=[footprint,contacts];
+  const pic={pl,t,D,angles:PF.angles,flames:PF.flames,flame,wheelPatch,frame:mid,bin:0,rel:0,flameT:0,bottomPx:0,bottomLocalY:0,cgrp,cgeo:cg,cpos:cp,tyres:D.tyres?D.tyres[mid]:null};gpPicAnchor(pic,mid);
   return{g,body:b,wheels:[],steers:[],shadows,tailMat:{emissiveIntensity:0.9},bodyMat:mat,S,xr:S.xr,hw:z=>S.w/2,pic};}
+/* Place the tyre-contact patches: for each photographed tyre bottom (plane-local x, height above the contact line) find where the camera
+   ray through it meets the road - straight below for the near tyres, pushed away from the camera for the higher far tyres - so every
+   patch sits under its tyre from the player's viewpoint. Writes the existing position buffer; nothing is allocated per frame. */
+function gpContactUpdate(kt,camPos){const pc=kt.pic,ty=pc.tyres,a=pc.cpos;pc.cgrp.rotation.y=pc.pl.rotation.y;if(!ty){for(let j=0;j<a.length;j++)a[j]=0;pc.cgeo.attributes.position.needsUpdate=true;return;}
+  const D=pc.D,g=kt.g,dx=g.position.x-camPos.x,dz=g.position.z-camPos.z,Dc=Math.max(1,Math.hypot(dx,dz)),Hc=Math.max(0.6,camPos.y-g.position.y),tb=pc.bottomPx,hd=kt.S.radR*0.7;let n=0;
+  for(;n<ty.length&&n<4;n++){const t=ty[n],x=(t[0]-D.fw/2)/D.ppm,lift=Math.max(0,(tb-t[1])/D.ppm),hw=t[2]/D.ppm*0.7,push=Math.min(3,Dc*lift/Math.max(0.3,Hc-lift)),k=(Dc+push)/Dc,cx=x*k,cz=-push,kk=n*12;
+    a[kk]=cx-hw;a[kk+1]=0;a[kk+2]=cz+hd;a[kk+3]=cx+hw;a[kk+4]=0;a[kk+5]=cz+hd;a[kk+6]=cx+hw;a[kk+7]=0;a[kk+8]=cz-hd;a[kk+9]=cx-hw;a[kk+10]=0;a[kk+11]=cz-hd;}
+  for(let q=n;q<4;q++)for(let j=0;j<12;j++)a[q*12+j]=0;
+  pc.cgeo.attributes.position.needsUpdate=true;}
 /* Podium party: confetti pieces and cherry petals (cells of assets/world/fx.webp) tumble down over the finish panel on a
    canvas for ~9 s. Nothing is drawn for prefers-reduced-motion or when the sheet fails to load. */
 function gpConfetti(host){
@@ -2901,17 +2921,18 @@ function gpPicUpdate(kt,dt,camPos,inp){
   const losYaw=Math.atan2(kt.g.position.x-camPos.x,kt.g.position.z-camPos.z);
   let rel=gpWrapAng(carYaw-losYaw);                 // + = nose turned to the viewer's left
   if(kt.player)rel=-(inp*0.36+(kt.sv||0)*0.12+(kt.drift||0)*0.4); // straight unless the player steers or slides (never yawed while parked)
+  if(kt.player&&R3.dbgRel!=null)rel=R3.dbgRel;   // test hook: pin the player view angle for screenshots
   pc.pl.rotation.y=gpWrapAng(losYaw+Math.PI-carYaw);
   pc.rel+=(rel-pc.rel)*Math.min(1,dt*9);           // the steer amount eases, so a five-view sheet walks straight → slight → hard instead of jumping
   const a=pc.rel,m=Math.abs(a),sg=a<0?-1:1,cur=Math.abs(pc.bin);let lvl=cur;
-  if(pc.angles>=5){const H=[0.07,0.22],hys=0.035;if(cur<2&&m>H[cur]+(cur?0:0))lvl=cur+1;if(cur>0&&m<H[cur-1]-hys)lvl=cur-1;}   // thresholds ~4° and ~12.5° with hysteresis so the view does not flicker
+  if(pc.angles>=5){const H=kt.player?[0.07,0.22]:[0.13,0.36],hys=kt.player?0.035:0.05;/* rivals switch by their real angle to the camera, nearer the photographed ~12/35 degree views, so a rival a little off-axis is not shown broadside */if(cur<2&&m>H[cur]+(cur?0:0))lvl=cur+1;if(cur>0&&m<H[cur-1]-hys)lvl=cur-1;}   // thresholds ~4° and ~12.5° with hysteresis so the view does not flicker
   else{if(cur<1&&m>0.26)lvl=1;if(cur>0&&m<0.14)lvl=0;}
   if(lvl>0&&cur>0&&sg!==Math.sign(pc.bin))lvl=0;    // changing direction passes through the straight view
   pc.bin=lvl*sg;
   if(pc.flameT>0)pc.flameT-=dt;
   const half=(pc.angles-1)>>1,f=(half+pc.bin)+(pc.flameT>0&&pc.flames?pc.angles:0);   // bin + = nose to the viewer's left = later frames
-  if(f!==pc.frame){pc.frame=f;const o=gpPicOffset(pc.D,f);pc.t.offset.set(o[0],o[1]);gpPicAnchor(pc,f);if(pc.wheelPatch)gpWheelPatchView(pc.wheelPatch,pc.D,f%pc.angles);}
-  gpWheelPatchUpdate(kt);
+  if(f!==pc.frame){pc.frame=f;const pf=gpPicPacked(pc.D,f,pc.angles),o=gpPicOffset(pc.D,pf);pc.t.offset.set(o[0],o[1]);gpPicAnchor(pc,f);pc.tyres=pc.D.tyres?pc.D.tyres[pf%pc.angles]:null;if(pc.wheelPatch)gpWheelPatchView(pc.wheelPatch,pc.D,pf%pc.angles);}
+  gpContactUpdate(kt,camPos);gpWheelPatchUpdate(kt);
   if(pc.flame){const v=pc.flameT>0;if(pc.flame.visible!==v)pc.flame.visible=v;if(v)pc.flame.scale.set(0.8+Math.random()*0.4,0.75+Math.random()*0.5,1);}
 }
 function gpFlame(kt,sec){if(kt&&kt.pic)kt.pic.flameT=Math.max(kt.pic.flameT,sec);}
@@ -3566,11 +3587,14 @@ function gpUpdate(dt,waiting){
   GPA.engine(rf,(waiting?0.2:(me.brakeOn?0.3:1))*(R3.mode==="free"?0.5:1),!!me.drift||(me.brakeOn&&me.speed/me.max>0.55),waiting);
   R3.tachT+=dt;if(R3.tachT>0.04){R3.tachT=0;gpTach(mph,gear,rf);}
 }
-/* edge speed lines drawn on a half-resolution overlay canvas */
-function gpSpeedFx(spd,drift){const cv=R3.fx;if(!cv)return;const x=cv.getContext("2d"),W=R3.fxW,H=R3.fxH;x.clearRect(0,0,W,H);const a=Math.max(0,(spd-0.5)/0.5);if(a<=0.02)return;
-  const cx=W/2,cy=H*0.52,R=Math.hypot(W,H)/2;x.lineCap="round";const n=Math.round(10+a*26);
-  for(let i=0;i<n;i++){const ang=Math.random()*Math.PI*2;const r0=R*(0.45+Math.random()*0.35),r1=r0+R*(0.12+Math.random()*0.25)*a;const w=0.6+Math.random()*1.6;x.strokeStyle="rgba(255,255,255,"+(0.05+Math.random()*0.22*a)+")";x.lineWidth=w;x.beginPath();x.moveTo(cx+Math.cos(ang)*r0,cy+Math.sin(ang)*r0*0.9);x.lineTo(cx+Math.cos(ang)*r1,cy+Math.sin(ang)*r1*0.9);x.stroke();}
-  const g=x.createRadialGradient(cx,cy,R*0.55,cx,cy,R*1.05);g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(1,"rgba(0,0,0,"+(0.22*a)+")");x.fillStyle=g;x.fillRect(0,0,W,H);}
+/* edge speed lines drawn on a half-resolution overlay canvas; the 25 stroke colours are built once (no per-frame strings) */
+const GP_STREAK=Array.from({length:25},(_,i)=>"rgba(255,255,255,"+(i/80).toFixed(4)+")");
+function gpSpeedFx(spd,drift){const cv=R3.fx;if(!cv)return;const x=cv.getContext("2d"),W=R3.fxW,H=R3.fxH;x.clearRect(0,0,W,H);const a=Math.max(0,Math.min(1,(spd-0.8)/0.15));if(a<=0.02)return;
+  // wind streaks only near top speed: 22 fixed directions across the upper half and both sides (nothing below the horizon in the middle), each growing and fading with distance travelled
+  // (no per-frame randomness, so nothing flickers), starting well outside the car and clear of the pedals and the dial
+  const cx=W/2,cy=H*0.5,R=Math.hypot(W,H)/2,tr=R3.me.travel;x.lineCap="round";
+  for(let i=0;i<22;i++){const ang=Math.PI-0.42+i*(Math.PI+0.84)/21,ph=((tr*0.05+i*0.37)%1+1)%1,r0=R*(0.66+0.08*((i*7)%5)/5),r1=r0+R*(0.08+0.2*ph)*a,c=Math.cos(ang),sn=Math.sin(ang);
+    x.strokeStyle=GP_STREAK[Math.min(24,Math.round((0.05+0.3*a)*(1-ph)*80))];x.lineWidth=0.8+1.4*(1-ph);x.beginPath();x.moveTo(cx+c*r0,cy+sn*r0*0.92);x.lineTo(cx+c*r1,cy+sn*r1*0.92);x.stroke();}}
 function gpRender(dt){
   const me=R3.me,T=R3.T;const tan=R3.curve.getTangentAt(me.t).normalize();const flat=R3.tmpV2.set(tan.x,0,tan.z).normalize();
   const spd=me.speed/me.max,tall=R3.camera.aspect<1;

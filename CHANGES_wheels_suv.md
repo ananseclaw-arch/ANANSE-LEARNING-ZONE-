@@ -142,3 +142,100 @@ Total pass-2 coverage is 29/35 views. The six remaining slight-turn views do not
 - Added per-frame `window.__gp.bodyRoll`, `window.__gp.spriteBottomY` (the transformed world-space tyre-contact line for a photo sprite), and `window.__gp.smokeCount` (currently live tyre-smoke puffs).
 - Re-ran `python3 inline_lessons.py`; `index.html` contains the updated `race3d.js`.
 - `node --check race3d.js`, every inline `<script>` block in `index.html`, and `git diff --check` pass.
+
+## Fable pass
+
+Headless Chrome (SwiftShader, 1180x820) on `kawaguchi`, race mode, Auto gas off, all seven cars driven as the player; harness in
+`~/staging/lz-wheels-shots/fable/fable_test.py` (serves on 8880-8899 via `serve.py`, shoots grid / slow straight / fast straight / slight
+right / slight left / steer right / steer left / braking, samples `window.__gp`). Review sheets per car are `fable/r2/sheet_<car>.jpg`,
+the deliverable shots are `fable/<car>_race_*.jpg` and `fable/all7_cars_and_grid.jpg`.
+
+### 1. Contact shadows now sit under the photographed tyres
+
+- Cause: the pass-2/3 "four tyre ovals" were built from the 3D shape's wheel positions (`S.xf`, `S.xr`, `±0.4 w`), not from where the
+  picture's tyres are, and their quads were wound clockwise, so the GPU back-face culled them: only the soft footprint ever showed.
+  In three-quarter frames the far tyres also sit higher in the photo (baked perspective), so a patch at the 3D position could never be
+  under them.
+- Change: `GP_PICS.<car>.tyres` stores every photographed tyre bottom per packed frame as `[centre x px, lowest tyre row px, tread width px]`
+  (auto-measured from the alpha silhouettes by `fable/overlay/tyres2.py`, hand-checked on zoomed pixel grids; the Gemini red5 sheet
+  needed hand values because its keyed silhouette includes the baked ground shadow). `gpBuildPicCar()` builds one four-quad contact mesh
+  (new tighter `gpContactTex()`, black, opacity 0.88) inside a group that turns with the sprite plane; `gpContactUpdate()` places each
+  patch where the camera ray through that tyre's bottom row meets the road - straight below for the near tyres, pushed away from the
+  camera by `Dc·lift/(Hc-lift)` for the higher far tyres - so from the player's viewpoint every patch is exactly under its tyre, follows
+  yaw, has no gap and no rectangular edge (radial alpha). It writes the existing position buffer; no per-frame allocation. The soft body
+  footprint stays as the ambient darkening under the car. Rivals use the same path. Draw calls are unchanged (one contact call per photo
+  car, as before).
+
+### 2. Rivals no longer read as tilted / broadside
+
+- Cause: rivals already had the tyre-line anchor and zero roll from pass 3; what made them look tilted was view selection. Rivals switched
+  to the slight view at 4 degrees and the hard three-quarter view at 12.5 degrees off the line of sight, so a rival a little off-axis
+  was drawn with a ~35 degree photo whose far side sits visibly higher - a "lifted" car. On top of that their contact patches were culled
+  (see 1), so nothing tied them to the road.
+- Change: rival thresholds are now 0.13 / 0.36 rad (about 7.5 / 21 degrees) with 0.05 rad hysteresis, nearer the photographed angles; the
+  player keeps 0.07 / 0.22 because its view angle is synthesised from steering input. Every photo rival gets the per-tyre contact patches
+  from (1) and keeps the anchor / no-roll rule. Measured `bodyRoll` stayed 0 for every sample of every car.
+
+### 3. Wheel patches checked on all 35 views
+
+Overlay sheets of every patch ellipse on the source frames are in `fable/overlay/<car>_grid.png`; in-game views are in `fable/r2/sheet_<car>.jpg`
+(the slight views were forced with the new test hook `R3.dbgRel`, which pins the player view angle and is otherwise unset).
+
+| Car | Result |
+|---|---|
+| Rosso Falcon | 0/1/3/4 rim and 2 tread patches on the wheels; no change |
+| Silver Arrow | 0/4 rim, 2 tread correct; 1/3 stay photographic |
+| Shogun GT | all correct |
+| Alpine Rally | all correct |
+| Kumasi V8 | patches correct per packed frame, but the sheet itself is packed nose-left ... nose-right (the opposite of the other six): steering right showed the car's left flank. Fixed with `rev:true` on `GP_PICS.kumasi` and `gpPicPacked()`, which maps logical frame f to packed frame 4-f for the texture offset, anchor row, tyre data and wheel views. |
+| Lemon Kei | all correct |
+| Thunder Ridge XL | frame 1 rear patch was on the bumper corner left of the wheel and frame 3's was on the front tyre's tread; both moved onto the real rim faces (1: `[347,214,18,86]`, front `[396,209,27,80]`; 3: `[124,229,20,88]`). 0/2/4 unchanged. |
+
+No patch was disabled; no green fringes seen at 1180x820.
+
+### 4. Realism
+
+- Rim blur: a third wheel state. The shared atlas is now 32 cells (2048x64, a power of two): 12 sharp phases, the radial blur, 6 tread
+  phases, the tread smear, and 12 new semi-blurred phases (seven spoke copies over ±0.12 rad at 20% alpha). `gpWheelPatchUpdate()` goes
+  sharp → semi at 7.5 rad/s → blur at 13 rad/s and back at 10 / 5.5 rad/s, so the spokes smear before they vanish instead of snapping to a
+  flat disc. `wheelPatchState` can now also read `semi`.
+- Tried and removed: a mirrored lower-body road reflection quad per car (vertex-alpha fade). Even at full opacity it was almost invisible
+  on the asphalt and cost a draw call per car, so it is not in the build.
+- Contact darkening: footprint 0.5 opacity, tyre patches 0.88 with a tight core (see 1).
+
+### 5. Speed feel without camera motion
+
+- Edge streaks now appear only above 80% of top speed (previously from 50%), on 22 fixed directions across the upper half and both sides,
+  growing and fading with distance travelled instead of random lines every frame, so they never flicker, never cross the car or the pedal /
+  dial corners, and keep the FOV and camera untouched. Stroke colours come from a 25-entry table built once (no per-frame strings).
+- Roadside delineators (every 3 samples), kerbs and lane dashes are unchanged and already stream at true speed.
+- Tyre smoke: `smokeCount` stayed 0 through every sample of ordinary driving, steering and straight-line braking for all seven cars.
+
+### Measurements
+
+- Errors: 0 JS exceptions / console errors in every run (7 cars plus probes).
+- FOV: 60 in every sample; chase offset 6.51-6.64; `bodyRoll` 0; photo body `position.y` stays 0 on-road (unchanged from pass 3).
+- Draw calls, same scene (race grid, five photo cars), committed baseline vs this build: 108 vs 108 total; contact meshes 5, footprints 5,
+  wheel patches 3 in both. Teleporting the player to ten fixed track fractions and reading `rendererCalls` on both builds gave the same
+  numbers within particle noise: t=0.1 → 54/56, 0.5 → 60/60, 0.9 → 117/117, 0.96 → 112/112 (new/baseline). The ~117 peak is the pit
+  straight (garages, stands, crowd, flags) and exists unchanged in the committed build; everywhere else the race runs at 54-108. Final
+  run per phase (ridge): fast straight 67, steering 75-78, braking 102-110, grid 108.
+- FPS in headless SwiftShader: 5-7 both before and after (software rasteriser, not representative of the iPad; the budget check is the
+  draw-call parity above).
+- `node --check race3d.js` passes; all 16 inline `<script>` blocks of `index.html` parse; `index.html` contains `race3d.js` verbatim;
+  `git diff --check` clean; only `race3d.js` and `index.html` changed.
+
+### Not done / limits
+
+- The far-tyre patch for a rival far down the road is pushed up to 3 m behind the sprite; from the camera it still sits under the tyre,
+  but it is clamped, so a very distant rival in a hard view can show its far patch a little short.
+- Slight-turn views of Silver Arrow, Shogun GT and Alpine Rally still have no rim patch (no clean rim face in the photo), as in pass 2.
+- Contact data for the red5 Gemini sheet is approximate (±8 px) because its keyed silhouette includes the car's own baked shadow.
+- No Safari / iPad measurement from here.
+
+### Kids'-game rating
+
+Before this pass: 7/10 - the cars floated slightly on faint blobs, the far wheel in every hard turn hung in the air, the muscle car turned
+the wrong way in its pictures, and the ridge's slight-turn rims were painted on the bumper. After: 8.5/10 - every car sits on its tyres in
+all views, rivals are planted, wheels spin through three believable states, and top speed gets a calm streak cue. What would take it to 9+
+is proper per-view rim patches for the three slight-turn sheets and a real iPad fps check.
