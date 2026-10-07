@@ -1,4 +1,4 @@
-const CACHE = "learning-zone-v71";
+const CACHE = "learning-zone-v72";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png", "./ananse-lion.png", "./assets/cars/red5.webp", "./assets/cars/silver5.webp", "./assets/cars/white5.webp", "./assets/cars/rally5.webp", "./assets/cars/muscle5.webp", "./assets/cars/kei5.webp", "./assets/world/sky.webp", "./assets/world/sky_dusk.webp", "./assets/world/trees.webp", "./assets/world/smoke.webp", "./assets/world/petal.webp", "./assets/world/fx.webp", "./assets/world/title.webp", "./assets/world/hero_arrow.webp", "./assets/world/hero_shogun.webp", "./assets/world/hero_rally.webp", "./assets/world/hero_kumasi.webp", "./assets/world/hero_kei.webp", "./assets/world/props.webp", "./assets/world/rail.webp", "./assets/world/road.webp", "./assets/world/speedo.webp", "./assets/world/logo.webp", "./assets/world/hero.webp", "./assets/world/card.webp", "./assets/world/flame.webp", "./assets/world/gantry.webp", "./assets/world/pits.webp", "./assets/world/stand.webp", "./assets/world/crowd.webp", "./assets/world/kerb.webp", "./assets/world/boards.webp", "./assets/world/podium.webp"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(f => new Request(f, {cache: "reload"})))).then(() => self.skipWaiting()));
@@ -15,7 +15,7 @@ self.addEventListener("fetch", e => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   // The tutor address changes; never serve it from cache.
-  if (/\/(tutor|focus)\.json$/.test(url.pathname)) return;   // focus.json = school focus, always fresh
+  if (/\/(tutor|focus|flashcards)\.json$/.test(url.pathname)) return;   // focus.json = school focus, always fresh
   // Videos stream straight from the network (Safari needs real 206 range replies, and the
   // 1.5 MB racer intro should never sit in the app cache). Car pictures are cached on first use.
   if (/\.(mp4|webm|m4v)$/.test(url.pathname)) return;

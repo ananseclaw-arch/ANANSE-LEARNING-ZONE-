@@ -5020,6 +5020,7 @@ function renderHome(){
    +'<section class="kh-sec"><h2>🧭 Explore <small>lessons, labs and games</small></h2><div class="kh-tiles">'
    +tile("📚",P.grade?GRADE_NAMES[P.grade]+" Lessons":"Grade Lessons","Maryland standards · learn, then practice","renderLessons()","#ffd166")
    +tile("📘","Reveal Math","Your class practice book, unit by unit","renderReveal()","#c9a84c")
+   +tile("🗂️","Homework Flashcards",((DB.flash&&DB.flash.decks&&DB.flash.decks.length)?DB.flash.decks.length+" deck"+(DB.flash.decks.length>1?"s":"")+" from your homework":"Cards made from your homework"),"renderFlashcards()","#22b8cf")
    +tile("🧪","Science Lab",(P.lab?Object.keys(P.lab).length:0)+"/"+(typeof LABS!=="undefined"?LABS.length:9)+" quests · experiments & nature walk","renderLab()","#6fd0ff")
    +tile("🏎️","Grand Fable GP","3D kart racing · play any time","renderRace()","#ff4d6d")
    +tile("🎬","Story Replay","Read, then put events in order","startStoryReplay()","#ff6b4a")
@@ -7903,6 +7904,123 @@ function hwDone(){
 }
 function hwQuit(){if(HW&&HW.log&&(HW.si>0||HW.log.hints>0)){hwSendLog();}if(HW&&HW.page)hwChoose();else renderHome();}
 
+</script>
+<style>
+.fc-shell{max-width:760px;margin:0 auto}
+.fc-decks{display:grid;gap:14px;margin-top:16px}
+.fc-deck{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:18px 20px;border-radius:18px;border:3px solid #22b8cf;background:#fff;font-size:20px;cursor:pointer;text-align:left;min-height:72px}
+.fc-deck b{font-size:22px}.fc-deck small{color:#5a6b80}.fc-deck span{font-weight:700;color:#0b7285}
+.fc-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.fc-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;width:100%;min-height:300px;padding:26px;border-radius:24px;border:4px solid #22b8cf;background:linear-gradient(160deg,#e3fafc,#fff);box-shadow:0 8px 24px rgba(0,0,0,.12);cursor:pointer;transition:transform .35s ease}
+.fc-card.flipped{border-color:#3bb273;background:linear-gradient(160deg,#ebfbee,#fff);animation:fcflip .35s ease}
+@keyframes fcflip{0%{transform:rotateY(90deg)}100%{transform:rotateY(0)}}
+.fc-side{font-size:19px;font-weight:800;letter-spacing:2px;color:#0b7285}
+.fc-card.flipped .fc-side{color:#2b8a3e}
+.fc-text{font-size:32px;font-weight:700;line-height:1.3;color:#1b2a3a;white-space:pre-line}
+.fc-card small{font-size:19px;color:#4a5b70}
+.fc-prog{font-size:20px;font-weight:700;color:#fff;background:#0b7285;padding:6px 14px;border-radius:14px}
+.fc-msg{background:#fff;color:#1b2a3a;border-radius:20px;padding:22px;font-size:26px;margin:16px 0}
+.fc-msg b{color:#2b8a3e}
+.fc-got,.fc-again{min-width:170px;min-height:64px;font-size:21px}
+</style>
+<script>
+/* ============================================================
+   HOMEWORK FLASHCARDS — Dad sends a photo of Prince's homework to Ananse
+   (Hermes), which turns it into a deck in flashcards.json (repo root,
+   always fetched fresh). A copy is kept in DB.flash so cards work offline.
+   Per-learner results: P.flash[deckId] = {plays, last, best, at}.
+   ============================================================ */
+var FC=null;
+function fcClean(j){
+  if(!j||!Array.isArray(j.decks))return null;
+  const s=(v,n)=>typeof v==="string"?v.slice(0,n):"";
+  const decks=j.decks.filter(d=>d&&typeof d.id==="string"&&Array.isArray(d.cards)).map(d=>({
+    id:s(d.id,60),title:s(d.title,80)||"Homework",subject:s(d.subject,30),date:s(d.date,10),
+    cards:d.cards.filter(c=>c&&typeof c.f==="string"&&typeof c.b==="string").slice(0,60)
+      .map(c=>({f:s(c.f,240),b:s(c.b,240),hint:s(c.hint,200)}))
+  })).filter(d=>d.cards.length);
+  return {updated:s(j.updated,30),decks};
+}
+function fcLoad(done){
+  let timer=null;const fin=()=>{if(timer)clearTimeout(timer);if(done)done();};
+  try{
+    let ctrl=null;
+    if(typeof AbortController!=="undefined"){ctrl=new AbortController();timer=setTimeout(()=>ctrl.abort(),5000);}
+    fetch("flashcards.json?t="+Date.now(),{cache:"no-store",signal:ctrl?ctrl.signal:undefined})
+      .then(r=>r.ok?r.json():Promise.reject())
+      .then(j=>{const g=fcClean(j);if(g){DB.flash=g;save();}})
+      .catch(()=>{}).finally(fin);
+  }catch(e){fin();}
+}
+function fcDecks(){return ((DB.flash&&DB.flash.decks)||[]).slice().sort((a,b)=>(b.date||"").localeCompare(a.date||""));}
+function renderFlashcards(){
+  app.innerHTML='<div class="fadein center"><h1>🗂️ Homework Flashcards</h1><p class="muted">Getting your cards…</p></div>';
+  fcLoad(fcList);
+}
+function fcList(){
+  if(!P)return;
+  if(!P.flash)P.flash={};
+  const decks=fcDecks();
+  let h='<div class="fadein fc-shell"><div class="center"><h1>🗂️ Homework Flashcards</h1>'
+   +'<p class="muted" style="font-size:19px">Cards made from your homework. Pick a deck to practise!</p></div>';
+  if(!decks.length) h+='<div class="card center" style="font-size:21px">No homework cards yet.<br>Ask Dad to send a photo of your homework to Ananse 📸</div>';
+  else h+='<div class="fc-decks">'+decks.map((d,i)=>{const r=P.flash[d.id];
+    const tag=r&&r.best!=null?"⭐ Best: "+r.best+" of "+d.cards.length:"🆕 New!";
+    return '<button class="fc-deck" onclick="fcStart('+i+')"><b>'+esc(d.title)+'</b><small>'+d.cards.length+' cards'+(d.date?' · '+esc(d.date):'')+'</small><span>'+tag+'</span></button>';}).join("")+'</div>';
+  h+='<div class="btn-row" style="margin-top:18px"><button class="btn secondary" onclick="renderHome()">⟵ Back</button></div></div>';
+  app.innerHTML=h;
+  if(!decks.length)say("No homework cards yet. Ask Dad to send a photo of your homework to Ananse.");
+}
+function fcStart(i){
+  const d=fcDecks()[i];if(!d)return fcList();
+  const q=d.cards.map((c,k)=>k);
+  for(let k=q.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));const t=q[k];q[k]=q[j];q[j]=t;}
+  FC={d,queue:q,missed:{},known:0,flipped:false};
+  fcShow();
+}
+function fcShow(){
+  if(!FC||!FC.queue.length)return fcDone();
+  const c=FC.d.cards[FC.queue[0]],total=FC.d.cards.length,left=new Set(FC.queue).size;
+  FC.flipped=false;
+  app.innerHTML='<div class="fadein fc-shell"><div class="fc-top"><button class="btn secondary" onclick="fcList()">⟵ Decks</button>'
+   +'<span class="fc-prog">'+esc(FC.d.title)+' · '+(total-left)+' of '+total+' done</span></div>'
+   +'<button class="fc-card" id="fcCard" onclick="fcFlip()"><span class="fc-side">QUESTION</span><span class="fc-text">'+esc(c.f)+'</span>'
+   +'<small>Say your answer, then tap the card</small></button>'
+   +'<div class="btn-row" id="fcBtns" style="justify-content:center;margin-top:16px">'
+   +(c.hint?'<button class="btn secondary" onclick="fcHint()">💡 Hint</button>':'')
+   +'<button class="btn" onclick="fcFlip()">🔄 Show answer</button></div></div>';
+  say(c.f);
+}
+function fcHint(){const c=FC&&FC.d.cards[FC.queue[0]];if(c&&c.hint){toast("💡 "+c.hint);say(c.hint);}}
+function fcFlip(){
+  if(!FC||FC.flipped)return;FC.flipped=true;
+  const c=FC.d.cards[FC.queue[0]],card=$("fcCard");
+  card.classList.add("flipped");
+  card.innerHTML='<span class="fc-side">ANSWER</span><span class="fc-text">'+esc(c.b)+'</span><small>Did you know it?</small>';
+  $("fcBtns").innerHTML='<button class="btn secondary fc-again" onclick="fcMark(false)">🔁 Not yet</button>'
+   +'<button class="btn fc-got" onclick="fcMark(true)">😊 I knew it!</button>';
+  say(c.b);
+}
+function fcMark(ok){
+  if(!FC||!FC.flipped)return;
+  const k=FC.queue.shift();
+  if(ok){if(!FC.missed[k])FC.known++;}
+  else{FC.missed[k]=1;FC.queue.splice(Math.min(FC.queue.length,2),0,k);} // comes back in 2 cards
+  fcShow();
+}
+function fcDone(){
+  const total=FC.d.cards.length,score=FC.known;
+  const r=P.flash[FC.d.id]||{plays:0,best:null};
+  r.plays=(r.plays||0)+1;r.last=score;r.best=Math.max(r.best||0,score);r.at=new Date().toISOString();
+  P.flash[FC.d.id]=r;P.xp=(P.xp||0)+score*2+5;save();
+  const msg=score===total?"Amazing! You knew every card first time!":"You knew "+score+" of "+total+" first time. Every card is learned now!";
+  app.innerHTML='<div class="fadein fc-shell center"><h1>🎉 Deck finished!</h1>'
+   +'<div class="fc-msg">'+esc(msg)+'<br><b>+'+(score*2+5)+' points</b></div>'
+   +'<div class="btn-row" style="justify-content:center"><button class="btn" onclick="fcStart(fcDecks().findIndex(d=>d.id===FC.d.id))">🔁 Play again</button>'
+   +'<button class="btn secondary" onclick="fcList()">🗂️ All decks</button><button class="btn secondary" onclick="renderHome()">🏠 Home</button></div></div>';
+  say(msg);
+  try{if(score===total&&typeof confetti==="function")confetti();}catch(e){}
+}
 </script>
 </body>
 </html>
