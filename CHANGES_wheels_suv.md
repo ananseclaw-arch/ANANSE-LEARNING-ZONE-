@@ -117,3 +117,28 @@ Total pass-2 coverage is 29/35 views. The six remaining slight-turn views do not
 - A source-level runtime harness verified that all seven frame-2 entries contain two tread patches, low-speed `wheelPhase` changes the tread cell, the high-speed state selects the tread-blur cell, and hysteresis returns to sharp at low speed.
 - The measured patch rectangles were overlaid on enlarged frame-2 source crops for all seven sheets and visually checked against the tyre backs.
 - I could not rerun a live full-race browser capture in this sandbox because binding a localhost test server is denied. Live draw-call/FPS/browser screenshots remain for Hermes; no requested implementation item was otherwise left undone.
+
+## Pass 3
+
+### Hard-turn grounding
+
+- Cause: the sprite plane was always placed from the transparent frame-cell bottom (`h/2 + 0.012`) instead of the photographed tyre contact row, while the complete photo plane also received up to `0.008` rad of dynamic body roll and on-road vertical vibration. The Ridge source itself is not vertically mispacked: its lowest solid tyre pixel is row 286 in all five 289 px frames. Its hard-turn photographs do contain normal baked three-quarter perspective (the far tyre appears higher), which the runtime roll was exaggerating; wheel-patch placement was not the cause.
+- Measured and stored the solid-alpha tyre-bottom row for every view of all seven photo sheets in `GP_PICS.tyreBottom`. `gpPicAnchor()` converts that row to the plane's local contact line and re-anchors it to the road whenever a view changes, so the contact line remains fixed rather than inheriting each frame's transparent padding.
+- On-road photo sprites no longer receive vertical vibration or body roll. The 3D fallback cars retain their suspension and roll behavior, and off-road photo travel remains available. This removes the one-sided runtime lift and the vertical step at view switches without changing FOV or camera motion.
+
+### Contact shadow
+
+- Cause: the two-layer shadow was correctly parented to the yawing car root, but its broad footprint and tyre ovals were too light and slightly high above the road to read as contact on pale asphalt.
+- Tightened the footprint, lowered both layers toward the road, raised the soft footprint opacity to `0.46`, and raised each tyre-core oval to `0.64` centre opacity. Both layers still use the radial alpha texture, so their edges fall off softly with no rectangular quad edge, and the path remains two draw calls per photo car.
+
+### Turn effects and skid marks
+
+- Cause: ordinary cornering could satisfy the old standalone `slip > 0.25` test, spawning large, pale, 0.7–1.1 second smoke puffs even without a drift or brake-slide. Skid instances also used hard-edged rectangular geometry and never expired until the 700-instance ring buffer wrapped.
+- Smoke now requires either an active drift or braking plus measured lateral slip. Puff rate, size, opacity, growth, screen cap, live-puff cap, velocity, and lifetime were reduced; ordinary steering and ordinary straight-line braking emit none. Off-road dust remains restricted to off-road travel.
+- Skid marks are 0.18 m wide, dark, soft-edged in their shader, and carry a per-instance four-second lifetime with an alpha fade over the final 1.2 seconds. They remain one instanced draw call and cannot leave pale squares.
+
+### Pass-3 telemetry and validation
+
+- Added per-frame `window.__gp.bodyRoll`, `window.__gp.spriteBottomY` (the transformed world-space tyre-contact line for a photo sprite), and `window.__gp.smokeCount` (currently live tyre-smoke puffs).
+- Re-ran `python3 inline_lessons.py`; `index.html` contains the updated `race3d.js`.
+- `node --check race3d.js`, every inline `<script>` block in `index.html`, and `git diff --check` pass.
