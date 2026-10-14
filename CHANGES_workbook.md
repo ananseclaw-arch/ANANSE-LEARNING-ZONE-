@@ -1,5 +1,24 @@
 # Workbook Practice
 
+## Pass 2 — Lessons 3-1 to 3-4
+
+- Added lessons **3-1 Understand Equal Groups**, **3-2 Use Arrays to Multiply**, **3-3 Commutative Property**, and **3-4 Understand Equal Sharing** ahead of the five Pass 1 lessons in the Workbook Practice picker.
+- Added fresh-number problem sets matching pages 25–31: required equal-group builds, picture-to-equation prompts, array equations, repeated-addition arrays, draw/equation/answer stories, equal-product reasoning, equal sharing, and the requested answerable money/site questions.
+- Added the `pair` problem type for Lesson 3-3. It shows two independent Build-it models side by side, checks each model, accepts the shared product, and supports the two-equation/“who has more?” pen comparison.
+- Array prompts that may be turned accept either row/column orientation; the chairs prompt requires the alternate built array while accepting either commutative equation order.
+- Lesson 3-4 uses exact division only. Its required Build-it model always has the divisor as the number of groups and the quotient as the number in each group.
+- Extended `window.__wb.lessons`, `window.__wb.gen`, and `window.__wb.check` to all nine lessons and the `pair` format.
+- Added **Workbook practice for this lesson** to Reveal lesson screens 3-1 through 3-4 and updated the Explore tile range to 3-1 through 4-2.
+- Kept learner data under `P.workbook`; no drawing data is stored locally.
+
+### Pass 2 verification
+
+- [x] Generated and checked 36,000 problems across all nine lessons; every stored answer key was accepted by `window.__wb.check`.
+- [x] Verified multiplication/division arithmetic, exact Lesson 3-4 sharing, products/totals no greater than 100, and eight problems per session.
+- [x] Verified both `pair` models are required, generated commutative factors are distinct, and allowed turned arrays/equations are accepted.
+- [x] Ran `node --check` on `workbook.js`, the standalone modules, and every inline script block after rerunning `inline_lessons.py`.
+- [x] Confirmed `sw.js`, `voice/`, `tutor.json`, `focus.json`, and `flashcards.json` were not changed.
+
 ## What was built
 
 - Added a standalone `workbook.js` module for original, generated Reveal Math Grade 3 practice matching the structure of lessons 3-5, 3-6, 3-7, 4-1, and 4-2.
@@ -45,16 +64,16 @@ P.workbook = {
 
 `window.__wb` exposes:
 
-- `lessons`: metadata for the five workbook lessons.
+- `lessons`: metadata for all nine workbook lessons.
 - `gen(lessonId, n)`: returns `n` freshly generated problem objects.
-- `check(problem, answer)`: checks all six problem formats.
+- `check(problem, answer)`: checks all seven problem formats, including `pair`.
 
 ## Functions
 
 Generator and data helpers:
 
-- `wbRand`, `wbPick`, `wbShuffle`, `wbName`, `wbFactor`, `wbEq`, `wbBase`, `wbAnswerObject`, `wbModelForDivision`, `wbStory`, `wbFill`, `wbPicture`, `wbMulti`
-- `wbGen35`, `wbGen36`, `wbGen37`, `wbDoubleMulti`, `wbGen41`, `wbFiveMulti`, `wbGen42`, `wbGenerate`, `wbSameArray`, `wbCheck`
+- `wbRand`, `wbPick`, `wbShuffle`, `wbName`, `wbFactor`, `wbEq`, `wbBase`, `wbAnswerObject`, `wbModelForDivision`, `wbStory`, `wbFill`, `wbPicture`, `wbMulti`, `wbPair`
+- `wbGen31`, `wbGen32`, `wbGen33`, `wbGen34`, `wbGen35`, `wbGen36`, `wbGen37`, `wbDoubleMulti`, `wbGen41`, `wbFiveMulti`, `wbGen42`, `wbGenerate`, `wbSameArray`, `wbEquationMatches`, `wbCheck`
 
 Style, persistence, SVG, and entry screens:
 
@@ -81,7 +100,7 @@ Integration changes were made inside the existing `renderHome` and `renderReveal
 
 1. Open the app and choose a learner.
 2. In **Explore**, tap **📒 Workbook Practice**.
-3. Pick lesson 3-5, 3-6, 3-7, 4-1, or 4-2.
+3. Pick any lesson from 3-1 through 3-7, 4-1, or 4-2.
 
 Alternatively, open any of those lessons under **Reveal Math** and tap **Workbook practice for this lesson**.
 

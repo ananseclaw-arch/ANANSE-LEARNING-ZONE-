@@ -449,7 +449,7 @@ function renderRevealLesson(id){
    +'<div class="card gold" style="margin-top:12px"><h3 style="margin-bottom:8px">Review</h3><p style="font-size:19px;line-height:1.6">'+esc(REVEAL_REVIEW[id]||"")+'</p>'+(sample.vis?'<div class="qvis" style="margin-top:10px">'+sample.vis+'</div><p class="muted" style="font-size:14px;margin-top:6px">Example: '+esc(sample.q)+' → '+esc(sample.opts[sample.a])+'</p>':'')+'</div>'
    +(r?'<p class="muted center" style="margin-top:10px">Best so far: '+r.best+' of '+r.total+' · tried '+r.tries+' time'+(r.tries===1?'':'s')+'</p>':'')
    +'<div class="center"><div class="spacer"></div><div class="btn-row"><button class="btn big" onclick="startReveal(\''+id+'\')">Start practice ▶</button>'
-   +(["3-5","3-6","3-7","4-1","4-2"].includes(id)?'<button class="btn secondary big" onclick="renderWorkbookLesson(\''+id+'\')">📒 Workbook practice for this lesson</button>':'')
+   +(["3-1","3-2","3-3","3-4","3-5","3-6","3-7","4-1","4-2"].includes(id)?'<button class="btn secondary big" onclick="renderWorkbookLesson(\''+id+'\')">📒 Workbook practice for this lesson</button>':'')
    +'<button class="btn secondary" onclick="say(REVEAL_REVIEW[\''+id+'\'])">🔊 Read it to me</button><button class="btn secondary" onclick="renderRevealUnit('+L.u+')">⟵ Unit '+L.u+'</button></div></div></div>';
   say("Lesson "+id+", "+L.t+". "+(REVEAL_REVIEW[id]||""));
 }
