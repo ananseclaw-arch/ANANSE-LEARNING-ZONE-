@@ -4284,6 +4284,9 @@ async function playTeacherPart(text,seq){
   if(seq!==_spkSeq)return false;
   if(await fetchTeacherPart(key,seq))return true;
   if(seq!==_spkSeq)return false;
+  // one quiet retry before the device voice (Eb 10-25: no computer voice anywhere in the app)
+  if(Date.now()>_voiceDownUntil&&await fetchTeacherPart(key,seq))return true;
+  if(seq!==_spkSeq)return false;
   return sayDevice(key,seq);
 }
 function voiceChunks(text,max){
@@ -4298,13 +4301,13 @@ function sayRecorded(text,opts){
   const key=voiceKey(text),f=VOICE_MAP[key];
   if(!f)return false;
   const seq=++_spkSeq;cancelVoiceWork();try{speechSynthesis.cancel()}catch(e){}
-  (async()=>{if(!await playVoiceUrl("voice/"+f,seq)&&seq===_spkSeq){if(!await fetchTeacherPart(key,seq)&&seq===_spkSeq)await sayDevice(key,seq);}finishSpeech(seq,opts);})();
+  (async()=>{if(!await playVoiceUrl("voice/"+f,seq)&&seq===_spkSeq){if(!await fetchTeacherPart(key,seq)&&seq===_spkSeq&&!(Date.now()>_voiceDownUntil&&await fetchTeacherPart(key,seq))&&seq===_spkSeq)await sayDevice(key,seq);}finishSpeech(seq,opts);})();
   return true;
 }
 /* Lines made up on the spot (maths, names, results) get the SAME teacher voice from the Ananse
    server; the phone's own voice is only the last resort (server off, offline, or too slow). */
 let _spkCache={};
-function sayLive(text,opts){const seq=++_spkSeq,key=voiceKey(text);cancelVoiceWork();try{speechSynthesis.cancel()}catch(e){};(async()=>{if(!await fetchTeacherPart(key,seq)&&seq===_spkSeq)await sayDevice(key,seq);finishSpeech(seq,opts);})();}
+function sayLive(text,opts){const seq=++_spkSeq,key=voiceKey(text);cancelVoiceWork();try{speechSynthesis.cancel()}catch(e){};(async()=>{if(!await fetchTeacherPart(key,seq)&&seq===_spkSeq&&!(Date.now()>_voiceDownUntil&&await fetchTeacherPart(key,seq))&&seq===_spkSeq)await sayDevice(key,seq);finishSpeech(seq,opts);})();}
 /* The teacher voice works on EVERY device (Eb, 4 Oct 2026), not only ones with the tutor key: the voice
    server address comes from tutor.json. After 3 failures in a row (offline / Mac asleep) use a short
    60-second cool-down so a recovered teacher voice returns quickly. */
