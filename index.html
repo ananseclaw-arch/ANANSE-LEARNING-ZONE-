@@ -517,6 +517,8 @@ body.storyworld:before{opacity:.45;mix-blend-mode:screen}
   .kh-player{width:100%}.kh-badge{display:none}
 }
 
+/* Eb 10-25: white cards inherited the pale dark-theme text (story text invisible) */
+body.learningworld .card,body.storyworld .card{color:var(--ink)}
 /* Complete in-app visual language: spatial command deck + 3D portals. */
 body.learningworld{background:#06182d;background-image:radial-gradient(circle at 50% 0,rgba(60,151,221,.26),transparent 38%),linear-gradient(160deg,#041224,#092a48 55%,#06182d);color:#edf7ff}
 body.learningworld #app{max-width:1180px}
