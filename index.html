@@ -7591,7 +7591,82 @@ function autoResume(){
     renderHome();
   }catch(e){renderProfiles();}
 }
-loadSchoolFocus(autoResume);
+/* ---------- one-time merge: "Prince Arthur" -> "Prince" (Eb, 27 Oct 2026) ----------
+   Prince had two learner profiles, so work done on one looked "not done" on the other.
+   Keeps the "Prince" profile (id 179062598340854) and folds Prince Arthur's progress into it.
+   Works on any device: uses local profiles when present, otherwise the Mac's saved snapshots
+   (/progress/merge). Nothing is thrown away: the old profile is kept in DB.mergedBackup. */
+const LZM_TARGET="179062598340854",LZM_SOURCE="1781438484482644";
+function lzmTime(x){return +(x&&(x.t||x.at||Date.parse(x.date||"")||0))||0}
+function lzmUnion(a,b,key,cap){
+  const m=new Map();[].concat(a||[],b||[]).forEach(x=>{if(x&&typeof x==="object"){const k=key(x);if(!m.has(k))m.set(k,x);}});
+  const out=Array.from(m.values()).sort((x,y)=>lzmTime(x)-lzmTime(y));return cap?out.slice(-cap):out;
+}
+function lzmScore(v){return v&&typeof v==="object"?(+v.best||+v.score||+v.stars||(v.done?1:0)||0):(+v||0)}
+function lzmPickMap(a,b){ // per key keep the better result; sum tries; latest date/last
+  const out=Object.assign({},a||{});
+  Object.keys(b||{}).forEach(k=>{
+    const x=out[k],y=b[k];
+    if(x===undefined){out[k]=y;return;}
+    if(!x||!y||typeof x!=="object"||typeof y!=="object"){out[k]=lzmScore(y)>lzmScore(x)?y:x;return;}
+    const better=lzmScore(y)>lzmScore(x)?y:x,later=String(y.date||"")>String(x.date||"")?y:x;
+    const r=Object.assign({},x,y,better);
+    if("tries" in x||"tries" in y)r.tries=(+x.tries||0)+(+y.tries||0);
+    if("date" in later)r.date=later.date;if("last" in later)r.last=later.last;
+    out[k]=r;
+  });return out;
+}
+function lzmMerge(T,S){ // fold S into T (T keeps id/name/settings)
+  T.sessions=lzmUnion(T.sessions,S.sessions,x=>(x.t||"")+"|"+(x.date||"")+"|"+(x.subject||"")+"|"+(x.lesson||""),3000);
+  T.qlog=lzmUnion(T.qlog,S.qlog,x=>(x.t||"")+"|"+(x.q||""),400);
+  T.wrongLog=lzmUnion(T.wrongLog,S.wrongLog,x=>JSON.stringify(x),1500);
+  ["reveal","lessons","lab","sm2","workbook","flash","tt","race","introDone","mathAsked","revealAsked","lessonAsked","unitReview"]
+    .forEach(f=>{if(S[f]&&typeof S[f]==="object"&&!Array.isArray(S[f]))T[f]=lzmPickMap(T[f],S[f]);});
+  T.levels=T.levels||{};Object.keys(S.levels||{}).forEach(k=>{T.levels[k]=Math.max(+T.levels[k]||0,+S.levels[k]||0)});
+  if(Array.isArray(S.trophies))T.trophies=lzmUnion(T.trophies,S.trophies,x=>JSON.stringify(x));
+  T.xp=(+T.xp||0)+(+S.xp||0);
+  T.bestStreak=Math.max(+T.bestStreak||0,+S.bestStreak||0,+S.streak||0);T.streak=Math.max(+T.streak||0,+S.streak||0);
+  if(!T.diagDone&&S.diagDone){T.diagDone=true;T.diag=T.diag||S.diag;}
+  if(!T.grade&&S.grade)T.grade=S.grade;
+  return T;
+}
+function lzmFromSnap(snap){ // a Mac snapshot -> fields we can merge (trophies there is only a count)
+  const s=JSON.parse(JSON.stringify(snap||{}));delete s.trophies;delete s._received;delete s.appVersion;delete s.schoolFocus;return s;
+}
+function lzMergePrince(next){
+  let finished=false;const done=()=>{if(finished)return;finished=true;try{next()}catch(e){}};
+  try{
+    if(DB.mergedPrince||!DB.profiles)return done();
+    const ps=DB.profiles,tgt=ps.find(p=>p.id===LZM_TARGET),src=ps.find(p=>p.id===LZM_SOURCE);
+    if(!tgt&&!src)return done();
+    const finish=(T,remote)=>{
+      DB.mergedBackup=DB.mergedBackup||{};
+      if(src)DB.mergedBackup[LZM_SOURCE]=JSON.parse(JSON.stringify(src));
+      if(tgt)DB.mergedBackup[LZM_TARGET]=JSON.parse(JSON.stringify(tgt));
+      if(remote&&remote.source&&!src)lzmMerge(T,lzmFromSnap(remote.source));
+      if(remote&&remote.target&&!tgt)lzmMerge(T,lzmFromSnap(remote.target));
+      T.id=LZM_TARGET;T.name="Prince";
+      DB.profiles=ps.filter(p=>p.id!==LZM_SOURCE&&p.id!==LZM_TARGET);DB.profiles.push(T);
+      if(DB.lastProfile===LZM_SOURCE||DB.lastProfile===LZM_TARGET)DB.lastProfile=LZM_TARGET;
+      if(DB.resume&&DB.resume[LZM_SOURCE]){DB.resume[LZM_TARGET]=DB.resume[LZM_TARGET]||DB.resume[LZM_SOURCE];delete DB.resume[LZM_SOURCE];}
+      DB.mergedPrince=Date.now();save();
+    };
+    // base = the local "Prince" if this device has it, else the local "Prince Arthur" renamed
+    const T=JSON.parse(JSON.stringify(tgt||src));
+    if(tgt&&src)lzmMerge(T,JSON.parse(JSON.stringify(src)));
+    if(tgt&&src){finish(T,null);return done();}
+    // only one of them on this device: fetch the other from the Mac
+    const base=(()=>{try{return voiceBase()}catch(e){return(DB.voiceUrl||"").replace(/\/+$/,"")}})();
+    const timer=setTimeout(done,6000);
+    fetch("tutor.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.ok?r.json():{}).catch(()=>({}))
+      .then(j=>{const b=((j&&j.url)||base||"").replace(/\/+$/,"");if(!b)throw new Error("no mac");
+        return fetch(b+"/progress/merge?id="+(tgt?LZM_TARGET:LZM_SOURCE),{cache:"no-store"});})
+      .then(r=>{if(!r.ok)throw new Error("merge "+r.status);return r.json();})
+      .then(remote=>{if(!finished){finish(T,remote);}clearTimeout(timer);done();})
+      .catch(()=>{clearTimeout(timer);done();});   // offline: try again next launch
+  }catch(e){done();}
+}
+lzMergePrince(()=>loadSchoolFocus(autoResume));
 </script>
 <script>
 /* ============================================================
