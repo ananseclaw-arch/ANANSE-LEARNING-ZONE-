@@ -43,6 +43,7 @@ function rnd(n){return Math.floor(Math.random()*n)}
 function pick(a){return a[rnd(a.length)]}
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}return a}
 function esc(s){return String(s)}
+function questionSig(q){if(!q)return "";if(q.sig)return String(q.sig);return String(q.topic||"question")+"|"+((q.q||"").match(/\d+/g)||[]).join(",")}
 function numOpts(ans,spread){const set=new Set([ans]);let g=0;while(set.size<4&&g++<60){let d=ans+(rnd(2)?1:-1)*(1+rnd(spread));if(d>=0&&!set.has(d))set.add(d);}while(set.size<4)set.add(ans+set.size*3+1);const opts=shuffle([...set]);return {opts:opts.map(String),a:opts.indexOf(ans)};}
 const out={bad:[],lessons:0,qs:0,labs:0,reveal:0};
 __SOURCES__

@@ -30,3 +30,10 @@ for(const id of ['4-6','5-1']){
  assert(new Set(stories.map(s=>s.match(/\b(Leo|Zoe|Noah|Ivy|Jamal|Nia|Eli|Sofia|Mateo|Lila|Omar)\b/)[0])).size>1);
 }
 console.log('Story names and contexts checked, including learner-name exclusion');
+// Review fixes: either factor order inside each product is correct; 4-6 stories never use 1; teach never uses the question's numbers.
+for(let s=0;s<200;s++){const x=ctx.mirrorSession('5-1');for(const q of x.prim){const m=q.mirror;for(let cut=1;cut<m.n;cut++){const e=Array.from(ctx.mirrorExpected(m,cut));
+ const sw=[e[1],e[0],e[3],e[2],e[4],e[5],e[6],...e.slice(7)];assert(ctx.mirrorCheck(m,cut,sw),'swapped factors '+sw);
+ const bad=[e[0],e[1],e[2],e[3],e[5]+(e[4]===e[5]?1:0),e[4],e[6],...e.slice(7)];if(e[4]!==e[5])assert(!ctx.mirrorCheck(m,cut,bad),'partials must match products');}}}
+for(let s=0;s<200;s++){const x=ctx.mirrorSession('4-6');for(const q of [...x.prim,...x.twins,...x.comebacks,...x.rushes])if(q.mirror.slot>=4){assert(q.mirror.g>=2&&q.mirror.n>=2,q.q);assert(!/among 1 |gets 1 /.test(q.q));}}
+for(const id of ['4-6','5-1','5-2'])assert.deepStrictEqual(ctx.mirrorQuestion(id,0,7,9).teach,ctx.mirrorQuestion(id,0,6,2).teach);
+console.log('Review fixes checked: factor-order swaps accepted, no 1s in 4-6 stories, teach cards independent of the question');
