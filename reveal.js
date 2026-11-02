@@ -441,6 +441,7 @@ function renderRevealUnit(u){
 function renderRevealLesson(id){
   const L=revealLesson(id);if(!L)return renderReveal();
   if(typeof videoGate==="function"&&videoGate("reveal:"+id,()=>renderRevealLesson(id),()=>renderRevealUnit(L.u)))return;
+  if(typeof catchUpGate==="function"&&catchUpGate(id))return;
   clearTimers();closeOverlay();defocus();showAnanseCorner(false);
   const r=revealRec(id);
   const sample=revealGen(L,false,revealTier(L));

@@ -438,6 +438,15 @@ body.storyworld:before{opacity:.45;mix-blend-mode:screen}
 .kh-hero{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:6px}
 .kh-hero .kh-lion{position:static;transform:none;animation:khFloat 5s ease-in-out infinite}
 .kh-hero .kh-lion .ananse-render{width:120px;height:120px}
+.un-card{margin:12px 0 4px;padding:22px 24px;border-radius:26px;border:3px solid #ffd166;background:linear-gradient(150deg,#1d4f94,#0b2a55);color:#fff;box-shadow:0 0 0 3px rgba(255,209,102,.25),0 18px 40px rgba(0,0,0,.4)}
+.un-kicker{font-size:14px;font-weight:900;letter-spacing:.12em;color:#ffd166}.un-title{font-size:30px;line-height:1.2;margin:6px 0 2px;color:#fff}.un-sub{font-size:16px;color:#cfe6ff}
+.un-steps{list-style:none;display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 4px;padding:0}.un-step{display:flex;align-items:center;gap:8px;padding:8px 14px 8px 8px;border-radius:999px;background:rgba(255,255,255,.1);font-weight:800;font-size:17px}
+.un-dot{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;border:2px solid #9fd0ff;font-size:16px}.un-step.now{background:#ffd166;color:#071b35}.un-step.now .un-dot{background:#071b35;color:#ffd166;border-color:#071b35}.un-step.done .un-dot{background:#3bb273;border-color:#3bb273;color:#fff}.un-step.done{opacity:.85}
+.un-go{margin-top:16px}.un-start{min-height:64px;font-size:24px;width:100%;max-width:520px}
+.up-row{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 8px;-webkit-overflow-scrolling:touch}.up-chip{flex:0 0 auto;min-width:128px;max-width:170px;min-height:84px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;border-radius:16px;border:2px solid #6f88ad;background:rgba(255,255,255,.08);color:#edf7ff;font-family:inherit;text-align:left;cursor:pointer;position:relative}
+.up-chip b{font-size:18px}.up-t{font-size:12px;line-height:1.25;color:#c9e6ff}.up-st{position:absolute;top:8px;right:10px;font-size:16px}.up-chip.done{border-color:#3bb273;background:rgba(59,178,115,.2)}.up-chip.now{border-color:#ffd166;background:rgba(255,209,102,.22);box-shadow:0 0 18px rgba(255,209,102,.35)}.up-chip.lock{opacity:.5;border-style:dashed}
+.kh-more{margin-top:18px}.kh-more>summary{list-style:none;cursor:pointer;min-height:56px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:18px;border:2px solid #6f88ad;background:rgba(255,255,255,.07);color:#fff;font-weight:900;font-size:18px}.kh-more>summary::-webkit-details-marker{display:none}.kh-more[open]>summary{margin-bottom:6px}
+@media (max-width:600px){.un-title{font-size:24px}.un-card{padding:16px}.un-step{font-size:15px}}
 .kh-sec{margin-top:16px}.kh-sec h2{font-size:20px;color:#fff;margin:0 0 10px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.kh-sec h2 small{font-size:13px;font-weight:700;color:#9fd0ff}
 .kh-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}.kh-tiles.kh-small{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
 .kh-tile{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-height:112px;padding:14px;border-radius:20px;border:2px solid color-mix(in srgb,var(--c) 55%,transparent);background:linear-gradient(150deg,color-mix(in srgb,var(--c) 38%,#0b2a55),color-mix(in srgb,var(--c) 12%,#06182d));color:#edf7ff;text-align:left;cursor:pointer;font-family:inherit;box-shadow:0 14px 30px rgba(0,0,0,.3);transition:transform .2s var(--spring,ease),box-shadow .2s ease}
@@ -1960,6 +1969,7 @@ function renderRevealUnit(u){
 function renderRevealLesson(id){
   const L=revealLesson(id);if(!L)return renderReveal();
   if(typeof videoGate==="function"&&videoGate("reveal:"+id,()=>renderRevealLesson(id),()=>renderRevealUnit(L.u)))return;
+  if(typeof catchUpGate==="function"&&catchUpGate(id))return;
   clearTimers();closeOverlay();defocus();showAnanseCorner(false);
   const r=revealRec(id);
   const sample=revealGen(L,false,revealTier(L));
@@ -5584,7 +5594,7 @@ function renderHome(){
     tile("🕵️","Daily Mystery",dailyDone?"Solved today ✓":"One cross-subject case a day","startDaily()","#7c5cf0",dailyDone?"":"")
   ].join("");
   app.innerHTML='<div class="fadein kh-shell">'
-   +'<section class="card gold" style="margin:12px 0;padding:20px"><h2>Up next</h2><p style="font-size:20px"><b>'+(resume?'Continue your saved session':'Math · Lesson '+esc(curRv.id)+' · '+esc(curRv.t))+'</b></p><p>'+(resume?'Continue practice':videoDue?'Watch · Review · Practice':'Review · Practice')+'</p><p aria-label="Lesson stages">'+(videoDue?'● ○ ○':'● ○')+'</p><div class="btn-row"><button class="btn big" onclick="'+(resume?'sessResumeBtn()':"renderRevealLesson('"+curRv.id+"')")+'">Start ▶</button><button class="btn secondary" onclick="renderReveal()">Unit path</button></div></section>'
+   +upNextHTML()+unitPathHTML()
    +todayPlanHTML(plan)
    +'<div class="kh-hero"><div class="kh-lion">'+ananseSVG(120,"idle")+'</div>'
    +'<div class="kh-player"><span class="kh-av" style="background:'+(P.color||"#4aa3e0")+'">'+esc((P.name||"?").charAt(0).toUpperCase())+'</span>'
@@ -5594,6 +5604,7 @@ function renderHome(){
    +'<div class="kh-stat"><b>🏆</b><span>'+P.trophies.length+'</span><small>trophies</small></div></div></div>'
    +'<section class="kh-sec"><h2>⭐ Today\'s path <small>Ananse\'s picks — start here</small></h2><div class="kh-tiles">'+todayTiles+'</div></section>'
    +'<section class="kh-sec"><h2>📖 Subjects <small>adaptive practice at your level</small></h2><div class="kh-tiles">'+Object.keys(SUBJECTS).map(subj).join("")+'</div></section>'
+   +'<details class="kh-more"><summary>🧭 More: lessons, labs, games &amp; my progress</summary>'
    +'<section class="kh-sec"><h2>🧭 Explore <small>lessons, labs and games</small></h2><div class="kh-tiles">'
    +tile("📚",P.grade?GRADE_NAMES[P.grade]+" Lessons":"Grade Lessons","Maryland standards · learn, then practice","renderLessons()","#ffd166")
    +tile("📘","Reveal Math","Your class practice book, unit by unit","renderReveal()","#c9a84c")
@@ -5610,7 +5621,7 @@ function renderHome(){
    +tile("🏆","Trophy Room",P.trophies.length+" earned","renderTrophyRoom()","#ffd166")
    +tile("🃏","Player Card","Stats and skills","renderStats()","#7c5cf0")
    +tile("🗺️","Explorer\'s Trail",P.diagDone?"Placement check · last "+esc((P.diag&&P.diag.date)||""):"Optional 10-min placement check","startDiagnostic({retest:P.diagDone})","#3bb273")
-   +'</div></section>'
+   +'</div></section></details>'
    +'<div class="kh-foot"><button class="btn secondary" onclick="DB.lastProfile=null;save();P=null;renderProfiles()">👥 Switch learner</button><button class="btn" onclick="parentGate()">🔒 Parent Portal</button></div>'
    +'</div>';
   checkTelegramDue();
@@ -7548,7 +7559,7 @@ function interventionTrackerHTML(){
 function renderLegacyMath(){
   clearTimers();closeOverlay();defocus();showAnanseCorner(false);
   const cards=[3,4,5].map(g=>'<h3>Grade '+g+'</h3>'+lessonsFor(g,'math').map(L=>'<button class="opt" onclick="renderLesson(\''+L.id+'\')">'+esc(L.title)+'</button>').join('')).join('');
-  app.innerHTML='<div style="max-width:680px;margin:auto"><h1>Older math lessons</h1><div class="opts">'+cards+'</div><button class="btn secondary" onclick="renderParent()">Parent dashboard</button></div>';
+  app.innerHTML='<div style="max-width:680px;margin:auto"><h1>Old lessons</h1><div class="opts">'+cards+'</div><button class="btn secondary" onclick="renderParent()">Parent dashboard</button></div>';
 }
 function renderParent(){
   clearTimers();showAnanseCorner(false);
@@ -7576,7 +7587,7 @@ function renderParent(){
   const goalOpts=ALL_TOPICS.map(t=>'<option value="'+esc(t)+'" '+(P.weeklyGoal.topic===t?"selected":"")+' style="text-transform:capitalize">'+esc(t)+'</option>').join("");
   app.innerHTML='<div class="fadein" style="max-width:680px;margin:0 auto">'
    +'<div class="btn-row" style="justify-content:space-between;margin-bottom:6px"><button class="btn secondary" onclick="parentDone()">⟵ Back to the app</button><button class="btn secondary" onclick="pinMode=\'set\';pinBuf=\'\';renderPinPad()">Change PIN</button></div>'
-   +'<h1>Parent Dashboard</h1><div class="btn-row"><button class="btn secondary" onclick="renderLegacyMath()">Older math lessons</button><button class="btn secondary" onclick="renderWorkbookPicker()">Workbook practice</button></div><p class="muted">'+esc(P.name)+' · joined '+esc(P.created)+(P.grade?' · '+GRADE_NAMES[P.grade]:'')+'</p>'
+   +'<h1>Parent Dashboard</h1><div class="btn-row"><button class="btn secondary" onclick="renderLegacyMath()">Old lessons</button><button class="btn secondary" onclick="renderWorkbookPicker()">Workbook practice</button></div><p class="muted">'+esc(P.name)+' · joined '+esc(P.created)+(P.grade?' · '+GRADE_NAMES[P.grade]:'')+'</p>'
    +'<div class="pnav">'+[["💡","This week","This Week"],["🗺️","Trail & grade","Explorer"],["📘","Reveal Math","Reveal Math"],["📚","Lessons & labs","Grade Lessons"],["🎯","Focus goal","Weekly Focus"],["🏠","At home","Offline Activities"],["🔊","Voice","Voice"],["📲","Reports","Telegram"],["🍃","Nature ID","Nature Walk"],["💾","Backup","Backup"],["♻️","Reset","Reset"]].map(x=>'<button class="pnav-chip" onclick="parentJump(\''+x[2]+'\')">'+x[0]+' '+x[1]+'</button>').join("")+'</div>'
    +(DB.profiles.length>1?'<div class="btn-row" style="justify-content:flex-start;margin-top:10px">'+DB.profiles.map(p=>'<button class="btn '+(p.id===P.id?"":"secondary")+'" style="font-size:15px;padding:8px 14px" onclick="parentPick(\''+p.id+'\')">'+esc(p.name)+'</button>').join("")+'</div>':"")
    +'<div class="kente-strip" style="margin:14px 0 20px"></div>'
@@ -8998,9 +9009,9 @@ const LESSON_VIDEOS={"4-1":["Hxd4-A-Nk_4","h8lNqs6DLew"],"4-2":["9Xa1iNUiZk4"]};
 let videoActive=null,videoApiLoading=false,videoBypassOnce=null;
 function videoList(key){return key.startsWith('reveal:')?(LESSON_VIDEOS[key.slice(7)]||[]):[];}
 function videoSeenAt(profile,key,index){const seen=profile&&profile.videoSeen&&profile.videoSeen[key];return (seen===true&&index===0)||(Array.isArray(seen)&&seen[index]===true);}
+function videoWatchedToday(key){const day=P&&P.videoDay;return !!P&&(typeof day==='string'?day===today():!!day&&day[key]===today());}
 function videoNext(key){
-  const day=P&&P.videoDay;
-  if(!P||(typeof day==='string'?day===today():day&&day[key]===today())||!key.startsWith('reveal:'))return null;
+  if(!P||videoWatchedToday(key)||!key.startsWith('reveal:')||(P.videoSkip&&P.videoSkip[key]===today()))return null;
   const videos=videoList(key);
   for(let index=0;index<videos.length;index++)if(!videoSeenAt(P,key,index))return {key,index};
   return null;
@@ -9011,16 +9022,18 @@ function videoStop(){
   try{if(v.player&&v.player.destroy)v.player.destroy();}catch(e){}
 }
 function videoAgainBtn(key){
-  if(!videoList(key).some((id,index)=>videoSeenAt(P,key,index)))return '';
-  return '<button class="btn secondary" onclick="videoReplay(\''+key.replace(/'/g,"\\'")+'\')">🎬 Watch the video again</button>';
+  const list=videoList(key),seen=list.map((id,index)=>index).filter(index=>videoSeenAt(P,key,index));
+  if(!seen.length)return '';
+  const k=key.replace(/'/g,"\\'");
+  return seen.map(index=>'<button class="btn secondary" onclick="videoReplay(\''+k+'\','+index+')">🎬 '+(list.length>1?'Watch video '+(index+1)+' again':'Watch the video again')+'</button>').join('');
 }
-function videoReplay(key){
+function videoReplay(key,index){
   const back=()=>{const m=/^(reveal|lesson):(.+)$/.exec(key);if(!m)return renderHome();if(m[1]==="reveal")renderRevealLesson(m[2]);else renderLesson(m[2]);};
-  videoGate(key,back,back,true);
+  videoGate(key,back,back,true,index);
 }
-function videoGate(key,next,back,replay){
+function videoGate(key,next,back,replay,forceIndex){
   if(!replay&&videoBypassOnce&&videoBypassOnce.key===key&&videoBypassOnce.profile===P){videoBypassOnce=null;return false;}
-  const due=replay?{key,index:videoList(key).findIndex((id,index)=>videoSeenAt(P,key,index))}:videoNext(key);
+  const due=replay?{key,index:Number.isInteger(forceIndex)&&videoSeenAt(P,key,forceIndex)?forceIndex:videoList(key).findIndex((id,index)=>videoSeenAt(P,key,index))}:videoNext(key);
   if(!due||due.index<0)return false;
   videoStop();clearTimers();closeOverlay();defocus();showAnanseCorner(false);
   const v=videoActive={key:due.key,index:due.index,requestedKey:key,replay:!!replay,profile:P,next,back,player:null,ready:false,failed:false,playing:false,watched:0,fallback:0,lastWall:performance.now(),lastMedia:null};
@@ -9059,7 +9072,7 @@ function videoTick(v){
 }
 function videoComplete(v){
   if(!videoAlive(v)||document.getElementById('lessonVideoContinue').disabled)return;
-  if(v.replay||v.failed){const next=v.next;if(!v.replay)videoBypassOnce={key:v.requestedKey,profile:v.profile};videoStop();next();return;}
+  if(v.replay||v.failed){const next=v.next;if(!v.replay){videoBypassOnce={key:v.requestedKey,profile:v.profile};if(v.failed){const p=v.profile;p.videoSkip=p.videoSkip||{};p.videoSkip[v.key]=today();save();}}videoStop();next();return;}
   // A stale enabled button after a player error/retry must never count as viewing.
   let duration=0;try{duration=v.player&&v.player.getDuration();}catch(e){}
   if(!v.ready||!Number.isFinite(duration)||duration<=0||v.watched<duration*0.8){document.getElementById('lessonVideoContinue').disabled=true;document.getElementById('lessonVideoStatus').textContent='Press play and watch the lesson.';return;}
@@ -9067,6 +9080,73 @@ function videoComplete(v){
   let stored=false;try{const data=JSON.parse(localStorage.getItem(DBKEY));const index=DB.profiles.indexOf(profile);stored=index>=0&&videoSeenAt(data.profiles[index],v.key,v.index)&&data.profiles[index].videoDay[v.key]===today();}catch(e){}
   if(!stored){if(old===undefined)delete profile.videoSeen[v.key];else profile.videoSeen[v.key]=old;profile.videoDay=oldDay;document.getElementById('lessonVideoStatus').textContent='Could not save your progress. Please free storage and try Continue again.';return;}
   const next=v.next;videoStop();next();
+}
+
+/* ---------- Up next, unit path and catch-up ---------- */
+/* Which video helps with which kind of question: V1 big idea, V2 second strategy, V3 pattern trick, V4 word problems, V5 watch-outs. */
+const VIDEO_FOR_TYPE={picture:1,pair:2,match:2,fill:3,story:4,multi:5,who:5,form:5};
+const VIDEO_PART_NAMES={1:'the big idea',2:'a second way to solve it',3:'the pattern trick',4:'word problems',5:'watch-outs'};
+function lessonPassed(id){const r=revealRec(id);return !!r&&r.total>0&&r.best/r.total>=0.8;}
+function upNextLesson(){
+  const list=REVEAL_LESSONS;let L=(P.revealCurrent&&revealLesson(P.revealCurrent))||list.find(l=>!lessonPassed(l.id))||list[0];
+  if(lessonPassed(L.id)){const nx=list.slice(list.indexOf(L)+1).find(l=>!lessonPassed(l.id));if(nx)L=nx;}
+  return L;
+}
+function videoAllSeen(key){const n=videoList(key).length;if(!n)return false;for(let i=0;i<n;i++)if(!videoSeenAt(P,key,i))return false;return true;}
+function videoCatchUpIndex(id){
+  const key='reveal:'+id,n=videoList(key).length;if(!n)return 0;
+  const log=((P.workbook&&P.workbook.log)||[]).filter(x=>x&&x.lesson===id&&x.correct===false),count={};
+  log.forEach(x=>{const v=VIDEO_FOR_TYPE[x.kind||x.type]||1;count[v]=(count[v]||0)+1;});
+  let best=1,top=0;Object.keys(count).forEach(v=>{if(count[v]>top){top=count[v];best=+v;}});
+  return Math.min(best,n)-1;
+}
+function catchUpDue(id){const key='reveal:'+id;return !!P&&videoList(key).length>0&&videoAllSeen(key)&&!lessonPassed(id)&&!(P.catchDay&&P.catchDay[key]===today());}
+function catchUpGate(id){
+  if(!catchUpDue(id))return false;
+  const key='reveal:'+id,idx=videoCatchUpIndex(id),n=videoList(key).length,L=revealLesson(id);
+  clearTimers();closeOverlay();defocus();showAnanseCorner(false);
+  app.innerHTML='<div class="fadein" style="max-width:660px;margin:0 auto"><div class="hud"><span class="pill">📘 <b>Reveal Math</b></span><span class="pill">Lesson '+esc(id)+'</span></div>'
+   +'<h1 style="margin-top:10px">Catch-up time</h1><div class="card gold" style="margin-top:12px"><p style="font-size:20px">You have watched all '+n+' video'+(n===1?'':'s')+' for <b>'+esc(L.t)+'</b>, and the lesson star is still waiting.</p>'
+   +'<p style="font-size:20px;margin-top:8px">'+(n>1?'Video '+(idx+1)+' covers <b>'+VIDEO_PART_NAMES[idx+1]+'</b>. Watch it once more, then try again.':'Watch the video once more, then try again.')+'</p></div>'
+   +'<div class="center"><div class="spacer"></div><div class="btn-row"><button class="btn big" onclick="catchUpWatch(\''+id+'\','+idx+')">🎬 Watch '+(n>1?'video '+(idx+1):'the video')+' ▶</button><button class="btn secondary" onclick="catchUpSkip(\''+id+'\')">Skip to Review</button></div></div></div>';
+  say("Catch-up time. "+(n>1?"Video "+(idx+1)+" covers "+VIDEO_PART_NAMES[idx+1]+".":"Watch the video once more."));
+  return true;
+}
+function catchUpMark(id){P.catchDay=P.catchDay||{};P.catchDay['reveal:'+id]=today();save();}
+function catchUpSkip(id){catchUpMark(id);renderRevealLesson(id);}
+function catchUpWatch(id,idx){catchUpMark(id);videoReplay('reveal:'+id,idx);}
+/* The real steps for today on one lesson: [{t,s:'done'|'now'|'todo'}] */
+function upNextSteps(L){
+  const key='reveal:'+L.id,n=videoList(key).length,steps=[];
+  if(n){
+    const due=videoNext(key);
+    if(due)steps.push({t:'Video part '+(due.index+1)+' of '+n,s:'now'});
+    else if(videoWatchedToday(key)){const seen=videoList(key).map((x,i)=>i).filter(i=>videoSeenAt(P,key,i));steps.push({t:'Video part '+(seen.length)+' of '+n,s:'done'});}
+    else if(catchUpDue(L.id))steps.push({t:'Catch-up video',s:'now'});
+  }
+  steps.push({t:'Review',s:steps.some(x=>x.s==='now')?'todo':'now'},{t:'Practice',s:'todo'});
+  return steps;
+}
+function upNextHTML(){
+  const rs=DB.resume&&DB.resume[P.id]&&DB.resume[P.id].s,L=upNextLesson();
+  let title,steps,go,label,sub='';
+  if(rs&&rs.cur){
+    const rl=rs.lesson&&/^reveal:/.test(rs.lesson)?revealLesson(rs.lesson.slice(7)):null;
+    title=rl?'Lesson '+rl.id+' · '+rl.t:'Your saved lesson';steps=[{t:'Review',s:'done'},{t:'Practice',s:'now'}];go='sessResumeBtn()';label='Continue practice';sub='Pick up right where you left off.';
+  }else{
+    title='Lesson '+L.id+' · '+L.t;steps=upNextSteps(L);go="renderRevealLesson('"+L.id+"')";const cur=steps.find(x=>x.s==='now')||steps[0];label=cur.t;
+    const r=revealRec(L.id);sub=r?'Best so far '+r.best+' of '+r.total+(lessonPassed(L.id)?' ★':''):'New lesson · Unit '+L.u;
+  }
+  const dots=steps.map((x,i)=>'<li class="un-step '+x.s+'"><span class="un-dot">'+(x.s==='done'?'✓':(i+1))+'</span><span class="un-lbl">'+esc(x.t)+'</span></li>').join('');
+  return '<section class="un-card" aria-label="Up next"><div class="un-kicker">⭐ UP NEXT · MATH</div><h2 class="un-title">'+esc(title)+'</h2><div class="un-sub">'+esc(sub)+'</div>'
+   +'<ol class="un-steps" aria-label="Steps for today">'+dots+'</ol>'
+   +'<div class="un-go"><button class="btn big un-start" onclick="'+go+'">Start: '+esc(label)+' ▶</button></div></section>';
+}
+function unitPathHTML(){
+  const L=upNextLesson(),u=L.u,ls=REVEAL_LESSONS.filter(l=>l.u==u),curIdx=ls.indexOf(L);
+  const chips=ls.map((l,i)=>{const done=lessonPassed(l.id),now=l===L,r=revealRec(l.id),st=done?'done':now?'now':(i>curIdx+1&&!r?'lock':'todo');
+    return '<button class="up-chip '+st+'" onclick="renderRevealLesson(\''+l.id+'\')" aria-label="Lesson '+esc(l.id)+', '+esc(l.t)+', '+(done?'done':now?'up next':st==='lock'?'later':'not started')+'"><span class="up-st">'+(done?'✓':now?'▶':st==='lock'?'🔒':'')+'</span><b>'+esc(l.id)+'</b><span class="up-t">'+esc(l.t)+'</span></button>';}).join('');
+  return '<section class="kh-sec"><h2>🗺️ Unit '+u+' path <small>'+esc(REVEAL_UNITS[u].t)+'</small></h2><div class="up-row">'+chips+'</div><div class="btn-row" style="justify-content:flex-start;margin-top:10px"><button class="btn secondary" onclick="renderReveal()">All units</button></div></section>';
 }
 document.addEventListener('visibilitychange',()=>{if(videoActive){videoActive.lastWall=performance.now();videoActive.lastMedia=null;}});
 </script>
