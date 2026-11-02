@@ -77,6 +77,12 @@ for(const L of REVEAL_LESSONS){out.reveal++;if(rvIds.has(L.id))out.bad.push("dup
 console.log(JSON.stringify(out));
 """
 sources = "\n".join(read(fn).replace('"use strict";', "", 1) for fn in ("lessons.js", "lab.js", "reveal.js"))
+# reveal.js calls index.html's questionSig()/voiceKey(); slice the real functions in (not stubs)
+_h = read("index.html")
+for _fn in ("questionSig", "voiceKey"):
+    _m = re.search(r"\nfunction " + _fn + r"\(.*?\n}\n", _h, re.S)
+    if _m: sources = _m.group(0) + "\n" + sources
+    else: bad(f"could not find {_fn}() in index.html for the content check")
 with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False) as f:
     f.write(js.replace("__SOURCES__", sources)); jsp = f.name
 r = subprocess.run(["node", jsp], capture_output=True, text=True)

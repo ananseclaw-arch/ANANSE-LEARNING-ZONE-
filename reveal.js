@@ -430,7 +430,7 @@ function renderReveal(){
 function renderRevealUnit(u){
   clearTimers();closeOverlay();defocus();showAnanseCorner(true);
   const ls=REVEAL_LESSONS.filter(l=>l.u==u);
-  const cards=ls.map(l=>{const r=revealRec(l.id);const star=r&&r.best/r.total>=0.8;return '<button class="opt" style="display:flex;justify-content:space-between;align-items:center;gap:10px" onclick="renderRevealLesson(\''+l.id+'\')"><span style="text-align:left"><b>Lesson '+esc(l.id)+'</b> · '+esc(l.t)+(P.revealCurrent===l.id?' <span class="focus-chip">📍 class is here</span>':'')+'</span><span class="lvl-badge" style="background:'+(star?"#2f8f4e":(r?"#f5a623":"#6f88ad"))+'">'+(r?(star?"★ ":"")+r.best+'/'+r.total:"new")+'</span></button>';}).join("");
+  const cards=ls.map(l=>{const r=revealRec(l.id);const star=r&&r.best/r.total>=0.8;return '<button class="opt" style="display:flex;justify-content:space-between;align-items:center;gap:10px" onclick="renderRevealLesson(\''+l.id+'\')"><span style="text-align:left"><b>Lesson '+esc(l.id)+'</b> · '+esc(l.t)+(P.revealCurrent===l.id?' <span class="focus-chip">📍 class is here</span>':'')+'</span><span class="lvl-badge" style="background:'+(star?"#2f8f4e":(r?"#f5a623":"#6f88ad"))+'">'+(r?(star?"Mastered · ":"Practiced · ")+r.best+'/'+r.total:"Not started")+'</span></button>';}).join("");
   app.innerHTML='<div class="fadein" style="max-width:680px;margin:0 auto">'
    +'<div class="hud"><span class="pill">📘 <b>Reveal Math</b></span><span class="pill">Unit '+u+'</span></div>'
    +'<h1 style="margin-top:10px">'+esc(REVEAL_UNITS[u].t)+'</h1>'
@@ -440,6 +440,7 @@ function renderRevealUnit(u){
 }
 function renderRevealLesson(id){
   const L=revealLesson(id);if(!L)return renderReveal();
+  if(typeof videoGate==="function"&&videoGate("reveal:"+id,()=>renderRevealLesson(id),()=>renderRevealUnit(L.u)))return;
   clearTimers();closeOverlay();defocus();showAnanseCorner(false);
   const r=revealRec(id);
   const sample=revealGen(L,false,revealTier(L));
@@ -451,14 +452,14 @@ function renderRevealLesson(id){
    +(sample.vis?'<div class="qvis" style="margin-top:10px">'+sample.vis+'</div><p class="muted" style="font-size:14px;margin-top:6px">Example: '+esc(sample.q)+' → '+esc(sample.opts[sample.a])+'</p>':'')+'</div>'
    +(r?'<p class="muted center" style="margin-top:10px">Best so far: '+r.best+' of '+r.total+' · tried '+r.tries+' time'+(r.tries===1?'':'s')+'</p>':'')
    +'<div class="center"><div class="spacer"></div><div class="btn-row"><button class="btn big" onclick="startReveal(\''+id+'\')">Start practice ▶</button>'
-   +(["3-1","3-2","3-3","3-4","3-5","3-6","3-7","4-1","4-2"].includes(id)?'<button class="btn secondary big" onclick="renderWorkbookLesson(\''+id+'\')">📒 Workbook practice for this lesson</button>':'')
+   +(typeof videoAgainBtn==="function"?videoAgainBtn("reveal:"+id):'')
    +'<button class="btn secondary" onclick="say(REVEAL_REVIEW[\''+id+'\'])">🔊 Read it to me</button><button class="btn secondary" onclick="renderRevealUnit('+L.u+')">⟵ Unit '+L.u+'</button></div></div></div>';
   say("Lesson "+id+", "+L.t+". "+(REVEAL_REVIEW[id]||""));
 }
 function startReveal(id){
   const L=revealLesson(id);if(!L)return;
   P.revealAsked=P.revealAsked||{};P.revealAsked[id]=P.revealAsked[id]||{};
-  const mirror=["4-6","5-1","5-2"].includes(id)?mirrorSession(id):null;
+  const mirror=["3-7","4-1","4-2","4-3","4-4","4-5","4-6","5-1","5-2"].includes(id)?mirrorSession(id):null;
   S={subject:"math",total:mirror?10:8,n:0,correct:0,results:[],consecR:0,consecW:0,
      sprintEnd:Date.now()+10*60*1000,qStart:0,cur:null,brokeAt:new Set(),xp:0,mode:"session",
      start:Date.now(),wpC:0,wpT:0,recallC:0,recallT:0,reviewC:0,reviewT:0,mfC:0,mfT:0,wpServed:true,phase:"main",seen:[],diff:0,tried:false,
@@ -492,7 +493,17 @@ function mirrorQuestion(id, slot, g, n) {
   const arrayItems=['cookies','toy cars','shells','buttons','crayons','blocks'];
   const arrayItem=arrayItems[(g+n+slot)%arrayItems.length];
   let heading, rows, expected, split=false, story='';
-  if(id==='4-6'){
+  if(id==='3-7'){
+    heading='Draw a representation and find the unknown.';
+    if(slot%2){story='A person and '+(g-1)+' friends share '+p+' items equally. How many items does each person get?';rows=[p+' ÷ '+g+' = {0}'];expected=[n];}
+    else {story='Share '+p+' items equally among '+g+' groups. How many are in each group?';rows=[p+' ÷ '+g+' = {0}'];expected=[n];}
+  } else if(['4-1','4-2','4-3','4-4','4-5'].includes(id)){
+    const factor=id==='4-1'?2:id==='4-2'?5:id==='4-3'?10:id==='4-4'?(slot%2):[0,1,2,5,10][slot%5];
+    const product=factor*n;
+    heading='What number completes the equation?';
+    const forms=[factor+' × '+n+' = {0}','{0} = '+n+' × '+factor,n+' × '+factor+' = {0}'];
+    rows=[forms[slot%forms.length]];expected=[product];
+  } else if(id==='4-6'){
     if(slot<4){heading='How can you draw a representation for the pair of equations?'; rows=[g+' × {0} = '+p,p+' ÷ '+g+' = {1}'];expected=[n,n];}
     else if(slot<6){heading='What multiplication and division equation represents the problem?';story=name+' shares '+p+' '+item+' equally among '+g+' '+groups+'. How many '+item+' does each get?';rows=[g+' × {0} = '+p,p+' ÷ '+g+' = {1}','Each group gets {2} '+item+'.'];expected=[n,n,n];}
     else {heading='How can you use what you know to solve the problem?';story=name+' shares '+p+' '+item+' equally among '+g+' '+groups+'. How many '+item+' does each get?';rows=['Each group gets {0} '+item+'.'];expected=[n];}
@@ -505,8 +516,8 @@ function mirrorQuestion(id, slot, g, n) {
     const templates=[['3 × '+a+' = {0}',t],[t+' = '+a+' × {0}',3],['3 × '+a+' = {0}',t],['3 = {0} × 1',3],[a+' × 3 = {0}',t],['3 × {0} = '+t,a],['{0} = '+a+' × 3',t],['{0} = 3 × '+a,t],['3 × '+a+' = {0} × 3',a],[a+' × {0} = 3 × '+a,3]];
     rows=[templates[slot][0]];expected=[templates[slot][1]];
   }
-  const sig=id+'|'+(id==='5-2'?slot:0)+'|'+g+'|'+n;
-  const explanation=id==='5-1'?g+' × '+n+' = '+p+'. Split the columns into two parts, multiply each by '+g+', then add.':id==='4-6'?g+' × '+n+' = '+p+' and '+p+' ÷ '+g+' = '+n+'.':rows[0].replace('{0}',expected[0]);
+  const sig=id+'|'+(['5-2','3-7','4-1','4-2','4-3','4-4','4-5'].includes(id)?slot:0)+'|'+g+'|'+n;
+  const explanation=['3-7','4-1','4-2','4-3','4-4','4-5'].includes(id)?rows[0].replace('{0}',expected[0]):id==='5-1'?g+' × '+n+' = '+p+'. Split the columns into two parts, multiply each by '+g+', then add.':id==='4-6'?g+' × '+n+' = '+p+' and '+p+' ÷ '+g+' = '+n+'.':rows[0].replace('{0}',expected[0]);
   return {q:heading+(story?' '+story:''),mirror:{id,slot,g,n,rows,expected,split,arrayItem},sig,opts:['correct','try again','other'],a:0,topic:'reveal '+id,subject:'math',level:3,reveal:id,teach:[{i:'🔍',t:heading},{i:'✏️',t:explanation},{i:'🎯',t:explanation}]};
 }
 function mirrorExpected(m, cut){if(!m.split)return m.expected;return [m.g,cut,m.g,m.n-cut,m.g*cut,m.g*(m.n-cut),m.g*m.n].concat(m.slot%2?[m.g*m.n]:[]);}
@@ -534,12 +545,12 @@ function mirrorHTML(q){
     for(let r=0;r<m.g;r++){
       html+='<div style="display:flex;align-items:center;justify-content:center">';
       for(let c=1;c<=m.n;c++){
-        html+='<span style="display:inline-block;text-align:center;width:16px">●</span>';
-        if(c<m.n)html+=r===0?'<button type="button" aria-label="Split after '+c+' columns" aria-pressed="'+(S.mirrorCut===c)+'" onclick="mirrorCut('+c+')" style="width:20px;height:32px;padding:0;border:1px solid #456;border-radius:4px;background:'+(S.mirrorCut===c?'#f5a623':'#fff')+';font-size:18px">│</button>':'<span aria-hidden="true" style="display:inline-block;width:20px;text-align:center;color:'+(S.mirrorCut===c?'#aa6200':'transparent')+'">│</span>';
+        html+='<span style="display:inline-block;text-align:center;width:clamp(15px,3vw,24px);font-size:22px">●</span>';
+        if(c<m.n)html+=r===0?'<button type="button" aria-label="Split after '+c+' columns" aria-pressed="'+(S.mirrorCut===c)+'" onclick="mirrorCut('+c+')" style="width:clamp(18px,3vw,28px);height:44px;padding:0;border:1px solid #456;border-radius:4px;background:'+(S.mirrorCut===c?'#f5a623':'#fff')+';font-size:18px">│</button>':'<span aria-hidden="true" style="display:inline-block;width:clamp(18px,3vw,28px);text-align:center;color:'+(S.mirrorCut===c?'#aa6200':'transparent')+'">│</span>';
       }
       html+='</div>';
     }
-    html+='</div><div aria-label="Larger split controls" style="display:flex;justify-content:center;flex-wrap:wrap;gap:6px">'+Array.from({length:m.n-1},(_,i)=>'<button class="readbtn" style="min-width:44px;min-height:44px" aria-label="Split after '+(i+1)+' columns" aria-pressed="'+(S.mirrorCut===i+1)+'" onclick="mirrorCut('+(i+1)+')">'+(i+1)+'</button>').join('')+'</div>';
+    html+='</div>';
   }
   const count=mirrorRows(m).join('').match(/\{\d+\}/g).length, ready=(!m.split||S.mirrorCut)&&Array.from({length:count},(_,i)=>S.mirrorValues[i]).every(Boolean);
   html+='<div style="font-size:22px;line-height:2;text-align:center">'+mirrorRows(m).map(row=>row.replace(/\{(\d+)\}/g,(_,i)=>'<input aria-label="Answer box '+(Number(i)+1)+'" inputmode="numeric" pattern="[0-9]*" type="text" maxlength="3" value="'+(S.mirrorValues[i]||'')+'" oninput="mirrorInput('+i+',this.value)" style="width:3em;font-size:22px;text-align:center">')).join('<br>')+'</div><div class="center"><button class="btn big" id="mirrorSubmit" '+(ready?'':'disabled')+' onclick="mirrorSubmit()">Check answer ✓</button></div>';
