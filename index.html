@@ -8989,9 +8989,8 @@ function videoList(key){return key.startsWith('reveal:')?(LESSON_VIDEOS[key.slic
 function videoSeenAt(profile,key,index){const seen=profile&&profile.videoSeen&&profile.videoSeen[key];return seen===true||(Array.isArray(seen)&&seen[index]===true);}
 function videoNext(key){
   if(!P||P.videoDay===today()||!key.startsWith('reveal:'))return null;
-  const target=key.slice(7).split('-').map(Number);if(target.length!==2||target.some(Number.isNaN))return null;
-  const ids=Object.keys(LESSON_VIDEOS).sort((a,b)=>{const x=a.split('-').map(Number),y=b.split('-').map(Number);return x[0]-y[0]||x[1]-y[1];});
-  for(const id of ids){const parts=id.split('-').map(Number);if(parts[0]>target[0]||(parts[0]===target[0]&&parts[1]>target[1]))break;const videoKey='reveal:'+id, videos=videoList(videoKey);for(let index=0;index<videos.length;index++)if(!videoSeenAt(P,videoKey,index))return {key:videoKey,index};}
+  const videos=videoList(key);
+  for(let index=0;index<videos.length;index++)if(!videoSeenAt(P,key,index))return {key,index};
   return null;
 }
 function videoStop(){
