@@ -602,19 +602,17 @@ function mirrorHTML(q){
   const m=q.mirror; let html='';
   if(m.kind){const ready=m.expected.every((_,i)=>String(S.mirrorValues[i]||'').trim());return (m.choices?'<p>'+m.choices+'</p>':'')+'<div style="font-size:20px;line-height:2;text-align:center">'+m.rows.map(row=>row.replace(/\{(\d+)\}/g,(_,i)=>'<input aria-label="Answer box '+(Number(i)+1)+'" type="text" value="'+esc(S.mirrorValues[i]||'')+'" oninput="mirrorInput('+i+',this.value)" style="width: min(14em, 75vw); font-size:20px">')).join('<br>')+'</div><div class="center"><button class="btn big" id="mirrorSubmit" '+(ready?'':'disabled')+' onclick="mirrorSubmit()">Check answer ✓</button></div>';}
   if(m.split){
-    html+='<p>Tap between columns to split the array into two parts.</p><div role="group" aria-label="'+m.g+' rows of '+m.n+'. '+(S.mirrorCut?'Split after '+S.mirrorCut+' columns.':'Choose a split.')+'" style="margin:12px auto;width:max-content;max-width:100%;font-size:16px;line-height:1.4">';
-    for(let r=0;r<m.g;r++){
-      html+='<div style="display:flex;align-items:center;justify-content:center">';
-      for(let c=1;c<=m.n;c++){
-        html+='<span style="display:inline-block;text-align:center;width:clamp(15px,3vw,24px);font-size:22px">●</span>';
-        if(c<m.n)html+=r===0?'<button type="button" aria-label="Split after '+c+' columns" aria-pressed="'+(S.mirrorCut===c)+'" onclick="mirrorCut('+c+')" style="width:clamp(18px,3vw,28px);height:44px;padding:0;border:1px solid #456;border-radius:4px;background:'+(S.mirrorCut===c?'#f5a623':'#fff')+';font-size:18px">│</button>':'<span aria-hidden="true" style="display:inline-block;width:clamp(18px,3vw,28px);text-align:center;color:'+(S.mirrorCut===c?'#aa6200':'transparent')+'">│</span>';
-      }
-      html+='</div>';
+    /* Big array: one tall, tappable gap between every pair of columns (no tiny buttons, no 1-9 row). */
+    const dot=Math.max(20,Math.min(40,Math.floor(300/m.g)));
+    let cells='';
+    for(let c=1;c<=m.n;c++){
+      for(let r=0;r<m.g;r++)cells+='<span class="arr-dot" style="grid-column:'+(2*c-1)+';grid-row:'+(r+1)+'">●</span>';
+      if(c<m.n)cells+='<button type="button" class="arr-gap'+(S.mirrorCut===c?' on':'')+'" aria-label="Split after column '+c+'" aria-pressed="'+(S.mirrorCut===c)+'" onclick="mirrorCut('+c+')" style="grid-column:'+(2*c)+';grid-row:1 / span '+m.g+'"><i></i></button>';
     }
-    html+='</div>';
+    html+='<p class="arr-help">Tap the gap between two columns to cut the array into two parts.</p><div class="arr-wrap" role="group" aria-label="'+m.g+' rows of '+m.n+'. '+(S.mirrorCut?'Split after '+S.mirrorCut+' columns.':'Choose a split.')+'"><div class="arr" style="--dot:'+dot+'px;grid-template-columns:repeat('+(2*m.n-1)+',auto);grid-template-rows:repeat('+m.g+',var(--dot))">'+cells+'</div></div>';
   }
   const count=mirrorRows(m).join('').match(/\{\d+\}/g).length, ready=(!m.split||S.mirrorCut)&&Array.from({length:count},(_,i)=>S.mirrorValues[i]).every(Boolean);
-  html+='<div style="font-size:22px;line-height:2;text-align:center">'+mirrorRows(m).map(row=>row.replace(/\{(\d+)\}/g,(_,i)=>'<input aria-label="Answer box '+(Number(i)+1)+'" inputmode="numeric" pattern="[0-9]*" type="text" maxlength="3" value="'+(S.mirrorValues[i]||'')+'" oninput="mirrorInput('+i+',this.value)" style="width:3em;font-size:22px;text-align:center">')).join('<br>')+'</div><div class="center"><button class="btn big" id="mirrorSubmit" '+(ready?'':'disabled')+' onclick="mirrorSubmit()">Check answer ✓</button></div>';
+  html+='<div class="mir-lines">'+mirrorRows(m).map(row=>'<div class="mir-line">'+row.replace(/\{(\d+)\}/g,(_,i)=>'<input aria-label="Answer box '+(Number(i)+1)+'" inputmode="numeric" pattern="[0-9]*" type="text" maxlength="3" value="'+(S.mirrorValues[i]||'')+'" oninput="mirrorInput('+i+',this.value)" class="mir-box">')+'</div>').join('')+'</div><div class="center"><button class="btn big" id="mirrorSubmit" '+(ready?'':'disabled')+' onclick="mirrorSubmit()">Check answer ✓</button></div>';
   return html;
 }
 function mirrorCut(n){S.mirrorCut=n;const e=document.getElementById('mirrorArea');if(e)e.innerHTML=mirrorHTML(S.cur);sessSave();}
