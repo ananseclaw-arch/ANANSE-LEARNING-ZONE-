@@ -162,6 +162,16 @@ body.focus #anansecorner{display:none}
 .focus-wrap{max-width:620px;margin:0 auto}
 
 /* ---------- Fable 5: scratchpad ---------- */
+.ty-row{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;justify-content:center;margin-top:8px}
+.ty-row .scratch{flex:1 1 300px;margin:0}
+.ty-row .scratch canvas{height:200px}
+#typewrap{flex:0 0 auto}
+.ty-box{min-width:236px;padding:8px 14px;border:3px solid #14365f;border-radius:14px;font-size:32px;font-weight:800;background:#fff;color:#111;letter-spacing:2px;min-height:58px;display:flex;align-items:center;justify-content:center}
+.ty-ph{font-size:16px;font-weight:600;color:#7a8699;letter-spacing:0}
+.ty-grid{display:grid;grid-template-columns:repeat(3,72px);gap:8px;justify-content:center;margin-top:8px}
+.ty-grid .ty-key{width:72px;height:58px;padding:0;font-size:26px;border-radius:14px}
+.ty-grid .ty-go{font-size:28px;background:linear-gradient(180deg,#5fd27a,#2f9e4c);color:#fff}
+@media (max-width:520px){.ty-row .scratch canvas{height:96px}.ty-grid{grid-template-columns:repeat(3,64px);gap:6px}.ty-grid .ty-key{width:64px;height:50px;font-size:22px}.ty-box{min-height:48px;font-size:26px}}
 .scratch{margin:18px 0 6px;border:3px dashed #c2b079;border-radius:18px;background:#fffdf4;padding:10px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .scratch .sc-top{display:flex;justify-content:space-between;align-items:center;font-size:15px;font-weight:800;color:#9a7d27;margin-bottom:6px}
 .scratch canvas{width:100%;height:150px;border-radius:12px;background:#fffef9;touch-action:none;display:block;border:1px solid #ece0bd}
@@ -5483,6 +5493,11 @@ function freshQuestion(genFn){
   return q;
 }
 function nextQuestion(){
+  // ONE TRY comebacks (Eb 2026-11-01): a missed question returns once, ~3 questions later or before the finish
+  if(S.comebacks&&S.comebacks.length){
+    const ci=S.comebacks.findIndex(c=>S.n>=c.due||S.n>=S.total);
+    if(ci>=0){const c=S.comebacks.splice(ci,1)[0];S.cur=c.q;renderQuestion();return;}
+  }
   if(S.n>=S.total)return endSession();
   if(S.lesson){ // grade lesson: fixed question list, in order
     if(S.lesson.indexOf("reveal:")===0&&typeof nextRevealQuestion==="function"){
@@ -5578,7 +5593,8 @@ function renderQuestion(){
   const facts=isMathFacts(q);
   const wp=isWordProblem(q);
   const showScratch=(S.subject==="math"&&!facts)||wp;   // scratchpad for thinking-math (#4)
-  const gate=(wp||(S.subject==="math"&&!facts&&q.level>=2))&&!q.reveal; // reveal options after thinking (#4)
+  const typed=oneTryTyped(q);   // Eb 2026-11-01: number answers are TYPED - nothing to guess from
+  const gate=!typed&&(wp||(S.subject==="math"&&!facts&&q.level>=2))&&!q.reveal; // reveal options after thinking (#4)
   // focus mode: clean screen, hide Ananse corner & clutter (#8)
   if(typeof document!=="undefined"&&document.body&&document.body.classList)document.body.classList.add("focus");
   showAnanseCorner(false);
@@ -5601,8 +5617,8 @@ function renderQuestion(){
    +'<button class="readbtn helpbtn" onclick="askHelp()">🦁 Ananse, help me</button>'
    +'</div>'
    +(q.manip?manipHTML(q):'')
-   +(showScratch?scratchHTML():'')
-   +'<div class="opts" id="optwrap" style="'+(gate?'display:none':'')+'">'+order.map((oi,pos)=>'<button class="opt" id="opt'+pos+'" onclick="answer('+pos+')"><span class="letter">'+letters[pos]+'</span><span>'+esc(q.opts[oi])+'</span></button>').join("")+'</div>'
+   +(typed?'<div class="ty-row">'+(showScratch?scratchHTML():'')+typePadHTML()+'</div>':(showScratch?scratchHTML():''))
+   +'<div class="opts" id="optwrap" style="'+((gate||typed)?'display:none':'')+'">'+order.map((oi,pos)=>'<button class="opt" id="opt'+pos+'" onclick="answer('+pos+')"><span class="letter">'+letters[pos]+'</span><span>'+esc(q.opts[oi])+'</span></button>').join("")+'</div>'
    +(gate?'<div class="center" id="revealwrap"><div class="spacer"></div><button class="btn big" onclick="revealOptions()">I worked it out — show my choices ▶</button></div>':'')
    +'<div class="center" id="skipbar" style="margin-top:14px"><button class="readbtn" onclick="skipQuestion()">Skip this one →</button></div>'
    +'</div></div>';
@@ -5611,7 +5627,35 @@ function renderQuestion(){
   sessSave();                  // auto-save: reopening resumes exactly here
   if(showScratch)initScratch();
   const lead=S.leadIn||"";S.leadIn="";
-  say(lead+q.q+(gate?". Use your scratchpad to work it out first, then show your choices.":""));
+  say(lead+q.q+(gate?". Use your scratchpad to work it out first, then show your choices.":"")+(typed?". Type your answer.":""));
+}
+/* ---- TYPED ANSWERS (Eb 2026-11-01): when every choice is a plain number, Prince types it on a number pad ---- */
+function _tyNum(v){v=String(v).trim().replace(/^\$/,"").replace(/,/g,"");return /^\d{1,7}$/.test(v)?Number(v):null;}
+function oneTryTyped(q){
+  if(!q||!q.opts||q.opts.length<2||q.a==null)return false;
+  if(/\b(which|true|false|not|best|closest|compare|greater|less|order)\b/i.test(q.q||""))return false;
+  return q.opts.every(o=>_tyNum(o)!==null);
+}
+function typePadHTML(){
+  const k=d=>'<button class="btn ty-key" onclick="typeKey(\''+d+'\')">'+d+'</button>';
+  return '<div class="center" id="typewrap">'
+   +'<div id="typebox" class="ty-box"><span class="ty-ph">Type your answer</span></div>'
+   +'<div class="ty-grid">'
+   +["1","2","3","4","5","6","7","8","9"].map(k).join("")
+   +'<button class="btn secondary ty-key" onclick="typeDel()">⌫</button>'+k("0")
+   +'<button class="btn ty-key ty-go" onclick="typeCheck()">✓</button>'
+   +'</div></div>';
+}
+function typeShow(){const b=$("typebox");if(b)b.innerHTML=S.typed?esc(Number(S.typed).toLocaleString("en-US")):'<span class="ty-ph">Type your answer</span>';}
+function typeKey(d){if(!S||!S.cur)return;S.typed=((S.typed||"")+d).replace(/^0+(?=\d)/,"").slice(0,7);typeShow();if(typeof sfx==="function")sfx("tick");}
+function typeDel(){if(!S)return;S.typed=(S.typed||"").slice(0,-1);typeShow();}
+function typeCheck(){
+  const q=S&&S.cur;if(!q||!S.typed){if(typeof toast==="function")toast("Type your answer first");return;}
+  const right=_tyNum(q.opts[q.a])===Number(S.typed);
+  const pos=right?S.order.indexOf(q.a):S.order.findIndex(oi=>oi!==q.a);
+  const tw=$("typewrap");if(tw)tw.innerHTML='<div style="font-size:30px;font-weight:800;margin-top:6px">'+esc(Number(S.typed).toLocaleString("en-US"))+(right?' ✅':' ❌')+'</div>';
+  S.typed="";
+  answer(pos);
 }
 /* Always-available forward path: skipping counts as a "needs practice" miss
    (first attempt only) so the adaptive engine still learns from it. */
@@ -5972,6 +6016,8 @@ function scratchClear() {
 function answer(pos){
   const q=S.cur;
   const elapsed=Date.now()-S.qStart;
+  // Eb 2026-11-01: an answer faster than anyone could read the question is a guess - no points, it comes back later
+  if(!S.tried&&!q.comeback&&!q.twin&&elapsed<oneTryMinMs(q)){return oneTryRushed(q);}
   S.qTries=(S.qTries||0)+1;
   const chosen=S.order[pos];
   const correct=chosen===q.a;
@@ -5984,12 +6030,14 @@ function answer(pos){
       b.onclick=null;
     });
   }else{
-    // MASTERY MODE: this choice retires; the others stay live so they retry until correct
-    const b=$("opt"+pos);
-    if(b){b.classList.add("wrong");b.onclick=null;setTimeout(()=>{b.classList.add("dim")},650);}
+    // ONE TRY (Eb 2026-11-01): a wrong answer locks EVERY button - no guessing down the list.
+    // Ananse teaches, then asks a NEW question of the same kind; the missed one comes back later.
+    S.order.forEach((oi,p)=>{const b=$("opt"+p);if(!b)return;
+      if(p===pos)b.classList.add("wrong");else b.classList.add("dim");b.onclick=null;});
   }
   // record stats/difficulty ONLY on the first attempt — retries never double-count
-  if(firstTry){
+  if(firstTry&&(q.comeback||q.twin)){S.tried=true;}
+  else if(firstTry){
     S.tried=true;
     S.results.push({topic:q.topic,correct,level:q.level,ms:elapsed});
     if(S.phase==="review"){S.reviewT++;if(correct)S.reviewC++;}
@@ -6021,7 +6069,7 @@ function answer(pos){
   }
   if(correct){
     logQuestion(sessionQuestionMode(),q.subject||S.subject,q.topic,S.lesson||null,q.q,firstTry,S.qTries,Date.now()-(S.qShownAt||S.qStart));
-    S.n++;
+    if(!q.comeback&&!q.twin)S.n++;   // a comeback / new-try question doesn't use up a question slot
     save();sessSave();
     sfx("correct");
     if(P.streak>0&&P.streak%5===0)confetti();
@@ -6034,22 +6082,69 @@ function answer(pos){
         '<div class="center fadein" id="nextbar" style="margin-top:16px">'
         +'<div class="hero-chip" style="font-size:16px">🎯 '+esc(pick(CORRECT_PRAISE))+'</div>'
         +'<div class="spacer" style="height:10px"></div>'
-        +'<button class="btn big" onclick="nextQuestion()">'+(S.n>=S.total?"Finish! 🏁":"Next ▶")+'</button></div>');
+        +'<button class="btn big" onclick="nextQuestion()">'+(S.n>=S.total&&!(S.comebacks&&S.comebacks.length)?"Finish! 🏁":"Next ▶")+'</button></div>');
     }else if(!w){setTimeout(()=>{nextQuestion();},1200);} // safety net: never dead-end
   }else{
     sfx("wrong");
-    const enc=pick(TRY_AGAIN);
-    say(enc);
+    logQuestion(sessionQuestionMode(),q.subject||S.subject,q.topic,S.lesson||null,q.q,false,1,Date.now()-(S.qShownAt||S.qStart));
+    if(!q.comeback&&!q.twin){   // the missed question comes back ~3 questions later (no points, just to clear it)
+      S.comebacks=S.comebacks||[];
+      S.comebacks.push({q:Object.assign({},q,{comeback:true}),due:S.n+3});
+    }
+    if(!q.comeback&&!q.twin)S.n++;save();sessSave();
     const w=$("optwrap");
     const tb=$("trybar");if(tb)tb.remove();
+    const sb=$("skipbar");if(sb)sb.remove();
+    const canTeach=!q.comeback&&!q.twin&&q.teach&&q.teach.length;
+    if(!canTeach){oneTryReveal((q.comeback||q.twin)?"Not this time. Here is the answer — remember it for next time.":"Not quite. Here is the answer.");return;}
+    const msg="Not quite! Let's learn how — then you'll try a new one.";
+    say(msg);
     if(w){
       w.insertAdjacentHTML("afterend",
         '<div class="center fadein" id="trybar" style="margin-top:14px">'
-        +'<div class="speech" style="display:inline-block;margin-top:0">'+esc(enc)+' Pick another answer!</div>'
-        +(q.teach?'<div class="spacer" style="height:10px"></div><button class="btn secondary" onclick="askHelp()">💡 Hint — Ananse, teach me</button>':'')
+        +'<div class="speech" style="display:inline-block;margin-top:0">'+esc(msg)+'</div>'
+        +'<div class="spacer" style="height:10px"></div><button class="btn big" onclick="oneTryTeach()">💡 Show me how</button>'
         +'</div>');
-    }
+    }else{oneTryTeach();}
   }
+}
+/* ONE TRY helpers (Eb 2026-11-01) */
+function oneTryMinMs(q){const len=(q.q||"").length;return (isWordProblem(q)||len>70)?3000:(len>35?1800:1000);}
+function oneTryRushed(q){
+  S.tried=true;S.rushed=(S.rushed||0)+1;
+  S.order.forEach((oi,p)=>{const b=$("opt"+p);if(b){b.onclick=null;b.classList.add("dim");}});
+  logQuestion(sessionQuestionMode(),q.subject||S.subject,q.topic,S.lesson||null,q.q,false,1,Date.now()-(S.qShownAt||S.qStart));
+  if(P.qlog&&P.qlog.length)P.qlog[P.qlog.length-1].rushed=true;
+  // first rush: the question doesn't count yet and comes back 2 questions later (it then counts normally);
+  // rushing the SAME question again counts as a miss so the session can't loop
+  if(!q.rushedBack){S.comebacks=S.comebacks||[];S.comebacks.push({q:Object.assign({},q,{rushedBack:true}),due:S.n+2});}
+  else{S.results.push({topic:q.topic,correct:false,level:q.level,ms:0});P.streak=0;S.n++;}
+  save();sessSave();
+  const w=$("optwrap");["trybar","skipbar","typewrap"].forEach(id=>{const e=$(id);if(e)e.remove();});
+  const msg=q.rushedBack?"Too fast again — that one counts as a miss. Slow down and read every word.":"Whoa, too fast! Nobody can read it that quickly. This one will come back — read it all the way through.";
+  say(msg);
+  const html='<div class="center fadein" id="trybar" style="margin-top:14px"><div class="speech" style="display:inline-block;margin-top:0">'+esc(msg)+'</div>'
+    +'<div class="spacer" style="height:10px"></div><button class="btn big" onclick="nextQuestion()">Next ▶</button></div>';
+  if(w)w.insertAdjacentHTML("afterend",html);else nextQuestion();
+}
+function oneTryTeach(){
+  if(!S||!S.cur)return;
+  T={q:S.cur,step:0,from:"wrong",praise:"Let's work it out together."};
+  renderTeachStep();
+}
+function oneTryReveal(msg){
+  const q=S.cur;if(!q)return;
+  S.order.forEach((oi,p)=>{const b=$("opt"+p);if(!b)return;b.onclick=null;
+    if(oi===q.a){b.classList.remove("dim");b.classList.add("correct");}});
+  const w=$("optwrap");
+  const tb=$("trybar");if(tb)tb.remove();
+  const sb=$("skipbar");if(sb)sb.remove();
+  const ans=q.opts[q.a];
+  say((msg||"Here is the answer.")+" The answer is "+ans+".");
+  const html='<div class="center fadein" id="trybar" style="margin-top:14px">'
+    +'<div class="speech" style="display:inline-block;margin-top:0">'+esc(msg||"Here is the answer.")+' The answer is <b>'+esc(String(ans))+'</b>.</div>'
+    +'<div class="spacer" style="height:10px"></div><button class="btn big" onclick="nextQuestion()">'+(S.n>=S.total&&!(S.comebacks&&S.comebacks.length)?"Finish! 🏁":"Next ▶")+'</button></div>';
+  if(w)w.insertAdjacentHTML("afterend",html);else{closeOverlay();nextQuestion();}
 }
 /* ---------- 2K stat growth hooks (#9) ---------- */
 function isMathFacts(q){
@@ -6123,11 +6218,33 @@ function teachNext(){
     S.cur=Object.assign({},ex,{q:pr.q,opts:pr.opts,a:pr.a,practice:null,introduced:true});
     renderQuestion();
   }
+  else if(T.from==="wrong"){
+    closeOverlay();
+    const tw=oneTryTwin(T.q);
+    if(!tw){oneTryReveal("Now you know how.");return;}
+    S.cur=tw;renderQuestion();
+    if(typeof say==="function")say("Your turn! Here's a new one.");
+  }
   else renderPractice();
+}
+/* a NEW question of the same kind after a miss: Reveal lessons regenerate (pictures included), others use the
+   practice twin when it has no picture. null = no safe twin -> show the answer instead. */
+function oneTryTwin(q){
+  let tw=null;
+  if(q.reveal&&typeof revealGen==="function"&&typeof revealLesson==="function"){
+    const L=revealLesson(q.reveal);const sig=questionSig(q);
+    for(let i=0;L&&i<80;i++){const c=revealGen(L,false,S.revealTier||0);
+      if(questionSig(c)!==sig&&(c.q!==q.q||c.vis)){tw=c;break;}}
+  }
+  if(!tw&&q.practice&&q.practice.opts&&!q.vis&&q.practice.q!==q.q){
+    tw=Object.assign({},q,{q:q.practice.q,opts:q.practice.opts,a:q.practice.a,practice:null});
+  }
+  if(!tw)return null;
+  return Object.assign(tw,{twin:true,topic:q.topic,subject:q.subject,level:q.level});
 }
 function renderPractice(){
   const pr=T.q.practice;
-  if(!pr){closeOverlay();nextQuestion();return}
+  if(!pr){closeOverlay();if(T&&T.from==="wrong"){oneTryReveal("Now you know how.");return;}nextQuestion();return}
   const order=shuffle(pr.opts.map((_,i)=>i));
   T.order=order;
   const letters=["A","B","C","D"];
@@ -6252,7 +6369,11 @@ function endSession(){
     earned.push({type:"challenge",icon:"🌟",label:"Level 5 Legend",color:"#ffd97a",detail:"Crushed a session at Challenge level in "+SUBJECTS[S.subject].name+"."});
   }
   earned.forEach(awardTrophy);
-  if(S.lesson&&S.lesson.indexOf("reveal:")===0)markTodayPlanDone("reveal",S.lesson.slice(7));
+  // Eb 2026-11-01: a lesson only counts as passed at 6 of 8 right FIRST time; otherwise re-teach and replay
+  const passNeed=Math.ceil(S.total*0.75), lessonPassed=!S.lesson||S.correct>=passNeed;
+  const isRv=!!(S.lesson&&S.lesson.indexOf("reveal:")===0), lessonKey=S.lesson;
+  if(!lessonPassed){/* plan step stays open - the lesson isn't done yet */}
+  else if(isRv)markTodayPlanDone("reveal",S.lesson.slice(7));
   else if(S.lesson)markTodayPlanDone("lesson",S.lesson);
   else if(S.warmupOnly)markTodayPlanDone("warmup",S.subject);
   else{if(S.reviewT)markTodayPlanDone("warmup",S.subject);markTodayPlanDone("practice",S.subject);}
@@ -6263,7 +6384,9 @@ function endSession(){
   const praiseLine=acc>=0.8?"You earned every bit of this with focus and effort.":(acc>=0.5?"You worked hard on tough questions today — that effort is building your brain.":"Tough session — but you kept going, and that is what real training looks like. Tomorrow we grow stronger.");
   app.innerHTML='<div class="fadein center">'
    +'<div class="ananse-wrap '+(earned.length?"ananse-celebrate":"")+'">'+ananseSVG(160,mood)+'</div>'
-   +'<h1>'+(S.lesson?'Lesson Complete!':'Session Complete!')+'</h1>'
+   +'<h1>'+(!lessonPassed?'Almost there!':(S.lesson?'Lesson Complete!':'Session Complete!'))+'</h1>'
+   +(!lessonPassed?'<div class="card" style="max-width:480px;margin:10px auto;border:3px solid #c62828;color:var(--ink,#222)"><b>You got '+S.correct+' of '+S.total+' right the first time. You need '+passNeed+' to pass.</b><p style="margin-top:6px">Let\'s look at the lesson again, then try a new set.</p>'
+     +'<button class="btn big" style="margin-top:8px" onclick="'+(isRv?'renderRevealLesson(\''+esc(lessonKey.slice(7))+'\')':'renderLesson(\''+esc(lessonKey)+'\')')+'">📘 Learn it again &amp; retry</button></div>':'')
    +(S.lesson&&S.lesson.indexOf('reveal:')===0?'<p class="muted">📘 Reveal Math · Lesson '+esc(S.lesson.slice(7))+' · '+esc(revealLesson(S.lesson.slice(7)).t)+(S.correct/Math.max(1,S.results.length)>=0.8?' · ★ earned':'')+'</p>':(S.lesson?'<p class="muted">📚 '+esc(lessonById(S.lesson).title)+' · '+esc(lessonById(S.lesson).std)+'</p>':''))
    +'<div class="speech" style="max-width:480px;margin:14px auto">'+esc(praiseLine)+'</div>'
    +'<div class="spacer"></div>'
@@ -6275,12 +6398,13 @@ function endSession(){
    +'</div>'
    +(earned.length?'<div class="spacer"></div><h3>🏆 New trophies!</h3><div class="shelf-row" style="justify-content:center;margin-top:10px">'+earned.map(t=>'<div class="trophy" style="border-color:'+t.color+'"><span class="t-ic">'+t.icon+'</span><span class="t-lb">'+esc(t.label)+'</span></div>').join("")+'</div>':"")
    +'<div class="spacer"></div>'
-   +(S.results.length>=S.total?'<div class="btn-row"><button class="btn big" onclick="startHoops()">🏀 Bonus Hoops Game!</button></div><div class="spacer"></div>':"")
+   +(lessonPassed&&S.results.length>=S.total?'<div class="btn-row"><button class="btn big" onclick="startHoops()">🏀 Bonus Hoops Game!</button></div><div class="spacer"></div>':"")
    +'<div class="btn-row"><button class="btn '+(S.results.length>=S.total?"secondary ":"")+'big" onclick="goHome()">Daily Path 🏠</button>'
    +(earned.length?'<button class="btn secondary big" onclick="renderTrophyRoom()">Trophy Room 🏆</button>':"")
    +(S.lesson&&S.lesson.indexOf('reveal:')===0?'<button class="btn secondary big" onclick="renderRevealUnit('+revealLesson(S.lesson.slice(7)).u+')">Unit '+revealLesson(S.lesson.slice(7)).u+' 📘</button>':(S.lesson?'<button class="btn secondary big" onclick="renderLessons()">More Lessons 📚</button>':""))
    +'</div></div>';
-  say("Session complete! "+praiseLine+(earned.length?" And you earned a new trophy!":"")+(S.results.length>=S.total?" You also unlocked the bonus hoops game!":""));
+  if(!lessonPassed)say("Almost there! You got "+S.correct+" of "+S.total+" right the first time. You need "+passNeed+" to pass. Let's look at the lesson again, then try a new set.");
+  else say("Session complete! "+praiseLine+(earned.length?" And you earned a new trophy!":"")+(S.results.length>=S.total?" You also unlocked the bonus hoops game!":""));
   S=null;
 }
 
