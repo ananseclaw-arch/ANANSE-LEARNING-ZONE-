@@ -41,7 +41,7 @@ function wbPair(id,q,spoken,models,product,opts){opts=opts||{};const p=wbBase(id
 /* ---------- typed-form helpers (type "form"): real text boxes, answers checked with maths / key ideas ---------- */
 const WB_TEN=["3-7","4-1","4-2","4-3","4-4","4-5"];
 const WB_R={
-  even:["even","pairs","pair","2","two","twos","double","doubles","odd","half","halves","couples"],
+  even:["even","evn","pairs","pair","2","two","twos","double","doubles","odd","od","half","halves","couples"],
   order:["same","order","swap","switch","flip","commutative","backwards","backward","reverse","turn","change","either","equal","both","around"],
   zero:["0","zero","nothing","none","empty"],
   ones:["ones","end","ends","last","digit","0","zero","tens","multiple","multiples","10","ten","place"],
@@ -56,7 +56,21 @@ function wbN2(){const a=wbName();let b=wbName(),t=0;while(b===a&&t++<40)b=wbName
 function wbNorm(s){return String(s==null?"":s).toLowerCase().replace(/[✕*]/g,"×").replace(/[^a-z0-9×+=\s$]/g," ").replace(/\s+/g," ").trim();}
 function wbLev(a,b){const m=a.length,n=b.length;if(!m)return n;if(!n)return m;let prev=[];for(let j=0;j<=n;j++)prev[j]=j;for(let i=1;i<=m;i++){const cur=[i];for(let j=1;j<=n;j++)cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));prev=cur;}return prev[n];}
 function wbWordOK(text,accept){const t=wbNorm(text).replace(/^(a|an|the)\s+/,"");if(!t)return false;return accept.some(w=>{w=String(w).toLowerCase();if(t===w)return true;if(w.length>=4&&wbLev(t,w)<=1)return true;if(w.length>=7&&wbLev(t,w)<=2)return true;return false;});}
-function wbReasonOK(text,keys){let n=wbNorm(text).replace(/^because\s+/,"");if(n.length<1)return false;const tokens=n.split(" ");return keys.some(k=>{k=String(k).toLowerCase();if(!/[a-z0-9]/.test(k))return n.indexOf(k)>=0;if(k.length===1||/^\d+$/.test(k))return tokens.indexOf(k)>=0;if(k.indexOf(" ")>=0)return n.indexOf(k)>=0;return tokens.some(t=>t===k||(k.length>=4&&t.length>=3&&(t.indexOf(k)===0||k.indexOf(t)===0&&t.length>=4||wbLev(t,k)<=(k.length>=7?2:1))));});}
+function wbReasonOK(text,keys,p){let n=wbNorm(text).replace(/^because\s+/,"");const tokens=n.split(" ").filter(Boolean);if(tokens.length<3||/\b(?:idk|dunno|dont know|don t know|do not know|no idea|not sure)\b/.test(n))return false;
+  // Parity and the final-digit pattern depend on the actual yes/no answer.
+  // Refuse direct contradictions before considering the child's key words.
+  if(p&&p.lesson==="4-5"&&p.answer&&p.answer.f){
+    const yes=p.answer.f.a==="yes";
+    if(/pairs of/.test(p.q)){
+      const odd=/\b(?:odd|od)\b/.test(n),even=/\b(?:even|evn)\b/.test(n);
+      if((yes&&odd&&!even)||(!yes&&even&&!odd))return false;
+    }else if(/product of 2, a product of 5, and a product of 10/.test(p.q)){
+      const endsZero=/\b(?:ends?|ending|end|last digit)\b.*\b(?:0|zero)\b/.test(n);
+      const negative=/\b(?:not|never|doesnt|doesn t|does not|cannot|can t)\b/.test(n);
+      if(endsZero&&negative===yes)return false;
+    }
+  }
+  return keys.some(k=>{k=String(k).toLowerCase();if(!/[a-z0-9]/.test(k))return n.indexOf(k)>=0;if(k.length===1||/^\d+$/.test(k))return tokens.indexOf(k)>=0;if(k.indexOf(" ")>=0)return n.indexOf(k)>=0;return tokens.some(t=>t===k||(k.length>=4&&t.length>=3&&(t.indexOf(k)===0||k.indexOf(t)===0&&t.length>=4||wbLev(t,k)<=(k.length>=7?2:1))));});}
 function wbYN(text){const t=wbNorm(text).split(" ")[0];if(/^(y|yes|yep|yeah|yup|correct|true|sure)$/.test(t))return"yes";if(/^(n|no|nope|nah|false|not|incorrect)$/.test(t))return"no";return null;}
 function wbNum(text){const t=String(text==null?"":text).trim().replace(/^\$/,"").replace(/,/g,"");return /^\d{1,4}$/.test(t)?Number(t):NaN;}
 function wbSideParse(str){if(!str)return null;const terms=str.split("+").map(t=>t.split("*"));if(terms.some(t=>t.some(f=>!/^\d{1,3}$/.test(f))))return null;const nums=terms.map(t=>t.map(Number));return{terms:nums,value:nums.reduce((s,t)=>s+t.reduce((a,b)=>a*b,1),0)};}
@@ -70,7 +84,7 @@ function wbFormCheck(p,f){
     if(c.t==="num"){if(wbNum(v)!==c.want)return false;}
     else if(c.t==="word"){if(!wbWordOK(v,c.accept))return false;}
     else if(c.t==="yn"){if(wbYN(v)!==c.want)return false;}
-    else if(c.t==="reason"){if(!wbReasonOK(v,c.keys))return false;}
+    else if(c.t==="reason"){if(!wbReasonOK(v,c.keys,p))return false;}
     else if(c.t==="mult"){const n=wbNum(v);if(!(n>=c.min&&n<=c.max&&n%c.of===0))return false;}
     else if(c.t==="divides"){const n=wbNum(v);if(!(n>=2&&n<=c.max&&c.of%n===0))return false;}
     else return false;
@@ -257,7 +271,7 @@ function wbGen45(i){
   if(slot===5){const N=wbFactor(11,49),th=wbPick(["socks","gloves","shoes"]),exs=wbPick([["A store employee","the employee"],["A clerk","the clerk"],["A shop helper","the helper"]]),ex=exs[0];const yn=N%2===0?"yes":"no";return wbForm(id,ex+" is making a display of pairs of "+th+". Can "+exs[1]+" use "+N+" "+th+" in all? Explain.","Can "+N+" "+th+" make pairs with none left over? Explain.",["Answer (yes or no): {t:a}","Because {t:r}"],[{k:"a",t:"yn",want:yn},{k:"r",t:"reason",keys:WB_R.even}],null,{a:yn,r:N%2===0?"pairs make even numbers":"it is odd"},(yn==="yes"?"Yes. ":"No. ")+"Pairs make products of 2, and products of 2 are even. "+N+" is "+(N%2===0?"even":"odd")+".",[yn==="yes"?"Yes":"No",N+" is "+(N%2===0?"even":"odd")]);}
   if(slot===6){const M=wbFactor(5,9);return wbForm(id,n+" staples 10 sheets of paper together to make a packet. "+n+" makes fewer than "+M+" packets and uses all of the paper. How many sheets of paper could "+n+" have used? Explain how you know.","Packets of 10 sheets, fewer than "+M+" packets. How many sheets could be used? Explain.",["{n:v} sheets","Because {t:r}"],[{k:"v",t:"mult",of:10,min:10,max:10*(M-1)},{k:"r",t:"reason",keys:WB_R.ten}],null,{v:"30",r:"3 packets of 10"},"Each packet has 10 sheets, so the total is a multiple of 10 up to "+10*(M-1)+".",["Any multiple of 10 from 10 to "+10*(M-1)+", for example 30."]);}
   if(slot===7){const gen=wbRand(2)===0;const N=wbPick([10,20,30,40,50,60,70,80,90,15,25,35,45,12,14,16,18,22,24]);let q,yn,expl;if(gen){q="Is it possible for a number to be a product of 2, a product of 5, and a product of 10? Explain.";yn="yes";expl="Yes. A number that ends in 0, like 10 or 20, is a product of 2, 5 and 10.";}else{q="Is "+N+" a product of 2, a product of 5, and a product of 10? Explain.";yn=N%10===0?"yes":"no";expl=(yn==="yes"?"Yes. "+N+" ends in 0, so it is a product of 2, 5 and 10.":"No. "+N+" ends in "+N%10+", so it is not a product of all of 2, 5 and 10; only numbers that end in 0 are.");}
-    return wbForm(id,q,q,["Answer (yes or no): {t:a}","Because {t:r}"],[{k:"a",t:"yn",want:yn},{k:"r",t:"reason",keys:WB_R.mix}],null,{a:yn,r:"it ends in 0"},expl,[yn==="yes"?"Yes":"No",expl]);}
+    return wbForm(id,q,q,["Answer (yes or no): {t:a}","Because {t:r}"],[{k:"a",t:"yn",want:yn},{k:"r",t:"reason",keys:WB_R.mix}],null,{a:yn,r:yn==="yes"?"it ends in 0":"it does not end in 0"},expl,[yn==="yes"?"Yes":"No",expl]);}
   if(slot===8){const k=wbFactor(2,9),v=wbRand(3);if(v===0)return wbMulStory(id,n+" counts "+k+" five-dollar bills. How much money is that?",n+" counts "+k+" five dollar bills. How much money?",k,5,"dollars in all",k+" × 5 = "+5*k+". Products of 5 end in 0 or 5.");if(v===1)return wbMulStory(id,n+" has "+k+" nickels. A nickel is worth 5 cents. How many cents is that?",n+" has "+k+" nickels, 5 cents each. How many cents?",k,5,"cents in all",k+" × 5 = "+5*k+". Count by 5s.");return wbMulStory(id,n+" has "+k+" dimes. A dime is worth 10 cents. How many cents is that?",n+" has "+k+" dimes, 10 cents each. How many cents?",k,10,"cents in all",k+" × 10 = "+10*k+". Count by 10s.",{kind:"array",rows:k,cols:10});}
   const f=wbPick([2,5,10]),k=wbFactor(1,9),pr=f*k;return wbForm(id,"Write the product of "+f+" × "+k+". Then name the digit in the ones place.","What is "+f+" times "+k+"? What digit is in the ones place?",[f+" × "+k+" = {n:p}","Ones place digit: {n:d}"],[{k:"p",t:"num",want:pr},{k:"d",t:"num",want:pr%10}],null,{p:String(pr),d:String(pr%10)},f+" × "+k+" = "+pr+". The ones place is "+pr%10+". "+(f===2?"Products of 2 end in 0, 2, 4, 6 or 8.":f===5?"Products of 5 end in 0 or 5.":"Products of 10 end in 0.")+" Use × not +.",[f+" × "+k+" = "+pr,"Ones place: "+pr%10]);
 }
