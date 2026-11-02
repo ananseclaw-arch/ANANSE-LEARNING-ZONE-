@@ -445,20 +445,33 @@ function renderRevealLesson(id){
   clearTimers();closeOverlay();defocus();showAnanseCorner(false);
   const r=revealRec(id);
   const sample=revealGen(L,false,revealTier(L));
+  const wbReview=revealUsesWorkbook(id)&&typeof wbRevealReview==="function"?wbRevealReview(id):"";
   app.innerHTML='<div class="fadein" style="max-width:660px;margin:0 auto">'
    +'<div class="hud"><span class="pill">📘 <b>Reveal Math</b></span><span class="pill">Lesson '+esc(id)+'</span><span class="lvl-badge">Unit '+L.u+'</span></div>'
    +'<h1 style="margin-top:10px">'+esc(L.t)+'</h1>'
-   +'<div class="card gold" style="margin-top:12px"><h3 style="margin-bottom:8px">Review</h3><p style="font-size:19px;line-height:1.6">'+esc(REVEAL_REVIEW[id]||"")+'</p>'+(id==='4-6'?'<div aria-label="Four groups of eight" style="text-align:center;font-size:21px">[ ● ● ● ● ● ● ● ● ] [ ● ● ● ● ● ● ● ● ]<br>[ ● ● ● ● ● ● ● ● ] [ ● ● ● ● ● ● ● ● ]</div>':'')
+   +(wbReview||('<div class="card gold" style="margin-top:12px"><h3 style="margin-bottom:8px">Review</h3><p style="font-size:19px;line-height:1.6">'+esc(REVEAL_REVIEW[id]||"")+'</p>'+(id==='4-6'?'<div aria-label="Four groups of eight" style="text-align:center;font-size:21px">[ ● ● ● ● ● ● ● ● ] [ ● ● ● ● ● ● ● ● ]<br>[ ● ● ● ● ● ● ● ● ] [ ● ● ● ● ● ● ● ● ]</div>':'')
    +(id==='5-1'?'<div aria-label="Three rows of four dots split after two columns" style="text-align:center;font-size:23px">● ● │ ● ●<br>● ● │ ● ●<br>● ● │ ● ●</div>':'')
-   +(sample.vis&&!["4-6","5-1","5-2"].includes(id)?'<div class="qvis" style="margin-top:10px">'+sample.vis+'</div><p class="muted" style="font-size:14px;margin-top:6px">Example: '+esc(sample.q)+' → '+esc(sample.opts[sample.a])+'</p>':'')+'</div>'
+   +(sample.vis&&!["4-6","5-1","5-2"].includes(id)?'<div class="qvis" style="margin-top:10px">'+sample.vis+'</div><p class="muted" style="font-size:14px;margin-top:6px">Example: '+esc(sample.q)+' → '+esc(sample.opts[sample.a])+'</p>':'')+'</div>'))
    +(r?'<p class="muted center" style="margin-top:10px">Best so far: '+r.best+' of '+r.total+' · tried '+r.tries+' time'+(r.tries===1?'':'s')+'</p>':'')
    +'<div class="center"><div class="spacer"></div><div class="btn-row"><button class="btn big" onclick="startReveal(\''+id+'\')">Start practice ▶</button>'
    +(typeof videoAgainBtn==="function"?videoAgainBtn("reveal:"+id):'')
    +'<button class="btn secondary" onclick="say(REVEAL_REVIEW[\''+id+'\'])">🔊 Read it to me</button><button class="btn secondary" onclick="renderRevealUnit('+L.u+')">⟵ Unit '+L.u+'</button></div></div></div>';
   say("Lesson "+id+", "+L.t+". "+(REVEAL_REVIEW[id]||""));
 }
+const REVEAL_WB_IDS=["3-7","4-1","4-2","4-3","4-4","4-5"];
+function revealUsesWorkbook(id){return REVEAL_WB_IDS.includes(id)&&typeof wbStart==="function"&&typeof WB_LESSONS!=="undefined"&&!!WB_LESSONS[id];}
+/* Workbook-engine practice for these lessons reports back here, so stars, best score and tries land in P.reveal like any other Reveal lesson. */
+function wbRevealDone(id,score,total){
+  if(!P)return;P.reveal=P.reveal||{};const prev=P.reveal[id];
+  const old=prev&&prev.total?(prev.total===total?prev.best:Math.round(prev.best/prev.total*total)):0; // an earlier best on a different length keeps its percentage
+  P.reveal[id]={date:today(),best:Math.max(old,score),last:score,total:total,tries:(prev?prev.tries:0)+1};
+  P.sessions=P.sessions||[];P.sessions.push({date:today(),subject:"math",correct:score,total:total,lvlAvg:3,xp:0,t:Date.now(),durMs:0,lesson:"reveal:"+id});P.sessions=P.sessions.slice(-3000);
+  save();
+}
+function wbRevealExit(id){const L=revealLesson(id);if(L)renderRevealUnit(L.u);else renderReveal();}
 function startReveal(id){
   const L=revealLesson(id);if(!L)return;
+  if(revealUsesWorkbook(id)){P.revealAsked=P.revealAsked||{};if(typeof clearTimers==="function")clearTimers();wbStart(id,{reveal:true,size:10});return;}
   P.revealAsked=P.revealAsked||{};P.revealAsked[id]=P.revealAsked[id]||{};
   const mirror=["3-7","4-1","4-2","4-3","4-4","4-5","4-6","5-1","5-2"].includes(id)?mirrorSession(id):null;
   S={subject:"math",total:mirror?10:8,n:0,correct:0,results:[],consecR:0,consecW:0,
