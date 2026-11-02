@@ -8986,9 +8986,10 @@ function fcDone(){
 const LESSON_VIDEOS={"4-1":["Hxd4-A-Nk_4"],"4-2":["9Xa1iNUiZk4"]};
 let videoActive=null,videoApiLoading=false,videoBypassOnce=null;
 function videoList(key){return key.startsWith('reveal:')?(LESSON_VIDEOS[key.slice(7)]||[]):[];}
-function videoSeenAt(profile,key,index){const seen=profile&&profile.videoSeen&&profile.videoSeen[key];return seen===true||(Array.isArray(seen)&&seen[index]===true);}
+function videoSeenAt(profile,key,index){const seen=profile&&profile.videoSeen&&profile.videoSeen[key];return (seen===true&&index===0)||(Array.isArray(seen)&&seen[index]===true);}
 function videoNext(key){
-  if(!P||P.videoDay===today()||!key.startsWith('reveal:'))return null;
+  const day=P&&P.videoDay;
+  if(!P||(typeof day==='string'?day===today():day&&day[key]===today())||!key.startsWith('reveal:'))return null;
   const videos=videoList(key);
   for(let index=0;index<videos.length;index++)if(!videoSeenAt(P,key,index))return {key,index};
   return null;
@@ -9051,8 +9052,8 @@ function videoComplete(v){
   // A stale enabled button after a player error/retry must never count as viewing.
   let duration=0;try{duration=v.player&&v.player.getDuration();}catch(e){}
   if(!v.ready||!Number.isFinite(duration)||duration<=0||v.watched<duration*0.8){document.getElementById('lessonVideoContinue').disabled=true;document.getElementById('lessonVideoStatus').textContent='Press play and watch the lesson.';return;}
-  const profile=v.profile,old=profile.videoSeen&&profile.videoSeen[v.key];profile.videoSeen=profile.videoSeen||{};const seen=Array.isArray(old)?old.slice():[];seen[v.index]=true;profile.videoSeen[v.key]=seen;const oldDay=profile.videoDay;profile.videoDay=today();save();
-  let stored=false;try{const data=JSON.parse(localStorage.getItem(DBKEY));const index=DB.profiles.indexOf(profile);stored=index>=0&&videoSeenAt(data.profiles[index],v.key,v.index)&&data.profiles[index].videoDay===profile.videoDay;}catch(e){}
+  const profile=v.profile,old=profile.videoSeen&&profile.videoSeen[v.key];profile.videoSeen=profile.videoSeen||{};const seen=Array.isArray(old)?old.slice():(old===true?[true]:[]);seen[v.index]=true;profile.videoSeen[v.key]=seen;const oldDay=profile.videoDay;profile.videoDay=Object.assign({},typeof oldDay==='object'&&oldDay||{}, {[v.key]:today()});save();
+  let stored=false;try{const data=JSON.parse(localStorage.getItem(DBKEY));const index=DB.profiles.indexOf(profile);stored=index>=0&&videoSeenAt(data.profiles[index],v.key,v.index)&&data.profiles[index].videoDay[v.key]===today();}catch(e){}
   if(!stored){if(old===undefined)delete profile.videoSeen[v.key];else profile.videoSeen[v.key]=old;profile.videoDay=oldDay;document.getElementById('lessonVideoStatus').textContent='Could not save your progress. Please free storage and try Continue again.';return;}
   const next=v.next;videoStop();next();
 }
