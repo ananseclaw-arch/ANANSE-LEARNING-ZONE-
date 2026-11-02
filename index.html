@@ -442,11 +442,11 @@ body.storyworld:before{opacity:.45;mix-blend-mode:screen}
 .un-kicker{font-size:14px;font-weight:900;letter-spacing:.12em;color:#ffd166}.un-title{font-size:30px;line-height:1.2;margin:6px 0 2px;color:#fff}.un-sub{font-size:16px;color:#cfe6ff}
 .un-steps{list-style:none;display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 4px;padding:0}.un-step{display:flex;align-items:center;gap:8px;padding:8px 14px 8px 8px;border-radius:999px;background:rgba(255,255,255,.1);font-weight:800;font-size:17px}
 .un-dot{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;border:2px solid #9fd0ff;font-size:16px}.un-step.now{background:#ffd166;color:#071b35}.un-step.now .un-dot{background:#071b35;color:#ffd166;border-color:#071b35}.un-step.done .un-dot{background:#3bb273;border-color:#3bb273;color:#fff}.un-step.done{opacity:.85}
-.un-go{margin-top:16px}.un-start{min-height:64px;font-size:24px;width:100%;max-width:520px}
+.un-go{margin-top:16px}.un-start{min-height:64px;font-size:24px;width:100%;max-width:520px;white-space:nowrap}
 .up-row{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 8px;-webkit-overflow-scrolling:touch}.up-chip{flex:0 0 auto;min-width:128px;max-width:170px;min-height:84px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;border-radius:16px;border:2px solid #6f88ad;background:rgba(255,255,255,.08);color:#edf7ff;font-family:inherit;text-align:left;cursor:pointer;position:relative}
 .up-chip b{font-size:18px}.up-t{font-size:12px;line-height:1.25;color:#c9e6ff}.up-st{position:absolute;top:8px;right:10px;font-size:16px}.up-chip.done{border-color:#3bb273;background:rgba(59,178,115,.2)}.up-chip.now{border-color:#ffd166;background:rgba(255,209,102,.22);box-shadow:0 0 18px rgba(255,209,102,.35)}.up-chip.lock{opacity:.5;border-style:dashed}
 .kh-more{margin-top:18px}.kh-more>summary{list-style:none;cursor:pointer;min-height:56px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:18px;border:2px solid #6f88ad;background:rgba(255,255,255,.07);color:#fff;font-weight:900;font-size:18px}.kh-more>summary::-webkit-details-marker{display:none}.kh-more[open]>summary{margin-bottom:6px}
-@media (max-width:600px){.un-title{font-size:24px}.un-card{padding:16px}.un-step{font-size:15px}}
+@media (max-width:600px){.un-start{font-size:clamp(15px,4.6vw,20px);padding-left:10px;padding-right:10px}.up-row{flex-wrap:wrap;overflow:visible}.up-chip{flex:1 1 calc(50% - 10px);max-width:none}.un-title{font-size:24px}.un-card{padding:16px}.un-step{font-size:15px}}
 .arr-wrap{display:flex;justify-content:center;margin:14px 0 8px;max-width:100%;overflow-x:auto}.arr{display:grid;position:relative;align-items:center;justify-items:center}
 .arr-dot{font-size:calc(var(--dot) * .8);line-height:var(--dot);width:calc(var(--dot) * 1.05);text-align:center;color:#1f3c70}
 .arr-gap{width:clamp(22px,4.4vw,40px);min-height:44px;padding:0;border:0;background:transparent;cursor:pointer;display:flex;justify-content:center;align-items:stretch;border-radius:8px}.arr-gap i{width:0;border-left:3px dashed #b9c8e0;margin:2px 0}
@@ -5702,7 +5702,8 @@ function startTodayPlanStep(i){
 function todayPlanHTML(plan){
   const visible=plan.steps.map((s,i)=>({s,i})).filter(({s})=>s.kind!=="reveal"&&!(s.id==="math"&&(s.kind==="practice"||s.kind==="warmup"))&&!(s.kind==="lesson"&&/^m[345]-/.test(s.id)));
   const done=visible.filter(({s})=>s.done).length,total=visible.length,pct=total?Math.round(done/total*100):0;
-  const rows=visible.map(({s,i})=>'<button class="plan-step '+(s.done?'done':'')+'" onclick="startTodayPlanStep('+i+')" '+(s.done?'disabled':'')+'><span class="plan-step-mark">'+(s.done?'✓':(i+1))+'</span><span class="plan-step-copy"><b>'+esc(s.label)+(s.min?' <span style="font-weight:600;opacity:.65">· ~'+s.min+' min</span>':'')+'</b><small>'+esc(s.why)+'</small></span></button>').join("");
+  const rows=visible.map(({s,i},vi)=>'<button class="plan-step '+(s.done?'done':'')+'" onclick="startTodayPlanStep('+i+')" '+(s.done?'disabled':'')+'><span class="plan-step-mark">'+(s.done?'✓':(vi+1))+'</span><span class="plan-step-copy"><b>'+esc(s.label)+(s.min?' <span style="font-weight:600;opacity:.65">· ~'+s.min+' min</span>':'')+'</b><small>'+esc(s.why)+'</small></span></button>').join("");
+  if(!total)return '';
   return '<section class="today-plan"><div class="today-plan-head"><h2>⭐ Today\'s Plan</h2><span class="today-plan-count">'+done+' of '+total+' done'+(P&&typeof mathMinutesToday==="function"?' · '+mathMinutesToday()+' of '+PLAN_MATH_MIN+' maths min':'')+'</span></div><div class="bar"><i style="width:'+pct+'%"></i></div><div class="plan-steps">'+rows+'</div>'
     +(total&&done===total?'<div class="plan-done">Amazing! You finished today\'s plan! 🎉<br>Free play - pick anything!</div>':'')+'</section>';
 }
@@ -5740,6 +5741,8 @@ function renderHome(){
   ].join("");
   app.innerHTML='<div class="fadein kh-shell">'
    +upNextHTML()+unitPathHTML()
+   +'<section class="kh-sec"><h2>📖 Subjects <small>adaptive practice at your level</small></h2><div class="kh-tiles">'+Object.keys(SUBJECTS).map(subj).join("")+'</div></section>'
+   +'<details class="kh-more"><summary>🧭 More</summary>'
    +todayPlanHTML(plan)
    +'<div class="kh-hero"><div class="kh-lion">'+ananseSVG(120,"idle")+'</div>'
    +'<div class="kh-player"><span class="kh-av" style="background:'+(P.color||"#4aa3e0")+'">'+esc((P.name||"?").charAt(0).toUpperCase())+'</span>'
@@ -5748,8 +5751,6 @@ function renderHome(){
    +'<div class="kh-stat"><b>⭐</b><span>'+(P.xp||0)+'</span><small>points</small></div>'
    +'<div class="kh-stat"><b>🏆</b><span>'+P.trophies.length+'</span><small>trophies</small></div></div></div>'
    +'<section class="kh-sec"><h2>⭐ Today\'s path <small>Ananse\'s picks — start here</small></h2><div class="kh-tiles">'+todayTiles+'</div></section>'
-   +'<section class="kh-sec"><h2>📖 Subjects <small>adaptive practice at your level</small></h2><div class="kh-tiles">'+Object.keys(SUBJECTS).map(subj).join("")+'</div></section>'
-   +'<details class="kh-more"><summary>🧭 More: lessons, labs, games &amp; my progress</summary>'
    +'<section class="kh-sec"><h2>🧭 Explore <small>lessons, labs and games</small></h2><div class="kh-tiles">'
    +tile("📚",P.grade?GRADE_NAMES[P.grade]+" Lessons":"Grade Lessons","Maryland standards · learn, then practice","renderLessons()","#ffd166")
    +tile("📘","Reveal Math","Your class practice book, unit by unit","renderReveal()","#c9a84c")
