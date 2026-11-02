@@ -5744,6 +5744,7 @@ function renderHome(){
    +upNextHTML()+unitPathHTML()
    +'<section class="kh-sec"><h2>📖 Subjects <small>adaptive practice at your level</small></h2><div class="kh-tiles">'+Object.keys(SUBJECTS).map(subj).join("")+'</div></section>'
    +'<details class="kh-more"><summary>🧭 More</summary>'
+   +'<div class="btn-row" style="margin:8px 0"><button class="btn secondary" onclick="renderHowItWorks(\'home\')">▶ How Learning Zone works</button></div>'
    +todayPlanHTML(plan)
    +'<div class="kh-hero"><div class="kh-lion">'+ananseSVG(120,"idle")+'</div>'
    +'<div class="kh-player"><span class="kh-av" style="background:'+(P.color||"#4aa3e0")+'">'+esc((P.name||"?").charAt(0).toUpperCase())+'</span>'
@@ -7703,6 +7704,15 @@ function interventionTrackerHTML(){
    +'<p class="muted" style="margin-top:8px">Player-card stats now: STRATEGY '+(st.strategy||0)+' · RECALL '+(st.recall||0)+' · SPEED '+(st.speed||0)+'. STRATEGY and RECALL are the intervention targets — watch them climb.</p>';
 }
 
+function renderHowItWorks(back){
+  clearTimers();closeOverlay&&closeOverlay();defocus&&defocus();showAnanseCorner(false);
+  const id=HOW_IT_WORKS_VIDEO;
+  app.innerHTML='<div style="max-width:960px;margin:auto"><h1>How Learning Zone works</h1>'
+   +'<div style="position:relative;width:100%;padding-top:56.25%;border-radius:14px;overflow:hidden;background:#000">'
+   +'<iframe src="https://www.youtube-nocookie.com/embed/'+id+'?rel=0&modestbranding=1&playsinline=1" title="How Learning Zone works" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe></div>'
+   +'<div class="btn-row" style="margin-top:16px"><button class="btn big" onclick="'+(back==='parent'?'renderParent()':'renderHome()')+'">'+(back==='parent'?'Parent dashboard':'Home 🏠')+'</button></div><div class="spacer"></div></div>';
+}
+const HOW_IT_WORKS_VIDEO="YrcTCh0lE8k";
 function renderLegacyMath(){
   clearTimers();closeOverlay();defocus();showAnanseCorner(false);
   const cards=[3,4,5].map(g=>'<h3 style="margin:18px 0 8px">Grade '+g+'</h3><div class="opts">'+lessonsFor(g,'math').map(L=>'<button class="opt" onclick="renderLesson(\''+L.id+'\')">'+esc(L.title)+'</button>').join('')+'</div>').join('');
@@ -7734,7 +7744,7 @@ function renderParent(){
   const goalOpts=ALL_TOPICS.map(t=>'<option value="'+esc(t)+'" '+(P.weeklyGoal.topic===t?"selected":"")+' style="text-transform:capitalize">'+esc(t)+'</option>').join("");
   app.innerHTML='<div class="fadein" style="max-width:680px;margin:0 auto">'
    +'<div class="btn-row" style="justify-content:space-between;margin-bottom:6px"><button class="btn secondary" onclick="parentDone()">⟵ Back to the app</button><button class="btn secondary" onclick="pinMode=\'set\';pinBuf=\'\';renderPinPad()">Change PIN</button></div>'
-   +'<h1>Parent Dashboard</h1><div class="btn-row"><button class="btn secondary" onclick="renderLegacyMath()">Old lessons</button><button class="btn secondary" onclick="renderWorkbookPicker()">Workbook practice</button></div><p class="muted">'+esc(P.name)+' · joined '+esc(P.created)+(P.grade?' · '+GRADE_NAMES[P.grade]:'')+'</p>'
+   +'<h1>Parent Dashboard</h1><div class="btn-row"><button class="btn secondary" onclick="renderHowItWorks(\'parent\')">▶ How the app works</button><button class="btn secondary" onclick="renderLegacyMath()">Old lessons</button><button class="btn secondary" onclick="renderWorkbookPicker()">Workbook practice</button></div><p class="muted">'+esc(P.name)+' · joined '+esc(P.created)+(P.grade?' · '+GRADE_NAMES[P.grade]:'')+'</p>'
    +'<div class="pnav">'+[["💡","This week","This Week"],["🗺️","Trail & grade","Explorer"],["📘","Reveal Math","Reveal Math"],["📚","Lessons & labs","Grade Lessons"],["🎯","Focus goal","Weekly Focus"],["🏠","At home","Offline Activities"],["🔊","Voice","Voice"],["📲","Reports","Telegram"],["🍃","Nature ID","Nature Walk"],["💾","Backup","Backup"],["♻️","Reset","Reset"]].map(x=>'<button class="pnav-chip" onclick="parentJump(\''+x[2]+'\')">'+x[0]+' '+x[1]+'</button>').join("")+'</div>'
    +(DB.profiles.length>1?'<div class="btn-row" style="justify-content:flex-start;margin-top:10px">'+DB.profiles.map(p=>'<button class="btn '+(p.id===P.id?"":"secondary")+'" style="font-size:15px;padding:8px 14px" onclick="parentPick(\''+p.id+'\')">'+esc(p.name)+'</button>').join("")+'</div>':"")
    +'<div class="kente-strip" style="margin:14px 0 20px"></div>'
@@ -9152,7 +9162,7 @@ function fcDone(){
 </script>
 <script>
 /* Lesson video keys are stable even if a video is replaced. */
-const LESSON_VIDEOS={"4-1":["XfyDMXhRzU8","geGUeI2UC9k","H4ODBqGbnXI","3halHu_aEg4","shpr3De6C6E"],"4-2":["9Xa1iNUiZk4"]};
+const LESSON_VIDEOS={"4-1":["XfyDMXhRzU8","geGUeI2UC9k","H4ODBqGbnXI","m_l5wT-zWAI","O0EcXVUtm2c"],"4-2":["g__JQyMpvvs","Dv5wFs8XTLs","u8_ohgEMzGc","rECWGw5co3c","PykEMVMlCWk"],"4-3":["w7fPyQ7dAAk","baDP_W8CJ28","8NLaNUGVd3w","OpvZPxlb5Js","VfusWJSbtTs"]};
 let videoActive=null,videoApiLoading=false,videoBypassOnce=null;
 function videoList(key){return key.startsWith('reveal:')?(LESSON_VIDEOS[key.slice(7)]||[]):[];}
 function videoSeenAt(profile,key,index){const seen=profile&&profile.videoSeen&&profile.videoSeen[key];return (seen===true&&index===0)||(Array.isArray(seen)&&seen[index]===true);}
