@@ -484,6 +484,7 @@ function nextRevealQuestion(){
 
 /* Workbook-shaped questions used directly by Reveal practice. */
 function mirrorQuestion(id, slot, g, n) {
+  if (['3-7','4-3','4-4','4-5'].includes(id)) return workbookMirrorQuestion(id,slot,g,n);
   const p=g*n, names=['Maya','Leo','Zoe','Noah','Ivy','Jamal','Nia','Eli','Sofia','Mateo','Lila','Omar'];
   const childName=typeof P!=='undefined'&&P&&P.name?String(P.name).trim().toLowerCase().split(/\s+/):[];
   const safeNames=names.filter(name=>!childName.includes(name.toLowerCase()));
@@ -520,8 +521,55 @@ function mirrorQuestion(id, slot, g, n) {
   const explanation=['3-7','4-1','4-2','4-3','4-4','4-5'].includes(id)?rows[0].replace('{0}',expected[0]):id==='5-1'?g+' × '+n+' = '+p+'. Split the columns into two parts, multiply each by '+g+', then add.':id==='4-6'?g+' × '+n+' = '+p+' and '+p+' ÷ '+g+' = '+n+'.':rows[0].replace('{0}',expected[0]);
   return {q:heading+(story?' '+story:''),mirror:{id,slot,g,n,rows,expected,split,arrayItem},sig,opts:['correct','try again','other'],a:0,topic:'reveal '+id,subject:'math',level:3,reveal:id,teach:[{i:'🔍',t:heading},{i:'✏️',t:explanation},{i:'🎯',t:explanation}]};
 }
+// Workbook-derived prompts use typed fields; only the book's lettered choices are shown as choices.
+function workbookMirrorQuestion(id,slot,g,n){
+  const k=(n%9)+1, t=k*10, h=(g%7)+1;
+  let q='',rows=[],expected=[],kind='exact',model='',reason='',choices='';
+  if(id==='3-7'){
+    const people=(g%8)+2, each=(n%9)+1, total=people*each;
+    if(slot%3===0){q='A person and '+(people-1)+' teammates sold '+total+' shirts equally. Draw a representation. How many shirts did each person sell?';}
+    else if(slot%3===1){q=total+' plates are shared equally among '+people+' tables. Draw a representation. How many plates go at each table?';}
+    else {q=total+' ounces of water are shared equally among '+people+' plants. Draw a representation. How many ounces does each plant get?';}
+    rows=[total+' ÷ '+people+' = {0}'];expected=[each];model='There are '+people+' equal groups: '+total+' ÷ '+people+' = '+each+'. Use × or ÷, not +, to represent equal groups.';
+    if(slot===9){q='For '+people+' × □ = '+total+', person A says '+each+' and person B says '+(total*people)+'. Who is correct? Explain how a drawing could show it.';rows=['Person: {0}','Because {1}'];expected=['a','groups'];kind='explain';reason='groups';model='Person A. Draw '+people+' groups of '+each+'; they contain '+total+' altogether.';}
+  }else if(id==='4-3'){
+    if(slot===0){q=k+' sets have 10 crayons each. What pattern can you use, and how many crayons are there?';rows=['Pattern: {0}','Total: {1}'];expected=['10',t];kind='pattern10';model='Skip-count by 10s '+k+' times: '+k+' × 10 = '+t+'.';}
+    else if(slot===1){q='There are 10 baskets with the same number of apples in each, fewer than 11 per basket. How many apples could there be? Explain.';rows=['Apples: {0}','Because {1}'];expected=[t,'10'];kind='multiple10';reason='10';model='For example, '+k+' apples in each basket gives 10 × '+k+' = '+t+'.';}
+    else if(slot===2){q='Which equations are true? Choose all that apply. Type the letters.';choices='A. 4 × 5 = 4 × 10　 B. 10 + 10 + 10 = 10 × 3　 C. 10 + 10 + 10 = 10 × 10　 D. 5 × 6 = 3 × 10';rows=['Letters: {0}'];expected=['bd'];kind='letters';model='B and D are true: both sides equal 30.';}
+    else if(slot===3){q='Type the matching number next to each equation. Use each number once: '+[70,30,5,10,40,6].join(', ')+'.';rows=['{0} = 3 × 10','10 × {1} = 60','2 × {2} = 20','{3} = 7 × 10','{4} × 10 = 50','4 × 10 = {5}'];expected=[30,6,10,70,5,40];model='The matching numbers are 30, 6, 10, 70, 5, and 40.';}
+    else if(slot===4){q='What number is in the ones place of a product of 10 and a whole number? Explain.';rows=['Ones digit: {0}','Because {1}'];expected=[0,'0'];kind='explain';reason='0';model='The ones digit is 0 because multiples of 10 end in 0.';}
+    else if(slot===5){q='How does knowing '+k+' × 5 help you remember '+k+' × 10?';rows=['Product: {0}','Because {1}'];expected=[t,'double'];kind='explain';reason='double';model=k+' × 10 is double '+k+' × 5: '+(k*5)+' + '+(k*5)+' = '+t+'.';}
+    else {q=slot%2?k+' days have 10 bike laps each. How many laps in all?':'How many cents are in '+k+' dimes?';rows=['Answer: {0}'];expected=[t];model=k+' × 10 = '+t+'.';}
+  }else if(id==='4-4'){
+    if(slot<4){q='What number completes the equation?';const forms=[k+' × 1 = {0}',k+' = 1 × {0}','{0} = 0 × '+k,'0 × {0} = 0'];rows=[forms[slot]];expected=[slot<2?k:0];if(slot===3){rows=['{0} × '+k+' = 0'];}model='Any number multiplied by 1 stays the same; any number multiplied by 0 is 0.';}
+    else if(slot===4){q='Which equations are true? Choose all that apply. Type the letters.';choices='A. 2 × 0 = 2　 B. 5 × 0 = 9 × 0　 C. 6 × 1 = 3 × 2　 D. 1 × 3 = 3';rows=['Letters: {0}'];expected=['bcd'];kind='letters';model='B, C, and D are true: C has 6 on both sides.';}
+    else if(slot===5){q=k+' fish bowls each contain 1 fish. How many fish are there?';rows=['Fish: {0}'];expected=[k];model=k+' × 1 = '+k+'.';}
+    else if(slot===6){q='A reader reads 0 pages each day for '+k+' days. How many pages in all?';rows=['Pages: {0}'];expected=[0];model=k+' × 0 = 0.';}
+    else if(slot===7){q='Each dancer needs one pair of tights. Write an equation for any number of dancers, and explain.';rows=['Equation: {0}','Because {1}'];expected=['1 × '+k+' = '+k,'1'];kind='oneEquation';reason='1';model='For example, '+k+' × 1 = '+k+' because each dancer needs one pair.';}
+    else if(slot===8){q='Are 4 × 0 and 6 × 0 equal? Explain.';rows=['Answer: {0}','Because {1}'];expected=['yes','0'];kind='explain';reason='0';model='Yes. Both products are 0 because any number times 0 is 0.';}
+    else {q='Set a table for '+k+' people with one cup per person and no plates. How many cups and plates?';rows=['Cups: {0}','Plates: {1}'];expected=[k,0];model=k+' × 1 = '+k+' cups and '+k+' × 0 = 0 plates.';}
+  }else{
+    if(slot===0){q='What word makes the statement true? Products of 2 are always ___.';rows=['Word: {0}'];expected=['even'];kind='word';model='Products of 2 are even.';}
+    else if(slot===1){q='50 is a product of which two numbers in the patterns for 5 and 10?';rows=['Numbers: {0} and {1}'];expected=[5,10];kind='pair';model='50 = 5 × 10.';}
+    else if(slot===2){q='45 is a product of what number because it ends in 5?';rows=['Number: {0}'];expected=[5];model='45 is a product of 5.';}
+    else if(slot===3){q='Complete: 0 is the product of ___ and ___ because any number multiplied by ___ is 0.';rows=['Numbers: {0} and {1}; multiplied by {2}'];expected=[0,k,0];kind='zeroPair';model='0 times any number is 0.';}
+    else if(slot===4){q='There are fewer than ten $5 bills. How much money might there be?';rows=['Dollars: {0}'];expected=[k*5];kind='multiple5';model='For example, '+k+' bills make $'+(k*5)+'.';}
+    else if(slot===5){q='Can 17 socks be arranged in pairs with none left over? Explain.';rows=['Answer: {0}','Because {1}'];expected=['no','even'];kind='explain';reason='even';model='No. Pairs make an even number; 17 is odd.';}
+    else if(slot===6){q='A packet uses 10 sheets. Fewer than 8 packets are made. How many sheets could be used? Explain.';rows=['Sheets: {0}','Because {1}'];expected=[h*10,'10'];kind='multiple10small';reason='10';model='For example, '+h+' packets use '+(h*10)+' sheets, a multiple of 10.';}
+    else if(slot===7){q='Can a number be a product of 2, 5, and 10? Explain.';rows=['Answer: {0}','Because {1}'];expected=['yes','0'];kind='explain';reason='0';model='Yes. For example, 10 is a product of all three and ends in 0.';}
+    else if(slot===8){q='How much money is in '+k+' nickels?';rows=['Cents: {0}'];expected=[k*5];model=k+' × 5 = '+(k*5)+' cents.';}
+    else {q='Write two equations for the same total: a number added to itself and 2 times that number.';rows=['Addition equation: {0}','Multiplication equation: {1}'];expected=[k+' + '+k+' = '+(2*k),'2 × '+k+' = '+(2*k)];kind='twoEquations';model='For example, '+k+' + '+k+' = '+(2*k)+' and 2 × '+k+' = '+(2*k)+'.';}
+  }
+  const m={id,slot,g,n,rows,expected,kind,reason,model,choices};
+  return {q,mirror:m,sig:id+'|'+slot+'|'+g+'|'+n,opts:['correct','try again','other'],a:0,topic:'reveal '+id,subject:'math',level:3,reveal:id,teach:[{i:'🔍',t:q},{i:'✏️',t:model},{i:'🎯',t:model}]};
+}
+function workbookReason(text,key){const s=String(text).toLowerCase();if(key==='even')return /even|evan|pair|odd|2|two/.test(s);if(key==='double')return /doubl|twice|two|2|\+/.test(s);if(key==='groups')return /group|draw|each|equal|times|×|multip/.test(s);if(key==='1')return /1|one|each|every|same/.test(s);return /0|zero|ten|10|multiple|ends?/.test(s);}
+function workbookEquation(s,op){const m=String(s).toLowerCase().replace(/\s/g,'').match(/^(\d+)([+x×*])(\d+)=(\d+)$/);if(!m)return null;const a=+m[1],b=+m[3],c=+m[4];return ((op==='+'&&m[2]==='+'&&a===b&&a+b===c)||(op==='x'&&/[x×*]/.test(m[2])&&(a===2||b===2)&&a*b===c))?c:null;}
+function workbookCheck(m,v){if(!Array.isArray(v)||v.length!==m.expected.length||v.some(x=>!String(x).trim()))return false;const a=v.map(x=>String(x).trim().toLowerCase()),num=x=>/^\d+$/.test(x)?Number(x):NaN;
+ switch(m.kind){case 'letters':return a[0].replace(/[^a-z]/g,'').split('').sort().join('')===m.expected[0];case 'word':return /^even$/.test(a[0]);case 'pair':return [num(a[0]),num(a[1])].sort((x,y)=>x-y).join(',')==='5,10';case 'zeroPair':return (num(a[0])===0&&Number.isInteger(num(a[1]))||num(a[1])===0&&Number.isInteger(num(a[0])))&&num(a[2])===0;case 'pattern10':return /10|ten/.test(a[0])&&num(a[1])===m.expected[1];case 'multiple5':return num(a[0])>=5&&num(a[0])<=45&&num(a[0])%5===0;case 'multiple10':return num(a[0])>=10&&num(a[0])<=100&&num(a[0])%10===0&&workbookReason(a[1],m.reason);case 'multiple10small':return num(a[0])>=10&&num(a[0])<=70&&num(a[0])%10===0&&workbookReason(a[1],m.reason);case 'explain':return (typeof m.expected[0]==='number'?num(a[0])===m.expected[0]:a[0]===m.expected[0])&&workbookReason(a[1],m.reason);case 'oneEquation':{const z=a[0].replace(/\s/g,'').match(/^(\d+)[x×*](\d+)=(\d+)$/);return !!z&&(+z[1]===1||+z[2]===1)&&+z[1]*+z[2]===+z[3]&&workbookReason(a[1],m.reason);}case 'twoEquations':{const x=workbookEquation(a[0],'+'),y=workbookEquation(a[1],'x');return x!==null&&x===y;}default:return a.every((x,i)=>num(x)===m.expected[i]);}}
 function mirrorExpected(m, cut){if(!m.split)return m.expected;return [m.g,cut,m.g,m.n-cut,m.g*cut,m.g*(m.n-cut),m.g*m.n].concat(m.slot%2?[m.g*m.n]:[]);}
 function mirrorCheck(m, cut, values){
+  if(m.kind)return workbookCheck(m,values);
   if(m.split&&(!Number.isInteger(cut)||cut<1||cut>=m.n))return false;
   const e=mirrorExpected(m,cut);if(!Array.isArray(values)||values.length!==e.length||values.some(v=>!/^\d+$/.test(String(v))))return false;
   const v=values.map(Number);if(v.every((x,i)=>x===e[i]))return true;
@@ -540,6 +588,7 @@ function mirrorSession(id){
 function mirrorRows(m){if(!m.split)return m.rows;return [m.g+' × '+m.n+' = {0} × {1} + {2} × {3}',m.g+' × '+m.n+' = {4} + {5}',m.g+' × '+m.n+' = {6}'].concat(m.slot%2?['There are {7} '+m.arrayItem+'.']:[]);}
 function mirrorHTML(q){
   const m=q.mirror; let html='';
+  if(m.kind){const ready=m.expected.every((_,i)=>String(S.mirrorValues[i]||'').trim());return (m.choices?'<p>'+m.choices+'</p>':'')+'<div style="font-size:20px;line-height:2;text-align:center">'+m.rows.map(row=>row.replace(/\{(\d+)\}/g,(_,i)=>'<input aria-label="Answer box '+(Number(i)+1)+'" type="text" value="'+esc(S.mirrorValues[i]||'')+'" oninput="mirrorInput('+i+',this.value)" style="width: min(14em, 75vw); font-size:20px">')).join('<br>')+'</div><div class="center"><button class="btn big" id="mirrorSubmit" '+(ready?'':'disabled')+' onclick="mirrorSubmit()">Check answer ✓</button></div>';}
   if(m.split){
     html+='<p>Tap between columns to split the array into two parts.</p><div role="group" aria-label="'+m.g+' rows of '+m.n+'. '+(S.mirrorCut?'Split after '+S.mirrorCut+' columns.':'Choose a split.')+'" style="margin:12px auto;width:max-content;max-width:100%;font-size:16px;line-height:1.4">';
     for(let r=0;r<m.g;r++){
@@ -557,10 +606,10 @@ function mirrorHTML(q){
   return html;
 }
 function mirrorCut(n){S.mirrorCut=n;const e=document.getElementById('mirrorArea');if(e)e.innerHTML=mirrorHTML(S.cur);sessSave();}
-function mirrorInput(i,value){S.mirrorValues[i]=value.replace(/[^0-9]/g,'').slice(0,3);const inputs=document.querySelectorAll('#mirrorArea input');if(inputs[i])inputs[i].value=S.mirrorValues[i];const b=document.getElementById('mirrorSubmit');if(b)b.disabled=(!S.cur.mirror.split||S.mirrorCut)?Array.from(inputs).some(x=>!x.value):true;sessSave();}
+function mirrorInput(i,value){S.mirrorValues[i]=S.cur.mirror.kind?value.slice(0,160):value.replace(/[^0-9]/g,'').slice(0,3);const inputs=document.querySelectorAll('#mirrorArea input');if(inputs[i])inputs[i].value=S.mirrorValues[i];const b=document.getElementById('mirrorSubmit');if(b)b.disabled=(!S.cur.mirror.split||S.mirrorCut)?Array.from(inputs).some(x=>!x.value):true;sessSave();}
 function mirrorSubmit(){const q=S.cur,m=q.mirror, count=mirrorRows(m).join('').match(/\{\d+\}/g).length;if((m.split&&!S.mirrorCut)||Array.from({length:count},(_,i)=>S.mirrorValues[i]).some(v=>!v)){toast('Choose a split and fill every box.');return;}
   if(!q.comeback&&!q.twin&&Date.now()-S.qStart<oneTryMinMs(q)){document.querySelectorAll('#mirrorArea input,#mirrorArea button').forEach(e=>e.disabled=true);oneTryRushed(q);return;}
   const right=mirrorCheck(m,S.mirrorCut,S.mirrorValues), expected=mirrorExpected(m,S.mirrorCut);document.querySelectorAll('#mirrorArea input,#mirrorArea button').forEach(e=>e.disabled=true);
-  const feedback=document.createElement('p');feedback.textContent=right?'Correct!':('Completed equations: '+mirrorRows(m).map(row=>row.replace(/\{(\d+)\}/g,(_,i)=>expected[i])).join(' ; '));document.getElementById('mirrorArea').appendChild(feedback);
+  const feedback=document.createElement('p');feedback.textContent=m.kind?(right?'Correct! ':'Try this: ')+m.model:(right?'Correct!':('Completed equations: '+mirrorRows(m).map(row=>row.replace(/\{(\d+)\}/g,(_,i)=>expected[i])).join(' ; ')));document.getElementById('mirrorArea').appendChild(feedback);
   answer(right?S.order.indexOf(q.a):S.order.findIndex(x=>x!==q.a));
 }
