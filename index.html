@@ -8961,7 +8961,7 @@ function videoGate(key,next,back,replay){
   v.timer=setInterval(()=>videoTick(v),250);videoLoad(v);return true;
 }
 function videoAlive(v){return !!v&&videoActive===v&&P===v.profile&&!!document.getElementById('lessonVideoGate');}
-function videoFail(v){if(!videoAlive(v))return;clearTimeout(v.loadTimer);v.failed=true;v.ready=false;v.playing=false;v.lastMedia=null;v.fallback=0;v.lastWall=performance.now();document.getElementById('lessonVideoRetry').hidden=false;document.getElementById('lessonVideoStatus').textContent='Video player unavailable. Stay on this screen for 2 minutes to continue, or retry the video.';}
+function videoFail(v){if(!videoAlive(v))return;clearTimeout(v.loadTimer);v.failed=true;v.ready=false;v.playing=false;v.lastMedia=null;v.fallback=0;v.lastWall=performance.now();document.getElementById('lessonVideoContinue').disabled=!v.replay;document.getElementById('lessonVideoRetry').hidden=false;document.getElementById('lessonVideoStatus').textContent='Video player unavailable. Stay on this screen for 2 minutes to continue, or retry the video.';}
 function videoLoad(v){
   if(!videoAlive(v))return;clearTimeout(v.loadTimer);v.failed=false;v.ready=false;v.playing=false;v.fallback=0;v.lastMedia=null;v.lastWall=performance.now();
   document.getElementById('lessonVideoContinue').disabled=!v.replay;document.getElementById('lessonVideoRetry').hidden=true;document.getElementById('lessonVideoStatus').textContent='Loading video…';
