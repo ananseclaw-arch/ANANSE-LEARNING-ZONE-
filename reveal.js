@@ -138,9 +138,9 @@ const REVEAL_REVIEW={
  "4-3":"Multiplying by 10: the product is the other factor with a zero at the end. 10 × 7 = 70.",
  "4-4":"Any number times 1 is that number (identity). Any number times 0 is 0 (zero property).",
  "4-5":"Use what you know: doubles for 2s, skip-counting for 5s, add a zero for 10s, and the 0 and 1 rules. Practice until they are automatic.",
- "4-6":"To solve an equal-groups problem, decide: how many groups, and how many in each? Then multiply. Draw a picture if it helps.",
- "5-1":"Distributive property: break one factor apart, multiply each part, then add. 8 × 6 = 8 × 3 + 8 × 3 = 24 + 24 = 48.",
- "5-2":"Multiply by 3 with a known fact plus one more group: 3 × 7 = 2 × 7 + 7 = 14 + 7 = 21.",
+ "4-6":"Use multiplication or division to represent equal groups. For example, 4 × 8 = 32 and 32 ÷ 4 = 8. Draw a picture if it helps.",
+ "5-1":"Split one factor, multiply each part, then add. 3 × 4 = 3 × 2 + 3 × 2 = 6 + 6 = 12.",
+ "5-2":"Use different strategies to multiply by 3. Saving $4 each day for 3 days gives 3 × 4 = 2 × 4 + 1 × 4 = 8 + 4 = 12 dollars.",
  "5-3":"Multiply by 4 by doubling twice: 4 × 6 = double 6 (12), then double again (24).",
  "5-4":"Multiply by 6 using 5s: 6 × 7 = 5 × 7 + 7 = 35 + 7 = 42. Or double a 3s fact.",
  "5-5":"Multiply by 8 by doubling a 4s fact: 8 × 7 = 4 × 7 doubled = 28 + 28 = 56.",
@@ -446,7 +446,9 @@ function renderRevealLesson(id){
   app.innerHTML='<div class="fadein" style="max-width:660px;margin:0 auto">'
    +'<div class="hud"><span class="pill">📘 <b>Reveal Math</b></span><span class="pill">Lesson '+esc(id)+'</span><span class="lvl-badge">Unit '+L.u+'</span></div>'
    +'<h1 style="margin-top:10px">'+esc(L.t)+'</h1>'
-   +'<div class="card gold" style="margin-top:12px"><h3 style="margin-bottom:8px">Review</h3><p style="font-size:19px;line-height:1.6">'+esc(REVEAL_REVIEW[id]||"")+'</p>'+(sample.vis?'<div class="qvis" style="margin-top:10px">'+sample.vis+'</div><p class="muted" style="font-size:14px;margin-top:6px">Example: '+esc(sample.q)+' → '+esc(sample.opts[sample.a])+'</p>':'')+'</div>'
+   +'<div class="card gold" style="margin-top:12px"><h3 style="margin-bottom:8px">Review</h3><p style="font-size:19px;line-height:1.6">'+esc(REVEAL_REVIEW[id]||"")+'</p>'+(id==='4-6'?'<div aria-label="Four groups of eight" style="text-align:center;font-size:21px">[ ● ● ● ● ● ● ● ● ] [ ● ● ● ● ● ● ● ● ]<br>[ ● ● ● ● ● ● ● ● ] [ ● ● ● ● ● ● ● ● ]</div>':'')
+   +(id==='5-1'?'<div aria-label="Three rows of four dots split after two columns" style="text-align:center;font-size:23px">● ● │ ● ●<br>● ● │ ● ●<br>● ● │ ● ●</div>':'')
+   +(sample.vis?'<div class="qvis" style="margin-top:10px">'+sample.vis+'</div><p class="muted" style="font-size:14px;margin-top:6px">Example: '+esc(sample.q)+' → '+esc(sample.opts[sample.a])+'</p>':'')+'</div>'
    +(r?'<p class="muted center" style="margin-top:10px">Best so far: '+r.best+' of '+r.total+' · tried '+r.tries+' time'+(r.tries===1?'':'s')+'</p>':'')
    +'<div class="center"><div class="spacer"></div><div class="btn-row"><button class="btn big" onclick="startReveal(\''+id+'\')">Start practice ▶</button>'
    +(["3-1","3-2","3-3","3-4","3-5","3-6","3-7","4-1","4-2"].includes(id)?'<button class="btn secondary big" onclick="renderWorkbookLesson(\''+id+'\')">📒 Workbook practice for this lesson</button>':'')
@@ -456,14 +458,17 @@ function renderRevealLesson(id){
 function startReveal(id){
   const L=revealLesson(id);if(!L)return;
   P.revealAsked=P.revealAsked||{};P.revealAsked[id]=P.revealAsked[id]||{};
-  S={subject:"math",total:8,n:0,correct:0,results:[],consecR:0,consecW:0,
+  const mirror=["4-6","5-1","5-2"].includes(id)?mirrorSession(id):null;
+  S={subject:"math",total:mirror?10:8,n:0,correct:0,results:[],consecR:0,consecW:0,
      sprintEnd:Date.now()+10*60*1000,qStart:0,cur:null,brokeAt:new Set(),xp:0,mode:"session",
      start:Date.now(),wpC:0,wpT:0,recallC:0,recallT:0,reviewC:0,reviewT:0,mfC:0,mfT:0,wpServed:true,phase:"main",seen:[],diff:0,tried:false,
      lesson:"reveal:"+id,lessonQs:[],revealId:id,revealSeen:[],revealTier:revealTier(L),leadIn:"Lesson "+id+" practice. Take your time and think it through. "};
+  if(mirror){S.mirrorPrim=mirror.prim;S.mirrorTwins=mirror.twins;S.mirrorComebacks=mirror.comebacks;S.mirrorRushes=mirror.rushes;}
   nextQuestion();
 }
 function nextRevealQuestion(){
   const L=revealLesson(S.revealId||S.lesson.slice(7));if(!L)return null;
+  if(S.mirrorPrim)return S.mirrorPrim[S.n]||null;
   const raised=S.n>=4&&S.results.slice(0,4).length===4&&S.results.slice(0,4).every(r=>r.correct);
   const tier=Math.max(-1,Math.min(1,(S.revealTier||0)+(raised?1:0)));
   const seen=new Set(S.revealSeen||[]),hist=(P.revealAsked||(P.revealAsked={}))[L.id]||{},cutoff=Date.now()-7*86400000;
@@ -474,4 +479,77 @@ function nextRevealQuestion(){
   if(!q)return null;
   S.revealSeen=S.revealSeen||[];S.revealSeen.push(sig);hist[sig]=Date.now();P.revealAsked[L.id]=capTimestampMap(hist,80);save();
   return q;
+}
+
+/* Workbook-shaped questions used directly by Reveal practice. */
+function mirrorQuestion(id, slot, g, n) {
+  const p=g*n, names=['Maya','Leo','Zoe','Noah','Ivy','Jamal','Nia','Eli','Sofia','Mateo','Lila','Omar'];
+  const childName=typeof P!=='undefined'&&P&&P.name?String(P.name).trim().toLowerCase().split(/\s+/):[];
+  const safeNames=names.filter(name=>!childName.includes(name.toLowerCase()));
+  const name=safeNames[(g+n+slot)%safeNames.length];
+  const contexts=[['stickers','friends'],['pencils','students'],['books','classrooms'],['flowers','vases'],['marbles','children'],['cards','players']];
+  const [item,groups]=contexts[(g+n+slot)%contexts.length];
+  const arrayItems=['cookies','toy cars','shells','buttons','crayons','blocks'];
+  const arrayItem=arrayItems[(g+n+slot)%arrayItems.length];
+  let heading, rows, expected, split=false, story='';
+  if(id==='4-6'){
+    if(slot<4){heading='How can you draw a representation for the pair of equations?'; rows=[g+' × {0} = '+p,p+' ÷ '+g+' = {1}'];expected=[n,n];}
+    else if(slot<6){heading='What multiplication and division equation represents the problem?';story=name+' shares '+p+' '+item+' equally among '+g+' '+groups+'. How many '+item+' does each get?';rows=[g+' × {0} = '+p,p+' ÷ '+g+' = {1}','Each group gets {2} '+item+'.'];expected=[n,n,n];}
+    else {heading='How can you use what you know to solve the problem?';story=name+' shares '+p+' '+item+' equally among '+g+' '+groups+'. How many '+item+' does each get?';rows=['Each group gets {0} '+item+'.'];expected=[n];}
+  } else if(id==='5-1'){
+    heading='How can one factor be decomposed to find the product?';
+    story=slot%2?name+' arranges '+arrayItem+' in '+g+' rows with '+n+' in each row. How many '+arrayItem+' are there? Tap where you would split the array.':'Tap where you would split the array.';
+    split=true; rows=[];expected=[];
+  } else {
+    heading='What number completes the equation?';const a=n, t=3*a;
+    const templates=[['3 × '+a+' = {0}',t],[t+' = '+a+' × {0}',3],['3 × '+a+' = {0}',t],['3 = {0} × 1',3],[a+' × 3 = {0}',t],['3 × {0} = '+t,a],['{0} = '+a+' × 3',t],['{0} = 3 × '+a,t],['3 × '+a+' = {0} × 3',a],[a+' × {0} = 3 × '+a,3]];
+    rows=[templates[slot][0]];expected=[templates[slot][1]];
+  }
+  const sig=id+'|'+(id==='5-2'?slot:0)+'|'+g+'|'+n;
+  const explanation=id==='5-1'?g+' × '+n+' = '+p+'. Split the columns into two parts, multiply each by '+g+', then add.':id==='4-6'?g+' × '+n+' = '+p+' and '+p+' ÷ '+g+' = '+n+'.':rows[0].replace('{0}',expected[0]);
+  return {q:heading+(story?' '+story:''),mirror:{id,slot,g,n,rows,expected,split,arrayItem},sig,opts:['correct','try again','other'],a:0,topic:'reveal '+id,subject:'math',level:3,reveal:id,teach:[{i:'🔍',t:heading},{i:'✏️',t:explanation},{i:'🎯',t:explanation}]};
+}
+function mirrorExpected(m, cut){if(!m.split)return m.expected;return [m.g,cut,m.g,m.n-cut,m.g*cut,m.g*(m.n-cut),m.g*m.n].concat(m.slot%2?[m.g*m.n]:[]);}
+function mirrorCheck(m, cut, values){
+  if(m.split&&(!Number.isInteger(cut)||cut<1||cut>=m.n))return false;
+  const e=mirrorExpected(m,cut);if(!Array.isArray(values)||values.length!==e.length||values.some(v=>!/^\d+$/.test(String(v))))return false;
+  const v=values.map(Number);if(v.every((x,i)=>x===e[i]))return true;
+  return m.split&&v[0]===e[2]&&v[1]===e[3]&&v[2]===e[0]&&v[3]===e[1]&&v[4]===e[5]&&v[5]===e[4]&&v[6]===e[6]&&(e.length===7||v[7]===e[7]);
+}
+function mirrorSession(id){
+  const prim=[],twins=[],comebacks=[],rushes=[],used=new Set(), visible=new Set();
+  for(let slot=0;slot<10;slot++){
+    let pool=[];for(let g=1;g<=10;g++)for(let n=1;n<=10;n++)if(id!=='5-1'||(g>=2&&n>=2))pool.push([g,n]);
+    if(id==='5-2')pool=pool.filter(([g])=>g===3);
+    pool=shuffle(pool);
+    for(let j=0;j<4;j++){const variant=id==='5-2'&&slot===3&&j>0?4:slot;let pair=pool.find(([g,n])=>{const q=mirrorQuestion(id,variant,g,n);return !used.has(q.sig)&&!visible.has(q.mirror.rows.join('|'));});if(!pair)throw Error('Unable to allocate distinct practice questions');let q=mirrorQuestion(id,variant,...pair);q.reserveSlot=slot;used.add(q.sig);if(id==='5-2')visible.add(q.mirror.rows.join('|'));[prim,twins,comebacks,rushes][j].push(q);}
+  }
+  return {prim,twins,comebacks,rushes};
+}
+function mirrorRows(m){if(!m.split)return m.rows;return [m.g+' × '+m.n+' = {0} × {1} + {2} × {3}',m.g+' × '+m.n+' = {4} + {5}',m.g+' × '+m.n+' = {6}'].concat(m.slot%2?['There are {7} '+m.arrayItem+'.']:[]);}
+function mirrorHTML(q){
+  const m=q.mirror; let html='';
+  if(m.split){
+    html+='<p>Tap between columns to split the array into two parts.</p><div role="group" aria-label="'+m.g+' rows of '+m.n+'. '+(S.mirrorCut?'Split after '+S.mirrorCut+' columns.':'Choose a split.')+'" style="margin:12px auto;width:max-content;max-width:100%;font-size:16px;line-height:1.4">';
+    for(let r=0;r<m.g;r++){
+      html+='<div style="display:flex;align-items:center;justify-content:center">';
+      for(let c=1;c<=m.n;c++){
+        html+='<span style="display:inline-block;text-align:center;width:16px">●</span>';
+        if(c<m.n)html+=r===0?'<button type="button" aria-label="Split after '+c+' columns" aria-pressed="'+(S.mirrorCut===c)+'" onclick="mirrorCut('+c+')" style="width:20px;height:32px;padding:0;border:1px solid #456;border-radius:4px;background:'+(S.mirrorCut===c?'#f5a623':'#fff')+';font-size:18px">│</button>':'<span aria-hidden="true" style="display:inline-block;width:20px;text-align:center;color:'+(S.mirrorCut===c?'#aa6200':'transparent')+'">│</span>';
+      }
+      html+='</div>';
+    }
+    html+='</div><div aria-label="Larger split controls" style="display:flex;justify-content:center;flex-wrap:wrap;gap:6px">'+Array.from({length:m.n-1},(_,i)=>'<button class="readbtn" style="min-width:44px;min-height:44px" aria-label="Split after '+(i+1)+' columns" aria-pressed="'+(S.mirrorCut===i+1)+'" onclick="mirrorCut('+(i+1)+')">'+(i+1)+'</button>').join('')+'</div>';
+  }
+  const count=mirrorRows(m).join('').match(/\{\d+\}/g).length, ready=(!m.split||S.mirrorCut)&&Array.from({length:count},(_,i)=>S.mirrorValues[i]).every(Boolean);
+  html+='<div style="font-size:22px;line-height:2;text-align:center">'+mirrorRows(m).map(row=>row.replace(/\{(\d+)\}/g,(_,i)=>'<input aria-label="Answer box '+(Number(i)+1)+'" inputmode="numeric" pattern="[0-9]*" type="text" maxlength="3" value="'+(S.mirrorValues[i]||'')+'" oninput="mirrorInput('+i+',this.value)" style="width:3em;font-size:22px;text-align:center">')).join('<br>')+'</div><div class="center"><button class="btn big" id="mirrorSubmit" '+(ready?'':'disabled')+' onclick="mirrorSubmit()">Check answer ✓</button></div>';
+  return html;
+}
+function mirrorCut(n){S.mirrorCut=n;const e=document.getElementById('mirrorArea');if(e)e.innerHTML=mirrorHTML(S.cur);sessSave();}
+function mirrorInput(i,value){S.mirrorValues[i]=value.replace(/[^0-9]/g,'').slice(0,3);const inputs=document.querySelectorAll('#mirrorArea input');if(inputs[i])inputs[i].value=S.mirrorValues[i];const b=document.getElementById('mirrorSubmit');if(b)b.disabled=(!S.cur.mirror.split||S.mirrorCut)?Array.from(inputs).some(x=>!x.value):true;sessSave();}
+function mirrorSubmit(){const q=S.cur,m=q.mirror, count=mirrorRows(m).join('').match(/\{\d+\}/g).length;if((m.split&&!S.mirrorCut)||Array.from({length:count},(_,i)=>S.mirrorValues[i]).some(v=>!v)){toast('Choose a split and fill every box.');return;}
+  if(!q.comeback&&!q.twin&&Date.now()-S.qStart<oneTryMinMs(q)){document.querySelectorAll('#mirrorArea input,#mirrorArea button').forEach(e=>e.disabled=true);oneTryRushed(q);return;}
+  const right=mirrorCheck(m,S.mirrorCut,S.mirrorValues), expected=mirrorExpected(m,S.mirrorCut);document.querySelectorAll('#mirrorArea input,#mirrorArea button').forEach(e=>e.disabled=true);
+  const feedback=document.createElement('p');feedback.textContent=right?'Correct!':('Completed equations: '+mirrorRows(m).map(row=>row.replace(/\{(\d+)\}/g,(_,i)=>expected[i])).join(' ; '));document.getElementById('mirrorArea').appendChild(feedback);
+  answer(right?S.order.indexOf(q.a):S.order.findIndex(x=>x!==q.a));
 }

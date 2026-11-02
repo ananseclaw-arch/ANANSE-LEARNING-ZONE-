@@ -1,0 +1,1 @@
+**Incomplete review:** The structural reviewer requires a target standard defining the mandatory headings and formatting rules, but none was supplied. The design’s compliance with that standard cannot be assessed.
