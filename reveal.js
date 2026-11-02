@@ -513,7 +513,8 @@ function mirrorQuestion(id, slot, g, n) {
   const contexts=[['stickers','friends'],['pencils','students'],['books','classrooms'],['flowers','vases'],['marbles','children'],['cards','players']];
   const [item,groups]=contexts[(g+n+slot)%contexts.length];
   const arrayItems=['cookies','toy cars','shells','buttons','crayons','blocks'];
-  const arrayItem=arrayItems[(g+n+slot)%arrayItems.length];
+  const arrayItem=id==='4-6'?item:arrayItems[(g+n+slot)%arrayItems.length];
+  const groupOne={friends:'friend',students:'student',classrooms:'classroom',vases:'vase',children:'child',players:'player'}[groups];
   let heading, rows, expected, split=false, story='';
   if(id==='3-7'){
     heading='Draw a representation and find the unknown.';
@@ -526,9 +527,9 @@ function mirrorQuestion(id, slot, g, n) {
     const forms=[factor+' × '+n+' = {0}','{0} = '+n+' × '+factor,n+' × '+factor+' = {0}'];
     rows=[forms[slot%forms.length]];expected=[product];
   } else if(id==='4-6'){
-    if(slot<4){heading='How can you draw a representation for the pair of equations?'; rows=[g+' × {0} = '+p,p+' ÷ '+g+' = {1}'];expected=[n,n];}
-    else if(slot<6){heading='What multiplication and division equation represents the problem?';story=name+' shares '+p+' '+item+' equally among '+g+' '+groups+'. How many '+item+' does each get?';rows=[g+' × {0} = '+p,p+' ÷ '+g+' = {1}','Each group gets {2} '+item+'.'];expected=[n,n,n];}
-    else {heading='How can you use what you know to solve the problem?';story=name+' shares '+p+' '+item+' equally among '+g+' '+groups+'. How many '+item+' does each get?';rows=['Each group gets {0} '+item+'.'];expected=[n];}
+    if(slot<4){heading='Complete the pair of equations.'; rows=[g+' × {0} = '+p,p+' ÷ '+g+' = {1}'];expected=[n,n];}
+    else if(slot<6){heading='Complete the multiplication and division equations to solve the problem.';story=name+' shares '+p+' '+item+' equally among '+g+' '+groups+'. How many '+item+' does each get?';rows=[g+' × {0} = '+p,p+' ÷ '+g+' = {1}','Each '+groupOne+' gets {2} '+item+'.'];expected=[n,n,n];}
+    else {heading='';story=name+' shares '+p+' '+item+' equally among '+g+' '+groups+'. How many '+item+' does each get?';rows=['Each '+groupOne+' gets {0} '+item+'.'];expected=[n];}
   } else if(id==='5-1'){
     heading='How can one factor be decomposed to find the product?';
     story=slot%2?name+' arranges '+arrayItem+' in '+g+' rows with '+n+' in each row. How many '+arrayItem+' are there? Tap where you would split the array.':'Tap where you would split the array.';
