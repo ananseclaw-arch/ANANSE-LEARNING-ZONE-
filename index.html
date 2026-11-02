@@ -5378,8 +5378,9 @@ function markTodayPlanDone(kind,id){
 function startTodayPlanStep(i){
   const plan=ensureTodayPlan(),step=plan.steps[i];if(!step||step.done)return;
   if(step.kind==="warmup")startSession(step.id,{warmupOnly:true});
-  else if(step.kind==="reveal")startReveal(step.id);
-  else if(step.kind==="lesson")startLesson(step.id);
+  // Eb 2026-11-01: teach BEFORE the quiz - plan steps open the lesson's Review/teach screen, not the questions
+  else if(step.kind==="reveal")renderRevealLesson(step.id);
+  else if(step.kind==="lesson")renderLesson(step.id);
   else if(step.kind==="practice")startSession(step.id,{short:true});
   else if(step.kind==="story")startStoryReplay();
   else if(step.kind==="daily")startDaily();
