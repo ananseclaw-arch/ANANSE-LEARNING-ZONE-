@@ -5565,7 +5565,7 @@ function renderHome(){
   const subj=s=>tile(SUBJECTS[s].icon,SUBJECTS[s].name,'Level '+P.levels[s]+' · '+LEVEL_NAMES[P.levels[s]],"startSession('"+s+"')",SUBJECTS[s].color,rec.has(s)?"pick":"");
   const curRv=(P.revealCurrent&&revealLesson(P.revealCurrent))||REVEAL_LESSONS.find(l=>{const r=revealRec(l.id);return !r||r.best/r.total<0.8;})||REVEAL_LESSONS[0];
   const resume=DB.resume&&DB.resume[P.id]&&DB.resume[P.id].s;
-  const videoDue=LESSON_VIDEOS['reveal:'+curRv.id]&&!(P.videoSeen&&P.videoSeen['reveal:'+curRv.id])&&P.videoDay!==today();
+  const videoDue=!!videoNext('reveal:'+curRv.id);
   const todayTiles=[
     (DB.resume&&DB.resume[P.id]&&DB.resume[P.id].s)?tile("▶","Continue your lesson","Pick up where you left off","sessResumeBtn()","#3bb273","pick"):"",
     s1!=="math"?tile(SUBJECTS[s1].icon,SUBJECTS[s1].name+" today","Ananse\'s pick · Level "+P.levels[s1],"startSession('"+s1+"')",SUBJECTS[s1].color,"pick"):"",
@@ -8983,15 +8983,24 @@ function fcDone(){
 </script>
 <script>
 /* Lesson video keys are stable even if a video is replaced. */
-const LESSON_VIDEOS={"reveal:4-1":"Hxd4-A-Nk_4","reveal:4-2":"9Xa1iNUiZk4"};
+const LESSON_VIDEOS={"4-1":["Hxd4-A-Nk_4"],"4-2":["9Xa1iNUiZk4"]};
 let videoActive=null,videoApiLoading=false,videoBypassOnce=null;
+function videoList(key){return key.startsWith('reveal:')?(LESSON_VIDEOS[key.slice(7)]||[]):[];}
+function videoSeenAt(profile,key,index){const seen=profile&&profile.videoSeen&&profile.videoSeen[key];return seen===true||(Array.isArray(seen)&&seen[index]===true);}
+function videoNext(key){
+  if(!P||P.videoDay===today()||!key.startsWith('reveal:'))return null;
+  const target=key.slice(7).split('-').map(Number);if(target.length!==2||target.some(Number.isNaN))return null;
+  const ids=Object.keys(LESSON_VIDEOS).sort((a,b)=>{const x=a.split('-').map(Number),y=b.split('-').map(Number);return x[0]-y[0]||x[1]-y[1];});
+  for(const id of ids){const parts=id.split('-').map(Number);if(parts[0]>target[0]||(parts[0]===target[0]&&parts[1]>target[1]))break;const videoKey='reveal:'+id, videos=videoList(videoKey);for(let index=0;index<videos.length;index++)if(!videoSeenAt(P,videoKey,index))return {key:videoKey,index};}
+  return null;
+}
 function videoStop(){
   const v=videoActive;videoActive=null;if(!v)return;
   clearInterval(v.timer);clearTimeout(v.loadTimer);
   try{if(v.player&&v.player.destroy)v.player.destroy();}catch(e){}
 }
 function videoAgainBtn(key){
-  if(!LESSON_VIDEOS[key]||!(P&&P.videoSeen&&P.videoSeen[key]))return '';
+  if(!videoList(key).some((id,index)=>videoSeenAt(P,key,index)))return '';
   return '<button class="btn secondary" onclick="videoReplay(\''+key.replace(/'/g,"\\'")+'\')">🎬 Watch the video again</button>';
 }
 function videoReplay(key){
@@ -8999,10 +9008,11 @@ function videoReplay(key){
   videoGate(key,back,back,true);
 }
 function videoGate(key,next,back,replay){
-  if(!replay&&videoBypassOnce===key){videoBypassOnce=null;return false;}
-  if(!LESSON_VIDEOS[key]||(!replay&&P&&((P.videoSeen&&P.videoSeen[key])||P.videoDay===today())))return false;
+  if(!replay&&videoBypassOnce&&videoBypassOnce.key===key&&videoBypassOnce.profile===P){videoBypassOnce=null;return false;}
+  const due=replay?{key,index:videoList(key).findIndex((id,index)=>videoSeenAt(P,key,index))}:videoNext(key);
+  if(!due||due.index<0)return false;
   videoStop();clearTimers();closeOverlay();defocus();showAnanseCorner(false);
-  const v=videoActive={key,replay:!!replay,profile:P,next,back,player:null,ready:false,failed:false,playing:false,watched:0,fallback:0,lastWall:performance.now(),lastMedia:null};
+  const v=videoActive={key:due.key,index:due.index,requestedKey:key,replay:!!replay,profile:P,next,back,player:null,ready:false,failed:false,playing:false,watched:0,fallback:0,lastWall:performance.now(),lastMedia:null};
   app.innerHTML='<style>#lessonVideoRetry[hidden]{display:none!important}#lessonVideoStatus{margin:10px 0 14px}</style><div id="lessonVideoGate" class="fadein" style="max-width:660px;margin:0 auto"><h1>🎬 '+(replay?'Watch it again':'Watch the lesson first')+'</h1><p>'+(replay?'Watch as much as you like.':'Watch the video first. When most of it has played, the lesson opens.')+'</p><div style="position:relative;width:100%;aspect-ratio:16/9;background:#111"><div id="lessonVideoPlayer"></div></div><p id="lessonVideoStatus" role="status">Loading video…</p><div class="btn-row"><button id="lessonVideoContinue" class="btn big"'+(replay?'':' disabled')+'>'+(replay?'Back to the lesson ▶':'Continue ▶')+'</button><button id="lessonVideoBack" class="btn secondary">⟵ Back</button><button id="lessonVideoRetry" class="btn secondary" hidden>Retry video</button></div></div>';
   document.getElementById('lessonVideoBack').onclick=()=>{videoStop();back();};
   document.getElementById('lessonVideoContinue').onclick=()=>videoComplete(v);
@@ -9017,7 +9027,7 @@ function videoLoad(v){
   try{if(v.player&&v.player.destroy)v.player.destroy();}catch(e){}v.player=null;
   const box=document.getElementById('lessonVideoGate');let old=document.getElementById('lessonVideoPlayer');
   if(!old){old=document.createElement('div');old.id='lessonVideoPlayer';box.querySelector('div[style*="aspect-ratio"]').appendChild(old);}
-  const launch=()=>{if(!videoAlive(v))return;try{v.player=new YT.Player('lessonVideoPlayer',{host:'https://www.youtube-nocookie.com',width:'100%',height:'100%',videoId:LESSON_VIDEOS[v.key],playerVars:{playsinline:1,rel:0},events:{onReady:()=>{if(!videoAlive(v))return;clearTimeout(v.loadTimer);v.ready=true;v.failed=false;v.fallback=0;v.lastMedia=null;v.lastWall=performance.now();document.getElementById('lessonVideoContinue').disabled=!v.replay;document.getElementById('lessonVideoRetry').hidden=true;document.getElementById('lessonVideoStatus').textContent='Press play and watch the lesson.';},onStateChange:e=>{if(!videoAlive(v))return;v.playing=e.data===1;v.lastMedia=null;v.lastWall=performance.now();},onError:()=>videoFail(v)}});}catch(e){videoFail(v);}};
+  const launch=()=>{if(!videoAlive(v))return;try{v.player=new YT.Player('lessonVideoPlayer',{host:'https://www.youtube-nocookie.com',width:'100%',height:'100%',videoId:videoList(v.key)[v.index],playerVars:{playsinline:1,rel:0},events:{onReady:()=>{if(!videoAlive(v))return;clearTimeout(v.loadTimer);v.ready=true;v.failed=false;v.fallback=0;v.lastMedia=null;v.lastWall=performance.now();document.getElementById('lessonVideoContinue').disabled=!v.replay;document.getElementById('lessonVideoRetry').hidden=true;document.getElementById('lessonVideoStatus').textContent='Press play and watch the lesson.';},onStateChange:e=>{if(!videoAlive(v))return;v.playing=e.data===1;v.lastMedia=null;v.lastWall=performance.now();},onError:()=>videoFail(v)}});}catch(e){videoFail(v);}};
   if(window.YT&&YT.Player)launch();else{
     v.launch=launch;
     if(!videoApiLoading){videoApiLoading=true;const tag=document.createElement('script');tag.src='https://www.youtube.com/iframe_api';tag.onerror=()=>{videoApiLoading=false;videoFail(videoActive);};document.head.appendChild(tag);}
@@ -9038,12 +9048,12 @@ function videoTick(v){
 }
 function videoComplete(v){
   if(!videoAlive(v)||document.getElementById('lessonVideoContinue').disabled)return;
-  if(v.replay||v.failed){const next=v.next;if(!v.replay)videoBypassOnce=v.key;videoStop();next();return;}
+  if(v.replay||v.failed){const next=v.next;if(!v.replay)videoBypassOnce={key:v.requestedKey,profile:v.profile};videoStop();next();return;}
   // A stale enabled button after a player error/retry must never count as viewing.
   let duration=0;try{duration=v.player&&v.player.getDuration();}catch(e){}
   if(!v.ready||!Number.isFinite(duration)||duration<=0||v.watched<duration*0.8){document.getElementById('lessonVideoContinue').disabled=true;document.getElementById('lessonVideoStatus').textContent='Press play and watch the lesson.';return;}
-  const profile=v.profile,old=profile.videoSeen&&profile.videoSeen[v.key];profile.videoSeen=profile.videoSeen||{};profile.videoSeen[v.key]=true;const oldDay=profile.videoDay;profile.videoDay=today();save();
-  let stored=false;try{const data=JSON.parse(localStorage.getItem(DBKEY));const index=DB.profiles.indexOf(profile);stored=index>=0&&!!(data.profiles[index].videoSeen||{})[v.key];}catch(e){}
+  const profile=v.profile,old=profile.videoSeen&&profile.videoSeen[v.key];profile.videoSeen=profile.videoSeen||{};const seen=Array.isArray(old)?old.slice():[];seen[v.index]=true;profile.videoSeen[v.key]=seen;const oldDay=profile.videoDay;profile.videoDay=today();save();
+  let stored=false;try{const data=JSON.parse(localStorage.getItem(DBKEY));const index=DB.profiles.indexOf(profile);stored=index>=0&&videoSeenAt(data.profiles[index],v.key,v.index)&&data.profiles[index].videoDay===profile.videoDay;}catch(e){}
   if(!stored){if(old===undefined)delete profile.videoSeen[v.key];else profile.videoSeen[v.key]=old;profile.videoDay=oldDay;document.getElementById('lessonVideoStatus').textContent='Could not save your progress. Please free storage and try Continue again.';return;}
   const next=v.next;videoStop();next();
 }
