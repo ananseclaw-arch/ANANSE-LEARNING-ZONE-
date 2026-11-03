@@ -427,16 +427,39 @@ function renderReveal(){
    +'<div class="btn-row" style="margin-top:18px"><button class="btn" onclick="renderHome()">⟵ Back to Adventure</button></div><div class="spacer"></div></div>';
   say("Reveal Math practice, "+P.name+". Pick a unit, or practice the lesson your class is on.");
 }
+/* Unit screen look (Eb's Gemini design, 2026-11-03): current lesson = big blue card with picture tiles + green Start,
+   other lessons = slate cards with a status badge. Look only: every card still opens renderRevealLesson(id) exactly as before. */
+const S4_ART={"4-1":["👟",'<i style="color:#2f80ed">2</i><i style="color:#9b51e0">2</i>',"🍒",'<i style="color:#eb3b3b">×2</i>'],
+ "4-2":["✋",'<i style="color:#2f80ed">5</i>',"⭐",'<i style="color:#eb3b3b">×5</i>'],
+ "4-3":["🔟",'<i style="color:#2f80ed">10</i>',"🪙",'<i style="color:#eb3b3b">×10</i>'],
+ "4-4":['<i style="color:#2f80ed">1</i>',"🍎",'<i style="color:#9b51e0">0</i>','<i style="color:#eb3b3b">×0</i>'],
+ "4-5":["⚡",'<i style="color:#2f80ed">5</i>','<i style="color:#9b51e0">10</i>','<i style="color:#eb3b3b">×</i>'],
+ "4-6":["🍪","🧺",'<i style="color:#2f80ed">4</i>','<i style="color:#eb3b3b">×8</i>']};
+function s4Art(id){const a=S4_ART[id]||["⭐",'<i style="color:#2f80ed">'+esc(id.split("-")[0])+'</i>',"🧮",'<i style="color:#eb3b3b">×</i>'];return '<span class="s4-art" aria-hidden="true">'+a.map(x=>'<span class="s4-tile">'+x+'</span>').join("")+'</span>';}
 function renderRevealUnit(u){
   clearTimers();closeOverlay();defocus();showAnanseCorner(true);
   const ls=REVEAL_LESSONS.filter(l=>l.u==u);
-  const cards=ls.map(l=>{const r=revealRec(l.id);const star=r&&r.best/r.total>=0.8;return '<button class="opt" style="display:flex;justify-content:space-between;align-items:center;gap:10px" onclick="renderRevealLesson(\''+l.id+'\')"><span style="text-align:left"><b>Lesson '+esc(l.id)+'</b> · '+esc(l.t)+(P.revealCurrent===l.id?' <span class="focus-chip">📍 class is here</span>':'')+'</span><span class="lvl-badge" style="background:'+(star?"#2f8f4e":(r?"#f5a623":"#6f88ad"))+'">'+(r?(star?"Mastered · ":"Practiced · ")+r.best+'/'+r.total:"Not started")+'</span></button>';}).join("");
-  app.innerHTML='<div class="fadein" style="max-width:680px;margin:0 auto">'
+  const passed=l=>{const r=revealRec(l.id);return !!r&&r.best/r.total>=0.8;};
+  const cur=ls.find(l=>P.revealCurrent===l.id&&!passed(l))||ls.find(l=>!passed(l))||null,curIdx=cur?ls.indexOf(cur):-1;
+  const cards=ls.map((l,i)=>{const r=revealRec(l.id);const star=r&&r.best/r.total>=0.8;const go='renderRevealLesson(\''+l.id+'\')';
+    const here=P.revealCurrent===l.id?' <span class="s4-here">📍 class is here</span>':'';
+    if(l===cur)return '<div class="s4-card s4-now" role="button" tabindex="0" onclick="'+go+'" onkeydown="if(event.key===\'Enter\')'+go+'" aria-label="Lesson '+esc(l.id)+', '+esc(l.t)+', up next">'
+      +'<div class="s4-now-t">Lesson '+esc(l.id)+' • '+esc(l.t)+here+'</div>'
+      +'<div class="s4-now-row">'+s4Art(l.id)+'<span class="s4-now-side">'+(r?'<span class="s4-now-best">Best so far '+r.best+'/'+r.total+'</span>':'')
+      +'<button class="s4-start" onclick="event.stopPropagation();'+go+'">Start Lesson →</button></span></div></div>';
+    const st=star?'done':(r?'tried':(cur&&i>curIdx?'lock':'new'));
+    const badge=st==='done'?'<span class="s4-badge s4-b-done"><b>★</b>Mastered<br>'+r.best+'/'+r.total+'</span>'
+      :st==='tried'?'<span class="s4-badge s4-b-tried"><b>✎</b>Practiced<br>'+r.best+'/'+r.total+'</span>'
+      :st==='lock'?'<span class="s4-badge s4-b-lock"><b>🔒</b>Finish '+esc(cur.id)+'<br>first</span>'
+      :'<span class="s4-badge s4-b-new"><b>○</b>Not<br>started</span>';
+    return '<button class="s4-card s4-'+st+'" onclick="'+go+'"><span class="s4-t">Lesson '+esc(l.id)+' • '+esc(l.t)+here+'</span>'+badge+'</button>';}).join("");
+  app.innerHTML='<div class="fadein s4" style="max-width:680px;margin:0 auto">'
    +'<div class="hud"><span class="pill">📘 <b>Reveal Math</b></span><span class="pill">Unit '+u+'</span></div>'
-   +'<h1 style="margin-top:10px">'+esc(REVEAL_UNITS[u].t)+'</h1>'
-   +'<div class="opts" style="margin-top:12px">'+cards+'</div>'
-   +'<div class="card" style="margin-top:14px"><b>🏠 Math @ Home</b><p class="muted" style="margin-top:6px">'+esc(REVEAL_UNITS[u].home)+'</p></div>'
-   +'<div class="btn-row" style="margin-top:14px"><button class="btn secondary" onclick="renderReveal()">⟵ All units</button></div><div class="spacer"></div></div>';
+   +'<h1 class="s4-h1">Unit '+u+': '+esc(REVEAL_UNITS[u].t)+'</h1>'
+   +'<div class="s4-list">'+cards+'</div>'
+   +'<div class="card s4-home"><b>🏠 Math @ Home</b><p class="muted" style="margin-top:6px">'+esc(REVEAL_UNITS[u].home)+'</p></div>'
+   +'<div class="btn-row" style="margin-top:14px"><button class="btn secondary" onclick="renderReveal()">⟵ All units</button></div><div class="spacer"></div>'
+   +'<div class="s4-bubble" aria-hidden="true">You can do this!<br>'+(cur?'Tap <b>Start Lesson</b>! 🚀':'Every lesson is done! ⭐')+'</div></div>';
 }
 function renderRevealLesson(id){
   const L=revealLesson(id);if(!L)return renderReveal();
