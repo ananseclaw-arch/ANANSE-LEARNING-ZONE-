@@ -429,24 +429,24 @@ function renderReveal(){
 }
 /* Unit screen look (Eb's Gemini design, 2026-11-03): current lesson = big blue card with picture tiles + green Start,
    other lessons = slate cards with a status badge. Look only: every card still opens renderRevealLesson(id) exactly as before. */
-const S4_ART={"4-1":["👟",'<i style="color:#2f80ed">2</i><i style="color:#9b51e0">2</i>',"🍒",'<i style="color:#eb3b3b">×2</i>'],
- "4-2":["✋",'<i style="color:#2f80ed">5</i>',"⭐",'<i style="color:#eb3b3b">×5</i>'],
- "4-3":["🔟",'<i style="color:#2f80ed">10</i>',"🪙",'<i style="color:#eb3b3b">×10</i>'],
- "4-4":['<i style="color:#2f80ed">1</i>',"🍎",'<i style="color:#9b51e0">0</i>','<i style="color:#eb3b3b">×0</i>'],
- "4-5":["⚡",'<i style="color:#2f80ed">5</i>','<i style="color:#9b51e0">10</i>','<i style="color:#eb3b3b">×</i>'],
- "4-6":["🍪","🧺",'<i style="color:#2f80ed">4</i>','<i style="color:#eb3b3b">×8</i>']};
-function s4Art(id){const a=S4_ART[id]||["⭐",'<i style="color:#2f80ed">'+esc(id.split("-")[0])+'</i>',"🧮",'<i style="color:#eb3b3b">×</i>'];return '<span class="s4-art" aria-hidden="true">'+a.map(x=>'<span class="s4-tile">'+x+'</span>').join("")+'</span>';}
+const S4_ART={"4-1":["sneakers","n22","cherries","x2"],"4-2":["hand","n5","star","x5"],"4-3":["hands10","n10","coin","x10"],
+ "4-4":["n1","apple","n0","x0"],"4-5":["bolt","n5","n10","times"],"4-6":["cookie","basket","n4","x8"]};
+/* Glossy tile pictures made with Gemini (gemini-3.1-flash-image), checked by eye: every count matches its lesson
+   (4-1 one pair of shoes + 2 cherries, 4-2 hand = 5 fingers, 4-3 two hands = 10 fingers, 4-4 exactly 1 apple). */
+function s4Art(id){const a=S4_ART[id]||["star","bolt","times","coin"];return '<span class="s4-art" aria-hidden="true">'+a.map(x=>'<span class="s4-tile"><img src="assets/s4/'+x+'.webp" alt="" width="160" height="160" loading="eager" decoding="async"></span>').join("")+'</span>';}
 function renderRevealUnit(u){
-  clearTimers();closeOverlay();defocus();showAnanseCorner(true);
+  clearTimers();closeOverlay();defocus();showAnanseCorner(false);
   const ls=REVEAL_LESSONS.filter(l=>l.u==u);
   const passed=l=>{const r=revealRec(l.id);return !!r&&r.best/r.total>=0.8;};
   const cur=ls.find(l=>P.revealCurrent===l.id&&!passed(l))||ls.find(l=>!passed(l))||null,curIdx=cur?ls.indexOf(cur):-1;
-  const cards=ls.map((l,i)=>{const r=revealRec(l.id);const star=r&&r.best/r.total>=0.8;const go='renderRevealLesson(\''+l.id+'\')';
+  /* Lion + bubble sit IN the page flow (never position:fixed), so they can't cover a card or button at any scroll. */
+  const coach='<div class="s4-coach" aria-live="polite">'+ananseSVG(64,"idle")+'<span class="s4-bubble">You can do this!<br>'+(cur?'Tap <b>Start Lesson</b>! 🚀':'Every lesson is done! ⭐')+'</span></div>';
+  const cards=(cur?'':coach)+ls.map((l,i)=>{const r=revealRec(l.id);const star=r&&r.best/r.total>=0.8;const go='renderRevealLesson(\''+l.id+'\')';
     const here=P.revealCurrent===l.id?' <span class="s4-here">📍 class is here</span>':'';
     if(l===cur)return '<div class="s4-card s4-now" role="button" tabindex="0" onclick="'+go+'" onkeydown="if(event.key===\'Enter\')'+go+'" aria-label="Lesson '+esc(l.id)+', '+esc(l.t)+', up next">'
       +'<div class="s4-now-t">Lesson '+esc(l.id)+' • '+esc(l.t)+here+'</div>'
       +'<div class="s4-now-row">'+s4Art(l.id)+'<span class="s4-now-side">'+(r?'<span class="s4-now-best">Best so far '+r.best+'/'+r.total+'</span>':'')
-      +'<button class="s4-start" onclick="event.stopPropagation();'+go+'">Start Lesson →</button></span></div></div>';
+      +'<button class="s4-start" onclick="event.stopPropagation();'+go+'">Start Lesson →</button></span></div></div>'+coach;
     const st=star?'done':(r?'tried':(cur&&i>curIdx?'lock':'new'));
     const badge=st==='done'?'<span class="s4-badge s4-b-done"><b>★</b>Mastered<br>'+r.best+'/'+r.total+'</span>'
       :st==='tried'?'<span class="s4-badge s4-b-tried"><b>✎</b>Practiced<br>'+r.best+'/'+r.total+'</span>'
@@ -459,7 +459,7 @@ function renderRevealUnit(u){
    +'<div class="s4-list">'+cards+'</div>'
    +'<div class="card s4-home"><b>🏠 Math @ Home</b><p class="muted" style="margin-top:6px">'+esc(REVEAL_UNITS[u].home)+'</p></div>'
    +'<div class="btn-row" style="margin-top:14px"><button class="btn secondary" onclick="renderReveal()">⟵ All units</button></div><div class="spacer"></div>'
-   +'<div class="s4-bubble" aria-hidden="true">You can do this!<br>'+(cur?'Tap <b>Start Lesson</b>! 🚀':'Every lesson is done! ⭐')+'</div></div>';
+   +'</div>';
 }
 function renderRevealLesson(id){
   const L=revealLesson(id);if(!L)return renderReveal();

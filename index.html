@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Learning Zone">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 <title>Learning Zone</title>
 <style>
 :root{
@@ -615,7 +616,7 @@ body.learningworld #app{max-width:1180px}
 .s4-list{display:flex;flex-direction:column;gap:12px;margin-top:16px}
 .s4-card{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;font-family:inherit;cursor:pointer;border:0;border-radius:20px;padding:16px 14px 16px 18px;background:#b4c1d1;color:#1c2b4a;box-shadow:0 4px 0 rgba(40,60,90,.12),0 8px 18px rgba(40,60,90,.10);transition:transform .12s}
 .s4-card:active{transform:scale(.985)}
-.s4-t{font-size:clamp(19px,4.9vw,23px);font-weight:800;line-height:1.28}
+.s4-t{flex:1 1 auto;min-width:0;overflow-wrap:break-word;font-size:clamp(19px,4.9vw,23px);font-weight:800;line-height:1.28}
 .s4-lock .s4-t,.s4-new .s4-t{color:#2a3a58}
 .s4-done{background:#cfeedd}.s4-tried{background:#f6e3bf}
 .s4-badge{flex:0 0 auto;width:84px;min-height:72px;border-radius:999px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:12.5px;font-weight:800;line-height:1.15;color:#fff;padding:6px 4px}
@@ -623,10 +624,10 @@ body.learningworld #app{max-width:1180px}
 .s4-b-lock{background:#8494a9}.s4-b-new{background:#8494a9}.s4-b-done{background:#2f8f4e}.s4-b-tried{background:#d98a12}
 .s4-now{flex-direction:column;align-items:stretch;background:linear-gradient(160deg,#2b7cf0,#1a5fd6);color:#fff;padding:16px 16px 18px;box-shadow:0 6px 0 #1449a8,0 12px 26px rgba(26,95,214,.35)}
 .s4-now-t{font-size:clamp(20px,5.3vw,25px);font-weight:900;line-height:1.25}
-.s4-now-row{display:flex;align-items:center;gap:14px;margin-top:12px}
-.s4-art{display:grid;grid-template-columns:repeat(2,58px);gap:6px;flex:0 0 auto}
-.s4-tile{width:58px;height:50px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.08)}
-.s4-tile i{font-style:normal;font-weight:900;font-size:26px;letter-spacing:-1px;text-shadow:0 2px 0 rgba(0,0,0,.12)}
+.s4-now-row{display:flex;align-items:center;gap:12px;margin-top:12px}
+.s4-art{display:grid;grid-template-columns:repeat(2,66px);gap:7px;flex:0 0 auto}
+.s4-tile{width:66px;height:66px;border-radius:14px;background:linear-gradient(135deg,#fff 0%,#f3f6fa 100%);display:flex;align-items:center;justify-content:center;padding:3px;box-shadow:inset 0 2px 0 rgba(255,255,255,.9),0 4px 0 #c5d3e6,0 6px 12px rgba(0,0,0,.14);overflow:hidden}
+.s4-tile img{width:100%;height:100%;object-fit:contain;border-radius:10px;mix-blend-mode:multiply;display:block}
 .s4-now-side{flex:1;display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0}
 .s4-now-best{font-size:15px;font-weight:700;opacity:.92;text-align:center}
 .s4-start{font-family:inherit;border:0;border-radius:999px;padding:16px 12px;font-size:clamp(18px,4.7vw,22px);font-weight:900;color:#fff;cursor:pointer;background:linear-gradient(180deg,#5fdc4a,#2fae2a);box-shadow:0 5px 0 #1f7f1c,0 8px 16px rgba(0,0,0,.18);text-shadow:0 1px 0 rgba(0,0,0,.2)}
@@ -634,12 +635,14 @@ body.learningworld #app{max-width:1180px}
 .s4-here{display:inline-block;font-size:13px;font-weight:800;background:rgba(255,255,255,.75);color:#1c4f9c;border-radius:999px;padding:3px 9px;vertical-align:middle;white-space:nowrap}
 .s4-now .s4-here{background:rgba(255,255,255,.22);color:#fff}
 .s4-home{margin-top:16px}
-.s4-bubble{position:fixed;right:106px;bottom:52px;z-index:41;max-width:190px;background:#fff;color:#14254a;border:2px solid #d5e2f2;border-radius:16px;padding:8px 12px;font-size:14px;font-weight:800;line-height:1.3;text-align:center;box-shadow:0 6px 16px rgba(20,37,74,.16);pointer-events:none;animation:s4pop .4s ease-out .6s both}
-.s4-bubble:after{content:"";position:absolute;right:-9px;bottom:16px;border:8px solid transparent;border-left-color:#fff;border-right:0}
-body:has(.s4) #anansecorner{z-index:45}
-.s4-bubble{z-index:46}
+.s4-coach{display:flex;align-items:center;gap:10px;margin:2px 4px 0}
+.s4-coach .ananse-render{flex:0 0 auto;width:64px;height:64px;border-radius:50%;border:3px solid #f5a623;background:#fff;box-shadow:0 4px 10px rgba(20,37,74,.18);object-fit:cover;animation:s4bob 3s ease-in-out infinite}
+.s4-bubble{position:relative;background:#fff;color:#14254a;border:2px solid #d5e2f2;border-radius:16px;padding:8px 12px;font-size:15px;font-weight:800;line-height:1.3;box-shadow:0 4px 12px rgba(20,37,74,.12);animation:s4pop .4s ease-out .4s both}
+.s4-bubble:before{content:"";position:absolute;left:-9px;top:50%;margin-top:-8px;border:8px solid transparent;border-right-color:#fff;border-left:0}
+@keyframes s4bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){.s4-coach .ananse-render,.s4-bubble{animation:none}}
 @keyframes s4pop{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:none}}
-@media (min-width:700px){.s4-art{grid-template-columns:repeat(2,70px)}.s4-tile{width:70px;height:58px}.s4-now-side{max-width:320px;margin-left:auto}}
+@media (min-width:700px){.s4-art{grid-template-columns:repeat(2,76px)}.s4-tile{width:76px;height:76px}.s4-now-side{max-width:320px;margin-left:auto}}
 </style>
 <style id="workbook"></style>
 </head>
@@ -1996,24 +1999,24 @@ function renderReveal(){
 }
 /* Unit screen look (Eb's Gemini design, 2026-11-03): current lesson = big blue card with picture tiles + green Start,
    other lessons = slate cards with a status badge. Look only: every card still opens renderRevealLesson(id) exactly as before. */
-const S4_ART={"4-1":["👟",'<i style="color:#2f80ed">2</i><i style="color:#9b51e0">2</i>',"🍒",'<i style="color:#eb3b3b">×2</i>'],
- "4-2":["✋",'<i style="color:#2f80ed">5</i>',"⭐",'<i style="color:#eb3b3b">×5</i>'],
- "4-3":["🔟",'<i style="color:#2f80ed">10</i>',"🪙",'<i style="color:#eb3b3b">×10</i>'],
- "4-4":['<i style="color:#2f80ed">1</i>',"🍎",'<i style="color:#9b51e0">0</i>','<i style="color:#eb3b3b">×0</i>'],
- "4-5":["⚡",'<i style="color:#2f80ed">5</i>','<i style="color:#9b51e0">10</i>','<i style="color:#eb3b3b">×</i>'],
- "4-6":["🍪","🧺",'<i style="color:#2f80ed">4</i>','<i style="color:#eb3b3b">×8</i>']};
-function s4Art(id){const a=S4_ART[id]||["⭐",'<i style="color:#2f80ed">'+esc(id.split("-")[0])+'</i>',"🧮",'<i style="color:#eb3b3b">×</i>'];return '<span class="s4-art" aria-hidden="true">'+a.map(x=>'<span class="s4-tile">'+x+'</span>').join("")+'</span>';}
+const S4_ART={"4-1":["sneakers","n22","cherries","x2"],"4-2":["hand","n5","star","x5"],"4-3":["hands10","n10","coin","x10"],
+ "4-4":["n1","apple","n0","x0"],"4-5":["bolt","n5","n10","times"],"4-6":["cookie","basket","n4","x8"]};
+/* Glossy tile pictures made with Gemini (gemini-3.1-flash-image), checked by eye: every count matches its lesson
+   (4-1 one pair of shoes + 2 cherries, 4-2 hand = 5 fingers, 4-3 two hands = 10 fingers, 4-4 exactly 1 apple). */
+function s4Art(id){const a=S4_ART[id]||["star","bolt","times","coin"];return '<span class="s4-art" aria-hidden="true">'+a.map(x=>'<span class="s4-tile"><img src="assets/s4/'+x+'.webp" alt="" width="160" height="160" loading="eager" decoding="async"></span>').join("")+'</span>';}
 function renderRevealUnit(u){
-  clearTimers();closeOverlay();defocus();showAnanseCorner(true);
+  clearTimers();closeOverlay();defocus();showAnanseCorner(false);
   const ls=REVEAL_LESSONS.filter(l=>l.u==u);
   const passed=l=>{const r=revealRec(l.id);return !!r&&r.best/r.total>=0.8;};
   const cur=ls.find(l=>P.revealCurrent===l.id&&!passed(l))||ls.find(l=>!passed(l))||null,curIdx=cur?ls.indexOf(cur):-1;
-  const cards=ls.map((l,i)=>{const r=revealRec(l.id);const star=r&&r.best/r.total>=0.8;const go='renderRevealLesson(\''+l.id+'\')';
+  /* Lion + bubble sit IN the page flow (never position:fixed), so they can't cover a card or button at any scroll. */
+  const coach='<div class="s4-coach" aria-live="polite">'+ananseSVG(64,"idle")+'<span class="s4-bubble">You can do this!<br>'+(cur?'Tap <b>Start Lesson</b>! 🚀':'Every lesson is done! ⭐')+'</span></div>';
+  const cards=(cur?'':coach)+ls.map((l,i)=>{const r=revealRec(l.id);const star=r&&r.best/r.total>=0.8;const go='renderRevealLesson(\''+l.id+'\')';
     const here=P.revealCurrent===l.id?' <span class="s4-here">📍 class is here</span>':'';
     if(l===cur)return '<div class="s4-card s4-now" role="button" tabindex="0" onclick="'+go+'" onkeydown="if(event.key===\'Enter\')'+go+'" aria-label="Lesson '+esc(l.id)+', '+esc(l.t)+', up next">'
       +'<div class="s4-now-t">Lesson '+esc(l.id)+' • '+esc(l.t)+here+'</div>'
       +'<div class="s4-now-row">'+s4Art(l.id)+'<span class="s4-now-side">'+(r?'<span class="s4-now-best">Best so far '+r.best+'/'+r.total+'</span>':'')
-      +'<button class="s4-start" onclick="event.stopPropagation();'+go+'">Start Lesson →</button></span></div></div>';
+      +'<button class="s4-start" onclick="event.stopPropagation();'+go+'">Start Lesson →</button></span></div></div>'+coach;
     const st=star?'done':(r?'tried':(cur&&i>curIdx?'lock':'new'));
     const badge=st==='done'?'<span class="s4-badge s4-b-done"><b>★</b>Mastered<br>'+r.best+'/'+r.total+'</span>'
       :st==='tried'?'<span class="s4-badge s4-b-tried"><b>✎</b>Practiced<br>'+r.best+'/'+r.total+'</span>'
@@ -2026,7 +2029,7 @@ function renderRevealUnit(u){
    +'<div class="s4-list">'+cards+'</div>'
    +'<div class="card s4-home"><b>🏠 Math @ Home</b><p class="muted" style="margin-top:6px">'+esc(REVEAL_UNITS[u].home)+'</p></div>'
    +'<div class="btn-row" style="margin-top:14px"><button class="btn secondary" onclick="renderReveal()">⟵ All units</button></div><div class="spacer"></div>'
-   +'<div class="s4-bubble" aria-hidden="true">You can do this!<br>'+(cur?'Tap <b>Start Lesson</b>! 🚀':'Every lesson is done! ⭐')+'</div></div>';
+   +'</div>';
 }
 function renderRevealLesson(id){
   const L=revealLesson(id);if(!L)return renderReveal();
@@ -2274,7 +2277,7 @@ function wbPair(id,q,spoken,models,product,opts){opts=opts||{};const p=wbBase(id
 /* ---------- typed-form helpers (type "form"): real text boxes, answers checked with maths / key ideas ---------- */
 const WB_TEN=["3-7","4-1","4-2","4-3","4-4","4-5"];
 const WB_R={
-  even:["even","pairs","pair","2","two","twos","double","doubles","odd","half","halves","couples"],
+  even:["even","evn","pairs","pair","2","two","twos","double","doubles","odd","od","half","halves","couples"],
   order:["same","order","swap","switch","flip","commutative","backwards","backward","reverse","turn","change","either","equal","both","around"],
   zero:["0","zero","nothing","none","empty"],
   ones:["ones","end","ends","last","digit","0","zero","tens","multiple","multiples","10","ten","place"],
@@ -2289,7 +2292,21 @@ function wbN2(){const a=wbName();let b=wbName(),t=0;while(b===a&&t++<40)b=wbName
 function wbNorm(s){return String(s==null?"":s).toLowerCase().replace(/[✕*]/g,"×").replace(/[^a-z0-9×+=\s$]/g," ").replace(/\s+/g," ").trim();}
 function wbLev(a,b){const m=a.length,n=b.length;if(!m)return n;if(!n)return m;let prev=[];for(let j=0;j<=n;j++)prev[j]=j;for(let i=1;i<=m;i++){const cur=[i];for(let j=1;j<=n;j++)cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));prev=cur;}return prev[n];}
 function wbWordOK(text,accept){const t=wbNorm(text).replace(/^(a|an|the)\s+/,"");if(!t)return false;return accept.some(w=>{w=String(w).toLowerCase();if(t===w)return true;if(w.length>=4&&wbLev(t,w)<=1)return true;if(w.length>=7&&wbLev(t,w)<=2)return true;return false;});}
-function wbReasonOK(text,keys){let n=wbNorm(text).replace(/^because\s+/,"");if(n.length<1)return false;const tokens=n.split(" ");return keys.some(k=>{k=String(k).toLowerCase();if(!/[a-z0-9]/.test(k))return n.indexOf(k)>=0;if(k.length===1||/^\d+$/.test(k))return tokens.indexOf(k)>=0;if(k.indexOf(" ")>=0)return n.indexOf(k)>=0;return tokens.some(t=>t===k||(k.length>=4&&t.length>=3&&(t.indexOf(k)===0||k.indexOf(t)===0&&t.length>=4||wbLev(t,k)<=(k.length>=7?2:1))));});}
+function wbReasonOK(text,keys,p){let n=wbNorm(text).replace(/^because\s+/,"");const tokens=n.split(" ").filter(Boolean);if(tokens.length<3||/\b(?:idk|dunno|dont know|don t know|do not know|no idea|not sure)\b/.test(n))return false;
+  // Parity and the final-digit pattern depend on the actual yes/no answer.
+  // Refuse direct contradictions before considering the child's key words.
+  if(p&&p.lesson==="4-5"&&p.answer&&p.answer.f){
+    const yes=p.answer.f.a==="yes";
+    if(/pairs of/.test(p.q)){
+      const odd=/\b(?:odd|od)\b/.test(n),even=/\b(?:even|evn)\b/.test(n);
+      if((yes&&odd&&!even)||(!yes&&even&&!odd))return false;
+    }else if(/product of 2, a product of 5, and a product of 10/.test(p.q)){
+      const endsZero=/\b(?:ends?|ending|end|last digit)\b.*\b(?:0|zero)\b/.test(n);
+      const negative=/\b(?:not|never|doesnt|doesn t|does not|cannot|can t)\b/.test(n);
+      if(endsZero&&negative===yes)return false;
+    }
+  }
+  return keys.some(k=>{k=String(k).toLowerCase();if(!/[a-z0-9]/.test(k))return n.indexOf(k)>=0;if(k.length===1||/^\d+$/.test(k))return tokens.indexOf(k)>=0;if(k.indexOf(" ")>=0)return n.indexOf(k)>=0;return tokens.some(t=>t===k||(k.length>=4&&t.length>=3&&(t.indexOf(k)===0||k.indexOf(t)===0&&t.length>=4||wbLev(t,k)<=(k.length>=7?2:1))));});}
 function wbYN(text){const t=wbNorm(text).split(" ")[0];if(/^(y|yes|yep|yeah|yup|correct|true|sure)$/.test(t))return"yes";if(/^(n|no|nope|nah|false|not|incorrect)$/.test(t))return"no";return null;}
 function wbNum(text){const t=String(text==null?"":text).trim().replace(/^\$/,"").replace(/,/g,"");return /^\d{1,4}$/.test(t)?Number(t):NaN;}
 function wbSideParse(str){if(!str)return null;const terms=str.split("+").map(t=>t.split("*"));if(terms.some(t=>t.some(f=>!/^\d{1,3}$/.test(f))))return null;const nums=terms.map(t=>t.map(Number));return{terms:nums,value:nums.reduce((s,t)=>s+t.reduce((a,b)=>a*b,1),0)};}
@@ -2303,7 +2320,7 @@ function wbFormCheck(p,f){
     if(c.t==="num"){if(wbNum(v)!==c.want)return false;}
     else if(c.t==="word"){if(!wbWordOK(v,c.accept))return false;}
     else if(c.t==="yn"){if(wbYN(v)!==c.want)return false;}
-    else if(c.t==="reason"){if(!wbReasonOK(v,c.keys))return false;}
+    else if(c.t==="reason"){if(!wbReasonOK(v,c.keys,p))return false;}
     else if(c.t==="mult"){const n=wbNum(v);if(!(n>=c.min&&n<=c.max&&n%c.of===0))return false;}
     else if(c.t==="divides"){const n=wbNum(v);if(!(n>=2&&n<=c.max&&c.of%n===0))return false;}
     else return false;
@@ -2490,7 +2507,7 @@ function wbGen45(i){
   if(slot===5){const N=wbFactor(11,49),th=wbPick(["socks","gloves","shoes"]),exs=wbPick([["A store employee","the employee"],["A clerk","the clerk"],["A shop helper","the helper"]]),ex=exs[0];const yn=N%2===0?"yes":"no";return wbForm(id,ex+" is making a display of pairs of "+th+". Can "+exs[1]+" use "+N+" "+th+" in all, with none left over? Explain.","Can "+N+" "+th+" make pairs with none left over? Explain.",["Answer (yes or no): {t:a}","Because {t:r}"],[{k:"a",t:"yn",want:yn},{k:"r",t:"reason",keys:WB_R.even}],null,{a:yn,r:N%2===0?"pairs make even numbers":"it is odd"},(yn==="yes"?"Yes. ":"No. ")+"Pairs make products of 2, and products of 2 are even. "+N+" is "+(N%2===0?"even":"odd")+".",[yn==="yes"?"Yes":"No",N+" is "+(N%2===0?"even":"odd")]);}
   if(slot===6){const M=wbFactor(5,9);return wbForm(id,n+" staples 10 sheets of paper together to make a packet. "+n+" makes at least 1 but fewer than "+M+" packets and uses all of the paper. How many sheets of paper could "+n+" have used? Explain how you know.","Packets of 10 sheets, fewer than "+M+" packets. How many sheets could be used? Explain.",["{n:v} sheets","Because {t:r}"],[{k:"v",t:"mult",of:10,min:10,max:10*(M-1)},{k:"r",t:"reason",keys:WB_R.ten}],null,{v:"30",r:"3 packets of 10"},"Each packet has 10 sheets, so the total is a multiple of 10 up to "+10*(M-1)+".",["Any multiple of 10 from 10 to "+10*(M-1)+", for example 30."]);}
   if(slot===7){const gen=wbRand(2)===0;const N=wbPick([10,20,30,40,50,60,70,80,90,15,25,35,45,12,14,16,18,22,24]);let q,yn,expl;if(gen){q="Is it possible for a number to be a product of 2, a product of 5, and a product of 10? Explain.";yn="yes";expl="Yes. A number that ends in 0, like 10 or 20, is a product of 2, 5 and 10.";}else{q="Is "+N+" a product of 2, a product of 5, and a product of 10? Explain.";yn=N%10===0?"yes":"no";expl=(yn==="yes"?"Yes. "+N+" ends in 0, so it is a product of 2, 5 and 10.":"No. "+N+" ends in "+N%10+", so it is not a product of all of 2, 5 and 10; only numbers that end in 0 are.");}
-    return wbForm(id,q,q,["Answer (yes or no): {t:a}","Because {t:r}"],[{k:"a",t:"yn",want:yn},{k:"r",t:"reason",keys:WB_R.mix}],null,{a:yn,r:"it ends in 0"},expl,[yn==="yes"?"Yes":"No",expl]);}
+    return wbForm(id,q,q,["Answer (yes or no): {t:a}","Because {t:r}"],[{k:"a",t:"yn",want:yn},{k:"r",t:"reason",keys:WB_R.mix}],null,{a:yn,r:yn==="yes"?"it ends in 0":"it does not end in 0"},expl,[yn==="yes"?"Yes":"No",expl]);}
   if(slot===8){const k=wbFactor(2,9),v=wbRand(3);if(v===0)return wbMulStory(id,n+" counts "+k+" five-dollar bills. How much money is that?",n+" counts "+k+" five dollar bills. How much money?",k,5,"dollars in all",k+" × 5 = "+5*k+". Products of 5 end in 0 or 5.");if(v===1)return wbMulStory(id,n+" has "+k+" nickels. A nickel is worth 5 cents. How many cents is that?",n+" has "+k+" nickels, 5 cents each. How many cents?",k,5,"cents in all",k+" × 5 = "+5*k+". Count by 5s.");return wbMulStory(id,n+" has "+k+" dimes. A dime is worth 10 cents. How many cents is that?",n+" has "+k+" dimes, 10 cents each. How many cents?",k,10,"cents in all",k+" × 10 = "+10*k+". Count by 10s.",{kind:"array",rows:k,cols:10});}
   const f=wbPick([2,5,10]),k=wbFactor(1,9),pr=f*k;return wbForm(id,"Write the product of "+f+" × "+k+". Then name the digit in the ones place.","What is "+f+" times "+k+"? What digit is in the ones place?",[f+" × "+k+" = {n:p}","Ones place digit: {n:d}"],[{k:"p",t:"num",want:pr},{k:"d",t:"num",want:pr%10}],null,{p:String(pr),d:String(pr%10)},f+" × "+k+" = "+pr+". The ones place is "+pr%10+". "+(f===2?"Products of 2 end in 0, 2, 4, 6 or 8.":f===5?"Products of 5 end in 0 or 5.":"Products of 10 end in 0.")+" Use × not +.",[f+" × "+k+" = "+pr,"Ones place: "+pr%10]);
 }
