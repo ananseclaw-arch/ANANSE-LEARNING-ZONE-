@@ -645,6 +645,7 @@ body.learningworld #app{max-width:1180px}
 <div id="app"></div>
 <div id="overlay"></div>
 <div id="anansecorner"></div>
+<script src="rebound-rescue.js"></script>
 <script>
 /* lessons.js is inlined here so a stale offline cache can never break the app; edit lessons.js and run inline_lessons.py */
 /* ============================================================
@@ -5398,7 +5399,7 @@ function topicsDue(){
    SCREENS & SESSION ENGINE
    ============================================================ */
 let sprintInt=null;
-function clearTimers(){if(typeof raceStop==="function"&&typeof RC!=="undefined"&&RC)raceStop();if(typeof gpStop==="function"&&typeof R3!=="undefined"&&R3)gpStop();if(sprintInt){clearInterval(sprintInt);sprintInt=null}if(typeof hoopInt!=="undefined"&&hoopInt){clearInterval(hoopInt);hoopInt=null}}
+function clearTimers(){if(typeof raceStop==="function"&&typeof RC!=="undefined"&&RC)raceStop();if(typeof gpStop==="function"&&typeof R3!=="undefined"&&R3)gpStop();if(sprintInt){clearInterval(sprintInt);sprintInt=null}if(typeof reboundStop==="function")reboundStop();if(typeof hoopInt!=="undefined"&&hoopInt){clearInterval(hoopInt);hoopInt=null}}
 function closeOverlay(){overlay.classList.remove("show");overlay.innerHTML=""}
 function defocus(){if(typeof document!=="undefined"&&document.body&&document.body.classList){document.body.classList.remove("focus");document.body.classList.remove("storyworld");document.body.classList.remove("learningworld")}if(typeof ambientStop==="function")ambientStop();}
 function openOverlay(html){overlay.innerHTML='<div class="ov-card fadein">'+html+'</div>';overlay.classList.add("show");overlay.scrollTop=0}
@@ -6797,78 +6798,49 @@ function endSession(){
    +'</div>'
    +(earned.length?'<div class="spacer"></div><h3>🏆 New trophies!</h3><div class="shelf-row" style="justify-content:center;margin-top:10px">'+earned.map(t=>'<div class="trophy" style="border-color:'+t.color+'"><span class="t-ic">'+t.icon+'</span><span class="t-lb">'+esc(t.label)+'</span></div>').join("")+'</div>':"")
    +'<div class="spacer"></div>'
-   +(lessonPassed&&S.results.length>=S.total?'<div class="btn-row"><button class="btn big" onclick="startHoops()">🏀 Bonus Hoops Game!</button></div><div class="spacer"></div>':"")
+   +(lessonPassed&&S.results.length>=S.total?'<div class="btn-row"><button class="btn big" onclick="startHoops()">🏀 Play Rebound Rescue!</button></div><div class="spacer"></div>':"")
    +'<div class="btn-row"><button class="btn '+(S.results.length>=S.total?"secondary ":"")+'big" onclick="goHome()">Daily Path 🏠</button>'
    +(earned.length?'<button class="btn secondary big" onclick="renderTrophyRoom()">Trophy Room 🏆</button>':"")
    +(S.lesson&&S.lesson.indexOf('reveal:')===0?'<button class="btn secondary big" onclick="renderRevealUnit('+revealLesson(S.lesson.slice(7)).u+')">Unit '+revealLesson(S.lesson.slice(7)).u+' 📘</button>':(S.lesson?'<button class="btn secondary big" onclick="renderLessons()">More Lessons 📚</button>':""))
    +'</div></div>';
   if(!lessonPassed)say("Almost there! You got "+S.correct+" of "+S.total+" right the first time. You need "+passNeed+" to pass. Let's look at the lesson again, then try a new set.");
-  else say("Session complete! "+praiseLine+(earned.length?" And you earned a new trophy!":"")+(S.results.length>=S.total?" You also unlocked the bonus hoops game!":""));
+  else say("Session complete! "+praiseLine+(earned.length?" And you earned a new trophy!":"")+(S.results.length>=S.total?" You also unlocked Rebound Rescue!":""));
   S=null;
 }
 
-/* ---------- bonus hoops — reward mini-game ---------- */
+/* ---------- Rebound Rescue — earned reward mini-game ---------- */
 var hoopInt=null,H=null;
+function reboundStop(){
+  if(H&&typeof H.destroy==="function")H.destroy();
+  H=null;
+}
 function startHoops(){
   clearTimers();closeOverlay();showAnanseCorner(false);
-  if(hoopInt){clearInterval(hoopInt);hoopInt=null}
-  H={shot:0,made:0,pos:0,dir:1,live:true};
-  app.innerHTML='<div class="fadein center" style="max-width:480px;margin:0 auto">'
-   +'<h1>🏀 Bonus Hoops!</h1>'
-   +'<p class="muted">You earned it! 5 free throws — tap SHOOT when the marker is in the green zone.</p>'
-   +'<div style="font-size:56px;margin:10px 0" id="hoopAnim">🏀&nbsp;&nbsp;&nbsp;&nbsp;🧺</div>'
-   +'<h3 id="hoopScore">Shot 1 of 5 · Made 0</h3>'
-   +'<div style="position:relative;height:34px;background:var(--panel2);border:2px solid #b9d4f3;border-radius:17px;margin:18px 0;overflow:hidden">'
-   +'<div style="position:absolute;left:38%;width:24%;top:0;bottom:0;background:rgba(59,178,115,.45)"></div>'
-   +'<div id="hoopMark" style="position:absolute;left:0;top:2px;bottom:2px;width:14px;border-radius:7px;background:#2d6fc0"></div>'
-   +'</div>'
-   +'<button class="btn big" onclick="hoopsShoot()">SHOOT! 🏀</button>'
-   +'<div class="spacer"></div>'
-   +'<button class="btn secondary" style="font-size:15px;padding:8px 16px" onclick="endHoops()">Done playing</button>'
-   +'</div>';
-  say("Bonus hoops! Tap shoot when the marker is in the green zone. Five free throws!");
-  hoopRun();
-}
-function hoopRun(){
-  if(hoopInt)clearInterval(hoopInt);
-  H.pos=0;H.dir=1;H.live=true;
-  hoopInt=setInterval(()=>{
-    H.pos+=H.dir*3.4;
-    if(H.pos>=100){H.pos=100;H.dir=-1}
-    if(H.pos<=0){H.pos=0;H.dir=1}
-    const m=$("hoopMark");if(m)m.style.left="calc("+H.pos+"% - 7px)";
-  },16);
-}
-function hoopsShoot(){
-  if(!H||!H.live)return;
-  H.live=false;
-  if(hoopInt){clearInterval(hoopInt);hoopInt=null}
-  const hit=H.pos>=38&&H.pos<=62;
-  H.shot++;
-  if(hit){H.made++;P.xp+=3;save()}
-  const an=$("hoopAnim");if(an)an.innerHTML=hit?'🏀➡️🧺 <b style="color:#3bb273">SWISH!</b>':'🏀↩️ <b style="color:#ff6b4a">Rim out!</b>';
-  const sc=$("hoopScore");if(sc)sc.textContent="Shot "+Math.min(H.shot+1,5)+" of 5 · Made "+H.made;
-  say(hit?"Swish!":"So close!");
-  if(H.shot>=5)setTimeout(endHoops,1200);
-  else setTimeout(()=>{if(!H)return;const a2=$("hoopAnim");if(a2)a2.innerHTML="🏀&nbsp;&nbsp;&nbsp;&nbsp;🧺";hoopRun()},900);
-}
-function endHoops(){
-  if(hoopInt){clearInterval(hoopInt);hoopInt=null}
-  if(!H)return;
-  const made=H.made,shots=H.shot;
-  H=null;
-  if(made===5){
-    awardTrophy({type:"hoops",icon:"🏀",label:"Sharpshooter",color:"#f5a623",detail:"Made 5 of 5 bonus free throws!"});
-    confetti();
+  app.innerHTML='<div id="reboundRescueHost" class="fadein"></div>';
+  const host=$("reboundRescueHost");
+  if(!host||typeof ReboundRescue==="undefined"){
+    app.innerHTML='<div class="fadein center"><h1>Rebound Rescue is taking a timeout.</h1><p class="muted">Your lesson reward is safe. Please return to the Daily Path and try again.</p><div class="spacer"></div><button class="btn big" onclick="goHome()">Daily Path 🏠</button></div>';
+    return;
   }
+  H=ReboundRescue.mount(host,{seed:Date.now(),totalRounds:5,onFinish:endHoops});
+}
+function endHoops(result){
+  if(!result){if(H&&typeof H.end==="function")H.end();return;}
+  H=null;
+  const boards=result.boards||0,xp=boards*3,perfect=result.perfect===true;
+  if(P){
+    P.xp+=xp;
+    if(perfect)awardTrophy({type:"hoops",icon:"🏀",label:"Sharpshooter",color:"#f5a623",detail:"Rescued 5 of 5 rebounds and scored every putback in Rebound Rescue!"});
+    else save();
+  }
+  if(perfect)confetti();
   app.innerHTML='<div class="fadein center">'
-   +'<div class="ananse-wrap '+(made===5?"ananse-celebrate":"")+'">'+ananseSVG(140,made>=3?"party":"idle")+'</div>'
-   +'<h1>'+(made===5?"🏆 Sharpshooter!":"Nice shooting!")+'</h1>'
-   +'<div class="speech" style="max-width:420px;margin:14px auto">You made '+made+' of '+shots+' free throws'+(made?' and earned +'+(made*3)+' XP':'')+'. '+(made===5?'A Sharpshooter trophy is waiting in your trophy room!':'Keep practicing — your aim grows just like your brain!')+'</div>'
+   +'<div class="ananse-wrap '+(perfect?"ananse-celebrate":"")+'">'+ananseSVG(140,boards>=3?"party":"idle")+'</div>'
+   +'<h1>'+(perfect?"🏆 Sharpshooter!":"Rebound round complete!")+'</h1>'
+   +'<div class="speech" style="max-width:460px;margin:14px auto">You rescued '+boards+' of '+result.total+' rebounds and scored '+result.score+' points'+(xp?' — earning +'+xp+' XP':'')+'. '+(perfect?'A Sharpshooter trophy is waiting in your trophy room!':'Every rebound starts with getting in position.')+'</div>'
    +'<div class="spacer"></div><div class="btn-row"><button class="btn big" onclick="goHome()">Daily Path 🏠</button>'
-   +(made===5?'<button class="btn secondary big" onclick="renderTrophyRoom()">Trophy Room 🏆</button>':"")
+   +(perfect?'<button class="btn secondary big" onclick="renderTrophyRoom()">Trophy Room 🏆</button>':"")
    +'</div></div>';
-  say("You made "+made+" of "+shots+"! Great bonus game.");
 }
 </script>
 <script>
