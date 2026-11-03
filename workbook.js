@@ -312,6 +312,30 @@ wbInstallStyle();
 
 function wbEscape(v){if(typeof esc==="function")return esc(v);return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function wbData(){if(!P)return{best:{},log:[]};P.workbook=P.workbook||{best:{},log:[]};P.workbook.best=P.workbook.best||{};P.workbook.log=P.workbook.log||[];return P.workbook;}
+function wbResumeSnapshot(state){
+  if(!state||typeof state!=="object")return null;
+  const copy=Object.assign({},state);
+  if(state.canvas&&(state.drew||state.strokes)){try{copy.canvasData=wbCanvasJpeg(state.canvas);}catch(e){}}
+  delete copy.canvas;delete copy.ctx;
+  try{return JSON.parse(JSON.stringify(copy));}catch(e){return null;}
+}
+function wbResumeSave(){
+  try{
+    if(!WB||!WB.reveal||!P||typeof DB==="undefined"||typeof save!=="function"||!/^4-/.test(WB.lessonId)||typeof revealProfileIsPrince!=="function"||!revealProfileIsPrince(P))return;
+    const snapshot=wbResumeSnapshot(WB);if(!snapshot)return;
+    DB.resume=DB.resume||{};DB.resume[P.id]={t:Date.now(),wb:snapshot};save();
+  }catch(e){}
+}
+function wbResumeRestore(snapshot){
+  try{
+    if(!snapshot||!snapshot.reveal||!/^4-/.test(snapshot.lessonId)||!Array.isArray(snapshot.problems)||!snapshot.cur)return false;
+    if(typeof revealUnit4Gate==="function"&&!revealUnit4Gate(P,snapshot.lessonId).allowed)return false;
+    WB=JSON.parse(JSON.stringify(snapshot));WB.canvas=null;WB.ctx=null;
+    WB.results=Array.isArray(WB.results)?WB.results:[];WB.fields=WB.fields||{};WB.selected=Array.isArray(WB.selected)?WB.selected:[];WB.match=WB.match||{};WB.groupDots=Array.isArray(WB.groupDots)?WB.groupDots:[];WB.pairBuild=Array.isArray(WB.pairBuild)?WB.pairBuild:[];
+    if(WB.answered&&typeof WB.lastOK==="boolean")wbRenderFeedback(WB.lastOK,WB.lastAnswer||null);else wbRenderProblem(true);
+    return true;
+  }catch(e){return false;}
+}
 function wbDotPositions(n,cx,cy,spread){const pts=[];if(n===1)return[[cx,cy]];const cols=Math.min(3,Math.ceil(Math.sqrt(n))),rows=Math.ceil(n/cols);for(let i=0;i<n;i++){const row=Math.floor(i/cols),col=i%cols;pts.push([cx+(col-(cols-1)/2)*spread,cy+(row-(rows-1)/2)*spread]);}return pts;}
 function wbVisual(model){
   if(!model)return"";
@@ -338,8 +362,8 @@ function renderWorkbookLesson(id){
   const best=wbData().best[id];app.innerHTML='<div class="fadein wb-shell"><div class="wb-page">'+wbPageHead(id)+'<section class="wb-review"><div><h2>Review</h2><p>'+wbEscape(L.review)+'</p><div class="wb-review-eq">'+wbEscape(L.reviewEq)+'</div></div><div class="wb-review-visual">'+wbVisual(L.reviewModel)+'</div></section>'+(best==null?'':'<p style="text-align:center;font-weight:800">Best score: '+best+' of 8</p>')+'<div class="wb-btnrow"><button class="wb-primary" onclick="wbStart(\''+id+'\')">Start problems 1–8 ▶</button><button class="wb-secondary" onclick="say(WB_LESSONS[\''+id+'\'].review)">🔊 Read Review</button><button class="wb-secondary" onclick="renderWorkbookPicker()">← Lessons</button></div></div></div>';
   if(typeof say==="function")say("Lesson "+id+", "+L.title+". Review. "+L.review);
 }
-function wbStart(id,opts){opts=opts||{};const size=Math.max(1,Math.floor(Number(opts.size)||(opts.reveal?10:8)));WB={lessonId:id,size:size,reveal:!!opts.reveal,problems:wbGenerate(id,size),index:0,results:[],cur:null,isTwin:false,answered:false,start:Date.now()};wbLoadProblem(WB.problems[0],false);}
-function wbLoadProblem(p,isTwin){WB.cur=p;WB.isTwin=!!isTwin;WB.answered=false;WB.startedAt=Date.now();WB.fields={};WB.active=null;WB.selected=[];WB.person=null;WB.match={};WB.matchLeft=null;WB.matchOrder=null;if(p.type==="match"){p.pairs.forEach(x=>WB.fields[x.id]="");WB.active=p.pairs[0].id;}WB.workTab="build";WB.groupDots=[];WB.rows=0;WB.cols=0;WB.pairBuild=(p.models||[]).map(m=>m.kind==="array"?{rows:0,cols:0}:{groupDots:[]});WB.drew=false;WB.strokes=0;WB.canvasData=null;WB.canvas=null;WB.ctx=null;WB.drawTool="pen";WB.drawColor="#17243a";if(p.type==="form"){p.fields.forEach(f=>{WB.fields[f.key]="";});}if(p.type==="fill"){WB.fields.ans="";WB.active="ans";}if(p.type==="picture"){p.eq.values.forEach((v,i)=>WB.fields["e"+i]="");if(p.extraEq)p.extraEq.values.forEach((v,i)=>WB.fields["x"+i]="");WB.active="e0";}if(p.type==="story"){p.eq.values.forEach((v,i)=>WB.fields["e"+i]="");WB.fields.ans="";if(p.answer.remainder!=null)WB.fields.rem="";WB.active="e0";}if(p.type==="who"&&p.valueAnswer!=null){WB.fields.ans="";WB.active="ans";}if(p.type==="pair"){WB.fields.ans="";if(p.equations){p.equations[0].forEach((v,i)=>WB.fields["e"+i]="");p.equations[1].forEach((v,i)=>WB.fields["x"+i]="");WB.active="e0";}else WB.active="ans";}wbRenderProblem();}
+function wbStart(id,opts){opts=opts||{};if(opts.reveal&&typeof revealUnit4Gate==="function"){const gate=revealUnit4Gate(P,id);if(!gate.allowed){if(typeof renderRevealLockedLesson==="function")renderRevealLockedLesson(id,gate);return;}}const size=Math.max(1,Math.floor(Number(opts.size)||(opts.reveal?10:8)));WB={lessonId:id,size:size,reveal:!!opts.reveal,problems:wbGenerate(id,size),index:0,results:[],cur:null,isTwin:false,answered:false,start:Date.now()};wbLoadProblem(WB.problems[0],false);}
+function wbLoadProblem(p,isTwin){WB.cur=p;WB.isTwin=!!isTwin;WB.answered=false;WB.lastAnswer=null;WB.lastOK=null;WB.startedAt=Date.now();WB.fields={};WB.active=null;WB.selected=[];WB.person=null;WB.match={};WB.matchLeft=null;WB.matchOrder=null;if(p.type==="match"){p.pairs.forEach(x=>WB.fields[x.id]="");WB.active=p.pairs[0].id;}WB.workTab="build";WB.groupDots=[];WB.rows=0;WB.cols=0;WB.pairBuild=(p.models||[]).map(m=>m.kind==="array"?{rows:0,cols:0}:{groupDots:[]});WB.drew=false;WB.strokes=0;WB.canvasData=null;WB.canvas=null;WB.ctx=null;WB.drawTool="pen";WB.drawColor="#17243a";if(p.type==="form"){p.fields.forEach(f=>{WB.fields[f.key]="";});}if(p.type==="fill"){WB.fields.ans="";WB.active="ans";}if(p.type==="picture"){p.eq.values.forEach((v,i)=>WB.fields["e"+i]="");if(p.extraEq)p.extraEq.values.forEach((v,i)=>WB.fields["x"+i]="");WB.active="e0";}if(p.type==="story"){p.eq.values.forEach((v,i)=>WB.fields["e"+i]="");WB.fields.ans="";if(p.answer.remainder!=null)WB.fields.rem="";WB.active="e0";}if(p.type==="who"&&p.valueAnswer!=null){WB.fields.ans="";WB.active="ans";}if(p.type==="pair"){WB.fields.ans="";if(p.equations){p.equations[0].forEach((v,i)=>WB.fields["e"+i]="");p.equations[1].forEach((v,i)=>WB.fields["x"+i]="");WB.active="e0";}else WB.active="ans";}wbRenderProblem();}
 function wbNeedsWork(p){return p&&(p.type==="story"||p.type==="who"||p.requireWork);}
 function wbOneModelMatches(m,state,allowTurn){if(!m||!state)return false;if(m.kind==="array")return state.rows===m.rows&&state.cols===m.cols||!!(allowTurn&&state.rows===m.cols&&state.cols===m.rows);if(!Array.isArray(state.groupDots)||state.groupDots.length!==m.groups)return false;return state.groupDots.every(n=>n===m.size);}
 function wbModelMatches(){const p=WB&&WB.cur,m=p&&p.model;if(!m)return false;if(m.kind==="pair")return m.models.every((x,i)=>wbOneModelMatches(x,WB.pairBuild[i],false));if(m.kind==="array")return wbOneModelMatches(m,{rows:WB.rows,cols:WB.cols},p.allowTurn);return wbOneModelMatches(m,{groupDots:WB.groupDots},false);}
@@ -361,7 +385,7 @@ function wbRenderProblem(silent){
   const p=WB.cur,L=WB_LESSONS[WB.lessonId],pct=Math.round(WB.index/(WB.size||8)*100),num=WB.index+1,work=wbNeedsWork(p),visual=p.visual?'<div class="wb-visual">'+wbVisual(p.visual)+'</div>':'';
   let controls=wbQuestionAnswerHTML(p),submit=(p.type==="fill"||p.type==="picture"||p.type==="story"||p.type==="pair"||p.type==="match"||(p.type==="who"&&p.valueAnswer!=null))?wbNumberPad():wbSubmitButton();
   app.innerHTML='<div class="fadein wb-shell"><div class="wb-page">'+wbPageHead(WB.lessonId)+'<div class="wb-progress"><i style="width:'+pct+'%"></i></div><div class="wb-problem"><div class="wb-questionarea"><div class="wb-qrow"><div class="wb-qnum">'+(WB.isTwin?'↻':num+'.')+'</div><div><div class="wb-qcopy">'+(WB.isTwin?'<span style="color:#207141">Try one like it:</span> ':'')+wbEscape(p.q)+'</div>'+(p.instruction&&p.instruction!==p.q?'<div class="wb-instruction">'+wbEscape(p.instruction)+'</div>':'')+'<button class="wb-read" onclick="say(WB.cur.spoken)">🔊 Read it</button></div></div>'+visual+(work?wbWorkHTML(p):'')+'</div><div class="wb-answerarea">'+controls+submit+'</div></div></div></div>';
-  if(work&&WB.workTab==="draw")setTimeout(wbInitCanvas,0);if(!silent&&typeof say==="function")say((WB.isTwin?"Try one like it. ":"")+p.spoken);
+  if(work&&WB.workTab==="draw")setTimeout(wbInitCanvas,0);wbResumeSave();if(!silent&&typeof say==="function")say((WB.isTwin?"Try one like it. ":"")+p.spoken);
 }
 
 function wbWorkHTML(p){return'<section class="wb-work"><div class="wb-worktop"><b>✏️ SHOW YOUR WORK</b><div class="wb-tabs"><button class="wb-tab '+(WB.workTab==="build"?'on':'')+'" onclick="wbWorkTab(\'build\')">Build it</button><button class="wb-tab '+(WB.workTab==="draw"?'on':'')+'" onclick="wbWorkTab(\'draw\')">Draw it</button></div></div><div class="wb-workbody" id="wbWorkBody">'+(WB.workTab==="build"?wbBuildHTML(p):wbDrawHTML())+'</div></section>';}
@@ -398,7 +422,7 @@ function wbSendDrawing(meta){if(!WB.drew)return;let data=WB.canvasData;if(WB.can
 function wbActivate(k){WB.active=k;wbUpdateFieldButtons();}
 function wbKey(k){if(!WB.active||!(WB.active in WB.fields))return;let v=WB.fields[WB.active];if(k==="⌫")v=v.slice(0,-1);else if(v.length<3)v=(v==="0"?k:v+k);WB.fields[WB.active]=v;wbUpdateFieldButtons();}
 function wbUpdateFieldButtons(){document.querySelectorAll(".wb-num-box").forEach(b=>{const m=(b.getAttribute("onclick")||"").match(/wbActivate\('([^']+)'\)/);if(!m)return;const v=WB.fields[m[1]];b.textContent=v;b.classList.toggle("empty",v==="");b.classList.toggle("active",WB.active===m[1]);});wbRefreshSubmit();}
-function wbRefreshSubmit(){const b=document.getElementById("wbSubmit");if(b)b.disabled=!wbCanSubmit();document.querySelectorAll(".wb-key.go").forEach(k=>k.disabled=!wbCanSubmit());}
+function wbRefreshSubmit(){const b=document.getElementById("wbSubmit");if(b)b.disabled=!wbCanSubmit();document.querySelectorAll(".wb-key.go").forEach(k=>k.disabled=!wbCanSubmit());wbResumeSave();}
 function wbToggleMulti(id){const i=WB.selected.indexOf(id);if(i>=0)WB.selected.splice(i,1);else WB.selected.push(id);wbRenderProblem(true);}
 function wbPickPerson(n){if(WB.workTab==="draw")wbRememberCanvas();WB.person=n;wbRenderProblem(true);}
 function wbMatchTap(side,id){if(side==="left"){WB.matchLeft=id;}else if(WB.matchLeft){Object.keys(WB.match).forEach(k=>{if(WB.match[k]===id)delete WB.match[k];});WB.match[WB.matchLeft]=id;WB.matchLeft=null;}wbRenderProblem(true);}
@@ -408,7 +432,7 @@ function wbCollectAnswer(){const p=WB.cur;if(p.type==="form"){const f={};p.field
 function wbCompactAnswer(a){if(!a)return null;if(a.f)return a.f;if(a.eq)return{eq:a.eq,eq2:a.eq2,value:a.value,remainder:a.remainder};if(a.selected)return{selected:a.selected};if(a.person&&a.value==null)return a.person;if(a.pairs)return{pairs:a.pairs};if(a.product!=null)return{product:a.product,equations:a.equations,compare:a.compare};if(a.value!=null)return a.person?{person:a.person,value:a.value}:a.value;return a;}
 function wbSubmit(){
   if(!wbCanSubmit()){if(typeof toast==="function")toast(wbWorkDone()?"Finish every answer box first":"Show your work first");return;}
-  WB.answered=true;if(WB.workTab==="draw")wbRememberCanvas();const p=WB.cur,a=wbCollectAnswer(),ok=wbCheck(p,a),built=wbBuiltRecord(),rec={lesson:WB.lessonId,type:p.type,q:p.q,answer:wbCompactAnswer(a),correct:ok,built:built,drew:!!WB.drew,at:new Date().toISOString()};
+  WB.answered=true;if(WB.workTab==="draw")wbRememberCanvas();const p=WB.cur,a=wbCollectAnswer(),ok=wbCheck(p,a);WB.lastAnswer=a;WB.lastOK=ok;const built=wbBuiltRecord(),rec={lesson:WB.lessonId,type:p.type,q:p.q,answer:wbCompactAnswer(a),correct:ok,built:built,drew:!!WB.drew,at:new Date().toISOString()};
   const data=wbData();data.log.push(rec);if(data.log.length>2000)data.log=data.log.slice(-2000);if(!WB.isTwin)WB.results.push(ok);if(typeof logQuestion==="function")logQuestion("workbook","math","reveal "+WB.lessonId+" workbook","workbook:"+WB.lessonId,p.q,ok,0,Date.now()-WB.startedAt);else if(typeof save==="function")save();wbSendDrawing(rec);if(typeof save==="function")save();if(typeof sfx==="function")sfx(ok?"correct":"wrong");wbRenderFeedback(ok,a);
 }
 function wbCorrectEquation(p){if(p.type==="fill"){let used=false;return p.parts.map(x=>{if(x==="□"&&!used){used=true;return p.answer;}return x;}).join(" ");}if(p.eq)return p.eq.values[0]+" "+p.eq.op+" "+p.eq.values[1]+" = "+p.eq.values[2];return"";}
@@ -416,14 +440,14 @@ function wbCorrectAnswerHTML(p){if(p.type==="form")return'<div class="wb-multi-r
 function wbRenderFeedback(ok,a){
   const p=WB.cur,model=p.model||p.visual,head=ok?(WB.isTwin?"You got the new one!":"Yes — nice work!"):"Let’s look at the model.",voice=ok?"Nice work. Your answer is correct.":"Good try. Look at the model and the equation.";
   app.innerHTML='<div class="fadein wb-shell"><div class="wb-page">'+wbPageHead(WB.lessonId)+'<div class="wb-feedback '+(ok?'good':'try')+'"><h2>'+(ok?'✓ ':'')+wbEscape(head)+'</h2>'+(!ok&&model?'<div class="wb-visual">'+wbVisual(model)+'</div>':'')+wbCorrectAnswerHTML(p)+'<div class="wb-teach">'+wbEscape(p.explain||"Use the model to check each number in the equation.")+'</div></div><div class="wb-btnrow">'+(!ok&&!WB.isTwin?'<button class="wb-primary" onclick="wbTryTwin()">Try one like it ↻</button>':'')+'<button class="wb-secondary" onclick="wbContinue()">'+(WB.index===(WB.size||8)-1?'See my score':'Next problem')+' ▶</button></div></div></div>';
-  if(typeof say==="function")say(voice+" "+(p.explain||""));
+  wbResumeSave();if(typeof say==="function")say(voice+" "+(p.explain||""));
 }
 function wbTryTwin(){const original=WB.cur,type=original.type;let twin=null;for(let tries=0;tries<10&&!twin;tries++){const osig=wbSig(original),pool=wbGenerate(WB.lessonId,30).filter(x=>x.type===type&&(original.slot==null||x.slot===original.slot)&&wbSig(x)!==osig);if(pool.length)twin=wbPick(pool);}if(!twin){wbContinue();return;}wbLoadProblem(twin,true);}
 function wbContinue(){WB.index++;if(WB.index>=(WB.size||8))return wbFinish();wbLoadProblem(WB.problems[WB.index],false);}
 function wbFinish(){
   const size=WB.size||8,score=WB.results.filter(Boolean).length,data=wbData(),old=data.best[WB.lessonId];
   if(!WB.reveal){data.best[WB.lessonId]=old==null?score:Math.max(old,score);}
-  if(typeof save==="function")save();if(typeof syncProgress==="function")syncProgress("finish");if(score>=Math.ceil(size*0.8)&&typeof confetti==="function")confetti();
+  if(WB.reveal&&typeof sessClear==="function")sessClear();if(typeof save==="function")save();if(typeof syncProgress==="function")syncProgress("finish");if(score>=Math.ceil(size*0.8)&&typeof confetti==="function")confetti();
   const marks=WB.results.map((ok,i)=>'<span class="wb-resultdot '+(ok?'good':'bad')+'">'+(i+1)+' '+(ok?'✓':'✗')+'</span>').join(""),id=WB.lessonId;
   const buttons=WB.reveal?'<button class="wb-primary" onclick="window.wbRevealExit&&window.wbRevealExit(\''+id+'\')">Back to the lesson ▶</button>':'<button class="wb-primary" onclick="wbStart(\''+id+'\')">Play again ↻</button><button class="wb-secondary" onclick="renderHome()">🏠 Home</button><button class="wb-secondary" onclick="renderWorkbookPicker()">📒 Lessons</button>';
   app.innerHTML='<div class="fadein wb-shell"><div class="wb-page wb-finish"><div class="wb-kicker">Lesson '+wbEscape(id)+' · '+(WB.reveal?'Practice':'Workbook Practice')+'</div><h1 class="wb-title">Practice complete!</h1><div class="wb-score">'+score+' / '+size+'</div><p style="font-size:20px">'+(score===size?'Every problem is correct — excellent explaining and modeling!':score>=size*0.75?'Strong work. Your models are helping your multiplication and division grow.':'You kept showing your thinking. That is how mathematicians learn!')+'</p><div class="wb-resultdots">'+marks+'</div><div class="wb-btnrow">'+buttons+'</div></div></div>';
@@ -432,5 +456,5 @@ function wbFinish(){
 }
 function wbRevealReview(id){const L=WB_LESSONS[id];if(!L)return"";return'<section class="wb-review"><div><h2>Review</h2><p>'+wbEscape(L.review)+'</p><div class="wb-review-eq">'+wbEscape(L.reviewEq)+'</div></div><div class="wb-review-visual">'+wbVisual(L.reviewModel)+'</div></section>';}
 
-const wbPublic={lessons:WB_LESSONS,gen:wbGenerate,check:wbCheck,review:wbRevealReview,tenSlot:WB_TEN};
+const wbPublic={lessons:WB_LESSONS,gen:wbGenerate,check:wbCheck,review:wbRevealReview,tenSlot:WB_TEN,resumeSnapshot:wbResumeSnapshot,resumeRestore:wbResumeRestore};
 if(typeof window!=="undefined")window.__wb=wbPublic;else if(typeof globalThis!=="undefined")globalThis.__wb=wbPublic;

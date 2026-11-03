@@ -679,6 +679,7 @@ body.learningworld #app{max-width:1180px}
 <div id="app"></div>
 <div id="overlay"></div>
 <div id="anansecorner"></div>
+<script src="rebound-rescue.js"></script>
 <script>
 /* lessons.js is inlined here so a stale offline cache can never break the app; edit lessons.js and run inline_lessons.py */
 /* ============================================================
@@ -1682,6 +1683,39 @@ const REVEAL_LESSONS=[
  {id:"13-3",u:13,t:"Classify Quadrilaterals",g:"quad"},
  {id:"13-4",u:13,t:"Draw Quadrilaterals",g:"quad",p:["draw"]}
 ];
+
+/* Prince's staging path starts at Unit 4 and advances one passed lesson at a time.
+   This is deliberately computed from existing records; it never migrates, deletes or
+   rewrites them. The session engine's established pass rule is ceil(total * 0.75),
+   which accepts legacy 6/8 sessions and current 8/10 Unit 4 sessions. */
+const REVEAL_UNIT4_IDS=REVEAL_LESSONS.filter(l=>l.u===4).map(l=>l.id);
+function revealProfileIsPrince(profile){return !!profile&&String(profile.name||"").trim().toLowerCase()==="prince";}
+function revealRecordPassed(rec){
+  if(!rec||typeof rec!=="object")return false;
+  const total=Number(rec.total),score=Number(rec.best!=null?rec.best:(rec.correct!=null?rec.correct:rec.score));
+  return Number.isFinite(total)&&total>0&&Number.isFinite(score)&&score>=Math.ceil(total*0.75);
+}
+function revealProfilePassed(profile,id){
+  if(!profile)return false;
+  if(revealRecordPassed(profile.reveal&&profile.reveal[id]))return true;
+  return (profile.sessions||[]).some(s=>s&&s.lesson==="reveal:"+id&&revealRecordPassed(s));
+}
+function revealUnit4Gate(profile,id){
+  const index=REVEAL_UNIT4_IDS.indexOf(id);
+  if(!revealProfileIsPrince(profile)||index<0)return{allowed:true,sequential:false,missing:null,prerequisite:null};
+  const missing=REVEAL_UNIT4_IDS.slice(0,index).find(prior=>!revealProfilePassed(profile,prior))||null;
+  return{allowed:!missing,sequential:true,missing:missing,prerequisite:missing};
+}
+function revealUnit4NextId(profile){
+  if(!revealProfileIsPrince(profile))return null;
+  return REVEAL_UNIT4_IDS.find(id=>!revealProfilePassed(profile,id))||REVEAL_UNIT4_IDS[REVEAL_UNIT4_IDS.length-1];
+}
+function revealDefaultLesson(profile){
+  const unit4=revealUnit4NextId(profile);if(unit4)return revealLesson(unit4);
+  return(profile&&profile.revealCurrent&&revealLesson(profile.revealCurrent))||REVEAL_LESSONS.find(l=>{const r=profile&&profile.reveal&&profile.reveal[l.id];return !r||!r.total||r.best/r.total<0.8;})||REVEAL_LESSONS[0];
+}
+const revealProgressionPublic={unit4Ids:REVEAL_UNIT4_IDS.slice(),isPrince:revealProfileIsPrince,recordPassed:revealRecordPassed,profilePassed:revealProfilePassed,gate:revealUnit4Gate,nextId:revealUnit4NextId};
+if(typeof window!=="undefined")window.__revealProgression=revealProgressionPublic;else if(typeof globalThis!=="undefined")globalThis.__revealProgression=revealProgressionPublic;
 /* Review cards — the book's "Review" box, in Ananse's words */
 const REVEAL_REVIEW={
  "2-1":"Base-ten blocks show place value: a big cube is 1,000, a flat is 100, a rod is 10, a small cube is 1. The same number can be written in standard form (1,246), expanded form (1,000 + 200 + 40 + 6) and word form.",
@@ -1984,7 +2018,7 @@ function revealRec(id){return P&&P.reveal&&P.reveal[id]}
 /* ---------- screens ---------- */
 function renderReveal(){
   clearTimers();closeOverlay();defocus();showAnanseCorner(true);
-  const cur=P.revealCurrent&&revealLesson(P.revealCurrent);
+  const princePath=revealProfileIsPrince(P),cur=princePath?revealDefaultLesson(P):(P.revealCurrent&&revealLesson(P.revealCurrent));
   const units=Object.keys(REVEAL_UNITS).map(u=>{
     const ls=REVEAL_LESSONS.filter(l=>l.u==u);const done=ls.filter(l=>{const r=revealRec(l.id);return r&&r.best/r.total>=0.8;}).length;
     return '<button class="opt" style="display:flex;justify-content:space-between;align-items:center;gap:10px" onclick="renderRevealUnit('+u+')"><span style="text-align:left"><b>Unit '+u+' · '+esc(REVEAL_UNITS[u].t)+'</b><br><span class="muted" style="font-size:13px">'+ls.length+' lessons</span></span><span class="lvl-badge" style="background:'+(done===ls.length?"#2f8f4e":(done?"#f5a623":"#6f88ad"))+'">'+done+'/'+ls.length+' ★</span></button>';
@@ -1992,7 +2026,7 @@ function renderReveal(){
   app.innerHTML='<div class="fadein" style="max-width:680px;margin:0 auto">'
    +'<div class="center"><h1>📘 Reveal Math · Grade 3</h1><p class="muted">The same units and lessons as your Reveal Math practice book, with fresh problems every time. Each lesson: Review, then 8 problems. Earn a ★ with 80% or better.</p></div>'
    +'<div class="kente-strip" style="margin:14px 0 10px"></div>'
-   +(cur?'<div class="card gold" style="margin-bottom:12px"><b>📍 Where the class is:</b> Lesson '+esc(cur.id)+' · '+esc(cur.t)+'<div class="btn-row" style="justify-content:flex-start;margin-top:8px"><button class="btn" onclick="renderRevealLesson(\''+cur.id+'\')">Practice this lesson ▶</button></div></div>':'<p class="muted center" style="margin-bottom:10px">Tip: a parent can set "where the class is" in the Parent Portal so today\'s lesson shows up here first.</p>')
+   +(cur?'<div class="card gold" style="margin-bottom:12px"><b>📍 '+(princePath?'Your Unit 4 next lesson:':'Where the class is:')+'</b> Lesson '+esc(cur.id)+' · '+esc(cur.t)+'<div class="btn-row" style="justify-content:flex-start;margin-top:8px"><button class="btn" onclick="renderRevealLesson(\''+cur.id+'\')">Practice this lesson ▶</button></div></div>':'<p class="muted center" style="margin-bottom:10px">Tip: a parent can set "where the class is" in the Parent Portal so today\'s lesson shows up here first.</p>')
    +'<div class="opts">'+units+'</div>'
    +'<div class="btn-row" style="margin-top:18px"><button class="btn" onclick="renderHome()">⟵ Back to Adventure</button></div><div class="spacer"></div></div>';
   say("Reveal Math practice, "+P.name+". Pick a unit, or practice the lesson your class is on.");
@@ -2007,22 +2041,25 @@ function s4Art(id){const a=S4_ART[id]||["star","bolt","times","coin"];return '<s
 function renderRevealUnit(u){
   clearTimers();closeOverlay();defocus();showAnanseCorner(false);
   const ls=REVEAL_LESSONS.filter(l=>l.u==u);
-  const passed=l=>{const r=revealRec(l.id);return !!r&&r.best/r.total>=0.8;};
-  const cur=ls.find(l=>P.revealCurrent===l.id&&!passed(l))||ls.find(l=>!passed(l))||null,curIdx=cur?ls.indexOf(cur):-1;
+  const seq=revealProfileIsPrince(P)&&+u===4;
+  const passed=l=>{const r=revealRec(l.id);return seq?revealProfilePassed(P,l.id):!!(r&&r.total&&r.best/r.total>=0.8);};
+  const gateOf=l=>revealUnit4Gate(P,l.id);
+  const open=l=>!passed(l)&&gateOf(l).allowed;
+  const cur=ls.find(l=>P.revealCurrent===l.id&&open(l))||ls.find(open)||null;
   /* Lion + bubble sit IN the page flow (never position:fixed), so they can't cover a card or button at any scroll. */
   const coach='<div class="s4-coach" aria-live="polite">'+ananseSVG(64,"idle")+'<span class="s4-bubble">You can do this!<br>'+(cur?'Tap <b>Start Lesson</b>! 🚀':'Every lesson is done! ⭐')+'</span></div>';
-  const cards=(cur?'':coach)+ls.map((l,i)=>{const r=revealRec(l.id);const star=r&&r.best/r.total>=0.8;const go='renderRevealLesson(\''+l.id+'\')';
+  const cards=(cur?'':coach)+ls.map(l=>{const r=revealRec(l.id);const star=passed(l);const gate=gateOf(l);const go='renderRevealLesson(\''+l.id+'\')';
     const here=P.revealCurrent===l.id?' <span class="s4-here">📍 class is here</span>':'';
     if(l===cur)return '<div class="s4-card s4-now" role="button" tabindex="0" onclick="'+go+'" onkeydown="if(event.key===\'Enter\')'+go+'" aria-label="Lesson '+esc(l.id)+', '+esc(l.t)+', up next">'
       +'<div class="s4-now-t">Lesson '+esc(l.id)+' • '+esc(l.t)+here+'</div>'
       +'<div class="s4-now-row">'+s4Art(l.id)+'<span class="s4-now-side">'+(r?'<span class="s4-now-best">Best so far '+r.best+'/'+r.total+'</span>':'')
       +'<button class="s4-start" onclick="event.stopPropagation();'+go+'">Start Lesson →</button></span></div></div>'+coach;
-    const st=star?'done':(r?'tried':(cur&&i>curIdx?'lock':'new'));
-    const badge=st==='done'?'<span class="s4-badge s4-b-done"><b>★</b>Mastered<br>'+r.best+'/'+r.total+'</span>'
+    const st=star?'done':(!gate.allowed?'lock':(r?'tried':'new'));
+    const badge=st==='done'?'<span class="s4-badge s4-b-done"><b>★</b>'+(seq?'Passed':'Mastered')+'<br>'+(r?r.best+'/'+r.total:'saved')+'</span>'
       :st==='tried'?'<span class="s4-badge s4-b-tried"><b>✎</b>Practiced<br>'+r.best+'/'+r.total+'</span>'
-      :st==='lock'?'<span class="s4-badge s4-b-lock"><b>🔒</b>Finish '+esc(cur.id)+'<br>first</span>'
+      :st==='lock'?'<span class="s4-badge s4-b-lock"><b>🔒</b>Finish '+esc(gate.prerequisite)+'<br>first</span>'
       :'<span class="s4-badge s4-b-new"><b>○</b>Not<br>started</span>';
-    return '<button class="s4-card s4-'+st+'" onclick="'+go+'"><span class="s4-t">Lesson '+esc(l.id)+' • '+esc(l.t)+here+'</span>'+badge+'</button>';}).join("");
+    return '<button class="s4-card s4-'+st+'" onclick="'+go+'"'+(st==='lock'?' aria-disabled="true"':'')+'><span class="s4-t">Lesson '+esc(l.id)+' • '+esc(l.t)+here+'</span>'+badge+'</button>';}).join("");
   app.innerHTML='<div class="fadein s4" style="max-width:680px;margin:0 auto">'
    +'<div class="hud"><span class="pill">📘 <b>Reveal Math</b></span><span class="pill">Unit '+u+'</span></div>'
    +'<h1 class="s4-h1">Unit '+u+': '+esc(REVEAL_UNITS[u].t)+'</h1>'
@@ -2031,8 +2068,15 @@ function renderRevealUnit(u){
    +'<div class="btn-row" style="margin-top:14px"><button class="btn secondary" onclick="renderReveal()">⟵ All units</button></div><div class="spacer"></div>'
    +'</div>';
 }
+function renderRevealLockedLesson(id,gate){
+  const prior=revealLesson(gate.prerequisite);
+  clearTimers();closeOverlay();defocus();showAnanseCorner(true);
+  app.innerHTML='<div class="fadein center" style="max-width:620px;margin:0 auto"><div class="hud"><span class="pill">📘 <b>Reveal Math</b></span><span class="pill">Unit 4</span></div><h1 style="margin-top:16px">🔒 Lesson '+esc(id)+' is next later</h1><div class="card gold" style="margin-top:14px"><p style="font-size:20px">Finish and pass <b>Lesson '+esc(prior.id)+' · '+esc(prior.t)+'</b> first.</p><p class="muted" style="margin-top:8px">Your earlier lesson records and other units are still available.</p></div><div class="spacer"></div><div class="btn-row"><button class="btn big" onclick="renderRevealLesson(\''+prior.id+'\')">Go to Lesson '+esc(prior.id)+' ▶</button><button class="btn secondary" onclick="renderRevealUnit(4)">⟵ Unit 4 path</button><button class="btn secondary" onclick="renderReveal()">All units</button></div></div>';
+  say("Lesson "+id+" is locked for now. Finish lesson "+prior.id+" first.");
+}
 function renderRevealLesson(id){
   const L=revealLesson(id);if(!L)return renderReveal();
+  const gate=revealUnit4Gate(P,id);if(!gate.allowed)return renderRevealLockedLesson(id,gate);
   if(typeof videoGate==="function"&&videoGate("reveal:"+id,()=>renderRevealLesson(id),()=>renderRevealUnit(L.u)))return;
   if(typeof catchUpGate==="function"&&catchUpGate(id))return;
   clearTimers();closeOverlay();defocus();showAnanseCorner(false);
@@ -2064,6 +2108,7 @@ function wbRevealDone(id,score,total){
 function wbRevealExit(id){const L=revealLesson(id);if(L)renderRevealUnit(L.u);else renderReveal();}
 function startReveal(id){
   const L=revealLesson(id);if(!L)return;
+  const gate=revealUnit4Gate(P,id);if(!gate.allowed){renderRevealLockedLesson(id,gate);return;}
   if(revealUsesWorkbook(id)){P.revealAsked=P.revealAsked||{};if(typeof clearTimers==="function")clearTimers();wbStart(id,{reveal:true,size:10});return;}
   P.revealAsked=P.revealAsked||{};P.revealAsked[id]=P.revealAsked[id]||{};
   const mirror=["3-7","4-1","4-2","4-3","4-4","4-5","4-6","5-1","5-2"].includes(id)?mirrorSession(id):null;
@@ -2548,6 +2593,30 @@ wbInstallStyle();
 
 function wbEscape(v){if(typeof esc==="function")return esc(v);return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function wbData(){if(!P)return{best:{},log:[]};P.workbook=P.workbook||{best:{},log:[]};P.workbook.best=P.workbook.best||{};P.workbook.log=P.workbook.log||[];return P.workbook;}
+function wbResumeSnapshot(state){
+  if(!state||typeof state!=="object")return null;
+  const copy=Object.assign({},state);
+  if(state.canvas&&(state.drew||state.strokes)){try{copy.canvasData=wbCanvasJpeg(state.canvas);}catch(e){}}
+  delete copy.canvas;delete copy.ctx;
+  try{return JSON.parse(JSON.stringify(copy));}catch(e){return null;}
+}
+function wbResumeSave(){
+  try{
+    if(!WB||!WB.reveal||!P||typeof DB==="undefined"||typeof save!=="function"||!/^4-/.test(WB.lessonId)||typeof revealProfileIsPrince!=="function"||!revealProfileIsPrince(P))return;
+    const snapshot=wbResumeSnapshot(WB);if(!snapshot)return;
+    DB.resume=DB.resume||{};DB.resume[P.id]={t:Date.now(),wb:snapshot};save();
+  }catch(e){}
+}
+function wbResumeRestore(snapshot){
+  try{
+    if(!snapshot||!snapshot.reveal||!/^4-/.test(snapshot.lessonId)||!Array.isArray(snapshot.problems)||!snapshot.cur)return false;
+    if(typeof revealUnit4Gate==="function"&&!revealUnit4Gate(P,snapshot.lessonId).allowed)return false;
+    WB=JSON.parse(JSON.stringify(snapshot));WB.canvas=null;WB.ctx=null;
+    WB.results=Array.isArray(WB.results)?WB.results:[];WB.fields=WB.fields||{};WB.selected=Array.isArray(WB.selected)?WB.selected:[];WB.match=WB.match||{};WB.groupDots=Array.isArray(WB.groupDots)?WB.groupDots:[];WB.pairBuild=Array.isArray(WB.pairBuild)?WB.pairBuild:[];
+    if(WB.answered&&typeof WB.lastOK==="boolean")wbRenderFeedback(WB.lastOK,WB.lastAnswer||null);else wbRenderProblem(true);
+    return true;
+  }catch(e){return false;}
+}
 function wbDotPositions(n,cx,cy,spread){const pts=[];if(n===1)return[[cx,cy]];const cols=Math.min(3,Math.ceil(Math.sqrt(n))),rows=Math.ceil(n/cols);for(let i=0;i<n;i++){const row=Math.floor(i/cols),col=i%cols;pts.push([cx+(col-(cols-1)/2)*spread,cy+(row-(rows-1)/2)*spread]);}return pts;}
 function wbVisual(model){
   if(!model)return"";
@@ -2574,8 +2643,8 @@ function renderWorkbookLesson(id){
   const best=wbData().best[id];app.innerHTML='<div class="fadein wb-shell"><div class="wb-page">'+wbPageHead(id)+'<section class="wb-review"><div><h2>Review</h2><p>'+wbEscape(L.review)+'</p><div class="wb-review-eq">'+wbEscape(L.reviewEq)+'</div></div><div class="wb-review-visual">'+wbVisual(L.reviewModel)+'</div></section>'+(best==null?'':'<p style="text-align:center;font-weight:800">Best score: '+best+' of 8</p>')+'<div class="wb-btnrow"><button class="wb-primary" onclick="wbStart(\''+id+'\')">Start problems 1–8 ▶</button><button class="wb-secondary" onclick="say(WB_LESSONS[\''+id+'\'].review)">🔊 Read Review</button><button class="wb-secondary" onclick="renderWorkbookPicker()">← Lessons</button></div></div></div>';
   if(typeof say==="function")say("Lesson "+id+", "+L.title+". Review. "+L.review);
 }
-function wbStart(id,opts){opts=opts||{};const size=Math.max(1,Math.floor(Number(opts.size)||(opts.reveal?10:8)));WB={lessonId:id,size:size,reveal:!!opts.reveal,problems:wbGenerate(id,size),index:0,results:[],cur:null,isTwin:false,answered:false,start:Date.now()};wbLoadProblem(WB.problems[0],false);}
-function wbLoadProblem(p,isTwin){WB.cur=p;WB.isTwin=!!isTwin;WB.answered=false;WB.startedAt=Date.now();WB.fields={};WB.active=null;WB.selected=[];WB.person=null;WB.match={};WB.matchLeft=null;WB.matchOrder=null;if(p.type==="match"){p.pairs.forEach(x=>WB.fields[x.id]="");WB.active=p.pairs[0].id;}WB.workTab="build";WB.groupDots=[];WB.rows=0;WB.cols=0;WB.pairBuild=(p.models||[]).map(m=>m.kind==="array"?{rows:0,cols:0}:{groupDots:[]});WB.drew=false;WB.strokes=0;WB.canvasData=null;WB.canvas=null;WB.ctx=null;WB.drawTool="pen";WB.drawColor="#17243a";if(p.type==="form"){p.fields.forEach(f=>{WB.fields[f.key]="";});}if(p.type==="fill"){WB.fields.ans="";WB.active="ans";}if(p.type==="picture"){p.eq.values.forEach((v,i)=>WB.fields["e"+i]="");if(p.extraEq)p.extraEq.values.forEach((v,i)=>WB.fields["x"+i]="");WB.active="e0";}if(p.type==="story"){p.eq.values.forEach((v,i)=>WB.fields["e"+i]="");WB.fields.ans="";if(p.answer.remainder!=null)WB.fields.rem="";WB.active="e0";}if(p.type==="who"&&p.valueAnswer!=null){WB.fields.ans="";WB.active="ans";}if(p.type==="pair"){WB.fields.ans="";if(p.equations){p.equations[0].forEach((v,i)=>WB.fields["e"+i]="");p.equations[1].forEach((v,i)=>WB.fields["x"+i]="");WB.active="e0";}else WB.active="ans";}wbRenderProblem();}
+function wbStart(id,opts){opts=opts||{};if(opts.reveal&&typeof revealUnit4Gate==="function"){const gate=revealUnit4Gate(P,id);if(!gate.allowed){if(typeof renderRevealLockedLesson==="function")renderRevealLockedLesson(id,gate);return;}}const size=Math.max(1,Math.floor(Number(opts.size)||(opts.reveal?10:8)));WB={lessonId:id,size:size,reveal:!!opts.reveal,problems:wbGenerate(id,size),index:0,results:[],cur:null,isTwin:false,answered:false,start:Date.now()};wbLoadProblem(WB.problems[0],false);}
+function wbLoadProblem(p,isTwin){WB.cur=p;WB.isTwin=!!isTwin;WB.answered=false;WB.lastAnswer=null;WB.lastOK=null;WB.startedAt=Date.now();WB.fields={};WB.active=null;WB.selected=[];WB.person=null;WB.match={};WB.matchLeft=null;WB.matchOrder=null;if(p.type==="match"){p.pairs.forEach(x=>WB.fields[x.id]="");WB.active=p.pairs[0].id;}WB.workTab="build";WB.groupDots=[];WB.rows=0;WB.cols=0;WB.pairBuild=(p.models||[]).map(m=>m.kind==="array"?{rows:0,cols:0}:{groupDots:[]});WB.drew=false;WB.strokes=0;WB.canvasData=null;WB.canvas=null;WB.ctx=null;WB.drawTool="pen";WB.drawColor="#17243a";if(p.type==="form"){p.fields.forEach(f=>{WB.fields[f.key]="";});}if(p.type==="fill"){WB.fields.ans="";WB.active="ans";}if(p.type==="picture"){p.eq.values.forEach((v,i)=>WB.fields["e"+i]="");if(p.extraEq)p.extraEq.values.forEach((v,i)=>WB.fields["x"+i]="");WB.active="e0";}if(p.type==="story"){p.eq.values.forEach((v,i)=>WB.fields["e"+i]="");WB.fields.ans="";if(p.answer.remainder!=null)WB.fields.rem="";WB.active="e0";}if(p.type==="who"&&p.valueAnswer!=null){WB.fields.ans="";WB.active="ans";}if(p.type==="pair"){WB.fields.ans="";if(p.equations){p.equations[0].forEach((v,i)=>WB.fields["e"+i]="");p.equations[1].forEach((v,i)=>WB.fields["x"+i]="");WB.active="e0";}else WB.active="ans";}wbRenderProblem();}
 function wbNeedsWork(p){return p&&(p.type==="story"||p.type==="who"||p.requireWork);}
 function wbOneModelMatches(m,state,allowTurn){if(!m||!state)return false;if(m.kind==="array")return state.rows===m.rows&&state.cols===m.cols||!!(allowTurn&&state.rows===m.cols&&state.cols===m.rows);if(!Array.isArray(state.groupDots)||state.groupDots.length!==m.groups)return false;return state.groupDots.every(n=>n===m.size);}
 function wbModelMatches(){const p=WB&&WB.cur,m=p&&p.model;if(!m)return false;if(m.kind==="pair")return m.models.every((x,i)=>wbOneModelMatches(x,WB.pairBuild[i],false));if(m.kind==="array")return wbOneModelMatches(m,{rows:WB.rows,cols:WB.cols},p.allowTurn);return wbOneModelMatches(m,{groupDots:WB.groupDots},false);}
@@ -2597,7 +2666,7 @@ function wbRenderProblem(silent){
   const p=WB.cur,L=WB_LESSONS[WB.lessonId],pct=Math.round(WB.index/(WB.size||8)*100),num=WB.index+1,work=wbNeedsWork(p),visual=p.visual?'<div class="wb-visual">'+wbVisual(p.visual)+'</div>':'';
   let controls=wbQuestionAnswerHTML(p),submit=(p.type==="fill"||p.type==="picture"||p.type==="story"||p.type==="pair"||p.type==="match"||(p.type==="who"&&p.valueAnswer!=null))?wbNumberPad():wbSubmitButton();
   app.innerHTML='<div class="fadein wb-shell"><div class="wb-page">'+wbPageHead(WB.lessonId)+'<div class="wb-progress"><i style="width:'+pct+'%"></i></div><div class="wb-problem"><div class="wb-questionarea"><div class="wb-qrow"><div class="wb-qnum">'+(WB.isTwin?'↻':num+'.')+'</div><div><div class="wb-qcopy">'+(WB.isTwin?'<span style="color:#207141">Try one like it:</span> ':'')+wbEscape(p.q)+'</div>'+(p.instruction&&p.instruction!==p.q?'<div class="wb-instruction">'+wbEscape(p.instruction)+'</div>':'')+'<button class="wb-read" onclick="say(WB.cur.spoken)">🔊 Read it</button></div></div>'+visual+(work?wbWorkHTML(p):'')+'</div><div class="wb-answerarea">'+controls+submit+'</div></div></div></div>';
-  if(work&&WB.workTab==="draw")setTimeout(wbInitCanvas,0);if(!silent&&typeof say==="function")say((WB.isTwin?"Try one like it. ":"")+p.spoken);
+  if(work&&WB.workTab==="draw")setTimeout(wbInitCanvas,0);wbResumeSave();if(!silent&&typeof say==="function")say((WB.isTwin?"Try one like it. ":"")+p.spoken);
 }
 
 function wbWorkHTML(p){return'<section class="wb-work"><div class="wb-worktop"><b>✏️ SHOW YOUR WORK</b><div class="wb-tabs"><button class="wb-tab '+(WB.workTab==="build"?'on':'')+'" onclick="wbWorkTab(\'build\')">Build it</button><button class="wb-tab '+(WB.workTab==="draw"?'on':'')+'" onclick="wbWorkTab(\'draw\')">Draw it</button></div></div><div class="wb-workbody" id="wbWorkBody">'+(WB.workTab==="build"?wbBuildHTML(p):wbDrawHTML())+'</div></section>';}
@@ -2634,7 +2703,7 @@ function wbSendDrawing(meta){if(!WB.drew)return;let data=WB.canvasData;if(WB.can
 function wbActivate(k){WB.active=k;wbUpdateFieldButtons();}
 function wbKey(k){if(!WB.active||!(WB.active in WB.fields))return;let v=WB.fields[WB.active];if(k==="⌫")v=v.slice(0,-1);else if(v.length<3)v=(v==="0"?k:v+k);WB.fields[WB.active]=v;wbUpdateFieldButtons();}
 function wbUpdateFieldButtons(){document.querySelectorAll(".wb-num-box").forEach(b=>{const m=(b.getAttribute("onclick")||"").match(/wbActivate\('([^']+)'\)/);if(!m)return;const v=WB.fields[m[1]];b.textContent=v;b.classList.toggle("empty",v==="");b.classList.toggle("active",WB.active===m[1]);});wbRefreshSubmit();}
-function wbRefreshSubmit(){const b=document.getElementById("wbSubmit");if(b)b.disabled=!wbCanSubmit();document.querySelectorAll(".wb-key.go").forEach(k=>k.disabled=!wbCanSubmit());}
+function wbRefreshSubmit(){const b=document.getElementById("wbSubmit");if(b)b.disabled=!wbCanSubmit();document.querySelectorAll(".wb-key.go").forEach(k=>k.disabled=!wbCanSubmit());wbResumeSave();}
 function wbToggleMulti(id){const i=WB.selected.indexOf(id);if(i>=0)WB.selected.splice(i,1);else WB.selected.push(id);wbRenderProblem(true);}
 function wbPickPerson(n){if(WB.workTab==="draw")wbRememberCanvas();WB.person=n;wbRenderProblem(true);}
 function wbMatchTap(side,id){if(side==="left"){WB.matchLeft=id;}else if(WB.matchLeft){Object.keys(WB.match).forEach(k=>{if(WB.match[k]===id)delete WB.match[k];});WB.match[WB.matchLeft]=id;WB.matchLeft=null;}wbRenderProblem(true);}
@@ -2644,7 +2713,7 @@ function wbCollectAnswer(){const p=WB.cur;if(p.type==="form"){const f={};p.field
 function wbCompactAnswer(a){if(!a)return null;if(a.f)return a.f;if(a.eq)return{eq:a.eq,eq2:a.eq2,value:a.value,remainder:a.remainder};if(a.selected)return{selected:a.selected};if(a.person&&a.value==null)return a.person;if(a.pairs)return{pairs:a.pairs};if(a.product!=null)return{product:a.product,equations:a.equations,compare:a.compare};if(a.value!=null)return a.person?{person:a.person,value:a.value}:a.value;return a;}
 function wbSubmit(){
   if(!wbCanSubmit()){if(typeof toast==="function")toast(wbWorkDone()?"Finish every answer box first":"Show your work first");return;}
-  WB.answered=true;if(WB.workTab==="draw")wbRememberCanvas();const p=WB.cur,a=wbCollectAnswer(),ok=wbCheck(p,a),built=wbBuiltRecord(),rec={lesson:WB.lessonId,type:p.type,q:p.q,answer:wbCompactAnswer(a),correct:ok,built:built,drew:!!WB.drew,at:new Date().toISOString()};
+  WB.answered=true;if(WB.workTab==="draw")wbRememberCanvas();const p=WB.cur,a=wbCollectAnswer(),ok=wbCheck(p,a);WB.lastAnswer=a;WB.lastOK=ok;const built=wbBuiltRecord(),rec={lesson:WB.lessonId,type:p.type,q:p.q,answer:wbCompactAnswer(a),correct:ok,built:built,drew:!!WB.drew,at:new Date().toISOString()};
   const data=wbData();data.log.push(rec);if(data.log.length>2000)data.log=data.log.slice(-2000);if(!WB.isTwin)WB.results.push(ok);if(typeof logQuestion==="function")logQuestion("workbook","math","reveal "+WB.lessonId+" workbook","workbook:"+WB.lessonId,p.q,ok,0,Date.now()-WB.startedAt);else if(typeof save==="function")save();wbSendDrawing(rec);if(typeof save==="function")save();if(typeof sfx==="function")sfx(ok?"correct":"wrong");wbRenderFeedback(ok,a);
 }
 function wbCorrectEquation(p){if(p.type==="fill"){let used=false;return p.parts.map(x=>{if(x==="□"&&!used){used=true;return p.answer;}return x;}).join(" ");}if(p.eq)return p.eq.values[0]+" "+p.eq.op+" "+p.eq.values[1]+" = "+p.eq.values[2];return"";}
@@ -2652,14 +2721,14 @@ function wbCorrectAnswerHTML(p){if(p.type==="form")return'<div class="wb-multi-r
 function wbRenderFeedback(ok,a){
   const p=WB.cur,model=p.model||p.visual,head=ok?(WB.isTwin?"You got the new one!":"Yes — nice work!"):"Let’s look at the model.",voice=ok?"Nice work. Your answer is correct.":"Good try. Look at the model and the equation.";
   app.innerHTML='<div class="fadein wb-shell"><div class="wb-page">'+wbPageHead(WB.lessonId)+'<div class="wb-feedback '+(ok?'good':'try')+'"><h2>'+(ok?'✓ ':'')+wbEscape(head)+'</h2>'+(!ok&&model?'<div class="wb-visual">'+wbVisual(model)+'</div>':'')+wbCorrectAnswerHTML(p)+'<div class="wb-teach">'+wbEscape(p.explain||"Use the model to check each number in the equation.")+'</div></div><div class="wb-btnrow">'+(!ok&&!WB.isTwin?'<button class="wb-primary" onclick="wbTryTwin()">Try one like it ↻</button>':'')+'<button class="wb-secondary" onclick="wbContinue()">'+(WB.index===(WB.size||8)-1?'See my score':'Next problem')+' ▶</button></div></div></div>';
-  if(typeof say==="function")say(voice+" "+(p.explain||""));
+  wbResumeSave();if(typeof say==="function")say(voice+" "+(p.explain||""));
 }
 function wbTryTwin(){const original=WB.cur,type=original.type;let twin=null;for(let tries=0;tries<10&&!twin;tries++){const osig=wbSig(original),pool=wbGenerate(WB.lessonId,30).filter(x=>x.type===type&&(original.slot==null||x.slot===original.slot)&&wbSig(x)!==osig);if(pool.length)twin=wbPick(pool);}if(!twin){wbContinue();return;}wbLoadProblem(twin,true);}
 function wbContinue(){WB.index++;if(WB.index>=(WB.size||8))return wbFinish();wbLoadProblem(WB.problems[WB.index],false);}
 function wbFinish(){
   const size=WB.size||8,score=WB.results.filter(Boolean).length,data=wbData(),old=data.best[WB.lessonId];
   if(!WB.reveal){data.best[WB.lessonId]=old==null?score:Math.max(old,score);}
-  if(typeof save==="function")save();if(typeof syncProgress==="function")syncProgress("finish");if(score>=Math.ceil(size*0.8)&&typeof confetti==="function")confetti();
+  if(WB.reveal&&typeof sessClear==="function")sessClear();if(typeof save==="function")save();if(typeof syncProgress==="function")syncProgress("finish");if(score>=Math.ceil(size*0.8)&&typeof confetti==="function")confetti();
   const marks=WB.results.map((ok,i)=>'<span class="wb-resultdot '+(ok?'good':'bad')+'">'+(i+1)+' '+(ok?'✓':'✗')+'</span>').join(""),id=WB.lessonId;
   const buttons=WB.reveal?'<button class="wb-primary" onclick="window.wbRevealExit&&window.wbRevealExit(\''+id+'\')">Back to the lesson ▶</button>':'<button class="wb-primary" onclick="wbStart(\''+id+'\')">Play again ↻</button><button class="wb-secondary" onclick="renderHome()">🏠 Home</button><button class="wb-secondary" onclick="renderWorkbookPicker()">📒 Lessons</button>';
   app.innerHTML='<div class="fadein wb-shell"><div class="wb-page wb-finish"><div class="wb-kicker">Lesson '+wbEscape(id)+' · '+(WB.reveal?'Practice':'Workbook Practice')+'</div><h1 class="wb-title">Practice complete!</h1><div class="wb-score">'+score+' / '+size+'</div><p style="font-size:20px">'+(score===size?'Every problem is correct — excellent explaining and modeling!':score>=size*0.75?'Strong work. Your models are helping your multiplication and division grow.':'You kept showing your thinking. That is how mathematicians learn!')+'</p><div class="wb-resultdots">'+marks+'</div><div class="wb-btnrow">'+buttons+'</div></div></div>';
@@ -2668,7 +2737,7 @@ function wbFinish(){
 }
 function wbRevealReview(id){const L=WB_LESSONS[id];if(!L)return"";return'<section class="wb-review"><div><h2>Review</h2><p>'+wbEscape(L.review)+'</p><div class="wb-review-eq">'+wbEscape(L.reviewEq)+'</div></div><div class="wb-review-visual">'+wbVisual(L.reviewModel)+'</div></section>';}
 
-const wbPublic={lessons:WB_LESSONS,gen:wbGenerate,check:wbCheck,review:wbRevealReview,tenSlot:WB_TEN};
+const wbPublic={lessons:WB_LESSONS,gen:wbGenerate,check:wbCheck,review:wbRevealReview,tenSlot:WB_TEN,resumeSnapshot:wbResumeSnapshot,resumeRestore:wbResumeRestore};
 if(typeof window!=="undefined")window.__wb=wbPublic;else if(typeof globalThis!=="undefined")globalThis.__wb=wbPublic;
 
 </script>
@@ -4455,11 +4524,21 @@ function sessSave(){
   }catch(e){}
 }
 function sessClear(){try{if(DB.resume&&P&&DB.resume[P.id]){delete DB.resume[P.id];save();}}catch(e){}}
+function savedResumeLesson(r){
+  if(!r)return null;
+  if(r.wb&&r.wb.reveal&&r.wb.lessonId)return r.wb.lessonId;
+  if(r.s&&r.s.lesson&&/^reveal:/.test(r.s.lesson))return r.s.lesson.slice(7);
+  return null;
+}
+function savedResumeAllowed(r){const id=savedResumeLesson(r);return !id||typeof revealUnit4Gate!=="function"||revealUnit4Gate(P,id).allowed;}
 function sessTryResume(){
   try{
     const r=DB.resume&&P&&DB.resume[P.id];
-    if(!r||!r.s||!r.s.cur)return false;
+    if(!r)return false;
     if(Date.now()-r.t>86400000){delete DB.resume[P.id];save();return false;}
+    if(!savedResumeAllowed(r))return false;
+    if(r.wb&&typeof wbResumeRestore==="function"&&wbResumeRestore(r.wb)){toast("✨ Continuing right where you left off");return true;}
+    if(!r.s||!r.s.cur)return false;
     S=r.s;S.brokeAt=new Set(S.brokeAt||[]);
     toast("✨ Continuing right where you left off");
     renderQuestion();
@@ -5394,7 +5473,7 @@ function topicsDue(){
    SCREENS & SESSION ENGINE
    ============================================================ */
 let sprintInt=null;
-function clearTimers(){if(typeof raceStop==="function"&&typeof RC!=="undefined"&&RC)raceStop();if(typeof gpStop==="function"&&typeof R3!=="undefined"&&R3)gpStop();if(sprintInt){clearInterval(sprintInt);sprintInt=null}if(typeof hoopInt!=="undefined"&&hoopInt){clearInterval(hoopInt);hoopInt=null}}
+function clearTimers(){if(typeof raceStop==="function"&&typeof RC!=="undefined"&&RC)raceStop();if(typeof gpStop==="function"&&typeof R3!=="undefined"&&R3)gpStop();if(sprintInt){clearInterval(sprintInt);sprintInt=null}if(typeof reboundStop==="function")reboundStop();if(typeof hoopInt!=="undefined"&&hoopInt){clearInterval(hoopInt);hoopInt=null}}
 function closeOverlay(){overlay.classList.remove("show");overlay.innerHTML=""}
 function defocus(){if(typeof document!=="undefined"&&document.body&&document.body.classList){document.body.classList.remove("focus");document.body.classList.remove("storyworld");document.body.classList.remove("learningworld")}if(typeof ambientStop==="function")ambientStop();}
 function openOverlay(html){overlay.innerHTML='<div class="ov-card fadein">'+html+'</div>';overlay.classList.add("show");overlay.scrollTop=0}
@@ -5802,11 +5881,11 @@ function renderHome(){
   const lvAvg=Math.max(1,Math.round(Object.values(P.levels).reduce((x,y)=>x+y,0)/Object.keys(SUBJECTS).length));
   const tile=(icon,name,sub,onclick,color,cls)=>'<button class="kh-tile'+(cls?" "+cls:"")+'" style="--c:'+color+'" onclick="'+onclick+'"><span class="kh-tic">'+icon+'</span><span class="kh-tnm">'+name+'</span>'+(sub?'<span class="kh-tsub">'+sub+'</span>':'')+'</button>';
   const subj=s=>tile(SUBJECTS[s].icon,SUBJECTS[s].name,'Level '+P.levels[s]+' · '+LEVEL_NAMES[P.levels[s]],"startSession('"+s+"')",SUBJECTS[s].color,rec.has(s)?"pick":"");
-  const curRv=(P.revealCurrent&&revealLesson(P.revealCurrent))||REVEAL_LESSONS.find(l=>{const r=revealRec(l.id);return !r||r.best/r.total<0.8;})||REVEAL_LESSONS[0];
-  const resume=DB.resume&&DB.resume[P.id]&&DB.resume[P.id].s;
+  const curRv=revealDefaultLesson(P);
+  const resume=DB.resume&&DB.resume[P.id];
   const videoDue=!!videoNext('reveal:'+curRv.id);
   const todayTiles=[
-    (DB.resume&&DB.resume[P.id]&&DB.resume[P.id].s)?tile("▶","Continue your lesson","Pick up where you left off","sessResumeBtn()","#3bb273","pick"):"",
+    (resume&&(resume.s||resume.wb)&&savedResumeAllowed(resume))?tile("▶","Continue your lesson","Pick up where you left off","sessResumeBtn()","#3bb273","pick"):"",
     s1!=="math"?tile(SUBJECTS[s1].icon,SUBJECTS[s1].name+" today","Ananse\'s pick · Level "+P.levels[s1],"startSession('"+s1+"')",SUBJECTS[s1].color,"pick"):"",
     s2!=="math"?tile(SUBJECTS[s2].icon,SUBJECTS[s2].name+" today","Ananse\'s pick · Level "+P.levels[s2],"startSession('"+s2+"')",SUBJECTS[s2].color,"pick"):"",
     tile("🕵️","Daily Mystery",dailyDone?"Solved today ✓":"One cross-subject case a day","startDaily()","#7c5cf0",dailyDone?"":"")
@@ -6793,78 +6872,49 @@ function endSession(){
    +'</div>'
    +(earned.length?'<div class="spacer"></div><h3>🏆 New trophies!</h3><div class="shelf-row" style="justify-content:center;margin-top:10px">'+earned.map(t=>'<div class="trophy" style="border-color:'+t.color+'"><span class="t-ic">'+t.icon+'</span><span class="t-lb">'+esc(t.label)+'</span></div>').join("")+'</div>':"")
    +'<div class="spacer"></div>'
-   +(lessonPassed&&S.results.length>=S.total?'<div class="btn-row"><button class="btn big" onclick="startHoops()">🏀 Bonus Hoops Game!</button></div><div class="spacer"></div>':"")
+   +(lessonPassed&&S.results.length>=S.total?'<div class="btn-row"><button class="btn big" onclick="startHoops()">🏀 Play Rebound Rescue!</button></div><div class="spacer"></div>':"")
    +'<div class="btn-row"><button class="btn '+(S.results.length>=S.total?"secondary ":"")+'big" onclick="goHome()">Daily Path 🏠</button>'
    +(earned.length?'<button class="btn secondary big" onclick="renderTrophyRoom()">Trophy Room 🏆</button>':"")
    +(S.lesson&&S.lesson.indexOf('reveal:')===0?'<button class="btn secondary big" onclick="renderRevealUnit('+revealLesson(S.lesson.slice(7)).u+')">Unit '+revealLesson(S.lesson.slice(7)).u+' 📘</button>':(S.lesson?'<button class="btn secondary big" onclick="renderLessons()">More Lessons 📚</button>':""))
    +'</div></div>';
   if(!lessonPassed)say("Almost there! You got "+S.correct+" of "+S.total+" right the first time. You need "+passNeed+" to pass. Let's look at the lesson again, then try a new set.");
-  else say("Session complete! "+praiseLine+(earned.length?" And you earned a new trophy!":"")+(S.results.length>=S.total?" You also unlocked the bonus hoops game!":""));
+  else say("Session complete! "+praiseLine+(earned.length?" And you earned a new trophy!":"")+(S.results.length>=S.total?" You also unlocked Rebound Rescue!":""));
   S=null;
 }
 
-/* ---------- bonus hoops — reward mini-game ---------- */
+/* ---------- Rebound Rescue — earned reward mini-game ---------- */
 var hoopInt=null,H=null;
+function reboundStop(){
+  if(H&&typeof H.destroy==="function")H.destroy();
+  H=null;
+}
 function startHoops(){
   clearTimers();closeOverlay();showAnanseCorner(false);
-  if(hoopInt){clearInterval(hoopInt);hoopInt=null}
-  H={shot:0,made:0,pos:0,dir:1,live:true};
-  app.innerHTML='<div class="fadein center" style="max-width:480px;margin:0 auto">'
-   +'<h1>🏀 Bonus Hoops!</h1>'
-   +'<p class="muted">You earned it! 5 free throws — tap SHOOT when the marker is in the green zone.</p>'
-   +'<div style="font-size:56px;margin:10px 0" id="hoopAnim">🏀&nbsp;&nbsp;&nbsp;&nbsp;🧺</div>'
-   +'<h3 id="hoopScore">Shot 1 of 5 · Made 0</h3>'
-   +'<div style="position:relative;height:34px;background:var(--panel2);border:2px solid #b9d4f3;border-radius:17px;margin:18px 0;overflow:hidden">'
-   +'<div style="position:absolute;left:38%;width:24%;top:0;bottom:0;background:rgba(59,178,115,.45)"></div>'
-   +'<div id="hoopMark" style="position:absolute;left:0;top:2px;bottom:2px;width:14px;border-radius:7px;background:#2d6fc0"></div>'
-   +'</div>'
-   +'<button class="btn big" onclick="hoopsShoot()">SHOOT! 🏀</button>'
-   +'<div class="spacer"></div>'
-   +'<button class="btn secondary" style="font-size:15px;padding:8px 16px" onclick="endHoops()">Done playing</button>'
-   +'</div>';
-  say("Bonus hoops! Tap shoot when the marker is in the green zone. Five free throws!");
-  hoopRun();
-}
-function hoopRun(){
-  if(hoopInt)clearInterval(hoopInt);
-  H.pos=0;H.dir=1;H.live=true;
-  hoopInt=setInterval(()=>{
-    H.pos+=H.dir*3.4;
-    if(H.pos>=100){H.pos=100;H.dir=-1}
-    if(H.pos<=0){H.pos=0;H.dir=1}
-    const m=$("hoopMark");if(m)m.style.left="calc("+H.pos+"% - 7px)";
-  },16);
-}
-function hoopsShoot(){
-  if(!H||!H.live)return;
-  H.live=false;
-  if(hoopInt){clearInterval(hoopInt);hoopInt=null}
-  const hit=H.pos>=38&&H.pos<=62;
-  H.shot++;
-  if(hit){H.made++;P.xp+=3;save()}
-  const an=$("hoopAnim");if(an)an.innerHTML=hit?'🏀➡️🧺 <b style="color:#3bb273">SWISH!</b>':'🏀↩️ <b style="color:#ff6b4a">Rim out!</b>';
-  const sc=$("hoopScore");if(sc)sc.textContent="Shot "+Math.min(H.shot+1,5)+" of 5 · Made "+H.made;
-  say(hit?"Swish!":"So close!");
-  if(H.shot>=5)setTimeout(endHoops,1200);
-  else setTimeout(()=>{if(!H)return;const a2=$("hoopAnim");if(a2)a2.innerHTML="🏀&nbsp;&nbsp;&nbsp;&nbsp;🧺";hoopRun()},900);
-}
-function endHoops(){
-  if(hoopInt){clearInterval(hoopInt);hoopInt=null}
-  if(!H)return;
-  const made=H.made,shots=H.shot;
-  H=null;
-  if(made===5){
-    awardTrophy({type:"hoops",icon:"🏀",label:"Sharpshooter",color:"#f5a623",detail:"Made 5 of 5 bonus free throws!"});
-    confetti();
+  app.innerHTML='<div id="reboundRescueHost" class="fadein"></div>';
+  const host=$("reboundRescueHost");
+  if(!host||typeof ReboundRescue==="undefined"){
+    app.innerHTML='<div class="fadein center"><h1>Rebound Rescue is taking a timeout.</h1><p class="muted">Your lesson reward is safe. Please return to the Daily Path and try again.</p><div class="spacer"></div><button class="btn big" onclick="goHome()">Daily Path 🏠</button></div>';
+    return;
   }
+  H=ReboundRescue.mount(host,{seed:Date.now(),totalRounds:5,onFinish:endHoops});
+}
+function endHoops(result){
+  if(!result){if(H&&typeof H.end==="function")H.end();return;}
+  H=null;
+  const boards=result.boards||0,xp=boards*3,perfect=result.perfect===true;
+  if(P){
+    P.xp+=xp;
+    if(perfect)awardTrophy({type:"hoops",icon:"🏀",label:"Sharpshooter",color:"#f5a623",detail:"Rescued 5 of 5 rebounds and scored every putback in Rebound Rescue!"});
+    else save();
+  }
+  if(perfect)confetti();
   app.innerHTML='<div class="fadein center">'
-   +'<div class="ananse-wrap '+(made===5?"ananse-celebrate":"")+'">'+ananseSVG(140,made>=3?"party":"idle")+'</div>'
-   +'<h1>'+(made===5?"🏆 Sharpshooter!":"Nice shooting!")+'</h1>'
-   +'<div class="speech" style="max-width:420px;margin:14px auto">You made '+made+' of '+shots+' free throws'+(made?' and earned +'+(made*3)+' XP':'')+'. '+(made===5?'A Sharpshooter trophy is waiting in your trophy room!':'Keep practicing — your aim grows just like your brain!')+'</div>'
+   +'<div class="ananse-wrap '+(perfect?"ananse-celebrate":"")+'">'+ananseSVG(140,boards>=3?"party":"idle")+'</div>'
+   +'<h1>'+(perfect?"🏆 Sharpshooter!":"Rebound round complete!")+'</h1>'
+   +'<div class="speech" style="max-width:460px;margin:14px auto">You rescued '+boards+' of '+result.total+' rebounds and scored '+result.score+' points'+(xp?' — earning +'+xp+' XP':'')+'. '+(perfect?'A Sharpshooter trophy is waiting in your trophy room!':'Every rebound starts with getting in position.')+'</div>'
    +'<div class="spacer"></div><div class="btn-row"><button class="btn big" onclick="goHome()">Daily Path 🏠</button>'
-   +(made===5?'<button class="btn secondary big" onclick="renderTrophyRoom()">Trophy Room 🏆</button>':"")
+   +(perfect?'<button class="btn secondary big" onclick="renderTrophyRoom()">Trophy Room 🏆</button>':"")
    +'</div></div>';
-  say("You made "+made+" of "+shots+"! Great bonus game.");
 }
 </script>
 <script>
@@ -9314,8 +9364,9 @@ function videoComplete(v){
 /* Which video helps with which kind of question: V1 big idea, V2 second strategy, V3 pattern trick, V4 word problems, V5 watch-outs. */
 const VIDEO_FOR_TYPE={picture:1,pair:2,match:2,fill:3,story:4,multi:5,who:5,form:5};
 const VIDEO_PART_NAMES={1:'the big idea',2:'a second way to solve it',3:'the pattern trick',4:'word problems',5:'watch-outs'};
-function lessonPassed(id){const r=revealRec(id);return !!r&&r.total>0&&r.best/r.total>=0.8;}
+function lessonPassed(id){if(revealProfileIsPrince(P)&&REVEAL_UNIT4_IDS.includes(id))return revealProfilePassed(P,id);const r=revealRec(id);return !!r&&r.total>0&&r.best/r.total>=0.8;}
 function upNextLesson(){
+  if(revealProfileIsPrince(P))return revealLesson(revealUnit4NextId(P));
   const list=REVEAL_LESSONS;let L=(P.revealCurrent&&revealLesson(P.revealCurrent))||list.find(l=>!lessonPassed(l.id))||list[0];
   if(lessonPassed(L.id)){const nx=list.slice(list.indexOf(L)+1).find(l=>!lessonPassed(l.id));if(nx)L=nx;}
   return L;
@@ -9344,25 +9395,15 @@ function catchUpMark(id){P.catchDay=P.catchDay||{};P.catchDay['reveal:'+id]=toda
 function catchUpSkip(id){catchUpMark(id);renderRevealLesson(id);}
 function catchUpWatch(id,idx){catchUpMark(id);videoReplay('reveal:'+id,idx);}
 /* The real steps for today on one lesson: [{t,s:'done'|'now'|'todo'}] */
-function upNextSteps(L){
-  const key='reveal:'+L.id,n=videoList(key).length,steps=[];
-  if(n){
-    const due=videoNext(key);
-    if(due)steps.push({t:'Video part '+(due.index+1)+' of '+n,s:'now'});
-    else if(videoWatchedToday(key)){const seen=videoList(key).map((x,i)=>i).filter(i=>videoSeenAt(P,key,i));steps.push({t:'Video part '+(seen.length)+' of '+n,s:'done'});}
-    else if(catchUpDue(L.id))steps.push({t:'Catch-up video',s:'now'});
-  }
-  steps.push({t:'Review',s:steps.some(x=>x.s==='now')?'todo':'now'},{t:'Practice',s:'todo'});
-  return steps;
-}
+function upNextSteps(L){ return [{t:'Review',s:'now'},{t:'Practice',s:'todo'}]; }
 function upNextHTML(){
-  const rs=DB.resume&&DB.resume[P.id]&&DB.resume[P.id].s,L=upNextLesson();
+  const saved=DB.resume&&DB.resume[P.id],rs=saved&&saved.s,wb=saved&&saved.wb,L=upNextLesson(),canResume=saved&&savedResumeAllowed(saved)&&((rs&&rs.cur)||(wb&&wb.cur));
   let title,steps,go,label,sub='';
-  if(rs&&rs.cur){
-    const rl=rs.lesson&&/^reveal:/.test(rs.lesson)?revealLesson(rs.lesson.slice(7)):null;
+  if(canResume){
+    const resumeId=savedResumeLesson(saved),rl=resumeId&&revealLesson(resumeId);
     title=rl?'Lesson '+rl.id+' · '+rl.t:'Your saved lesson';steps=[{t:'Review',s:'done'},{t:'Practice',s:'now'}];go='sessResumeBtn()';label='Continue practice';sub='Pick up right where you left off.';
   }else{
-    title='Lesson '+L.id+' · '+L.t;steps=upNextSteps(L);go="renderRevealLesson('"+L.id+"')";const cur=steps.find(x=>x.s==='now')||steps[0];label=cur.t;
+    title='Lesson '+L.id+' · '+L.t;steps=upNextSteps(L);go="renderRevealLesson('"+L.id+"')";label='Continue lesson';
     const r=revealRec(L.id);sub=r?'Best so far '+r.best+' of '+r.total+(lessonPassed(L.id)?' ★':''):'New lesson · Unit '+L.u;
   }
   const dots=steps.map((x,i)=>'<li class="un-step '+x.s+'"><span class="un-dot">'+(x.s==='done'?'✓':(i+1))+'</span><span class="un-lbl">'+esc(x.t)+'</span></li>').join('');
@@ -9371,9 +9412,9 @@ function upNextHTML(){
    +'<div class="un-go"><button class="btn big un-start" onclick="'+go+'">Start: '+esc(label)+' ▶</button></div></section>';
 }
 function unitPathHTML(){
-  const L=upNextLesson(),u=L.u,ls=REVEAL_LESSONS.filter(l=>l.u==u),curIdx=ls.indexOf(L);
-  const chips=ls.map((l,i)=>{const done=lessonPassed(l.id),now=l===L,r=revealRec(l.id),st=done?'done':now?'now':(i>curIdx+1&&!r?'lock':'todo');
-    return '<button class="up-chip '+st+'" onclick="renderRevealLesson(\''+l.id+'\')" aria-label="Lesson '+esc(l.id)+', '+esc(l.t)+', '+(done?'done':now?'up next':st==='lock'?'later':'not started')+'"><span class="up-st">'+(done?'✓':now?'▶':st==='lock'?'🔒':'')+'</span><b>'+esc(l.id)+'</b><span class="up-t">'+esc(l.t)+'</span></button>';}).join('');
+  const L=upNextLesson(),u=L.u,ls=REVEAL_LESSONS.filter(l=>l.u==u),curIdx=ls.indexOf(L),sequential=revealProfileIsPrince(P);
+  const chips=ls.map((l,i)=>{const done=lessonPassed(l.id),now=l===L,r=revealRec(l.id),gate=revealUnit4Gate(P,l.id),st=sequential?(!gate.allowed?'lock':done?'done':now?'now':'todo'):(done?'done':now?'now':(i>curIdx+1&&!r?'lock':'todo'));
+    return '<button class="up-chip '+st+'" onclick="renderRevealLesson(\''+l.id+'\')" aria-label="Lesson '+esc(l.id)+', '+esc(l.t)+', '+(st==='done'?'done':st==='now'?'up next':st==='lock'?'later':'not started')+'"><span class="up-st">'+(st==='done'?'✓':st==='now'?'▶':st==='lock'?'🔒':'')+'</span><b>'+esc(l.id)+'</b><span class="up-t">'+esc(l.t)+'</span></button>';}).join('');
   return '<section class="kh-sec"><h2>🗺️ Unit '+u+' path <small>'+esc(REVEAL_UNITS[u].t)+'</small></h2><div class="up-row">'+chips+'</div><div class="btn-row" style="justify-content:flex-start;margin-top:10px"><button class="btn secondary" onclick="renderReveal()">All units</button></div></section>';
 }
 document.addEventListener('visibilitychange',()=>{if(videoActive){videoActive.lastWall=performance.now();videoActive.lastMedia=null;}});
