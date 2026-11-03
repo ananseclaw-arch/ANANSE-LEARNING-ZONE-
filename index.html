@@ -609,6 +609,37 @@ body.learningworld #app{max-width:1180px}
  .hw-step-screen .hw-tap{min-height:64px}.hw-step-screen .hw-fb{margin:7px 0 2px}
  .hw-step-screen>.btn-row{margin-top:7px!important}
 }
+
+/* ---- Reveal unit screen, Gemini look (s4) ---- */
+.s4 .s4-h1{margin-top:12px;color:#14254a;-webkit-text-fill-color:#14254a;background:none;font-size:clamp(25px,6.4vw,36px);line-height:1.2;letter-spacing:-.3px}
+.s4-list{display:flex;flex-direction:column;gap:12px;margin-top:16px}
+.s4-card{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;font-family:inherit;cursor:pointer;border:0;border-radius:20px;padding:16px 14px 16px 18px;background:#b4c1d1;color:#1c2b4a;box-shadow:0 4px 0 rgba(40,60,90,.12),0 8px 18px rgba(40,60,90,.10);transition:transform .12s}
+.s4-card:active{transform:scale(.985)}
+.s4-t{font-size:clamp(19px,4.9vw,23px);font-weight:800;line-height:1.28}
+.s4-lock .s4-t,.s4-new .s4-t{color:#2a3a58}
+.s4-done{background:#cfeedd}.s4-tried{background:#f6e3bf}
+.s4-badge{flex:0 0 auto;width:84px;min-height:72px;border-radius:999px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:12.5px;font-weight:800;line-height:1.15;color:#fff;padding:6px 4px}
+.s4-badge b{font-size:19px;line-height:1.1;margin-bottom:2px}
+.s4-b-lock{background:#8494a9}.s4-b-new{background:#8494a9}.s4-b-done{background:#2f8f4e}.s4-b-tried{background:#d98a12}
+.s4-now{flex-direction:column;align-items:stretch;background:linear-gradient(160deg,#2b7cf0,#1a5fd6);color:#fff;padding:16px 16px 18px;box-shadow:0 6px 0 #1449a8,0 12px 26px rgba(26,95,214,.35)}
+.s4-now-t{font-size:clamp(20px,5.3vw,25px);font-weight:900;line-height:1.25}
+.s4-now-row{display:flex;align-items:center;gap:14px;margin-top:12px}
+.s4-art{display:grid;grid-template-columns:repeat(2,58px);gap:6px;flex:0 0 auto}
+.s4-tile{width:58px;height:50px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.08)}
+.s4-tile i{font-style:normal;font-weight:900;font-size:26px;letter-spacing:-1px;text-shadow:0 2px 0 rgba(0,0,0,.12)}
+.s4-now-side{flex:1;display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0}
+.s4-now-best{font-size:15px;font-weight:700;opacity:.92;text-align:center}
+.s4-start{font-family:inherit;border:0;border-radius:999px;padding:16px 12px;font-size:clamp(18px,4.7vw,22px);font-weight:900;color:#fff;cursor:pointer;background:linear-gradient(180deg,#5fdc4a,#2fae2a);box-shadow:0 5px 0 #1f7f1c,0 8px 16px rgba(0,0,0,.18);text-shadow:0 1px 0 rgba(0,0,0,.2)}
+.s4-start:active{transform:translateY(3px);box-shadow:0 2px 0 #1f7f1c}
+.s4-here{display:inline-block;font-size:13px;font-weight:800;background:rgba(255,255,255,.75);color:#1c4f9c;border-radius:999px;padding:3px 9px;vertical-align:middle;white-space:nowrap}
+.s4-now .s4-here{background:rgba(255,255,255,.22);color:#fff}
+.s4-home{margin-top:16px}
+.s4-bubble{position:fixed;right:106px;bottom:52px;z-index:41;max-width:190px;background:#fff;color:#14254a;border:2px solid #d5e2f2;border-radius:16px;padding:8px 12px;font-size:14px;font-weight:800;line-height:1.3;text-align:center;box-shadow:0 6px 16px rgba(20,37,74,.16);pointer-events:none;animation:s4pop .4s ease-out .6s both}
+.s4-bubble:after{content:"";position:absolute;right:-9px;bottom:16px;border:8px solid transparent;border-left-color:#fff;border-right:0}
+body:has(.s4) #anansecorner{z-index:45}
+.s4-bubble{z-index:46}
+@keyframes s4pop{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:none}}
+@media (min-width:700px){.s4-art{grid-template-columns:repeat(2,70px)}.s4-tile{width:70px;height:58px}.s4-now-side{max-width:320px;margin-left:auto}}
 </style>
 <style id="workbook"></style>
 </head>
@@ -1963,16 +1994,39 @@ function renderReveal(){
    +'<div class="btn-row" style="margin-top:18px"><button class="btn" onclick="renderHome()">⟵ Back to Adventure</button></div><div class="spacer"></div></div>';
   say("Reveal Math practice, "+P.name+". Pick a unit, or practice the lesson your class is on.");
 }
+/* Unit screen look (Eb's Gemini design, 2026-11-03): current lesson = big blue card with picture tiles + green Start,
+   other lessons = slate cards with a status badge. Look only: every card still opens renderRevealLesson(id) exactly as before. */
+const S4_ART={"4-1":["👟",'<i style="color:#2f80ed">2</i><i style="color:#9b51e0">2</i>',"🍒",'<i style="color:#eb3b3b">×2</i>'],
+ "4-2":["✋",'<i style="color:#2f80ed">5</i>',"⭐",'<i style="color:#eb3b3b">×5</i>'],
+ "4-3":["🔟",'<i style="color:#2f80ed">10</i>',"🪙",'<i style="color:#eb3b3b">×10</i>'],
+ "4-4":['<i style="color:#2f80ed">1</i>',"🍎",'<i style="color:#9b51e0">0</i>','<i style="color:#eb3b3b">×0</i>'],
+ "4-5":["⚡",'<i style="color:#2f80ed">5</i>','<i style="color:#9b51e0">10</i>','<i style="color:#eb3b3b">×</i>'],
+ "4-6":["🍪","🧺",'<i style="color:#2f80ed">4</i>','<i style="color:#eb3b3b">×8</i>']};
+function s4Art(id){const a=S4_ART[id]||["⭐",'<i style="color:#2f80ed">'+esc(id.split("-")[0])+'</i>',"🧮",'<i style="color:#eb3b3b">×</i>'];return '<span class="s4-art" aria-hidden="true">'+a.map(x=>'<span class="s4-tile">'+x+'</span>').join("")+'</span>';}
 function renderRevealUnit(u){
   clearTimers();closeOverlay();defocus();showAnanseCorner(true);
   const ls=REVEAL_LESSONS.filter(l=>l.u==u);
-  const cards=ls.map(l=>{const r=revealRec(l.id);const star=r&&r.best/r.total>=0.8;return '<button class="opt" style="display:flex;justify-content:space-between;align-items:center;gap:10px" onclick="renderRevealLesson(\''+l.id+'\')"><span style="text-align:left"><b>Lesson '+esc(l.id)+'</b> · '+esc(l.t)+(P.revealCurrent===l.id?' <span class="focus-chip">📍 class is here</span>':'')+'</span><span class="lvl-badge" style="background:'+(star?"#2f8f4e":(r?"#f5a623":"#6f88ad"))+'">'+(r?(star?"Mastered · ":"Practiced · ")+r.best+'/'+r.total:"Not started")+'</span></button>';}).join("");
-  app.innerHTML='<div class="fadein" style="max-width:680px;margin:0 auto">'
+  const passed=l=>{const r=revealRec(l.id);return !!r&&r.best/r.total>=0.8;};
+  const cur=ls.find(l=>P.revealCurrent===l.id&&!passed(l))||ls.find(l=>!passed(l))||null,curIdx=cur?ls.indexOf(cur):-1;
+  const cards=ls.map((l,i)=>{const r=revealRec(l.id);const star=r&&r.best/r.total>=0.8;const go='renderRevealLesson(\''+l.id+'\')';
+    const here=P.revealCurrent===l.id?' <span class="s4-here">📍 class is here</span>':'';
+    if(l===cur)return '<div class="s4-card s4-now" role="button" tabindex="0" onclick="'+go+'" onkeydown="if(event.key===\'Enter\')'+go+'" aria-label="Lesson '+esc(l.id)+', '+esc(l.t)+', up next">'
+      +'<div class="s4-now-t">Lesson '+esc(l.id)+' • '+esc(l.t)+here+'</div>'
+      +'<div class="s4-now-row">'+s4Art(l.id)+'<span class="s4-now-side">'+(r?'<span class="s4-now-best">Best so far '+r.best+'/'+r.total+'</span>':'')
+      +'<button class="s4-start" onclick="event.stopPropagation();'+go+'">Start Lesson →</button></span></div></div>';
+    const st=star?'done':(r?'tried':(cur&&i>curIdx?'lock':'new'));
+    const badge=st==='done'?'<span class="s4-badge s4-b-done"><b>★</b>Mastered<br>'+r.best+'/'+r.total+'</span>'
+      :st==='tried'?'<span class="s4-badge s4-b-tried"><b>✎</b>Practiced<br>'+r.best+'/'+r.total+'</span>'
+      :st==='lock'?'<span class="s4-badge s4-b-lock"><b>🔒</b>Finish '+esc(cur.id)+'<br>first</span>'
+      :'<span class="s4-badge s4-b-new"><b>○</b>Not<br>started</span>';
+    return '<button class="s4-card s4-'+st+'" onclick="'+go+'"><span class="s4-t">Lesson '+esc(l.id)+' • '+esc(l.t)+here+'</span>'+badge+'</button>';}).join("");
+  app.innerHTML='<div class="fadein s4" style="max-width:680px;margin:0 auto">'
    +'<div class="hud"><span class="pill">📘 <b>Reveal Math</b></span><span class="pill">Unit '+u+'</span></div>'
-   +'<h1 style="margin-top:10px">'+esc(REVEAL_UNITS[u].t)+'</h1>'
-   +'<div class="opts" style="margin-top:12px">'+cards+'</div>'
-   +'<div class="card" style="margin-top:14px"><b>🏠 Math @ Home</b><p class="muted" style="margin-top:6px">'+esc(REVEAL_UNITS[u].home)+'</p></div>'
-   +'<div class="btn-row" style="margin-top:14px"><button class="btn secondary" onclick="renderReveal()">⟵ All units</button></div><div class="spacer"></div></div>';
+   +'<h1 class="s4-h1">Unit '+u+': '+esc(REVEAL_UNITS[u].t)+'</h1>'
+   +'<div class="s4-list">'+cards+'</div>'
+   +'<div class="card s4-home"><b>🏠 Math @ Home</b><p class="muted" style="margin-top:6px">'+esc(REVEAL_UNITS[u].home)+'</p></div>'
+   +'<div class="btn-row" style="margin-top:14px"><button class="btn secondary" onclick="renderReveal()">⟵ All units</button></div><div class="spacer"></div>'
+   +'<div class="s4-bubble" aria-hidden="true">You can do this!<br>'+(cur?'Tap <b>Start Lesson</b>! 🚀':'Every lesson is done! ⭐')+'</div></div>';
 }
 function renderRevealLesson(id){
   const L=revealLesson(id);if(!L)return renderReveal();
