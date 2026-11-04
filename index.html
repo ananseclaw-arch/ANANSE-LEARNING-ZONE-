@@ -1133,7 +1133,7 @@ function labReflectA(pos){
   const l=labById(LAB.id);const r=l.reflect[LAB.ri];
   const labId=LAB.id,reflection=LAB.ri;
   const correct=LAB.order[pos]===0;
-  if(typeof logQuestion==="function")logQuestion("lab","science",l.id,null,r.q,correct,1,Date.now()-(LAB.qStart||Date.now()));
+  if(typeof logQuestion==="function")logQuestion("lab","science",l.id,null,r.q,correct,1,Date.now()-(LAB.qStart||Date.now()),{shown:r.q+" Options: "+LAB.order.map((oi,p)=>["A","B","C","D"][p]+") "+r.opts[oi]).join(" | "),given:r.opts[LAB.order[pos]],correct:r.opts[0]});
   LAB.order.forEach((oi,p)=>{const b=$("lopt"+p);if(!b)return;if(oi===0)b.classList.add("correct");else if(p===pos)b.classList.add("wrong");else b.classList.add("dim");b.onclick=null;});
   if(correct){LAB.rc++;sfx("correct");}else sfx("wrong");
   const msg=correct?"Exactly what the experiment showed!":"Look back at what happened in the lab: "+r.opts[0]+".";
@@ -2711,10 +2711,35 @@ function wbDrag(e,id){if(e&&e.dataTransfer)e.dataTransfer.setData("text/plain",i
 function wbDrop(e,id){e.preventDefault();const left=(e.dataTransfer&&e.dataTransfer.getData("text/plain"))||WB.matchLeft;if(!left)return;Object.keys(WB.match).forEach(k=>{if(WB.match[k]===id)delete WB.match[k];});WB.match[left]=id;WB.matchLeft=null;wbRenderProblem(true);}
 function wbCollectAnswer(){const p=WB.cur;if(p.type==="form"){const f={};p.fields.forEach(x=>f[x.key]=String(WB.fields[x.key]==null?"":WB.fields[x.key]).trim());return{f:f};}if(p.type==="fill")return{value:Number(WB.fields.ans)};if(p.type==="picture"){const a={eq:[0,1,2].map(i=>Number(WB.fields["e"+i]))};if(p.extraEq)a.eq2=[0,1,2].map(i=>Number(WB.fields["x"+i]));return a;}if(p.type==="story"){const a={eq:[0,1,2].map(i=>Number(WB.fields["e"+i])),value:Number(WB.fields.ans)};if(p.answer.remainder!=null)a.remainder=Number(WB.fields.rem);return a;}if(p.type==="multi")return{selected:WB.selected.slice()};if(p.type==="who"){const a={person:WB.person};if(p.valueAnswer!=null)a.value=Number(WB.fields.ans);return a;}if(p.type==="match")return{pairs:p.pairs.map(x=>[x.id,Number(WB.fields[x.id])])};if(p.type==="pair"){const a={product:Number(WB.fields.ans)};if(p.equations)a.equations=[[0,1,2].map(i=>Number(WB.fields["e"+i])),[0,1,2].map(i=>Number(WB.fields["x"+i]))];if(p.people)a.compare=WB.person;return a;}return null;}
 function wbCompactAnswer(a){if(!a)return null;if(a.f)return a.f;if(a.eq)return{eq:a.eq,eq2:a.eq2,value:a.value,remainder:a.remainder};if(a.selected)return{selected:a.selected};if(a.person&&a.value==null)return a.person;if(a.pairs)return{pairs:a.pairs};if(a.product!=null)return{product:a.product,equations:a.equations,compare:a.compare};if(a.value!=null)return a.person?{person:a.person,value:a.value}:a.value;return a;}
+/* Eb 2026-11-03: plain-text "shown / given / correct" for the parent answer log (P.qlog). Data only - nothing on screen changes. */
+function wbLogInfo(p,a){try{
+  const eqT=(op,v)=>(v&&v.length===3)?v[0]+" "+op+" "+v[1]+" = "+v[2]:"",blank=(op)=>"__ "+op+" __ = __",num=v=>(v==null||Number.isNaN(v))?"_":String(v);
+  const optT=o=>o.id+". "+o.text,rightT=n=>p.rights&&p.rights[n-1]!=null?n+". "+p.rights[n-1]:String(n);
+  let shown=String(p.q||""),given=null,correct=null;
+  if(p.instruction&&p.instruction!==p.q)shown+=" ("+p.instruction+")";
+  const v=p.visual||(p.type==="fill"?null:p.model);
+  if(v&&v.kind==="array")shown+=" [picture: "+v.rows+" rows of "+v.cols+"]";else if(v&&v.kind==="groups")shown+=" [picture: "+v.groups+" groups of "+v.size+"]";
+  if(p.type==="fill"){let used=false;shown+=" "+p.parts.map(x=>{if(x==="□"&&!used){used=true;return"__";}return x;}).join(" ");
+    let u2=false;const fillIn=val=>p.parts.map(x=>{if(x==="□"&&!u2){u2=true;return val;}return x;}).join(" ");given=fillIn(num(a&&a.value));u2=false;correct=fillIn(p.answer);}
+  else if(p.type==="form"){const fill=f=>p.rows.map(r=>String(r).replace(/\{[nt]:(\w+)\}/g,(m,k)=>f&&f[k]!=null&&f[k]!==""?f[k]:"__")).join(" / ");shown+=" "+fill(null);given=fill(a&&a.f);correct=(p.answerLines&&p.answerLines.length)?p.answerLines.join(" / "):fill(p.answer&&p.answer.f);}
+  else if(p.type==="multi"){shown+=" Options: "+p.options.map(optT).join(" | ");given=p.options.filter(o=>a&&a.selected&&a.selected.includes(o.id)).map(optT);correct=p.options.filter(o=>o.true).map(optT);if(!given.length)given=["(none)"];}
+  else if(p.type==="picture"||p.type==="story"){shown+=" Write: "+blank(p.eq.op)+(p.extraEq?" and "+blank(p.extraEq.op):"")+(p.type==="story"?" Answer: __ "+(p.unit||""):"");
+    given=eqT(p.eq.op,a&&a.eq&&a.eq.map(num))+(p.extraEq?" and "+eqT(p.extraEq.op,a&&a.eq2&&a.eq2.map(num)):"")+(p.type==="story"?"; answer "+num(a&&a.value)+" "+(p.unit||"")+(a&&a.remainder!=null?" r "+num(a.remainder):""):"");
+    correct=eqT(p.eq.op,p.answer.eq)+(p.extraEq?" and "+eqT(p.extraEq.op,p.extraEq.values):"")+(p.type==="story"?"; answer "+p.answer.value+" "+(p.unit||"")+(p.answer.remainder!=null?" r "+p.answer.remainder:""):"");}
+  else if(p.type==="who"){shown+=" Choices: "+(p.people||[]).join(" / ");const want=p.answer&&p.answer.person!=null?p.answer.person:p.answer,val=p.answer&&p.answer.value!=null?p.answer.value:p.valueAnswer;
+    given=String(a&&a.person)+(p.valueAnswer!=null?"; product "+num(a&&a.value):"");correct=String(want)+(val!=null?"; product "+val:"");}
+  else if(p.type==="match"){shown+=(p.rights?" Choices: "+p.rights.map((r,i)=>(i+1)+". "+r).join(" | "):" Numbers: "+(p.numbers||[]).join(", "))+" Match: "+p.pairs.map(x=>x.left).join(" | ");
+    const got={};((a&&a.pairs)||[]).forEach(x=>got[x[0]]=x[1]);const want={};(p.answer||[]).forEach(x=>want[x[0]]=x[1]);
+    given=p.pairs.map(x=>x.left+" -> "+(p.rights?rightT(got[x.id]):num(got[x.id]))).join(" | ");correct=p.pairs.map(x=>x.left+" -> "+(p.rights?rightT(want[x.id]):want[x.id])).join(" | ");}
+  else if(p.type==="pair"){shown+=" Write the shared product"+(p.equations?" and both equations":"")+(p.people?"; who has more? "+p.people.join(" / "):"");
+    given=(a&&a.equations?a.equations.map(e=>eqT("×",e.map(num))).join(" and ")+"; ":"")+"product "+num(a&&a.product)+(a&&a.compare!=null?"; "+a.compare:"");
+    correct=(p.equations?p.equations.map(e=>eqT("×",e)).join(" and ")+"; ":"")+"product "+p.answer.product+(p.answer.compare!=null?"; "+p.answer.compare:"");}
+  return{shown:shown,given:given,correct:correct};
+}catch(e){return null;}}
 function wbSubmit(){
   if(!wbCanSubmit()){if(typeof toast==="function")toast(wbWorkDone()?"Finish every answer box first":"Show your work first");return;}
   WB.answered=true;if(WB.workTab==="draw")wbRememberCanvas();const p=WB.cur,a=wbCollectAnswer(),ok=wbCheck(p,a);WB.lastAnswer=a;WB.lastOK=ok;const built=wbBuiltRecord(),rec={lesson:WB.lessonId,type:p.type,q:p.q,answer:wbCompactAnswer(a),correct:ok,built:built,drew:!!WB.drew,at:new Date().toISOString()};
-  const data=wbData();data.log.push(rec);if(data.log.length>2000)data.log=data.log.slice(-2000);if(!WB.isTwin)WB.results.push(ok);if(typeof logQuestion==="function")logQuestion("workbook","math","reveal "+WB.lessonId+" workbook","workbook:"+WB.lessonId,p.q,ok,0,Date.now()-WB.startedAt);else if(typeof save==="function")save();wbSendDrawing(rec);if(typeof save==="function")save();if(typeof sfx==="function")sfx(ok?"correct":"wrong");wbRenderFeedback(ok,a);
+  const data=wbData();data.log.push(rec);if(data.log.length>2000)data.log=data.log.slice(-2000);if(!WB.isTwin)WB.results.push(ok);if(typeof logQuestion==="function")logQuestion("workbook","math","reveal "+WB.lessonId+" workbook","workbook:"+WB.lessonId,p.q,ok,0,Date.now()-WB.startedAt,wbLogInfo(p,a));else if(typeof save==="function")save();wbSendDrawing(rec);if(typeof save==="function")save();if(typeof sfx==="function")sfx(ok?"correct":"wrong");wbRenderFeedback(ok,a);
 }
 function wbCorrectEquation(p){if(p.type==="fill"){let used=false;return p.parts.map(x=>{if(x==="□"&&!used){used=true;return p.answer;}return x;}).join(" ");}if(p.eq)return p.eq.values[0]+" "+p.eq.op+" "+p.eq.values[1]+" = "+p.eq.values[2];return"";}
 function wbCorrectAnswerHTML(p){if(p.type==="form")return'<div class="wb-multi-review">'+(p.answerLines||[]).map(l=>'<div class="wb-multi-line"><b>'+wbEscape(l)+'</b></div>').join("")+'</div>';if(p.type==="multi")return'<div class="wb-multi-review">'+p.options.map(o=>'<div class="wb-multi-line"><b>'+(o.true?'✓':'✗')+' '+o.id+'. '+wbEscape(o.text)+'</b><br>'+wbEscape(o.why)+'</div>').join("")+'</div>';if(p.type==="match")return'<div class="wb-multi-review">'+p.pairs.map(x=>'<div class="wb-multi-line">'+wbEscape(x.left)+' ↔ '+wbEscape(x.right)+'</div>').join("")+'</div>';if(p.type==="pair"){let h=(p.equations||[]).map(e=>'<div class="wb-review-eq">'+e[0]+' × '+e[1]+' = '+e[2]+'</div>').join("");h+='<div class="wb-review-eq">Shared product: '+p.answer.product+'</div>';if(p.answer.compare)h+='<div class="wb-review-eq">Who has more? '+wbEscape(p.answer.compare)+'</div>';return h;}if(p.type==="who"){const who=p.answer&&p.answer.person!=null?p.answer.person:p.answer;return'<p><b>'+wbEscape(who)+(who==="Yes"?' — the shared product is '+p.valueAnswer:' is right.')+'</b></p>';}let h=wbCorrectEquation(p)?'<div class="wb-review-eq">'+wbEscape(wbCorrectEquation(p))+'</div>':'';if(p.extraEq)h+='<div class="wb-review-eq">'+wbEscape(p.extraEq.values[0]+" "+p.extraEq.op+" "+p.extraEq.values[1]+" = "+p.extraEq.values[2])+'</div>';if(p.type==="story")h+='<div class="wb-review-eq">Answer: '+p.answer.value+' '+wbEscape(p.unit)+(p.answer.remainder!=null?' and '+p.answer.remainder+' '+wbEscape(p.remainderUnit):'')+'</div>';return h;}
@@ -4549,13 +4574,55 @@ function sessResumeBtn(){if(!sessTryResume()){toast("Nothing to continue");rende
 let P=null; // active profile
 let S=null; // active session
 
-function logQuestion(mode,subject,topic,lesson,q,ok,tries,ms){
+function logQuestion(mode,subject,topic,lesson,q,ok,tries,ms,extra){
   if(!P)return;
   P.qlog=P.qlog||[];
   P.qlog.push({t:Date.now(),mode:mode,subject:subject||"",topic:topic||"",lesson:lesson||null,
     q:String(q||"").slice(0,140),ok:!!ok,tries:Math.max(0,+tries||0),ms:Math.max(0,Math.round(+ms||0))});
+  // Eb 2026-11-03: what was on screen, what he answered, and the right answer - so the parent report shows the exact slip
+  if(extra&&typeof extra==="object"){const e=P.qlog[P.qlog.length-1];
+    ["shown","given","correct"].forEach(k=>{const v=qlogVal(extra[k]);if(v!==null)e[k]=v;});}
   P.qlog=P.qlog.slice(-400);
   save();
+}
+function qlogClip(v){v=String(v==null?"":v).replace(/\s+/g," ").trim();return v.length>300?v.slice(0,297)+"...":v;}
+function qlogVal(v){
+  if(v==null)return null;
+  if(Array.isArray(v)){const a=v.slice(0,10).map(qlogClip).filter(x=>x!=="");let n=0;return a.filter(x=>(n+=x.length)<=300||x===a[0]);}
+  const c=qlogClip(v);return c===""?null:c;
+}
+/* plain-text version of a question picture (dot arrays, number labels) for the answer log */
+function qlogVisText(html){
+  if(!html)return"";
+  const s=String(html);
+  const rows=s.match(/<div>[●○⬤◯★✿🍎🍪⚽]+<\/div>/g);
+  if(/rv-array/.test(s)&&rows&&rows.length){const cols=Array.from(rows[0].replace(/<\/?div>/g,"")).length;return"[picture: "+rows.length+" rows of "+cols+"]";}
+  const t=s.replace(/<(script|style)[\s\S]*?<\/\1>/gi," ").replace(/<[^>]+>/g," ").replace(/&nbsp;/g," ").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/\s+/g," ").trim();
+  return /[0-9A-Za-z]/.test(t)?"[picture: "+t.slice(0,120)+"]":"";
+}
+/* options in the order they appeared on screen: "A) 12 | B) 15 ..." */
+function qlogOpts(opts,order){const L=["A","B","C","D","E","F"];return (order||opts.map((_,i)=>i)).map((oi,p)=>L[p]+") "+opts[oi]).join(" | ");}
+/* main-session answer details: shown / given / correct (pos = the button position he picked, null = skipped) */
+function sessAnsInfo(q,pos){
+  try{
+    if(!q)return null;
+    const vis=qlogVisText(q.vis);
+    let shown=String(q.q||"")+(vis?" "+vis:""),given=null,correct=null;
+    if(q.mirror){
+      const m=q.mirror,rows=mirrorRows(m),vals=S.mirrorValues||[],cut=S.mirrorCut,exp=mirrorExpected(m,cut||1);
+      shown+=(m.choices?" "+m.choices:"")+" "+rows.map(r=>r.replace(/\{\d+\}/g,"__")).join(" ; ");
+      if(pos!==null)given=(m.split&&cut?"split after "+cut+" column"+(cut===1?"":"s")+": ":"")+rows.map(r=>r.replace(/\{(\d+)\}/g,(_,i)=>vals[i]!=null&&vals[i]!==""?vals[i]:"_")).join(" ; ");
+      correct=m.kind?String(m.model||m.expected.join(" ; ")):rows.map(r=>r.replace(/\{(\d+)\}/g,(_,i)=>exp[i])).join(" ; ");
+    }else{
+      const typed=oneTryTyped(q);
+      if(!typed&&q.opts)shown+=" Options: "+qlogOpts(q.opts,S.order);
+      if(typed)shown+=" (typed answer)";
+      correct=q.opts?q.opts[q.a]:null;
+      if(pos!==null&&pos!==undefined)given=typed&&S.typedGiven!=null?String(S.typedGiven):(q.opts&&S.order?q.opts[S.order[pos]]:null);
+    }
+    if(pos===null)given="(skipped)";
+    return {shown:shown,given:given,correct:correct};
+  }catch(e){return null;}
 }
 function sessionQuestionMode(){
   if(!S)return"practice";
@@ -6094,7 +6161,7 @@ function renderQuestion(){
    +(gate?'<div class="center" id="revealwrap"><div class="spacer"></div><button class="btn big" onclick="revealOptions()">I worked it out — show my choices ▶</button></div>':'')
    +'<div class="center" id="skipbar" style="margin-top:14px"><button class="readbtn" onclick="skipQuestion()">Skip this one →</button></div>'
    +'</div></div>';
-  S.qStart=Date.now();S.qShownAt=S.qStart;S.qTries=0;
+  S.qStart=Date.now();S.qShownAt=S.qStart;S.qTries=0;S.typedGiven=null;
   S.tried=false;               // fresh mastery slate for this question
   sessSave();                  // auto-save: reopening resumes exactly here
   if(showScratch&&q.mirror&&/draw a representation/i.test(q.q))initScratch();
@@ -6126,7 +6193,7 @@ function typeCheck(){
   const right=_tyNum(q.opts[q.a])===Number(S.typed);
   const pos=right?S.order.indexOf(q.a):S.order.findIndex(oi=>oi!==q.a);
   const tw=$("typewrap");if(tw)tw.innerHTML='<div style="font-size:30px;font-weight:800;margin-top:6px">'+esc(Number(S.typed).toLocaleString("en-US"))+(right?' ✅':' ❌')+'</div>';
-  S.typed="";
+  S.typedGiven=S.typed;S.typed="";
   answer(pos);
 }
 /* Always-available forward path: skipping counts as a "needs practice" miss
@@ -6149,7 +6216,7 @@ function skipQuestion(){
     P.wrongLog=P.wrongLog.slice(-1500);
     save();
   }
-  logQuestion(sessionQuestionMode(),q.subject||S.subject,q.topic,S.lesson||null,q.q,false,S.qTries||0,Date.now()-(S.qShownAt||S.qStart));
+  logQuestion(sessionQuestionMode(),q.subject||S.subject,q.topic,S.lesson||null,q.q,false,S.qTries||0,Date.now()-(S.qShownAt||S.qStart),sessAnsInfo(q,null));
   if(!q.comeback&&!q.twin)S.n++;sessSave();
   sfx("tick");
   nextQuestion();
@@ -6489,7 +6556,7 @@ function answer(pos){
   const q=S.cur;
   const elapsed=Date.now()-S.qStart;
   // Eb 2026-11-01: an answer faster than anyone could read the question is a guess - no points, it comes back later
-  if(!S.tried&&!q.comeback&&!q.twin&&elapsed<oneTryMinMs(q)){return oneTryRushed(q);}
+  if(!S.tried&&!q.comeback&&!q.twin&&elapsed<oneTryMinMs(q)){return oneTryRushed(q,pos);}
   S.qTries=(S.qTries||0)+1;
   const chosen=S.order[pos];
   const correct=chosen===q.a;
@@ -6540,7 +6607,7 @@ function answer(pos){
     save();sessSave();
   }
   if(correct){
-    logQuestion(sessionQuestionMode(),q.subject||S.subject,q.topic,S.lesson||null,q.q,firstTry,S.qTries,Date.now()-(S.qShownAt||S.qStart));
+    logQuestion(sessionQuestionMode(),q.subject||S.subject,q.topic,S.lesson||null,q.q,firstTry,S.qTries,Date.now()-(S.qShownAt||S.qStart),sessAnsInfo(q,pos));
     if(!q.comeback&&!q.twin)S.n++;   // a comeback / new-try question doesn't use up a question slot
     save();sessSave();
     sfx("correct");
@@ -6558,7 +6625,7 @@ function answer(pos){
     }else if(!w){setTimeout(()=>{nextQuestion();},1200);} // safety net: never dead-end
   }else{
     sfx("wrong");
-    logQuestion(sessionQuestionMode(),q.subject||S.subject,q.topic,S.lesson||null,q.q,false,1,Date.now()-(S.qShownAt||S.qStart));
+    logQuestion(sessionQuestionMode(),q.subject||S.subject,q.topic,S.lesson||null,q.q,false,1,Date.now()-(S.qShownAt||S.qStart),sessAnsInfo(q,pos));
     if(!q.comeback&&!q.twin){   // the missed question comes back ~3 questions later (no points, just to clear it)
       S.comebacks=S.comebacks||[];
       S.comebacks.push({q:Object.assign({},q.mirror?S.mirrorComebacks[q.reserveSlot]:q,{comeback:true}),due:S.n+3});
@@ -6582,10 +6649,10 @@ function answer(pos){
 }
 /* ONE TRY helpers (Eb 2026-11-01) */
 function oneTryMinMs(q){const len=(q.q||"").length;return (isWordProblem(q)||len>70)?3000:(len>35?1800:1000);}
-function oneTryRushed(q){
+function oneTryRushed(q,pos){
   S.tried=true;S.rushed=(S.rushed||0)+1;
   S.order.forEach((oi,p)=>{const b=$("opt"+p);if(b){b.onclick=null;b.classList.add("dim");}});
-  logQuestion(sessionQuestionMode(),q.subject||S.subject,q.topic,S.lesson||null,q.q,false,1,Date.now()-(S.qShownAt||S.qStart));
+  logQuestion(sessionQuestionMode(),q.subject||S.subject,q.topic,S.lesson||null,q.q,false,1,Date.now()-(S.qShownAt||S.qStart),sessAnsInfo(q,pos===undefined?(q.mirror?0:undefined):pos));
   if(P.qlog&&P.qlog.length)P.qlog[P.qlog.length-1].rushed=true;
   // first rush: the question doesn't count yet and comes back 2 questions later (it then counts normally);
   // rushing the SAME question again counts as a miss so the session can't loop
@@ -6736,7 +6803,7 @@ function answerPractice(pos){
   const pr=T.q.practice;
   const chosen=T.order[pos];
   const correct=chosen===pr.a;
-  if(S)logQuestion(sessionQuestionMode(),S.subject,T.q.topic,S.lesson||null,pr.q,correct,1,Date.now()-(T.qStart||Date.now()));
+  if(S)logQuestion(sessionQuestionMode(),S.subject,T.q.topic,S.lesson||null,pr.q,correct,1,Date.now()-(T.qStart||Date.now()),{shown:pr.q+" Options: "+qlogOpts(pr.opts,T.order),given:pr.opts[chosen],correct:pr.opts[pr.a]});
   T.order.forEach((oi,p)=>{
     const b=$("popt"+p);if(!b)return;
     if(oi===pr.a)b.classList.add("correct");
@@ -7294,7 +7361,7 @@ function diagAnswer(pos){
   const st=D.plan[D.si],q=D.q;
   const step=D.i;
   const correct=pos!==null&&D.order[pos]===q.a;
-  logQuestion("diag",q.subject||st.s,q.topic||st.s,null,q.q,correct,pos===null?0:1,Date.now()-(D.qStart||Date.now()));
+  logQuestion("diag",q.subject||st.s,q.topic||st.s,null,q.q,correct,pos===null?0:1,Date.now()-(D.qStart||Date.now()),{shown:q.q+" Options: "+qlogOpts(q.opts,D.order),given:pos===null?"(skipped)":q.opts[D.order[pos]],correct:q.opts[q.a]});
   D.order.forEach((oi,p)=>{const b=$("dopt"+p);if(b){b.classList.add(p===pos?(correct?"correct":"dim"):"dim");b.onclick=null}});
   st.asked++;if(correct)st.correct++;
   st.hist.push({qid:questionSig(q),lvl:q.level,ok:correct,skipped:pos===null});
@@ -7461,7 +7528,7 @@ function dailySubject(q){const m=String(q&&q.mix||"").toLowerCase();return m.ind
 function dailyAnswer(pos){
   const q=DC.q;
   const correct=DC.order[pos]===q.a;
-  logQuestion("daily",dailySubject(q),q.mix||"daily mystery",null,q.q,correct,1,Date.now()-(DC.qStart||Date.now()));
+  logQuestion("daily",dailySubject(q),q.mix||"daily mystery",null,q.q,correct,1,Date.now()-(DC.qStart||Date.now()),{shown:q.q+" Options: "+qlogOpts(q.opts,DC.order),given:q.opts[DC.order[pos]],correct:q.opts[q.a]});
   DC.order.forEach((oi,p)=>{const b=$("yopt"+p);if(!b)return;
     if(oi===q.a)b.classList.add("correct");else if(p===pos&&!correct)b.classList.add("wrong");else b.classList.add("dim");b.onclick=null});
   const praise=pick(PRAISE);

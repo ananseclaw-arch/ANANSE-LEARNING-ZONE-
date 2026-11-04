@@ -118,7 +118,7 @@ function labReflectA(pos){
   const l=labById(LAB.id);const r=l.reflect[LAB.ri];
   const labId=LAB.id,reflection=LAB.ri;
   const correct=LAB.order[pos]===0;
-  if(typeof logQuestion==="function")logQuestion("lab","science",l.id,null,r.q,correct,1,Date.now()-(LAB.qStart||Date.now()));
+  if(typeof logQuestion==="function")logQuestion("lab","science",l.id,null,r.q,correct,1,Date.now()-(LAB.qStart||Date.now()),{shown:r.q+" Options: "+LAB.order.map((oi,p)=>["A","B","C","D"][p]+") "+r.opts[oi]).join(" | "),given:r.opts[LAB.order[pos]],correct:r.opts[0]});
   LAB.order.forEach((oi,p)=>{const b=$("lopt"+p);if(!b)return;if(oi===0)b.classList.add("correct");else if(p===pos)b.classList.add("wrong");else b.classList.add("dim");b.onclick=null;});
   if(correct){LAB.rc++;sfx("correct");}else sfx("wrong");
   const msg=correct?"Exactly what the experiment showed!":"Look back at what happened in the lab: "+r.opts[0]+".";
