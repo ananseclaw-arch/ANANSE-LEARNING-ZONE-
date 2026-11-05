@@ -476,20 +476,92 @@ const WB_EXPLAIN_CHUNK=90;
 function wbExplainLine(p){return(WB&&WB.flex?"Your answer is right! ":"Nice work. Your answer is correct. ")+wbModelSpoken(p);}
 function wbWarmExplain(){
   const p=WB&&WB.cur;if(!wbIsExplain(p)||typeof warmTeacherLine!=="function")return;
-  setTimeout(()=>{if(WB&&WB.cur===p&&!WB.answered)warmTeacherLine(wbExplainLine(p),WB_EXPLAIN_CHUNK);},4000); // after the question read-out
+  setTimeout(()=>{if(WB&&WB.cur===p&&!WB.answered){if(wbPickSet(p)){warmTeacherLine((WB.flex?"Your answer is right! ":"Nice work. Your answer is correct. ")+wbPickAsk(p)+" "+wbPickRightLine(p)+" "+wbPickWrongLine(p),WB_EXPLAIN_CHUNK);}else warmTeacherLine(wbExplainLine(p),WB_EXPLAIN_CHUNK);}},4000); // after the question read-out
 }
 function wbModelSpoken(p){return"Nice thinking! Here's another way to say it. "+lztSpeakable(p.explain||"");}
+/* ---------- "Which reason is best?" (Eb, 2026-11-05): after the answer is marked he picks the best of 3 short reasons.
+   Reasons come from code (no AI), built from the question's own words and numbers, so every generated variant (and an
+   older saved test) gets a valid set. One is the concept reason from the model explanation; two are believable kid
+   mistakes. One try, never a loop, and the pick never changes whether the ANSWER counted (tracked on P.explains). */
+function wbPickSet(p){
+  if(!wbIsExplain(p))return null;
+  const q=String(p.q||""),f=(p.answer&&p.answer.f)||{},S=(best,w1,w2,why)=>({best:best,wrong:[w1,w2],why:why});let m;
+  if(/two equations to represent/.test(q)){const v=Number((String(f.e1||"").match(/^(\d+)/)||[])[1])||5;
+    return S("Adding a number to itself is 2 times it","You add 2 more to the number","Times always makes more than adding",v+" + "+v+" = "+2*v+" and 2 × "+v+" = "+2*v+". Same total.");}
+  if((m=q.match(/knowing 5 × (\d+) help you remember/))){const a=+m[1];
+    return S("Switching the order doesn't change the answer",a%2?"5 and "+a+" are both odd numbers":a+" is an even number","You add 5 and "+a+" to get it","5 × "+a+" and "+a+" × 5 are both "+5*a+".");}
+  if((m=q.match(/Each (\w+) has 5 (\w+)/))){const u=m[1];
+    return S("Each "+u+" has 5, so I count by 5s","You add 5 to the number of "+u+"s","Any number works, like 12 or 23","Every "+u+" adds 5 more: 10, 15, 20 … up to 50.");}
+  if((m=q.match(/has 10 (\w+) of .*fewer than (\d+)/))){const c=m[1],b=+m[2];
+    return S("10 equal "+c+", so it's 10 times a number","You add 10 to the number in each","Any number works, like 25 or 33","10 × 1 up to 10 × "+(b-1)+" makes 10, 20, 30 … up to "+10*(b-1)+".");}
+  if((m=q.match(/ones place of a product of 10.*such as (\d+) × 10/))){const k=+m[1];
+    return S("Every product of 10 ends in 0","Times 10 just adds 10 to the number","0 is the smallest digit there is",k+" × 10 = "+10*k+". Products of 10 always end in 0.");}
+  if((m=q.match(/knowing (\d+) × 5 help you remember/))){const a=+m[1];
+    return S("10 is double 5, so the answer is double too","You add 5 more to "+a+" × 5","Times 10 is half of times 5",a+" × 5 = "+5*a+", and "+5*a+" + "+5*a+" = "+10*a+".");}
+  if((m=q.match(/same number of (\w+) as (\w+)/))){const k=Number((String(f.e||"").match(/^(\d+)/)||[])[1])||12;
+    return S("One each: a number times 1 is itself","Times 1 adds one more","Any number times 1 is 1","Each of the "+k+" "+m[2]+" gets 1, so "+k+" × 1 = "+k+".");}
+  if((m=q.match(/says that (\d+) × (\d+) and (\d+) × (\d+) have the same product/))){const A=+m[1],B=+m[2],C=+m[3],D=+m[4];
+    if(B===0&&D===0)return S("Any number times 0 is 0","Times 0 keeps the number the same","Both use the same × sign",A+" × 0 = 0 and "+C+" × 0 = 0.");
+    if(B===1&&D===0)return S(A+" × 1 is "+A+", but "+C+" × 0 is 0","Times 1 and times 0 both give 0","A × sign always makes it bigger",A+" × 1 = "+A+" but "+C+" × 0 = 0. They are not the same.");
+    return S("Switching the order doesn't change the answer","Times 1 always gives 1","You add 1 to "+A+" both times",A+" × 1 = "+A+" and 1 × "+A+" = "+A+".");}
+  if((m=q.match(/use (\d+) \w+ in all, with none left over/))){const N=+m[1];
+    return N%2===0?S(N+" is even, so it splits into pairs",N+" is a big number","Any number can be put in pairs","2 × "+N/2+" = "+N+". Every one has a partner.")
+      :S(N+" is odd, so 1 would be left over",N+" is a big number","You can never split a number in half","2 × "+(N-1)/2+" = "+(N-1)+", so 1 is left over.");}
+  if((m=q.match(/fewer than (\d+) packets/))){const M=+m[1];
+    return S("Each packet has 10, so it's a 10s number","You add 10 to the number of packets","Any number works, like 25 or 33","1 to "+(M-1)+" packets of 10 make 10, 20, 30 … up to "+10*(M-1)+".");}
+  if(/possible for a number to be a product of 2, a product of 5, and a product of 10/.test(q))
+    return S("Numbers that end in 0, like 10, are all three","Every number is a product of 2","5 is odd, so no number can be all three","10 = 2 × 5 = 5 × 2 = 10 × 1.");
+  if((m=q.match(/Is (\d+) a product of 2, a product of 5, and a product of 10/))){const N=+m[1];
+    return N%10===0?S(N+" ends in 0, so it's a product of all three",N+" has two digits","Every even number is a product of 10",N+" = 2 × "+N/2+" = 5 × "+N/5+" = 10 × "+N/10+".")
+      :S(N+" doesn't end in 0, so it's not a product of 10",N+" has two digits",N+" is too big to be a product of 2","Products of 10 always end in 0. "+N+" ends in "+N%10+".");}
+  return null;
+}
+/* Shuffled once per question (the same order is pre-warmed in the teacher voice while he types). */
+function wbPickChoices(p){
+  if(WB&&WB._pick&&WB._pick.p===p)return WB._pick.choices;
+  const s=wbPickSet(p);if(!s)return null;
+  const choices=wbShuffle([{t:s.best,best:true},{t:s.wrong[0],best:false},{t:s.wrong[1],best:false}]);
+  if(WB)WB._pick={p:p,choices:choices,set:s,done:false,rec:null,tail:"",tok:0};
+  return choices;
+}
+function wbPickAsk(p){const c=wbPickChoices(p);return c?"Which reason is best? "+c.map(x=>lztSpeakable(x.t)+".").join(" "):"";}
+function wbPickRightLine(p){return"Yes! That is the best reason. "+lztSpeakable(p.explain||"");}
+function wbPickWrongLine(p){const s=wbPickSet(p);return s?"Not quite. The best reason is: "+lztSpeakable(s.best)+". "+lztSpeakable(s.why):"";}
+/* The pick card. `tail` (model explanation + Next buttons) is shown only after he picks. */
+function wbPickHTML(p,rec,tail){
+  const c=wbPickChoices(p);if(!c)return tail;
+  WB._pick.rec=rec||null;WB._pick.tail=tail;WB._pick.done=false;
+  return'<div class="lzp" id="lzpBox"><h3 class="lzp-h"><span aria-hidden="true">🤔</span> Which reason is best?</h3><div class="lzp-list">'
+    +c.map((x,i)=>'<button type="button" class="lzp-btn" id="lzpBtn'+i+'" onclick="wbPickTap('+i+')"><span class="lzp-k" aria-hidden="true">'+"ABC"[i]+'</span><span class="lzp-t">'+wbEscape(x.t)+'</span></button>').join("")
+    +'</div><div id="lzpOut" aria-live="polite"></div></div>';
+}
+function wbPickTap(i){
+  const k=WB&&WB._pick;if(!k||k.done||!k.choices[i])return;k.done=true;
+  const pick=k.choices[i],ok=!!pick.best,best=k.choices.find(x=>x.best),p=k.p;
+  k.choices.forEach((x,j)=>{const b=document.getElementById("lzpBtn"+j);if(!b)return;b.disabled=true;b.setAttribute("aria-disabled","true");
+    if(x.best)b.classList.add("best");if(j===i)b.classList.add("picked",ok?"right":"wrong");if(!x.best&&j!==i)b.classList.add("dim");});
+  const rec=k.rec;if(rec){rec.picked=pick.t;rec.pickOk=ok;rec.choices=k.choices.map(x=>x.t);rec.pickBest=best.t;rec.pickAt=new Date().toISOString();}
+  if(typeof save==="function")save();
+  if(typeof sfx==="function")sfx(ok?"correct":"wrong");
+  const out=document.getElementById("lzpOut");
+  if(out)out.innerHTML=(ok?'<div class="lzp-res good" role="status"><b>⭐ Yes! That’s the best reason.</b></div>'
+    :'<div class="lzp-res try" role="status"><b>Not quite. The best reason is the green one.</b><span>'+wbEscape(k.set.why)+'</span></div>')+k.tail;
+  try{const n=document.getElementById("lztNextBtn")||document.querySelector("#lzpOut .wb-btnrow button:last-child");if(n&&n.scrollIntoView)n.scrollIntoView({block:"nearest",behavior:"smooth"});}catch(e){}
+  if(typeof say==="function")say(ok?wbPickRightLine(p):wbPickWrongLine(p),{chunk:WB_EXPLAIN_CHUNK});
+}
+function wbPickIntoView(){try{const b=document.getElementById("lzpBox");if(b&&b.scrollIntoView)b.scrollIntoView({block:"nearest",behavior:"smooth"});}catch(e){}}
 function wbSubmit(){
   if(!wbCanSubmit()){if(typeof toast==="function")toast(wbWorkDone()?"Finish every answer box first":"Show your work first");return;}
-  WB.answered=true;if(WB.workTab==="draw")wbRememberCanvas();const p=WB.cur,a=wbCollectAnswer(),ok=wbCheck(p,a);WB.lastAnswer=a;WB.lastOK=ok;wbSaveExplain(p,a,ok);const built=wbBuiltRecord(),rec={lesson:WB.lessonId,type:p.type,q:p.q,answer:wbCompactAnswer(a),correct:ok,built:built,drew:!!WB.drew,at:new Date().toISOString()};
+  WB.answered=true;if(WB.workTab==="draw")wbRememberCanvas();const p=WB.cur,a=wbCollectAnswer(),ok=wbCheck(p,a);WB.lastAnswer=a;WB.lastOK=ok;WB.explainRec=wbSaveExplain(p,a,ok);const built=wbBuiltRecord(),rec={lesson:WB.lessonId,type:p.type,q:p.q,answer:wbCompactAnswer(a),correct:ok,built:built,drew:!!WB.drew,at:new Date().toISOString()};
   const data=wbData();data.log.push(rec);if(data.log.length>2000)data.log=data.log.slice(-2000);if(!WB.isTwin&&!WB.flex)WB.results.push(ok);if(typeof logQuestion==="function")logQuestion("workbook","math","reveal "+WB.lessonId+" workbook","workbook:"+WB.lessonId,p.q,ok,0,Date.now()-WB.startedAt,wbLogInfo(p,a));else if(typeof save==="function")save();wbSendDrawing(rec);if(typeof save==="function")save();if(typeof sfx==="function")sfx(ok?"correct":"wrong");if(WB.flex){lztAfterAnswer(ok,a);return;}wbRenderFeedback(ok,a);
 }
 function wbCorrectEquation(p){if(p.type==="fill"){let used=false;return p.parts.map(x=>{if(x==="□"&&!used){used=true;return p.answer;}return x;}).join(" ");}if(p.eq)return p.eq.values[0]+" "+p.eq.op+" "+p.eq.values[1]+" = "+p.eq.values[2];return"";}
 function wbCorrectAnswerHTML(p){if(p.type==="form")return'<div class="wb-multi-review">'+(p.answerLines||[]).map(l=>'<div class="wb-multi-line"><b>'+wbEscape(l)+'</b></div>').join("")+'</div>';if(p.type==="multi")return'<div class="wb-multi-review">'+p.options.map(o=>'<div class="wb-multi-line"><b>'+(o.true?'✓':'✗')+' '+o.id+'. '+wbEscape(o.text)+'</b><br>'+wbEscape(o.why)+'</div>').join("")+'</div>';if(p.type==="match")return'<div class="wb-multi-review">'+p.pairs.map(x=>'<div class="wb-multi-line">'+wbEscape(x.left)+' ↔ '+wbEscape(x.right)+'</div>').join("")+'</div>';if(p.type==="pair"){let h=(p.equations||[]).map(e=>'<div class="wb-review-eq">'+e[0]+' × '+e[1]+' = '+e[2]+'</div>').join("");h+='<div class="wb-review-eq">Shared product: '+p.answer.product+'</div>';if(p.answer.compare)h+='<div class="wb-review-eq">Who has more? '+wbEscape(p.answer.compare)+'</div>';return h;}if(p.type==="who"){const who=p.answer&&p.answer.person!=null?p.answer.person:p.answer;return'<p><b>'+wbEscape(who)+(who==="Yes"?' — the shared product is '+p.valueAnswer:' is right.')+'</b></p>';}let h=wbCorrectEquation(p)?'<div class="wb-review-eq">'+wbEscape(wbCorrectEquation(p))+'</div>':'';if(p.extraEq)h+='<div class="wb-review-eq">'+wbEscape(p.extraEq.values[0]+" "+p.extraEq.op+" "+p.extraEq.values[1]+" = "+p.extraEq.values[2])+'</div>';if(p.type==="story")h+='<div class="wb-review-eq">Answer: '+p.answer.value+' '+wbEscape(p.unit)+(p.answer.remainder!=null?' and '+p.answer.remainder+' '+wbEscape(p.remainderUnit):'')+'</div>';return h;}
 function wbRenderFeedback(ok,a){
   const p=WB.cur,model=p.model||p.visual,head=ok?(WB.isTwin?"You got the new one!":"Yes — nice work!"):"Let’s look at the model.",voice=ok?"Nice work. Your answer is correct.":"Good try. Look at the model and the equation.";
-  app.innerHTML='<div class="fadein wb-shell"><div class="wb-page">'+wbPageHead(WB.lessonId)+'<div class="wb-feedback '+(ok?'good':'try')+'"><h2>'+(ok?'✓ ':'')+wbEscape(head)+'</h2>'+(!ok&&model?'<div class="wb-visual">'+wbVisual(model)+'</div>':'')+wbCorrectAnswerHTML(p)+(wbIsExplain(p)?wbModelHTML(p,wbExplainParts(p,(a&&a.f)||{}).reason):'<div class="wb-teach">'+wbEscape(p.explain||"Use the model to check each number in the equation.")+'</div>')+'</div><div class="wb-btnrow">'+(!ok&&!WB.isTwin?'<button class="wb-primary" onclick="wbTryTwin()">Try one like it ↻</button>':'')+'<button class="wb-secondary" onclick="wbContinue()">'+(WB.index===(WB.size||8)-1?'See my score':'Next problem')+' ▶</button></div></div></div>';
-  wbResumeSave();if(typeof say==="function")say(wbIsExplain(p)&&ok?wbExplainLine(p):voice+" "+(wbIsExplain(p)?wbModelSpoken(p):(p.explain||"")),{chunk:WB_EXPLAIN_CHUNK});
+  const hasPick=!!wbPickSet(p),why=wbIsExplain(p)?wbExplainParts(p,(a&&a.f)||{}).reason:"",btns='<div class="wb-btnrow">'+(!ok&&!WB.isTwin?'<button class="wb-primary" onclick="wbTryTwin()">Try one like it ↻</button>':'')+'<button class="wb-secondary" onclick="wbContinue()">'+(WB.index===(WB.size||8)-1?'See my score':'Next problem')+' ▶</button></div>';
+  app.innerHTML='<div class="fadein wb-shell"><div class="wb-page">'+wbPageHead(WB.lessonId)+'<div class="wb-feedback '+(ok?'good':'try')+'"><h2>'+(ok?'✓ ':'')+wbEscape(head)+'</h2>'+(!ok&&model?'<div class="wb-visual">'+wbVisual(model)+'</div>':'')+wbCorrectAnswerHTML(p)+(hasPick?wbPickHTML(p,WB.explainRec,wbModelHTML(p,why)+btns):(wbIsExplain(p)?wbModelHTML(p,why):'<div class="wb-teach">'+wbEscape(p.explain||"Use the model to check each number in the equation.")+'</div>'))+'</div>'+(hasPick?'':btns)+'</div></div>';
+  wbResumeSave();if(hasPick)wbPickIntoView();if(typeof say==="function")say(hasPick?(ok?"Nice work. Your answer is correct. ":"Good try. Look at the model and the answer. ")+wbPickAsk(p):wbIsExplain(p)&&ok?wbExplainLine(p):voice+" "+(wbIsExplain(p)?wbModelSpoken(p):(p.explain||"")),{chunk:WB_EXPLAIN_CHUNK});
 }
 function wbTryTwin(){const original=WB.cur,type=original.type;let twin=null;for(let tries=0;tries<10&&!twin;tries++){const osig=wbSig(original),pool=wbGenerate(WB.lessonId,30).filter(x=>x.type===type&&(original.slot==null||x.slot===original.slot)&&wbSig(x)!==osig);if(pool.length)twin=wbPick(pool);}if(!twin){wbContinue();return;}wbLoadProblem(twin,true);}
 function wbContinue(){WB.index++;if(WB.index>=(WB.size||8))return wbFinish();wbLoadProblem(WB.problems[WB.index],false);}
@@ -600,10 +672,10 @@ function lztPraise(){
 function lztExplainPraise(p,a){ // answer right on an Explain question: no score for the reason, just the model explanation (spoken); Next when ready
   _lztTok++;const area=document.querySelector(".wb-answerarea");lztRefreshStrip();
   const why=wbExplainParts(p,(a&&a.f)||{}).reason;
-  if(area)area.innerHTML='<div class="lzt-praise lzt-praise-explain" role="status"><span class="lzt-star" aria-hidden="true">⭐</span><b>Your answer is right!</b></div>'+wbModelHTML(p,why)
-    +'<div class="lzt-row"><button type="button" class="lzt-btn lzt-next" id="lztNextBtn" onclick="lztNext()">Next ▶</button></div>';
-  lztIntoView("lztNextBtn");
-  if(typeof say==="function")say(wbExplainLine(p),{chunk:WB_EXPLAIN_CHUNK});
+  const tail=wbModelHTML(p,why)+'<div class="lzt-row"><button type="button" class="lzt-btn lzt-next" id="lztNextBtn" onclick="lztNext()">Next ▶</button></div>',hasPick=!!wbPickSet(p);
+  if(area)area.innerHTML='<div class="lzt-praise lzt-praise-explain" role="status"><span class="lzt-star" aria-hidden="true">⭐</span><b>Your answer is right!</b></div>'+(hasPick?wbPickHTML(p,WB.explainRec,tail):tail);
+  if(hasPick)wbPickIntoView();else lztIntoView("lztNextBtn");
+  if(typeof say==="function")say(hasPick?"Your answer is right! "+wbPickAsk(p):wbExplainLine(p),{chunk:WB_EXPLAIN_CHUNK});
 }
 function lztWrong(t,tries){
   _lztTok++;const area=document.querySelector(".wb-answerarea"),p=WB.cur,shown=tries>=3;lztRefreshStrip();
@@ -839,6 +911,28 @@ span.lzt-dot{cursor:default}
 @media (prefers-reduced-motion:reduce){.lzt-praise,.lzt-star,.lzt-card,.lzt-tip,.lzt-burst{animation:none}}
 @media(max-width:520px){.lzt-strip{grid-template-columns:1fr 1fr;gap:8px}.lzt-strip .lzt-dots{grid-column:1 / -1;grid-row:1}.lzt-nav{min-width:0;width:100%}
  .lzt-dot{width:30px;height:30px;font-size:13px;border-width:2px}.lzt-dots{gap:4px}.lzt-dots:not(.live){gap:3px;flex-wrap:nowrap}.lzt-dots:not(.live) .lzt-dot{width:26px;height:26px;font-size:12px}.lzt-tip h3{font-size:21px!important}.lzt-why{font-size:17px}.lzt-btn{flex:1 1 140px;font-size:19px;padding:10px 12px}.lzt-praise b{font-size:26px}.lzt-card{padding:16px 14px}.lzt-h{font-size:24px!important}.lzt-big{font-size:18px}.lzt-tipline{font-size:18px}.lzt-q{font-size:18px}}
+/* "Which reason is best?" pick card (design-inspo 20261105-100749: chunky white buttons, mint = best, soft coral = not quite) */
+.lzp{margin:12px 0;padding:12px 14px 14px;background:#EBF4F6;border:3px solid #1E293B;border-radius:20px;box-shadow:4px 5px 0 #1E293B;text-align:left;animation:lztIn .25s ease-out}
+.lzp-h{font-size:24px!important;line-height:1.15;margin:0 0 10px!important;color:#1E293B!important;font-weight:900}
+.lzp-list{display:grid;gap:12px}
+.lzp-btn{display:flex;align-items:center;gap:12px;width:100%;min-height:68px;padding:8px 14px;background:#fff;color:#1E293B!important;border:3px solid #1E293B;border-radius:18px;box-shadow:0 5px 0 #1E293B;font:inherit;font-size:20px;font-weight:800;line-height:1.25;text-align:left;cursor:pointer;transition:transform .1s ease,box-shadow .1s ease,background .15s}
+.lzp-btn:active:not(:disabled){transform:translateY(5px);box-shadow:0 0 0 #1E293B}
+.lzp-k{flex:0 0 40px;height:40px;border-radius:50%;background:#FFD166;border:3px solid #1E293B;display:inline-flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#1E293B!important}
+.lzp-t{flex:1;min-width:0}
+.lzp-btn:disabled{cursor:default}
+.lzp-btn.best{background:#1CD0A1;color:#0b3d2e!important;box-shadow:0 5px 0 #1E293B}.lzp-btn.best .lzp-k{background:#fff}
+.lzp-btn.best:not(.picked){animation:lzpGlow 1s ease-in-out 2;outline:4px solid #1CD0A1;outline-offset:3px}
+.lzp-btn.picked.wrong{background:#FF8A8A;color:#4a1010!important;animation:lzpWiggle .2s ease-in-out 2}
+.lzp-btn.picked.right{animation:lztPop .3s cubic-bezier(.3,1.6,.5,1)}
+.lzp-btn.dim{opacity:.5}
+.lzp-res{margin:12px 0 0;padding:12px 14px;border:3px solid #1E293B;border-radius:16px;box-shadow:3px 4px 0 #1E293B;animation:lztPop .25s cubic-bezier(.3,1.6,.5,1)}
+.lzp-res b{display:block;font-size:22px;line-height:1.2;color:#1E293B!important}.lzp-res span{display:block;font-size:19px;font-weight:700;line-height:1.35;margin-top:4px;color:#1E293B!important}
+.lzp-res.good{background:#FFD166}.lzp-res.try{background:#fff;border-left:12px solid #FF8A8A}
+.lzp #lzpOut .lzt-model{margin:12px 0 4px}.lzp #lzpOut .wb-btnrow{margin-top:12px}
+@keyframes lzpWiggle{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+@keyframes lzpGlow{0%,100%{outline-color:#1CD0A1}50%{outline-color:#FFD166}}
+@media (prefers-reduced-motion:reduce){.lzp,.lzp-btn,.lzp-res{animation:none!important}}
+@media(max-width:520px){.lzp{padding:10px 10px 12px}.lzp-h{font-size:21px!important;margin-bottom:8px!important}.lzp-list{gap:10px}.lzp-btn{min-height:64px;font-size:18px;padding:6px 10px;gap:9px}.lzp-k{flex-basis:34px;height:34px;font-size:16px}.lzp-res b{font-size:20px}.lzp-res span{font-size:17px}}
 `;
 function lztInstallStyle(){if(typeof document==="undefined")return;let s=document.getElementById("lzt-style");if(!s){s=document.createElement("style");s.id="lzt-style";document.head.appendChild(s);}s.textContent=LZT_CSS;}
 lztInstallStyle();

@@ -99,6 +99,22 @@ T(typeof ctx.wbReasonOK==="undefined"&&vm.runInContext("typeof wbReasonOK",ctx)=
   const parts=vm.runInContext("wbExplainParts",ctx)(p,Object.assign({},p.answer.f,Object.fromEntries(rk.map(k=>[k,"  Because It's EVEN!! "]))));
   if(parts.reason!=="  Because It's EVEN!! ")fail(id+": reason not kept exactly as typed");if(/\{|because/i.test(parts.answer))fail(id+": answer text wrong: "+parts.answer);}
  T(explains>20,"explain questions found ("+explains+")");}
+// "Which reason is best?" (Eb 2026-11-05): every generated Explain variant has 3 distinct, short, clean reasons + a why line
+{ctx.app=ctx.app||{innerHTML:""};ctx.toast=()=>{};const wbPickSet=run("wbPickSet");let n=0;const kinds=new Set();
+ for(const id of ids)for(let r=0;r<6;r++)for(const p of wb.gen(id,60)){if(!(p.type==="form"&&(p.checks||[]).some(c=>c.t==="reason")))continue;n++;
+  const s=wbPickSet(p);if(!s){fail(id+": Explain question without a reason set: "+p.q.slice(0,60));continue;}
+  const all=[s.best].concat(s.wrong);kinds.add(id+"|"+s.best.replace(/\d+/g,"#"));
+  if(new Set(all.map(x=>x.toLowerCase())).size!==3)fail(id+": reasons not distinct "+all.join(" | "));
+  for(const t of all.concat([s.why])){if(!t||/undefined|NaN|null/.test(t))fail(id+": bad reason text "+t);if(/Prince/i.test(t))fail(id+": real name in reason");}
+  for(const t of all)if(t.length>60)fail(id+": reason too long ("+t.length+"): "+t);}
+ T(n>100,"explain variants checked ("+n+", "+kinds.size+" reason kinds)");
+ // tapping a reason saves picked/pickOk/choices on the P.explains record; one try only; the answer mark is unchanged
+ ctx.P.explains=[];const exs=[];for(const id of ["4-2","4-5"])for(const p of wb.gen(id,40))if(p.type==="form"&&(p.checks||[]).some(c=>c.t==="reason"))exs.push(p);
+ run("wbStart")("4-5",{reveal:true});
+ [true,false].forEach((wantBest,j)=>{const p=exs[j],WB=run("WB");run("wbLoadProblem")(p,false);for(const f of p.fields)WB.fields[f.key]=p.answer.f[f.key];WB.drew=true;run("wbSubmit")();
+   const k=run("WB")._pick,i=k.choices.findIndex(c=>c.best===wantBest);run("wbPickTap")(i);run("wbPickTap")(k.choices.findIndex(c=>c.best!==wantBest));
+   const rec=ctx.P.explains[ctx.P.explains.length-1];
+   T(rec&&rec.ok===true&&rec.pickOk===wantBest&&Array.isArray(rec.choices)&&rec.choices.length===3&&rec.picked===k.choices[i].t&&rec.pickBest===k.set.best,"pick saved ("+(wantBest?"best":"wrong")+" pick, one try only, answer still right)");});}
 T(wbYN("Yes it is")==="yes"&&wbYN("nope")==="no"&&wbYN("maybe")===null,"yn parse");
 // no pick-the-reason (multiple choice) allowed outside lettered multi: no problem has p.options unless type multi
 for(const id of ids)for(const p of wb.gen(id,40)){if(p.options&&p.type!=="multi")fail(id+": options on non-multi");if(p.type==="form"&&p.fields.length<1)fail("form without fields");}
@@ -126,7 +142,7 @@ for(const id of ids){
     if(!run("wbCanSubmit")()){fail(id+": submit disabled after filling ("+p.type+") "+p.q.slice(0,50));}
     run("wbSubmit")();
     if(!/wb-feedback/.test(ctx.app.innerHTML))fail(id+": no feedback screen");
-    if(!/wb-teach|lzt-model/.test(ctx.app.innerHTML))fail(id+": explanation not shown");if(p.type==="form"&&(p.checks||[]).some(c=>c.t==="reason")&&!/Nice thinking! Here’s another way to say it:/.test(ctx.app.innerHTML))fail(id+": Explain model line missing");
+    if(!/wb-teach|lzt-model/.test(ctx.app.innerHTML+((run("WB")._pick&&run("WB")._pick.p===p)?run("WB")._pick.tail:"")))fail(id+": explanation not shown");if(p.type==="form"&&(p.checks||[]).some(c=>c.t==="reason")){const k=run("WB")._pick;if(!/class="lzp-btn"/.test(ctx.app.innerHTML)||(ctx.app.innerHTML.match(/class="lzp-btn"/g)||[]).length!==3)fail(id+": reason pick not shown");if(!k||!/Nice thinking! Here’s another way to say it:/.test(k.tail))fail(id+": Explain model line missing after the pick");if(/Next problem|See my score/.test(ctx.app.innerHTML))fail(id+": Next shown before the pick");}
     if(!/wb-feedback good/.test(ctx.app.innerHTML))fail(id+": canonical answer marked wrong via UI ("+p.type+") "+p.q.slice(0,60));
     run("wbContinue")();
   }
@@ -135,7 +151,7 @@ for(const id of ids){
   done=null;
 }
 // wrong answer via UI shows twin option and does not crash
-run("wbStart")("4-5",{reveal:true});{const WB=run("WB");const p=WB.cur;for(const f of p.fields)WB.fields[f.key]="zz";run("wbSubmit")();if(!/Try one like it/.test(ctx.app.innerHTML))fail("twin offer missing after miss");run("wbTryTwin")();if(!run("WB").isTwin)fail("twin not loaded");}
+run("wbStart")("4-5",{reveal:true});{const WB=run("WB");const p=WB.cur;for(const f of p.fields)WB.fields[f.key]="zz";run("wbSubmit")();if(!/Try one like it/.test(ctx.app.innerHTML+((run("WB")._pick||{}).tail||"")))fail("twin offer missing after miss");run("wbTryTwin")();if(!run("WB").isTwin)fail("twin not loaded");}
 if(!/class="wb-review"/.test(wb.review("4-3"))||/Prince/.test(wb.review("4-3")))fail("review html");
 console.log("UI flow: rendered+submitted "+ids.length+" lessons in reveal mode, hooks wbRevealDone/wbRevealExit ok");
 // report
