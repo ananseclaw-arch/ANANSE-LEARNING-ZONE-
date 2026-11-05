@@ -5813,8 +5813,9 @@ function gpGrip(kt,kap,r,ex,spd,dt,brake){const easy=gpPace()==="gentle",sg=Math
    spring + quick gas), kt.hitLog for the tests. Sparks are real only where a barrier is; on open sand it kicks up dust instead. */
 function gpWallHit(kt,sd,vOut,dt,inp){const XS=R3.W-1.2,V=R3.tmpV,vF=Math.max(0,kt.speed),vL=vOut*XS,nose=(kt.headA+(kt.lossA||0))*sd,ang=Math.max(Math.atan2(Math.max(0,vL),Math.max(1,vF)),nose,0),fresh=kt.wallT<=0&&vOut>0.08;
   if(kt.sv*sd>0)kt.sv=0;
-  if(fresh){const head=ang>=0.7,deg=Math.round(ang*57.3),v0=kt.speed;kt.drift=0;kt.wallT=0.35;kt.knock=Math.min(1,0.35+vOut);
-    if(kt.loss){kt.loss=null;kt.lossCool=1.2;}kt.headA=kt.headA+(kt.lossA||0);kt.lossA=0;   // the slide stops at the wall; the spring below brings the nose back from where it is
+  if(kt.loss&&!fresh){kt.headA=Math.max(-0.5,Math.min(0.5,kt.headA+(kt.lossA||0)));kt.headV=0;kt.loss=null;kt.lossA=0;kt.lossCool=1.5;kt.wallRec=Math.max(kt.wallRec||0,0.45);}   // a slide that reaches the rail without a real impact ends there too
+  if(fresh){kt.lossCool=Math.max(kt.lossCool||0,1.5);const head=ang>=0.7,deg=Math.round(ang*57.3),v0=kt.speed;kt.drift=0;kt.wallT=0.35;kt.knock=Math.min(1,0.35+vOut);
+    kt.loss=null;kt.headA=kt.headA+(kt.lossA||0);kt.lossA=0;   // the slide stops at the wall; the spring below brings the nose back from where it is
     kt.headA=Math.max(-0.5,Math.min(0.5,kt.headA));kt.headV=0;
     if(head){kt.speed=Math.max(Math.min(kt.speed,5),kt.speed*0.6);kt.sv=-sd*Math.min(0.42,0.12+vOut*0.12);kt.wallRec=0.9;GPA.play("bump");R3.shake=Math.max(R3.shake,0.22);}
     else{kt.speed*=1-Math.min(0.06,0.02+ang*0.1);kt.sv=-sd*Math.min(0.1,0.03+vOut*0.05);kt.wallRec=Math.max(kt.wallRec||0,0.45);if(vOut>0.3)GPA.play("bump");}
