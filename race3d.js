@@ -186,7 +186,8 @@ function gpPostSetup(T,renderer,L){let depthOK=true;const rt=new T.WebGLRenderTa
 /* ---------- sound: synthesised with WebAudio (no files) ---------- */
 const GPA={ctx:null,master:null,eng:null,muted:false,
   init(){try{if(!this.ctx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;this.ctx=new AC();this.master=this.ctx.createGain();this.master.gain.value=this.muted?0:0.9;this.master.connect(this.ctx.destination);
-      const nb=this.ctx.createBuffer(1,this.ctx.sampleRate,this.ctx.sampleRate),d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;this.noiseBuf=nb;}
+      const nb=this.ctx.createBuffer(1,this.ctx.sampleRate,this.ctx.sampleRate),d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;this.noiseBuf=nb;
+      try{const sb=this.ctx.createBufferSource();sb.buffer=this.ctx.createBuffer(1,1,22050);sb.connect(this.ctx.destination);sb.start(0);}catch(e){}}   // a silent sample inside the tap fully unlocks iOS audio
     if(this.ctx.state==="suspended")this.ctx.resume();}catch(e){}},
   setMute(m){this.muted=m;if(this.master&&this.ctx)this.master.gain.setTargetAtTime(m?0:0.9,this.ctx.currentTime,0.02);},
   startEngine(){if(!this.ctx||this.eng)return;try{const c=this.ctx;
@@ -213,11 +214,14 @@ const GPA={ctx:null,master:null,eng:null,muted:false,
     case"trap":this.noise(0.05,0.25,4000);this.tone(1760,0.18,"sine",0.14,null,0.04);break;
     case"break":this.tone(300,0.3,"sawtooth",0.1,120);break;
     case"bump":this.tone(150,0.18,"square",0.16,80);this.noise(0.15,0.25,500);break;
+    case"bonk":this.tone(210,0.12,"triangle",0.13,130);this.noise(0.08,0.08,700);break;   // soft car-to-car bump
     case"lap":this.tone(990,0.15,"triangle",0.2);this.tone(1320,0.28,"triangle",0.2,null,0.12);break;
     case"fanfare":[523,659,784,1047].forEach((f,i)=>this.tone(f,0.3,"triangle",0.22,null,i*0.14));this.tone(1047,1.0,"triangle",0.2,null,0.62);this.tone(784,1.0,"triangle",0.12,null,0.62);break;}}
 };
 
 
+/* first tap anywhere on the racer screens wakes the game audio (iPad keeps WebAudio asleep until a gesture), so the first countdown beep is on time */
+function gpAudioUnlock(){if(window._gpAU)return;window._gpAU=true;const f=()=>{GPA.init();if(GPA.ctx&&GPA.ctx.state==="running")["pointerdown","touchend","click","keydown"].forEach(t=>document.removeEventListener(t,f,true));};["pointerdown","touchend","click","keydown"].forEach(t=>document.addEventListener(t,f,true));}
 /* ---------- one-time CSS: Horizon look (default) + storybook modifier ---------- */
 function gpCss(){if(document.getElementById("gpV4Css"))return;const s=document.createElement("style");s.id="gpV4Css";s.textContent=`
 .fz-pic{position:relative;display:block;width:100%;aspect-ratio:2.4;overflow:hidden;border-radius:10px;background:linear-gradient(#5f8fd0,#c9dcf0 55%,#4a5a3c 56%,#2b3524)}
@@ -310,6 +314,8 @@ function gpCss(){if(document.getElementById("gpV4Css"))return;const s=document.c
 .gp3-wrap.v3 .gp3-msg.show{opacity:1}
 .gp3-wrap.v3 .gp3-count{position:absolute;left:50%;top:27%;transform:translate(-50%,-50%);z-index:5;font-size:clamp(40px,7.5vw,76px);font-weight:900;font-style:italic;color:#fff;text-shadow:0 0 30px #ff2d87,0 6px 20px #000;opacity:0;pointer-events:none}
 .gp3-wrap.v3 .gp3-count.show{opacity:1}
+.gp3-wrap.v3 .gp3-count.pop{animation:gpCdPop .34s cubic-bezier(.2,1.6,.4,1)}
+@keyframes gpCdPop{0%{transform:translate(-50%,-50%) scale(1.6)}100%{transform:translate(-50%,-50%) scale(1)}}
 .gp3-wrap.v3 .gp3-card{position:absolute;left:50%;top:8%;bottom:auto;height:auto;width:max-content;max-width:80%;transform:translateX(-50%);z-index:4;padding:5px 14px;text-align:center;color:#fff;background:rgba(10,12,25,.72);border-left:4px solid #ff2d87;border-radius:4px;transition:opacity .6s;pointer-events:none;white-space:nowrap}
 .gp3-wrap.v3 .gp3-card b{display:block;font-size:clamp(13px,1.7vw,19px);font-style:italic;text-transform:uppercase}.gp3-wrap.v3 .gp3-card small{font-size:10px;color:#ffd2e6;letter-spacing:.1em;text-transform:uppercase}
 .gp3-wrap.v3 .gp3-card.hide{opacity:0}
@@ -479,7 +485,7 @@ function gpShellClass(){return "fadein fz-shell"+(gpStory()?" story":"");}
 function renderRace(){
   clearTimers();closeOverlay();defocus();showAnanseCorner(false);gpStop();
   if(typeof kdWebgl==="function"&&!kdWebgl()){renderRace2D();return;}
-  gpCss();document.body.classList.add("learningworld");
+  gpCss();gpAudioUnlock();document.body.classList.add("learningworld");
   const sel=gpCar().id,paint=gpPaint();
   const cards=GP_CARS.map(c=>'<button class="fz-car'+(c.id===sel?" on":"")+'" data-car="'+c.id+'" onclick="gpPickCar(\''+c.id+'\')">'+gpCardPic(c)+'<span class="fz-cls"><i>'+c.cls+'</i><em>'+c.pi+'</em></span><b>'+esc(c.n)+'</b>'
     +'<span class="fz-bar"><i>Speed</i><s><em style="width:'+(c.speed*20)+'%"></em></s></span><span class="fz-bar"><i>Handling</i><s><em style="width:'+(c.handle*20)+'%"></em></s></span><span class="fz-bar"><i>Launch</i><s><em style="width:'+(c.accel*20)+'%"></em></s></span>'
@@ -508,7 +514,7 @@ function gpAuto(){return !!(P?P.gpAuto:window._gpAuto);}
 function gpPickAuto(v){if(P){P.gpAuto=!!v;save();}else window._gpAuto=!!v;document.querySelectorAll(".fz-auto button").forEach(b=>b.classList.toggle("on",(b.dataset.a==="1")===!!v));sfx("tick");}
 function gpPickLook(v){if(P){P.gpLook=v;save();}else window._gpLook=v;sfx("tick");renderCircuits();}
 function renderCircuits(){
-  clearTimers();closeOverlay();showAnanseCorner(false);gpStop();gpCss();
+  clearTimers();closeOverlay();showAnanseCorner(false);gpStop();gpCss();gpAudioUnlock();
   const best=P&&P.race?P.race:{};
   app.innerHTML='<div class="'+gpShellClass()+'" id="fzShell" style="max-width:980px;margin:0 auto;padding:0 8px">'
    +'<div class="fz-bgvid"><video id="fzFly" muted loop playsinline webkit-playsinline preload="none" poster="'+GP_VIDEO.poster+'" disablepictureinpicture aria-hidden="true"></video></div>'
@@ -1077,7 +1083,7 @@ function gpBuild(C){
     if(C.mtn)C.mtn.forEach(m=>{const dx=x-cx-m.x,dz=z-cz-m.z;h+=m.h*Math.exp(-(dx*dx+dz*dz)/(m.r*m.r));});
     const lf=lakeF(x,z);return h*(1-lf)+(-7)*lf;};
   const EV=C.elev||[0,0,0],NP=C.pts.length,elevAt=k=>EV[0]*Math.sin(k/NP*6.2832+EV[2])+EV[1]*Math.sin(k/NP*12.566+EV[2]*1.7);   // crests and dips along the lap (the main straight stays near level)
-  const curve=new T.CatmullRomCurve3(C.pts.map((p,k)=>new T.Vector3(p[0],hgt(p[0],p[1])+elevAt(k),p[1])),true,"centripetal",0.6);
+  const curve=new T.CatmullRomCurve3(C.pts.map((p,k)=>new T.Vector3(p[0],hgt(p[0],p[1])+elevAt(k),p[1])),true,"centripetal",0.6);curve.arcLengthDivisions=Math.max(2000,Math.round(C.pts.length*24));   // a fine arc-length table: t*len is then true metres along the road (the default 200 steps was ~10 cm off between cars)
   const M=960,W=7.6;const len=curve.getLength();
   const samples=[];for(let i=0;i<=M;i++){const t=(i/M)%1;const pos=curve.getPointAt(t);const tan=curve.getTangentAt(t).normalize();const nor=new T.Vector3(-tan.z,0,tan.x).normalize();samples.push({pos,tan,nor});}
   const CELL=24,hash=new Map();for(let i=0;i<M;i++){const p=samples[i].pos;const k=Math.floor(p.x/CELL)+","+Math.floor(p.z/CELL);let l=hash.get(k);if(!l){l=[];hash.set(k,l);}l.push(i);}
@@ -1248,7 +1254,7 @@ function gpBuild(C){
     for(let k=0;k<5;k++){const lm=new T.MeshBasicMaterial({color:0xff2020});lm.userData.lin=1;const lb=new T.Mesh(new T.SphereGeometry(0.3,12,8),lm);lb.position.set(-1.6+k*0.8,6.7,0.3);gantry.add(lb);lights.push(lm);}}
   gantry.position.copy(sStart);gantry.lookAt(sStart.clone().add(s0.tan));scene.add(gantry);
   // start lights: all five red on the grid, going out one by one through the count, all out at GO
-  const setLights=on=>{lights.forEach((m,k)=>m.color.setHex(k<on?0xff2020:0x3a0a0a));covers.forEach((c,k)=>{c.visible=k>=on;});};setLights(5);
+  const setLights=on=>{const lit=k=>k>=1&&k<=on;lights.forEach((m,k)=>m.color.setHex(lit(k)?0xff2020:0x3a0a0a));covers.forEach((c,k)=>{c.visible=!lit(k);});};setLights(0);   // the three middle lamps: 3 lit on "3", one goes out per beat, all out on GO
   const setScreen=txt=>{if(!screenCv)return;const x=screenCv.getContext("2d"),w=512,h=128;const g=x.createLinearGradient(0,0,w,0);g.addColorStop(0,"#ff2d87");g.addColorStop(1,"#ff7a00");x.fillStyle=g;x.fillRect(0,0,w,h);
     x.fillStyle="rgba(0,0,0,.35)";for(let i=0;i<32;i++){if(i%2)x.fillRect(i*16,0,16,10);else x.fillRect(i*16,h-10,16,10);}
     x.fillStyle="#fff";x.textAlign="center";x.textBaseline="middle";x.shadowColor="rgba(0,0,0,.5)";x.shadowBlur=6;let fs=60;x.font="italic 900 "+fs+"px system-ui";const tw=x.measureText(txt).width;if(tw>w-40){fs=Math.floor(fs*(w-40)/tw);x.font="italic 900 "+fs+"px system-ui";}x.fillText(txt,w/2,h/2+3);screenTex.needsUpdate=true;};setScreen("GRAND FABLE HORIZON GP");
@@ -1374,9 +1380,9 @@ function gpBuild(C){
   // convert plain colours from sRGB to linear once (colours look right with sRGB output + tone mapping)
   const seen=new Set();scene.traverse(o=>{if(o===sky||o===fuji)return;const ms=Array.isArray(o.material)?o.material:(o.material?[o.material]:[]);ms.forEach(m=>{if(!m||seen.has(m)||m.isShaderMaterial||m.isPointsMaterial)return;seen.add(m);if(m.userData.lin)return;m.userData.lin=1;
     if(m.color&&!(o.isInstancedMesh&&o.instanceColor)&&!m.map)m.color.convertSRGBToLinear();if(m.emissive&&!m.emissiveMap)m.emissive.convertSRGBToLinear();});});
-  R3={T,C,renderer,scene,camera,curve,samples,M,W,len,karts,me:karts.find(k=>k.player),keys:{},touchDir:0,brake:false,gas:false,drift:false,autoGas:gpAuto(),kap,vProf,lineX,corners,big,grip:GRIP,t0:performance.now(),time:0,countdown:3.8,lastN:null,done:false,raf:null,last:performance.now(),camPos:new T.Vector3(),msgT:0,place:5,board:[],
+  R3={T,C,renderer,scene,camera,curve,samples,M,W,len,karts,me:karts.find(k=>k.player),keys:{},touchDir:0,brake:false,gas:false,drift:false,autoGas:gpAuto(),kap,vProf,lineX,corners,big,grip:GRIP,t0:performance.now(),time:0,countdown:3.8,phase:"intro",cdReq:false,cdLog:[],frameN:0,goAt:0,done:false,raf:null,last:performance.now(),camPos:new T.Vector3(),msgT:0,place:5,board:[],
     sun,sky,band,glare,sunDir,sunOff:sunDir.clone().multiplyScalar(170),envRT,smoke,dust,sparks,petals,skids,skidLife,skidFade,skN:0,dummy,setLights,setScreen,screenTxt:"",fov:60,pr:pr0,fpsT:0,fpsN:0,fps:0,lowT:0,shadowsOn:true,tmpV:new T.Vector3(),tmpV2:new T.Vector3(),tmpV3:new T.Vector3(),tmpV4:new T.Vector3(),camYaw:null,teleV:new T.Vector3(),teleShadow:new T.Vector3(),teleSprite:new T.Vector3(),UP,story,
-    gates,trapT:trapI/M,trapBest:0,gear:1,tachT:0,post,mode:gpMode(),notes,notesGot:0,notesTotal:notes.length*C.laps,song:[],lastDeg:4,songDirty:1,water,waterTex,fx:$("gp3Fx"),fxW:16,fxH:9,sk:{chain:0,mult:1,total:0,idle:0,list:[],dirty:1,clean:0,cool:0},bumpT:9,upGrip:gpMode()==="race"?1+0.04*gpUpState().tyres:1};
+    gates,trapT:trapI/M,trapBest:0,gear:1,tachT:0,post,mode:gpMode(),notes,notesGot:0,notesTotal:notes.length*C.laps,song:[],lastDeg:4,songDirty:1,water,waterTex,fx:$("gp3Fx"),fxW:16,fxH:9,sk:{chain:0,mult:1,total:0,idle:0,list:[],dirty:1,clean:0,cool:0},bumpT:9,upGrip:gpMode()==="race"?1+0.04*gpUpState().tyres:1,cLog:null};R3.bodies=R3.karts.slice();
   window.__gp={fps:0,pr:pr0,shadows:true,playerWheelPhase:0,wheelPhase:0,playerSpeed:0,speed:0,wheelRadius:R3.me.wheelRadius,cameraFov:60,cameraOffsetFromCar:0,cameraOffset:0,cameraOffsetVector:{x:0,y:0,z:0},playerShadowWorldY:0,shadowY:0,bodyRoll:0,spriteBottomY:R3.me.pos.y,smokeCount:0,rendererCalls:0,renderCalls:0,wheelPatchDrawCalls:0,wheelPatchState:R3.me.pic?"sharp":"3d",wheelPatchVisible:false,wheelPatchFrame:R3.me.pic?R3.me.pic.frame:null,wheelPatchKind:R3.me.pic&&R3.me.pic.wheelPatch?R3.me.pic.wheelPatch.kind:"3d",phys:{slipDeg:0,steerIn:0,sv:0,drift:0,x:0,speed:0},cam:{}};
   // keyboard
   R3.kd=e=>{if(!R3)return;const k=e.key.toLowerCase();GPA.init();if(k==="escape"){renderCircuits();return;}if(k==="m"){gpToggleMute();return;}R3.keys[k]=true;if(["arrowleft","arrowright","arrowdown","arrowup","shift"," "].includes(k))e.preventDefault();};
@@ -1405,9 +1411,11 @@ function gpBuild(C){
   R3.onResize=()=>{if(!R3)return;const w=wrapEl.clientWidth||720,h=wrapEl.clientHeight||Math.round(w*9/16);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();const pr=renderer.getPixelRatio();R3.vpW=w*pr;R3.vpH=h*pr;R3.smoke.mat.uniforms.scale.value=h*pr*0.72;R3.smoke.mat.uniforms.maxPx.value=h*pr*(R3.me&&R3.me.glb?0.5:0.08);if(R3.post)R3.post.resize(w,h,renderer.getPixelRatio());if(R3.fx){R3.fxW=Math.max(16,Math.round(w/2));R3.fxH=Math.max(9,Math.round(h/2));R3.fx.width=R3.fxW;R3.fx.height=R3.fxH;}};
   R3.onOrient=()=>{[150,400,900].forEach(ms=>setTimeout(()=>{if(R3)R3.onResize();},ms));};
   window.addEventListener("resize",R3.onResize);window.addEventListener("orientationchange",R3.onOrient);if(R3.me.glb){R3.smoke.lim=0.5;R3.smoke.base=0.85;R3.smoke.cap=140;R3.smoke.mat.uniforms.tint.value.setRGB(1.12,1.12,1.12);}R3.onResize();
-  setTimeout(()=>{const c=$("gp3Card");if(c)c.classList.add("hide");},2000);
   GPA.startEngine();
-  say(C.name+". "+myCar.n+". Three, two, one, go!");
+  // the track + car line is said BEFORE the count; the count starts when that clip ends (never speaks "three, two, one")
+  const voiceOn=typeof DB!=="undefined"&&DB&&DB.sound&&!(typeof _voiceUnlocked!=="undefined"&&!_voiceUnlocked);
+  if(voiceOn&&typeof sayAndThen==="function")sayAndThen(C.name+". "+myCar.n+".",()=>setTimeout(gpCountStart,250),6000);
+  else setTimeout(gpCountStart,1300);
   R3.raf=requestAnimationFrame(gpFrame);
   setTimeout(gpEnvCheck,1200);
 }
@@ -1456,15 +1464,108 @@ function gpFrame(now){
   R3.fpsT+=raw;R3.fpsN++;if(R3.fpsT>=2){R3.fps=R3.fpsN/R3.fpsT;R3.fpsT=0;R3.fpsN=0;window.__gp.fps=Math.round(R3.fps);
     if(R3.fps<45&&!document.hidden){R3.lowT++;if(R3.lowT>=2){R3.lowT=0;if(R3.pr>1){R3.pr=Math.max(1,R3.pr-0.25);R3.renderer.setPixelRatio(R3.pr);R3.onResize();}else if(R3.shadowsOn){R3.shadowsOn=false;R3.sun.castShadow=false;}}}else R3.lowT=0;
     window.__gp.pr=R3.pr;window.__gp.shadows=R3.shadowsOn;}
-  if(R3.countdown>0){R3.countdown-=dt;const lit=R3.countdown>0.3?Math.max(0,5-Math.min(5,Math.floor((3.8-R3.countdown)/0.68))):0;if(lit!==R3.litN){R3.litN=lit;R3.setLights(lit);}const c=$("gp3Count");if(c){const n=Math.min(3,Math.ceil(R3.countdown-0.3));if(n!==R3.lastN){R3.lastN=n;GPA.play(n>0?"beep":"go");}c.textContent=n>0?String(n):"GO!";c.classList.add("show");if(R3.countdown<=0)setTimeout(()=>{const cc=$("gp3Count");if(cc)cc.classList.remove("show");},700);}}
-  else{if(R3.litN!==0){R3.litN=0;R3.setLights(0);}if(!R3.done)R3.time=now-R3.t0-3800;}
+  R3.frameN=(R3.frameN||0)+1;
+  gpCountTick(now);
+  if(R3.phase==="race"&&!R3.done)R3.time=now-R3.goAt;
   gpUpdate(dt,R3.countdown>0);gpRender(dt);
   R3.raf=requestAnimationFrame(gpFrame);
 }
+/* crossing the start line forwards / backing over it (shared by driving and by contact nudges, so a push can never skip a lap) */
+function gpLapCross(kt,before,waiting){if(waiting||kt.traffic)return;const fwdX=kt.t<before&&before-kt.t>0.5,backX=kt.t>before&&kt.t-before>0.5;
+  if(backX){if(kt.lap>0)kt.lap--;else kt.started=false;}
+  else if(fwdX&&!kt.started){kt.started=true;}
+  else if(fwdX){kt.lap++;if(kt.player){if(kt.lap>=R3.C.laps&&!R3.done)gpFinish();else{R3.notes.forEach(n=>{n.alive=true;n.mesh.visible=true;});GPA.play("lap");gpMsg(kt.lap+1===R3.C.laps?"Final lap":"Lap "+(kt.lap+1));}}}}
+/* ---------- car-to-car contact (racers and traffic): smooth and kid-fair ----------
+   Every car is a box in the road's frame (along-road metres x across-road metres; Prince's box turns with his slide angle).
+   When two boxes overlap, the shallower axis is the contact normal: a side rub separates sideways, a nudge from behind
+   separates along the road. Only the overlap itself is removed (split by weight), so nothing snaps or teleports. A closing
+   speed turns into a soft bounce (restitution 0.2) shared by both cars plus ~1% speed loss each; separating cars are left
+   alone, and a tiny sideways nudge keeps a nose-to-tail pair from sticking. No yaw kick, so nobody spins. Run up to 3
+   passes per frame, with the road-edge limits applied between passes. */
+function gpYawRel(b){return b.player?Math.max(-0.7,Math.min(0.7,b.headA||0)):(b.yawRel||0);}   // body yaw relative to the road (+ = nose toward +x)
+function gpLatV(b){return b.player?b.sv:(b.bv||0);}
+function gpAddLatV(b,v){if(b.player)b.sv=Math.max(-0.6,Math.min(0.6,b.sv+v));else b.bv=Math.max(-0.5,Math.min(0.5,(b.bv||0)+v));}
+function gpLimX(b){return b.player?(R3.mode==="free"?1.15:1.22):(b.traffic?0.98:1.1);}
+function gpClampX(b){const lim=gpLimX(b);if(Math.abs(b.x)>lim){const sd=Math.sign(b.x);b.x=sd*lim;if(gpLatV(b)*sd>0)gpAddLatV(b,-gpLatV(b));}}
+function gpShiftT(b,d,waiting){const before=b.t;b.t=(b.t+d+1)%1;b._mv=1;gpLapCross(b,before,waiting);}
+/* two turned boxes in the road frame (u = across in metres, v = along in metres): separating-axis test over the 4 box axes.
+   Returns null when apart, else the push normal (unit, from A to B) and the overlap depth along it. */
+function gpSat(ua,va,aa,wa,la,ub,vb,ab,wb,lb){const ax=[[Math.cos(aa),-Math.sin(aa)],[Math.sin(aa),Math.cos(aa)],[Math.cos(ab),-Math.sin(ab)],[Math.sin(ab),Math.cos(ab)]];
+  const ra=[ax[0],ax[1]],rb=[ax[2],ax[3]],du=ub-ua,dv=vb-va;let best=1e9,bn=null;
+  for(const n of ax){const pa=wa*Math.abs(ra[0][0]*n[0]+ra[0][1]*n[1])+la*Math.abs(ra[1][0]*n[0]+ra[1][1]*n[1]),pb=wb*Math.abs(rb[0][0]*n[0]+rb[0][1]*n[1])+lb*Math.abs(rb[1][0]*n[0]+rb[1][1]*n[1]);
+    const d=du*n[0]+dv*n[1],o=pa+pb-Math.abs(d);if(o<=0)return null;if(o<best){best=o;bn=d<0?[-n[0],-n[1]]:[n[0],n[1]];}}
+  return{n:bn,o:best};}
+/* where a car really is on the ground: road point + sideways offset, and the road direction there (x/z only) */
+function gpRoadAt(b,o){const p=R3.curve.getPointAt(b.t,o.p),tn=R3.curve.getTangentAt(b.t,o.t);const l=Math.hypot(tn.x,tn.z)||1;o.tx=tn.x/l;o.tz=tn.z/l;o.nx=-o.tz;o.nz=o.tx;const XS=R3.W-1.2;o.x=p.x+o.nx*b.x*XS;o.z=p.z+o.nz*b.x*XS;return o;}
+function gpContacts(dt,waiting){if(waiting)return 0;const B=R3.bodies,L=R3.len,XS=R3.W-1.2,log=R3.cLog,T=R3.T;let n=0;
+  const RA=R3._ra||(R3._ra={p:new T.Vector3(),t:new T.Vector3()}),RC=R3._rc||(R3._rc={p:new T.Vector3(),t:new T.Vector3()});
+  for(let it=0;it<3;it++){let any=false;
+    for(let a=0;a<B.length;a++){const A=B[a];if(A.off)continue;
+      for(let b=a+1;b<B.length;b++){const C=B[b];if(C.off)continue;
+        let dz=(C.t-A.t)*L;if(dz>L/2)dz-=L;else if(dz<-L/2)dz+=L;if(dz>12||dz<-12||Math.abs((C.x-A.x)*XS)>7)continue;
+        // C's true position and road direction, seen from A's road frame (u = across, v = along): exact on bends and over the arc-length table
+        gpRoadAt(A,RA);gpRoadAt(C,RC);const wx=RC.x-RA.x,wz=RC.z-RA.z,u=wx*RA.nx+wz*RA.nz,v=wx*RA.tx+wz*RA.tz;
+        const th=Math.atan2(RC.tx*RA.nx+RC.tz*RA.nz,RC.tx*RA.tx+RC.tz*RA.tz),ct=Math.cos(th),st=Math.sin(th);
+        const hit=gpSat(0,0,gpYawRel(A),A.S.w/2,A.S.len/2,u,v,th+gpYawRel(C),C.S.w/2,C.S.len/2);if(!hit)continue;
+        any=true;n++;const mA=A.mass||1,mC=C.mass||1,wA=mC/(mA+mC),wC=mA/(mA+mC),nu=hit.n[0],nv=hit.n[1],pen=hit.o+0.02;
+        const cu=nu*ct-nv*st,cv=nu*st+nv*ct;   // the same normal in C's own road frame
+        // remove just the overlap along the contact normal, split by weight (A goes -n, C goes +n)
+        A.x-=nu*pen*wA/XS;C.x+=cu*pen*wC/XS;A._mv=C._mv=1;gpShiftT(A,-nv*pen*wA/L,waiting);gpShiftT(C,cv*pen*wC/L,waiting);
+        // closing speed along the normal (m/s): A's velocity in its frame vs C's velocity turned into A's frame
+        const aU=gpLatV(A)*XS,aV=A.speed,cU0=gpLatV(C)*XS,cV0=C.speed,cU=cU0*ct+cV0*st,cV=-cU0*st+cV0*ct,vrel=(cU-aU)*nu+(cV-aV)*nv;   // < 0: closing
+        let impact=0;if(vrel<0){impact=-vrel;const e=impact>2.5?0.2:0;   // a real knock bounces softly; a slow push is a plain push (no frame-to-frame ping-pong)
+          const j=-(1+e)*vrel/(1/mA+1/mC);gpAddLatV(A,-j*nu/mA/XS);A.speed-=j*nv/mA;gpAddLatV(C,j*cu/mC/XS);C.speed+=j*cv/mC;
+          if(impact>0.8){const loss=Math.min(0.03,0.004*impact);A.speed*=1-loss;C.speed*=1-loss;}}   // the small speed loss is shared
+        if(Math.abs(nv)>0.7){const sx=u>=0?1:-1,nud=0.04+Math.min(0.08,impact*0.006);gpAddLatV(A,-sx*nud);gpAddLatV(C,sx*nud);}   // nose to tail: a gentle sideways ease so the pair slides apart instead of sticking
+        gpClampX(A);gpClampX(C);
+        if(it===0&&(A.player||C.player)){const fresh=R3.bumpT>0.6;R3.bumpT=0;
+          if(fresh&&impact>1.2){GPA.play("bonk");R3.sk.clean=0;gpChainBreak();const pa=A.pos,pc=C.pos;for(let q=0;q<6;q++){const an=Math.random()*6.28;R3.sparks.emit((pa.x+pc.x)/2,(pa.y+pc.y)/2+0.6,(pa.z+pc.z)/2,Math.cos(an)*2.5,1.5+Math.random()*2,Math.sin(an)*2.5,1,0.75,0.35,0.3);}}}
+        if(log&&(A.player||C.player)&&it===0)log.push({f:R3.frameN,o:+hit.o.toFixed(3),nu:+nu.toFixed(2),nv:+nv.toFixed(2),impact:+impact.toFixed(2)});}}
+    if(!any)break;}
+  return n;}
+/* rivals: follow the racing line, but look ~20 m ahead for anything in the way (rivals, traffic, Prince) and pass on the freer
+   side; if both sides are shut, hold its speed (kt.capSpd) instead of running into it. When Prince is alongside or just
+   behind, keep a car's width plus a metre away from him. Sideways speed is capped (~2.7 m/s), so a rival never darts. */
+function gpRivalSteer(kt,i,waiting){const XS=R3.W-1.2,L=R3.len,me=R3.me,hw=kt.S.w/2;let target=R3.lineX[(i+Math.round(12/(L/R3.M)))%R3.M];kt.capSpd=null;
+  if(waiting)return 0;
+  if(kt.testHold){kt.capSpd=kt.testHold.speed;return Math.max(-0.42,Math.min(0.42,(kt.testHold.x-kt.x)*1.5));}   // contact test only: hold a lane and a speed
+  let blk=null,bd=1e9;for(const o of R3.bodies){if(o===kt||o.off)continue;let dz=((o.t-kt.t+1.5)%1-0.5)*L;const need=(hw+o.S.w/2+0.7)/XS;
+    if(dz>kt.S.len*0.3&&dz<20+Math.max(0,kt.speed-o.speed)*1.2&&Math.abs(o.x-kt.x)<need&&dz<bd){blk=o;bd=dz;}}
+  if(blk){const need=(hw+blk.S.w/2+1.0)/XS,free=x=>Math.abs(x)<=0.98&&!R3.bodies.some(o=>o!==kt&&o!==blk&&!o.off&&Math.abs(((o.t-kt.t+1.5)%1-0.5)*L-bd)<9&&Math.abs(o.x-x)<(hw+o.S.w/2+0.5)/XS);
+    const l=blk.x-need,r=blk.x+need,lo=free(l),ro=free(r);
+    if(lo||ro)target=lo&&ro?(Math.abs(l-target)<Math.abs(r-target)?l:r):(lo?l:r);
+    if(Math.abs(blk.x-kt.x)<(hw+blk.S.w/2+0.3)/XS&&bd<12+Math.max(0,kt.speed-blk.speed)*0.8)kt.capSpd=Math.max(0,blk.speed*0.97-(bd<kt.S.len?2:0));}
+  const dzp=((me.t-kt.t+1.5)%1-0.5)*L;if(dzp>-9&&dzp<6){const gap=(hw+me.S.w/2+1.0)/XS;if(Math.abs(me.x-kt.x)<gap){const sd=kt.x>=me.x?1:-1,want=me.x+sd*gap;target=Math.abs(want)<=0.98?want:me.x-sd*gap;}}
+  const gain=1.1+kt.racer.car.handle*0.18,vmax=0.42;return Math.max(-vmax,Math.min(vmax,(target-kt.x)*gain));}
+/* put cars that a contact moved back on the road this same frame (the view never shows the overlap that was just removed) */
+function gpPlaceAll(){const XS=R3.W-1.2,T=R3.T;R3.karts.forEach(kt=>{if(!kt._mv)return;kt._mv=0;const pos=R3.curve.getPointAt(kt.t),tan=R3.curve.getTangentAt(kt.t);const nx=-tan.z,nz=tan.x,nl=Math.hypot(nx,nz)||1;
+  pos.x+=nx/nl*kt.x*XS;pos.z+=nz/nl*kt.x*XS;kt.pos.copy(pos);kt.g.position.copy(pos);});}
+/* ---------- start sequence: ONE clock ----------
+   1. "intro": the track + car line is spoken while the grid sits still (no numbers, lamps dark). The count waits for that clip
+      to finish (or ~1.3 s when no voice will play), so the voice never talks over the beeps.
+   2. "count": three beats of exactly 1 s, timed from the rAF frame stamp. On the frame a beat starts, the number on screen, its
+      beep, the gantry LED and the start lamps (3 lit -> 2 -> 1) all change together. Nothing about the count is spoken.
+   3. GO: same frame for "GO!", the go sound, all lamps out and the cars being released. The race clock starts on that frame.
+   Every beat is logged in R3.cdLog (frame number, frame time, audio time of the beep) for the sync test. */
+function gpCountStart(){if(!R3||R3.phase!=="intro"||R3.cdReq)return;
+  const go=()=>{if(R3&&R3.phase==="intro")R3.cdReq=true;};
+  const c=GPA.ctx;if(c&&c.state!=="running"&&!GPA.muted){let fired=false;const f=()=>{if(fired)return;fired=true;go();};try{c.resume().then(f,f);}catch(e){f();}setTimeout(f,450);}   // wake the audio first so beat 1's beep is not late
+  else go();}
+function gpCountTick(now){const R=R3;
+  if(R.phase==="intro"){R.countdown=3.8;if(!R.cdReq)return;R.cdReq=false;R.phase="count";R.cdF0=now;R.cdStep=-1;const cd=$("gp3Card");if(cd)cd.classList.add("hide");}
+  if(R.phase!=="count")return;
+  let e=(now-R.cdF0)/1000,step=Math.min(3,Math.floor(e)),stall=0;
+  if(step>R.cdStep+1){step=R.cdStep+1;stall=now-(R.cdF0+step*1000);R.cdF0=now-step*1000;e=step;}   // a frame that arrives very late (device hiccup) never swallows a number: show the next one now and give it its full second
+  if(step!==R.cdStep){R.cdStep=step;const n=3-step;R.setLights(n);R.litShown=n;R.setScreen(n>0?String(n):"GO!");GPA.play(n>0?"beep":"go");
+    const c=$("gp3Count");if(c){c.textContent=n>0?String(n):"GO!";c.classList.remove("pop");void c.offsetWidth;c.classList.add("show","pop");}
+    let beepPerf=null;try{if(GPA.ctx&&GPA.ctx.getOutputTimestamp){const ts=GPA.ctx.getOutputTimestamp();beepPerf=+(ts.performanceTime+(GPA.ctx.currentTime-ts.contextTime)*1000).toFixed(2);}}catch(x){}
+    R.cdLog.push({n,frame:R.frameN,frameMs:+now.toFixed(2),ideal:+(R.cdF0+step*1000).toFixed(2),callPerf:+performance.now().toFixed(2),beepPerf,beepAudio:GPA.ctx?+GPA.ctx.currentTime.toFixed(4):null,audioState:GPA.ctx?GPA.ctx.state:"none",lit:n,released:n===0,stallMs:+stall.toFixed(1)});
+    if(n===0){R.phase="race";R.countdown=0;R.goAt=now;setTimeout(()=>{const cc=$("gp3Count");if(cc)cc.classList.remove("show");},800);}}
+  if(R.phase==="count")R.countdown=Math.max(0.001,3-e);}
 function gpUpdate(dt,waiting){
   const {karts,samples,M,len,T,me}=R3;
   const k=R3.keys;const left=k["arrowleft"]||k["a"]||R3.touchDir<0,right=k["arrowright"]||k["d"]||R3.touchDir>0,brake=k["arrowdown"]||k["s"]||R3.brake,gas=R3.autoGas||k["arrowup"]||k["w"]||R3.gas,driftKey=k["shift"]||k[" "]||k["x"];
-  const V=R3.tmpV,sk=R3.sk;R3.bumpT+=dt;if(!waiting)R3.simT=(R3.simT||0)+dt;
+  const V=R3.tmpV,sk=R3.sk;R3.bumpT+=dt;if(!waiting){R3.simT=(R3.simT||0)+dt;if(R3.relFrame==null)R3.relFrame=R3.frameN;}
   karts.forEach(kt=>{
     const i=Math.floor(kt.t*M)%M;const s=samples[i];
     const kap=R3.kap[i];                                   // signed curvature here (+ = left-hander)
@@ -1491,7 +1592,7 @@ function gpUpdate(dt,waiting){
       else{kt.speed=Math.max(0,kt.speed-(2.5+0.06*kt.speed)*dt);if(kt.speed>maxNow)kt.speed+=(maxNow-kt.speed)*Math.min(1,dt*(offroad?1.1:2.2));}   // coasting
     }else{
       // rivals follow the speed profile (real braking points for every corner), with a little driver variety and the rubber band
-      const tgt=Math.min(maxNow,R3.vProf[(i+3)%M]*kt.aiSkill*band);
+      const tgt=kt.testHold?kt.testHold.speed:Math.min(maxNow,R3.vProf[(i+3)%M]*kt.aiSkill*band,kt.capSpd!=null?kt.capSpd:1e9);
       kt.brakeOn=!waiting&&kt.speed>tgt+0.8;
       if(waiting)kt.speed=0;else if(kt.brakeOn)kt.speed=Math.max(tgt,kt.speed-26*dt);else kt.speed+=(tgt-kt.speed)*Math.min(1,dt*(kt.speed<tgt?kt.accel/10:2.2));
     }
@@ -1507,7 +1608,7 @@ function gpUpdate(dt,waiting){
       else tgt=kt.steerIn*kt.steer*(R3.mode==="free"?0.36:0.42)*Math.max(.4,spd);
       kt.sv+=(tgt-kt.sv)*Math.min(1,dt*(kt.drift?2.8:4.5));kt.x+=kt.sv*dt;
     }
-    else if(!kt.player){const target=R3.lineX[(i+Math.round(12/(len/M)))%M];const ahead=karts.find(o=>o!==kt&&((o.t-kt.t+1)%1)<0.012&&Math.abs(o.x-kt.x)<0.35);kt.x+=((ahead?(kt.x<ahead.x?-0.65:0.65):target)-kt.x)*dt*(1.1+kt.racer.car.handle*0.18);}
+    else if(!kt.player){kt.x+=gpRivalSteer(kt,i,waiting)*dt;if(kt.bv){kt.x+=kt.bv*dt;kt.bv*=Math.exp(-5*dt);if(Math.abs(kt.bv)<0.002)kt.bv=0;}}
     if(kt.player&&R3.mode==="race"&&!kt.drift&&!left&&!right&&Math.abs(kt.x)>0.95)kt.x-=Math.sign(kt.x)*dt*0.7;
     if(kt.player&&R3.mode==="free"&&!kt.drift&&!left&&!right&&Math.abs(kt.x)>0.7)kt.x-=Math.sign(kt.x)*dt*0.5;
     const lim=kt.player?(R3.mode==="free"?1.15:1.22):1.1;
@@ -1518,10 +1619,7 @@ function gpUpdate(dt,waiting){
     if(kt.wallT>0)kt.wallT-=dt;   // road edge is 1.19 (the car's outer wheels on the shoulder), the rail is 1.6
     if(kt.hop>0)kt.hop-=dt;
     const before=kt.t;kt.t=(kt.t+kt.speed*dt/len+1)%1;
-    const fwdX=kt.t<before&&before-kt.t>0.5,backX=kt.t>before&&kt.t-before>0.5;   // crossing the line forwards / backing over it
-    if(!waiting&&backX){if(kt.lap>0)kt.lap--;else kt.started=false;}
-    else if(!waiting&&fwdX&&!kt.started){kt.started=true;}
-    else if(!waiting&&fwdX){kt.lap++;if(kt.player){if(kt.lap>=R3.C.laps&&!R3.done)gpFinish();else{R3.notes.forEach(n=>{n.alive=true;n.mesh.visible=true;});GPA.play("lap");gpMsg(kt.lap+1===R3.C.laps?"Final lap":"Lap "+(kt.lap+1));}}}
+    gpLapCross(kt,before,waiting);
     if(kt.player&&!waiting&&!R3.done&&R3.mode==="race"){const tt=R3.trapT;const crossed=before<=kt.t?(before<tt&&kt.t>=tt):(before<tt||kt.t>=tt);if(crossed){const mph=Math.round(kt.speed*GP_MPH);R3.trapBest=Math.max(R3.trapBest,mph);const r=kt.speed/(kt.max||1);const stars=r>=0.97?"★★★":r>=0.9?"★★":"★";gpMsg("Speed trap "+mph+" mph "+stars);GPA.play("trap");gpSkill("Speed trap",mph*4,true);}}
     if(kt.player&&R3.gates&&!waiting){const G=R3.gates;G.ts.forEach(gt=>{const crossed=before<=kt.t?(before<gt&&kt.t>=gt):(before<gt||kt.t>=gt);if(crossed)G.flash=1;});}
     // place the car
@@ -1540,7 +1638,7 @@ function gpUpdate(dt,waiting){
       const latA=Math.max(-0.2,Math.min(0.2,0.8*Math.atan2(latMs,Math.max(6,Math.abs(kt.speed))))),headT=kt.drift?Math.max(-0.48,Math.min(0.48,latA*0.5+kt.drift*(opp?0.18:0.36))):latA;   // a held drift settles near 22-27 degrees
       kt.headV+=((headT-kt.headA)*38-kt.headV*10.5)*dt;kt.headA+=kt.headV*dt;kt.g.rotateY(-kt.headA);
       const ph=window.__gp&&window.__gp.phys;if(ph){ph.slipDeg=kt.headA*57.3;ph.steerIn=kt.steerIn;ph.sv=kt.sv;ph.drift=kt.drift;ph.x=kt.x;ph.speed=kt.speed;}
-    }else kt.g.rotateY((-vx*0.05)+(kt.drift?-kt.drift*0.35:0));
+    }else{kt.yawRel=vx*0.05+(kt.drift?kt.drift*0.35:0);kt.g.rotateY(-kt.yawRel);}
     const heavy=kt.racer.car.type==="suv",settle=heavy?4.5:6,rollMax=kt.pic?0:(heavy?0.105:0.09);
     const acc=(kt.speed-kt.lastSpeed)/Math.max(dt,0.001);kt.lastSpeed=kt.speed;
     if(kt.glb){   // model cars: body on springs (a touch of overshoot) - leans out of corners and slides, dives on the brakes, squats on launch
@@ -1583,9 +1681,8 @@ function gpUpdate(dt,waiting){
     // a little dust off the outside wheel when the player runs right on the road edge / kerb
     if(kt.player&&!offroad&&Math.abs(kt.x)>0.97&&spd>0.3&&Math.random()<0.45){const sd=-Math.sign(kt.x);kt.g.updateMatrixWorld(true);V.set(sd*(kt.tyreX||kt.S.w/2-0.04),0.1,kt.xr);kt.g.localToWorld(V);R3.dust.emit(V.x,V.y+0.15,V.z,-tan.x*2+(Math.random()-0.5)*1.5,0.5+Math.random()*0.8,-tan.z*2+(Math.random()-0.5)*1.5,0.62,0.55,0.42,0.6);}
   });
-  // bumps between cars
-  for(let a=0;a<karts.length;a++)for(let b=a+1;b<karts.length;b++){const A=karts[a],B=karts[b];const d=(A.t-B.t+1)%1;const close=d<0.004||d>0.996;if(close&&Math.abs(A.x-B.x)<0.42){const back=d<0.5?B:A,front=back===A?B:A;if(back.speed>front.speed)back.speed=front.speed*0.88;A.x+=(A.x<B.x?-1:1)*0.18;B.x-=(A.x<B.x?-1:1)*0.18;
-    if((A.player||B.player)&&R3.bumpT>0.8&&!waiting){R3.bumpT=0;GPA.play("bump");sk.clean=0;gpChainBreak();const p=me.pos;for(let q=0;q<14;q++){const an=Math.random()*6.28;R3.sparks.emit(p.x,p.y+0.7,p.z,Math.cos(an)*4,2+Math.random()*3,Math.sin(an)*4,1,0.7,0.25,0.4);}}}}
+  // car-to-car contact: resolved after everyone has moved, then the cars are re-placed on the road so what you see has no overlap
+  if(gpContacts(dt,waiting))gpPlaceAll();
   // skills
   if(!waiting&&!R3.done&&R3.mode==="race"){const spd=me.speed/me.max,offroad=Math.abs(me.x)>1.05;
     if(me.drift&&spd>0.35&&!offroad)gpSkill("Drift",me.speed*dt*9);
