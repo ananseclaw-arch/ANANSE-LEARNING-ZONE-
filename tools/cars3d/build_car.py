@@ -135,7 +135,7 @@ ZN, ZT = 2.35, -2.30
 FLOOR = 0.11
 WF = dict(z=1.45, r=0.37, w=0.30); WR = dict(z=-1.42, r=0.39, w=0.38)
 WF["x"] = 1.00 - 0.015 - WF["w"] / 2     # tyre outer face 1.5 cm inside the fender: wide track, wheels fill the arches
-WR["x"] = 1.05 - 0.015 - WR["w"] / 2
+WR["x"] = 1.05 + 0.005 - WR["w"] / 2   # v4: rear tyres sit flush with the body line so their shoulders read from the chase cam
 ARCH_GAP = 0.10                           # tyre top to arch lip (room for the body to roll / dive over the wheels)
 
 def lerp(a, b, t): return a + (b - a) * t
@@ -310,7 +310,7 @@ body.box((0, 0.785, ZT - 0.012), (1.42, 0.04, 0.03), "tail")
 for sd in (-1, 1):
     body.box((sd * 0.6, 0.745, ZT - 0.014), (0.36, 0.08, 0.034), "tail")
     body.box((sd * 0.6, 0.745, ZT - 0.004), (0.42, 0.13, 0.02), "carbon")
-    body.box((sd * 0.4, 0.53, ZT - 0.004), (0.34, 0.16, 0.02), "carbon")              # rear vents
+    body.box((sd * 0.4, 0.53, ZT - 0.004), (0.34, 0.16, 0.02), "paint")               # rear vents (v4: body colour, so the black tyres stand out beside them)
     body.box((sd * 0.4, 0.53, ZT - 0.002), (0.3, 0.025, 0.02), "spoke")
 body.box((0, 0.6, ZT - 0.03), (0.18, 0.09, 0.05), "tail")                            # centre rain light
 for sd in (-1, 1):
@@ -318,12 +318,12 @@ for sd in (-1, 1):
     body.cyl((sd * 0.11, 0.4, ZT - 0.095), 0.046, 0.01, "carbon", axis="z", seg=12)
 # big rear wing: end plates, main plane, gurney flap, swan-neck pylons (rising from the deck valley)
 WZ, WY = -2.02, 1.24
-body.box((0, WY, WZ), (1.92, 0.04, 0.42), "carbon", rot_x=-0.1)
-body.box((0, WY + 0.03, WZ - 0.21), (1.92, 0.05, 0.02), "carbon")
+# v4 "lighter" wing: a thin body-colour blade with a white gurney line, small end plates, slim pylons (the old carbon slab read as a heavy black bar from behind)
+body.box((0, WY, WZ), (1.86, 0.022, 0.32), "paint", rot_x=-0.1)
+body.box((0, WY + 0.022, WZ - 0.165), (1.86, 0.026, 0.014), "stripe")
 for sd in (-1, 1):
-    body.box((sd * 0.97, WY - 0.06, WZ - 0.02), (0.03, 0.3, 0.56), "paint")
-    body.box((sd * 0.97, WY - 0.06, WZ - 0.02), (0.035, 0.05, 0.5), "stripe")
-    body.box((sd * 0.32, (WY + 0.86) / 2, WZ + 0.06), (0.04, WY - 0.86, 0.12), "carbon", rot_x=0.25)
+    body.box((sd * 0.94, WY - 0.03, WZ - 0.02), (0.022, 0.2, 0.42), "paint")
+    body.box((sd * 0.32, (WY + 0.86) / 2, WZ + 0.06), (0.024, WY - 0.86, 0.08), "carbon", rot_x=0.25)
 # mirrors on slim stalks
 for sd in (-1, 1):
     body.box((sd * 0.99, 0.9, 0.38), (0.16, 0.085, 0.13), "paint")
