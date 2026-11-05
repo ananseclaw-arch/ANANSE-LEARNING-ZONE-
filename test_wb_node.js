@@ -106,7 +106,9 @@ T(typeof ctx.wbReasonOK==="undefined"&&vm.runInContext("typeof wbReasonOK",ctx)=
   const all=[s.best].concat(s.wrong);kinds.add(id+"|"+s.best.replace(/\d+/g,"#"));
   if(new Set(all.map(x=>x.toLowerCase())).size!==3)fail(id+": reasons not distinct "+all.join(" | "));
   for(const t of all.concat([s.why])){if(!t||/undefined|NaN|null/.test(t))fail(id+": bad reason text "+t);if(/Prince/i.test(t))fail(id+": real name in reason");}
-  for(const t of all)if(t.length>60)fail(id+": reason too long ("+t.length+"): "+t);}
+  for(const t of all)if(t.length>60)fail(id+": reason too long ("+t.length+"): "+t);
+  if(/remember \d+ × 10/.test(p.q)&&!/double/.test(s.best))fail(id+": a × 5 -> a × 10 question got the wrong reason set: "+s.best);
+  if(/remember \d+ × 5\?/.test(p.q)&&!/order/.test(s.best))fail(id+": 5 × a -> a × 5 question got the wrong reason set: "+s.best);}
  T(n>100,"explain variants checked ("+n+", "+kinds.size+" reason kinds)");
  // tapping a reason saves picked/pickOk/choices on the P.explains record; one try only; the answer mark is unchanged
  ctx.P.explains=[];const exs=[];for(const id of ["4-2","4-5"])for(const p of wb.gen(id,40))if(p.type==="form"&&(p.checks||[]).some(c=>c.t==="reason"))exs.push(p);
