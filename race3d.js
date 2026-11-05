@@ -125,7 +125,7 @@ const GP_CIRCUITS=[
   
   look:{top:"#3f7fd6",mid:"#a9c8ea",hor:"#f0e2c8",glow:"#fff0c8",sun:"#fff1d6",sunI:1.5,hemi:0.55,dir:[0.55,0.6,-0.45],haze:"#cfd9e6",hill:"#5a6a88",time:"Sunny afternoon downtown",night:0,tint:[1,1,1]},
   story:{paper:"#f4efe6",ink:"#262a33",hill:"#a9b4c4",top:"#a9d0ee",hor:"#fbf3e2"},
-  segs:[["S",150],["R",22,90],["S",58.81],["L",20,90],["S",90.05,{"h":4}],["R",20,90],["S",38.81],["R",28,45],["L",28,45],["S",170,{"z":"tunnel","h":4}],["S",38.81],["L",26,40],["R",26,40],["S",38.81],["R",40,90],["S",106.57,{"h":10}],["L",22,90],["S",38.81,{"h":14}],["R",18,90],["S",188.63,{"z":"bridge","j":3.0,"h":2}],["L",35,60],["R",35,60],["S",87.84],["R",40,30],["L",40,30],["S",84.71,{"h":1}],["R",20,90],["S",121.24],["L",18,90],["S",49.97],["R",18,90],["S",101.24],["R",16,180],["S",38.81],["L",16,180],["S",381.24,{"z":"avenue"}],["R",20,90],["S",100.05],["R",30,45],["L",30,45],["S",230.05]]},
+  segs:[["S",150],["R",22,90],["S",58.81],["L",20,90],["S",90.05,{"h":4}],["R",20,90],["S",38.81],["R",28,45],["L",28,45],["S",170,{"z":"tunnel","h":4}],["S",38.81],["L",26,40],["R",26,40],["S",38.81],["R",40,90],["S",106.57,{"h":10}],["L",22,90],["S",38.81,{"h":14}],["R",18,90],["S",188.63,{"z":"bridge","j":3.4,"jat":0.72,"h":2}],["L",35,60],["R",35,60],["S",87.84],["R",40,30],["L",40,30],["S",84.71,{"h":1}],["R",20,90],["S",121.24],["L",18,90],["S",49.97],["R",18,90],["S",101.24],["R",16,180],["S",38.81],["L",16,180],["S",381.24,{"z":"avenue"}],["R",20,90],["S",100.05],["R",30,45],["L",30,45],["S",230.05]]},
  {id:"accra",name:"Accra Streets",theme:"accra",laps:2,stars:2,tree:"palm",hills:0.8,grass:0x9a9a5c,town:0,city:0,fuji:null,ridges:0,seaSide:-1,parkSide:1,
   traffic:[["ghtaxi",5],["trotro",4],["sedan",3],["hatch",2]],blurb:"Black Star Gate, the Labadi beach road, Osu shops",special:"gh",
   
@@ -137,7 +137,7 @@ const GP_CIRCUITS=[
   
   look:{top:"#4a83d0",mid:"#a8c7e8",hor:"#f6d3a3",glow:"#ffe0b0",sun:"#ffd9a8",sunI:1.45,hemi:0.6,dir:[-0.6,0.45,-0.5],haze:"#dbd7d0",hill:"#4f6a7f",time:"Golden evening on the coast",night:0,tint:[1.04,1,0.95]},
   story:{paper:"#f7f0e1",ink:"#2d2632",hill:"#a7c7a0",top:"#a9d8ee",hor:"#fbf3e2"},
-  segs:[["S",120,{"z":"dirt"}],["R",25,90,{"z":"dirt"}],["S",60,{"z":"country"}],["S",40,{"z":["country","ford"],"h":-2}],["S",114.95,{"z":"country","j":2.6}],["L",32,60,{"z":"country"}],["R",32,120,{"z":"country"}],["L",32,60,{"z":"country"}],["S",86.82,{"z":"country","h":8}],["R",32,40,{"z":"country"}],["L",32,40,{"z":"country"}],["S",86.83,{"z":"country"}],["R",18,180,{"z":"country"}],["S",75.39,{"z":"country","h":12}],["L",18,180,{"z":"country"}],["S",67.9,{"z":"country"}],["R",35,90,{"z":"country"}],["S",223.28,{"z":["highway","sea"]}],["L",80,30,{"z":["highway","sea"]}],["R",80,30,{"z":["highway","sea"]}],["S",144.03,{"z":["highway","bridge","sea"],"j":3,"jat":0.85}],["R",80,90,{"z":["highway","sea"]}],["S",258.19,{"z":"highway","j":3.2}],["L",40,30,{"z":"highway"}],["R",40,30,{"z":"highway"}],["S",71.94,{"z":"highway"}],["R",24,50,{"z":"highway"}],["L",24,50,{"z":"highway"}],["S",97.63,{"z":"highway"}],["R",30,90,{"z":"forest"}],["L",28,45,{"z":"forest"}],["R",28,90,{"z":"forest"}],["L",28,45,{"z":"forest"}],["S",98.45,{"z":"forest"}],["S",290.21,{"z":"dirt"}]]}
+  segs:[["S",120,{"z":"dirt"}],["R",25,90,{"z":"dirt"}],["S",60,{"z":"country"}],["S",40,{"z":["country","ford"],"h":-2}],["S",114.95,{"z":"country","j":3.3}],["L",32,60,{"z":"country"}],["R",32,120,{"z":"country"}],["L",32,60,{"z":"country"}],["S",86.82,{"z":"country","h":8}],["R",32,40,{"z":"country"}],["L",32,40,{"z":"country"}],["S",86.83,{"z":"country"}],["R",18,180,{"z":"country"}],["S",75.39,{"z":"country","h":12}],["L",18,180,{"z":"country"}],["S",67.9,{"z":"country"}],["R",35,90,{"z":"country"}],["S",223.28,{"z":["highway","sea"]}],["L",80,30,{"z":["highway","sea"]}],["R",80,30,{"z":["highway","sea"]}],["S",144.03,{"z":["highway","bridge","sea"],"j":3,"jat":0.85}],["R",80,90,{"z":["highway","sea"]}],["S",258.19,{"z":"highway","j":3.2}],["L",40,30,{"z":"highway"}],["R",40,30,{"z":"highway"}],["S",71.94,{"z":"highway"}],["R",24,50,{"z":"highway"}],["L",24,50,{"z":"highway"}],["S",97.63,{"z":"highway"}],["R",30,90,{"z":"forest"}],["L",28,45,{"z":"forest"}],["R",28,90,{"z":"forest"}],["L",28,45,{"z":"forest"}],["S",98.45,{"z":"forest"}],["S",290.21,{"z":"dirt"}]]}
 ];
 /* walk the segment list: a point every ~4 m on straights (jump crests need the detail) and every ~4 m (or 15 degrees) round arcs;
    the last point is the start again, so it is dropped. Segments may carry an options object (after the numbers):
@@ -878,10 +878,12 @@ function gpBuildGlbCar(T,car,src,paint,shared){
   const cmat=new T.MeshBasicMaterial({map:shared.contact,color:0x000000,transparent:true,opacity:1,depthWrite:false,side:T.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});cmat.userData.lin=1;
   const contacts=new T.Mesh(cg,cmat);contacts.position.y=0.04;contacts.frustumCulled=false;g.add(contacts);
   Object.values(hubs).forEach(h=>{h.userData.y0=h.position.y;});
-  return{carId:car.id,g,body,wheels,steers,hubs:Object.values(hubs),shadows:[blob,contacts],tailMat:tail,bodyMat:paintM,stripeMat:stripe,S,xr:D.xr||S.xr,hw:z=>S.w/2,tyreX:D.tyreX,glb:{glows,blurs,glow:0,rollV:0,pitchV:0,heave:0,heaveV:0,pivotY:D.pivotY||0.3}};}
+  // far-away detail: small parts that cost a draw call each but can't be seen from 60 m (brake discs, calipers, spokes, decals...)
+  const lod=[],casters=[];root.traverse(o=>{if(!o.isMesh)return;const nm=o.material&&o.material.name,pn=(o.parent&&o.parent.name)||"";if(/^(disc|caliper|spoke|rimdark|exhaust|decal|lamp|carbon)$/.test(nm||"")||/^caliper_/.test(o.name)||/^caliper_/.test(pn))lod.push(o);if(o.castShadow)casters.push(o);});
+  return{lod,casters,lodFar:false,carId:car.id,g,body,wheels,steers,hubs:Object.values(hubs),shadows:[blob,contacts],tailMat:tail,bodyMat:paintM,stripeMat:stripe,S,xr:D.xr||S.xr,hw:z=>S.w/2,tyreX:D.tyreX,glb:{glows,blurs,glow:0,rollV:0,pitchV:0,heave:0,heaveV:0,pivotY:D.pivotY||0.3}};}
 /* per frame for model cars: brake glow fade (the springs for lean / dive / squat run in gpUpdate) */
 function gpGlbUpdate(kt,dt){const G=kt.glb;G.glow+=((kt.brakeOn?1:0)-G.glow)*Math.min(1,dt*(kt.brakeOn?18:7));
-  const om=Math.abs(kt.speed)/Math.max(0.1,kt.S.radR),bo=Math.max(0,Math.min(0.88,(om-18)/34));G.blurs.forEach(b=>{const v=bo>0.02;if(b.visible!==v)b.visible=v;if(v)b.material.opacity=bo;});
+  const om=Math.abs(kt.speed)/Math.max(0.1,kt.S.radR),bo=Math.max(0,Math.min(0.88,(om-18)/34));G.blurs.forEach(b=>{const v=bo>0.02&&!kt.lodFar;if(b.visible!==v)b.visible=v;if(v)b.material.opacity=bo;});
   kt.tailMat.emissiveIntensity=0.5+G.glow*1.9;G.glows.forEach(s=>{const v=G.glow>0.02;if(s.visible!==v)s.visible=v;if(v)s.material.opacity=G.glow*0.7;});}
 /* ---------- pick-an-upgrade after each race ----------
    Finishing a race (any place) offers 3 big cards; one tap fits that upgrade, saved on the profile (P.gpUp, same save() pattern).
@@ -1291,9 +1293,10 @@ function gpThemeWorld(X){const {T,scene,C,samples,M,W,ds,nearest,groundAt,dummy,
   (Z.bridge||[]).forEach(([a,b])=>{const ia=Math.round(a*M),ib=Math.round(b*M);const deck=new T.MeshLambertMaterial({color:TH==="city"?0xb9b2a4:0xc9c6be,side:T.DoubleSide});
     [-1,1].forEach(sd=>{wallS(ia,ib,W+2.75,sd,-4.2,0.0,deck,0.1);ribbonR(ia,ib,sd*(W+2.6),sd*(W+3.3),deck,1.1,1.1,0.1);wallS(ia,ib,W+3.3,sd,0,1.1,deck,0.1);wallS(ia,ib,W+2.6,sd,0,1.1,deck,0.1);});
     ribbonR(ia,ib,-W-2.75,W+2.75,deck,-4.2,-4.2,0.1);
-    const piers=[];for(let i=ia+6;i<ib-4;i+=Math.round(16/ds))piers.push(i);IM(new T.BoxGeometry(2.2,9,W*2+3),deck,piers,(i,k,m)=>{const s=samples[wrapI(i)];m.setMatrixAt(k,put(s.pos.x,s.pos.y-8.6,s.pos.z,yawAt(i)));},{shadow:true});
+    let lowY=1e9;for(let i=ia;i<=ib;i++)lowY=Math.min(lowY,samples[wrapI(i)].pos.y);const wY=lowY-3.6;   // the river is flat at the bridge's lowest point (the deck may hump over it)
+    const piers=[];for(let i=ia+6;i<ib-4;i+=Math.round(16/ds))piers.push(i);IM(new T.BoxGeometry(2.2,1,W*2+3),deck,piers,(i,k,m)=>{const s=samples[wrapI(i)],top=s.pos.y-4.2,bot=wY-2.5;m.setMatrixAt(k,put(s.pos.x,(top+bot)/2,s.pos.z,yawAt(i),1,Math.max(0.5,top-bot),1));},{shadow:true});
     const wt=gpCanvasTex(128,128,(x,w,h)=>{x.fillStyle="#3f7896";x.fillRect(0,0,w,h);x.strokeStyle="rgba(255,255,255,.3)";for(let i=0;i<26;i++){const px=rnd()*w,py=rnd()*h;x.beginPath();x.moveTo(px,py);x.quadraticCurveTo(px+9,py-3,px+20,py);x.stroke();}},true);
-    out.waterTex2=wt;ribbonR(ia-14,ib+14,-90,90,new T.MeshStandardMaterial({map:wt,roughness:0.1,metalness:0.45}),-3.6,-3.6,0.05);});
+    out.waterTex2=wt;const wm=ribbonR(ia-14,ib+14,-90,90,new T.MeshStandardMaterial({map:wt,roughness:0.1,metalness:0.45}),-3.6,-3.6,0.05);if(wm&&wm.geometry){const P=wm.geometry.attributes.position;for(let q=0;q<P.count;q++)P.setY(q,wY);P.needsUpdate=true;wm.geometry.computeVertexNormals();}});
   // ---------- tunnel: walls, roof slab with lamp strips, portals, a little park on top ----------
   (Z.tunnel||[]).forEach(([a,b])=>{const ia=Math.round(a*M),ib=Math.round(b*M);const cm=new T.MeshLambertMaterial({color:0xa8a49a}),tm=new T.MeshLambertMaterial({color:0x6e6b66,side:T.DoubleSide});
     [-1,1].forEach(sd=>{wallS(ia,ib,W+2.3,sd,0,6.6,tm,0.2);});const roof=ribbonR(ia,ib,-W-3.4,W+3.4,cm,6.6,6.6,0.1);roof.castShadow=true;const under=ribbonR(ia,ib,W+3.4,-W-3.4,tm,6.55,6.55,0.1);
@@ -1625,9 +1628,9 @@ function gpBuild(C){
   for(let r=0;r<2;r++){const f2=Float32Array.from(flatW);for(let i=0;i<M;i++){let v=0;for(let k=-6;k<=6;k++)v+=flatW[wrapI(i+k)];f2[i]=v/13;}flatW.set(f2);}
   const inRun=i=>runOut[wrapI(i)]!==0;
   const RW=W+3.2,BL=30;
-  const cutZ=[];if(C.zones){(C.zones.bridge||[]).forEach(([a,b])=>cutZ.push([Math.round(a*M),Math.round(b*M),6.6,W+2.9]));(C.zones.ford||[]).forEach(([a,b])=>cutZ.push([Math.round(a*M)-6,Math.round(b*M)+6,0.9,W+0.5]));}
+  const cutZ=[];if(C.zones){(C.zones.bridge||[]).forEach(([a,b])=>{const ia=Math.round(a*M),ib=Math.round(b*M);let lo=1e9;for(let i=ia;i<=ib;i++)lo=Math.min(lo,samples[i%M].pos.y);cutZ.push([ia,ib,6.6,W+2.9,lo]);});(C.zones.ford||[]).forEach(([a,b])=>cutZ.push([Math.round(a*M)-6,Math.round(b*M)+6,0.9,W+0.5]));}
   const groundAt=(x,z)=>{const n=nearest(x,z);const h=hgt(x,z);if(n[0]<0)return h;const rp=samples[n[0]].pos;const ry=rp.y-0.12;const rw=flatW[n[0]];
-    for(const q of cutZ){if(n[0]>=q[0]&&n[0]<=q[1]&&n[1]>q[3]){const e=Math.min(1,Math.min(n[0]-q[0],q[1]-n[0])*ds/9),f=Math.min(1,(n[1]-q[3])/4);return ry-q[2]*e*f*(3-2*f)*f;}}   // river / stream bed under bridges and across the ford
+    for(const q of cutZ){if(n[0]>=q[0]&&n[0]<=q[1]&&n[1]>q[3]){const e=Math.min(1,Math.min(n[0]-q[0],q[1]-n[0])*ds/9),f=Math.min(1,(n[1]-q[3])/4);return (q[4]!=null?Math.min(ry,q[4]-0.12):ry)-q[2]*e*f*(3-2*f)*f;}}   // river / stream bed under bridges and across the ford
     if(n[1]<=rw)return ry;const t=Math.min(1,(n[1]-rw)/BL);const e=t*t*(3-2*t);return ry+(h-ry)*e;};
   const gh="#"+C.grass.toString(16).padStart(6,"0");
   const grassTex=gpCanvasTex(256,256,(x,w,h)=>{x.fillStyle=gh;x.fillRect(0,0,w,h);for(let i=0;i<70;i++){const r=8+rnd()*40;x.fillStyle=rnd()<0.5?"rgba(0,0,0,.06)":"rgba(255,240,160,.07)";x.beginPath();x.arc(rnd()*w,rnd()*h,r,0,7);x.fill();}
@@ -2346,6 +2349,7 @@ function gpUpdate(dt,waiting){
     // a little dust off the outside wheel when the player runs right on the road edge / kerb
     if(kt.player&&!offroad&&Math.abs(kt.x)>0.97&&spd>0.3&&Math.random()<0.45){const sd=-Math.sign(kt.x);kt.g.updateMatrixWorld(true);V.set(sd*(kt.tyreX||kt.S.w/2-0.04),0.1,kt.xr);kt.g.localToWorld(V);R3.dust.emit(V.x,V.y+0.15,V.z,-tan.x*2+(Math.random()-0.5)*1.5,0.5+Math.random()*0.8,-tan.z*2+(Math.random()-0.5)*1.5,0.62,0.55,0.42,0.6);}
   });
+  karts.forEach(k=>{if(k.player||!k.lod)return;const d2=k.pos.distanceToSquared(R3.camPos),far=k.lodFar?d2>3025:d2>4225;if(far!==k.lodFar){k.lodFar=far;k.lod.forEach(o=>{o.visible=!far;});k.casters.forEach(o=>{o.castShadow=!far;});if(k.glb)k.glb.blurs.forEach(b=>{if(far)b.visible=false;});}});   // rivals 65 m+ away: no small parts, no shadow
   gpTrafficUpdate(dt,waiting);
   // car-to-car contact: resolved after everyone has moved, then the cars are re-placed on the road so what you see has no overlap
   if(gpContacts(dt,waiting))gpPlaceAll();
