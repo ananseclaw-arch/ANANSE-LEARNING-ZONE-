@@ -17,17 +17,24 @@
 "use strict";
 let R3=null;
 const GP_CARS=[
- {id:"falcon",n:"Rosso Falcon",kind:"GT racer",cls:"S2",pi:940,type:"super",paint:"#d1121c",speed:4,grip:5,handle:5,accel:4,bio:"Red GT race car, number 7. Big rear wing, glued to the road."},
- {id:"arrow",n:"Silver Arrow",kind:"Electric hypercar",cls:"S2",pi:960,type:"hyper",paint:"#d7dbe0",speed:5,grip:3,handle:3,accel:5,bio:"Silent electric rocket. Fastest off the line - brake early!"},
- {id:"viper",n:"Lagoon Viper",kind:"Supercar",cls:"S2",pi:950,type:"hyper",paint:"#12b0e8",speed:5,grip:3,handle:4,accel:4,bio:"Wedge-shaped supercar. Huge speed on the long straights."},
- {id:"formula",n:"Volta Formula",kind:"Open-wheel racer",cls:"S1",pi:930,type:"super",paint:"#7b2cbf",speed:5,grip:4,handle:4,accel:3,bio:"Single-seater with big wings. Fast and grippy, gentle pick-up."},
- {id:"shogun",n:"Shogun GT",kind:"Super coupe",cls:"S1",pi:900,type:"gt",paint:"#f2f2f2",speed:4,grip:4,handle:4,accel:4,bio:"Japanese super-coupe. Good at everything."},
- {id:"kente",n:"Black Star Kente",kind:"Ghana special",cls:"S1",pi:900,type:"super",paint:"#ce1126",speed:4,grip:4,handle:4,accel:4,bio:"Ghana's own sports car: red, gold and green with kente cloth and the Black Star."},
- {id:"kumasi",n:"Kumasi V8",kind:"Muscle car",cls:"A",pi:840,type:"muscle",paint:"#f28a1c",speed:5,grip:2,handle:2,accel:4,bio:"Loud muscle car. Loves straights - slow down for the bends!"},
- {id:"rally",n:"Alpine Rally",kind:"Rally car",cls:"A",pi:820,type:"rally",paint:"#1d5fd1",speed:3,grip:4,handle:5,accel:5,bio:"Rally hatchback. Best on dirt and tight twisty corners."},
- {id:"retro",n:"Classic 59",kind:"Retro racer",cls:"A",pi:800,type:"gt",paint:"#1f6b45",speed:3,grip:4,handle:4,accel:3,bio:"A 1950s racer, number 59. Smooth and easy to drive."},
- {id:"kei",n:"Lemon Kei",kind:"Hot hatch",cls:"B",pi:700,type:"kei",paint:"#f7e85c",speed:2,grip:5,handle:5,accel:5,bio:"Tiny hot hatch. Nips round every corner, zippy pick-up."},
- {id:"ridge",n:"Thunder Ridge XL",kind:"Pickup / off-roader",cls:"A",pi:780,type:"suv",paint:"#2457D6",speed:3,grip:2,handle:2,accel:3,bio:"Big off-road pickup. Shrugs off dirt and bumps."}
+ {id:"falcon",grp:"racers",n:"Rosso Falcon",kind:"GT racer",cls:"S2",pi:940,type:"super",paint:"#d1121c",speed:4,grip:5,handle:5,accel:4,bio:"Red GT race car, number 7. Big rear wing, glued to the road."},
+ {id:"arrow",grp:"exotics",n:"Silver Arrow",kind:"Electric hypercar",cls:"S2",pi:960,type:"hyper",paint:"#d7dbe0",speed:5,grip:3,handle:3,accel:5,bio:"Silent electric rocket. Fastest off the line - brake early!"},
+ {id:"viper",grp:"exotics",n:"Lagoon Viper",kind:"Supercar",cls:"S2",pi:950,type:"hyper",paint:"#12b0e8",speed:5,grip:3,handle:4,accel:4,bio:"Wedge-shaped supercar. Huge speed on the long straights."},
+ {id:"formula",grp:"racers",n:"Volta Formula",kind:"Open-wheel racer",cls:"S1",pi:930,type:"super",paint:"#7b2cbf",speed:5,grip:4,handle:4,accel:3,bio:"Single-seater with big wings. Fast and grippy, gentle pick-up."},
+ {id:"shogun",grp:"racers",n:"Shogun GT",kind:"Super coupe",cls:"S1",pi:900,type:"gt",paint:"#f2f2f2",speed:4,grip:4,handle:4,accel:4,bio:"Japanese super-coupe. Good at everything."},
+ {id:"kente",grp:"racers",n:"Black Star Kente",kind:"Ghana special",cls:"S1",pi:900,type:"super",paint:"#ce1126",speed:4,grip:4,handle:4,accel:4,bio:"Ghana's own sports car: red, gold and green with kente cloth and the Black Star."},
+ {id:"kumasi",grp:"racers",n:"Kumasi V8",kind:"Muscle car",cls:"A",pi:840,type:"muscle",paint:"#f28a1c",speed:5,grip:2,handle:2,accel:4,bio:"Loud muscle car. Loves straights - slow down for the bends!"},
+ {id:"rally",grp:"racers",n:"Alpine Rally",kind:"Rally car",cls:"A",pi:820,type:"rally",paint:"#1d5fd1",speed:3,grip:4,handle:5,accel:5,bio:"Rally hatchback. Best on dirt and tight twisty corners."},
+ {id:"retro",grp:"racers",n:"Classic 59",kind:"Retro racer",cls:"A",pi:800,type:"gt",paint:"#1f6b45",speed:3,grip:4,handle:4,accel:3,bio:"A 1950s racer, number 59. Smooth and easy to drive."},
+ {id:"kei",grp:"racers",n:"Lemon Kei",kind:"Hot hatch",cls:"B",pi:700,type:"kei",paint:"#f7e85c",speed:2,grip:5,handle:5,accel:5,bio:"Tiny hot hatch. Nips round every corner, zippy pick-up."},
+ {id:"ridge",grp:"trucks",n:"Thunder Ridge XL",kind:"Pickup / off-roader",cls:"A",pi:780,type:"suv",cam:{back:0.6,up:0.35},paint:"#2457D6",speed:3,grip:2,handle:2,accel:3,bio:"Big off-road pickup. Shrugs off dirt and bumps."},
+ {id:"razor",grp:"exotics",n:"Razor Wedge",kind:"Wedge hypercar",cls:"S2",pi:970,type:"hyper",paint:"#8fd12a",speed:5,grip:4,handle:3,accel:5,bio:"Sharp as a blade, with doors that swing up. Blisteringly quick - brake early!"},
+ {id:"aurora",grp:"exotics",n:"Aurora V12",kind:"V12 grand tourer",cls:"S1",pi:930,type:"gt",paint:"#1b3f8f",speed:5,grip:3,handle:3,accel:4,bio:"Long-nosed V12 grand tourer. Huge top speed, smooth and heavy in the bends."},
+ {id:"comet",grp:"exotics",n:"Comet LMP",kind:"Le Mans prototype",cls:"S2",pi:960,type:"super",paint:"#e0287a",speed:5,grip:5,handle:4,accel:4,bio:"Endurance prototype with a shark fin. Glued to the road at high speed."},
+ {id:"breeze",grp:"exotics",n:"Breeze Roadster",kind:"Open-top roadster",cls:"A",pi:860,type:"super",paint:"#2fd3c3",speed:4,grip:4,handle:5,accel:4,bio:"Open-top roadster - you can see the driver! Light, nimble and fun."},
+ {id:"monster",grp:"trucks",n:"Big Bouncer",kind:"Monster truck",cls:"B",pi:720,type:"truck",paint:"#3fbf3f",speed:2,grip:3,handle:3,accel:3,cam:{back:2.8,up:1.9},bio:"Giant wheels and a huge bounce. Slow on the straights, flies over every jump."},
+ {id:"trophy",grp:"trucks",n:"Dune Hawk",kind:"Desert trophy truck",cls:"A",pi:790,type:"truck",paint:"#f2b705",speed:3,grip:3,handle:3,accel:3,cam:{back:1.3,up:0.8},bio:"Long-travel desert racer. Floats over bumps, sand and dunes."},
+ {id:"semi",grp:"trucks",n:"Thunder Hauler",kind:"Racing semi-truck",cls:"B",pi:700,type:"truck",paint:"#e8603c",speed:3,grip:2,handle:2,accel:2,cam:{back:2.6,up:1.5},bio:"A big-rig cab with chrome stacks. Slow to get going, unstoppable once rolling."}
 ];
 /* body shapes: z runs along the car, +z is the nose; all in metres */
 const GP_SHAPE={
@@ -37,6 +44,7 @@ const GP_SHAPE={
  rally:{len:4.2,w:1.86,ride:0.34,rad:0.36,radR:0.36,xf:1.28,xr:-1.28,nose:0.68,hood:0.96,belt:1.02,deck:1.04,tail:1.02,cabF:0.55,roofF:-0.1,roofR:-1.4,cabR:-1.9,roof:1.48,wing:"roof",tyreW:0.28,tyreWR:0.28},
  muscle:{len:4.9,w:1.98,ride:0.26,rad:0.38,radR:0.4,xf:1.5,xr:-1.45,nose:0.64,hood:0.94,belt:0.98,deck:0.94,tail:0.84,cabF:0.1,roofF:-0.55,roofR:-1.3,cabR:-1.95,roof:1.32,wing:"duck",tyreW:0.3,tyreWR:0.36,hip:0.03},
  kei:{len:3.4,w:1.6,ride:0.3,rad:0.3,radR:0.3,xf:1.05,xr:-1.05,nose:0.7,hood:0.92,belt:0.98,deck:1.02,tail:1.0,cabF:0.75,roofF:0.2,roofR:-1.1,cabR:-1.5,roof:1.52,wing:"none",tyreW:0.24,tyreWR:0.24},
+ truck:{len:5.6,w:2.3,ride:0.6,rad:0.6,radR:0.6,xf:1.8,xr:-1.8,nose:0.9,hood:1.5,belt:1.7,deck:1.8,tail:1.6,cabF:1.3,roofF:0.9,roofR:-1.2,cabR:-1.6,roof:2.4,wing:"none",tyreW:0.42,tyreWR:0.42,hip:0.02},
  suv:{len:5.3,w:2.05,ride:0.34,rad:0.42,radR:0.42,xf:1.62,xr:-1.62,nose:0.82,hood:1.04,belt:1.2,deck:1.4,tail:1.24,cabF:1.2,roofF:0.82,roofR:-1.88,cabR:-2.36,roof:1.88,wing:"none",tyreW:0.32,tyreWR:0.32,hip:0.025}
 };
 /* Real car pictures keyed off a green screen (key_cars.py, world_assets.py, wed_assets.py): one WebP sheet per car,
@@ -341,6 +349,12 @@ function gpCss(){if(document.getElementById("gpV4Css"))return;const s=document.c
 .fz-car.v4.on{border-color:#FFDE47;box-shadow:0 6px 0 #b8901a,0 0 0 3px rgba(255,222,71,.35);animation:fzCarPop .32s cubic-bezier(.3,1.6,.5,1)}
 @keyframes fzCarPop{0%{transform:scale(.94)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
 .fz-thumb{display:block;width:100%;aspect-ratio:2/1;border-radius:10px;background:var(--bg) center/contain no-repeat,radial-gradient(ellipse at 50% 85%,#3a4a66,#1f2638 70%)}
+.fz-gtabs{display:flex;gap:10px;margin:6px 0 14px;padding:0}
+.fz-gtabs button{flex:1;min-height:72px;border-radius:18px;border:4px solid #2F4F4F;background:#1E90FF;color:#fff;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;box-shadow:0 7px 0 #2F4F4F;transform:translateY(0);transition:transform .1s,box-shadow .1s;-webkit-tap-highlight-color:transparent}
+.fz-gtabs button i{font-style:normal;font-size:22px;line-height:1}.fz-gtabs button b{font-size:clamp(15px,2vw,20px);font-weight:900;letter-spacing:.05em;line-height:1.1}.fz-gtabs button small{font-size:11px;font-weight:800;opacity:.85}
+.fz-gtabs button.on{background:#FFD700;color:#1d2a2a;transform:translateY(5px);box-shadow:0 2px 0 #2F4F4F,inset 0 3px 0 rgba(255,255,255,.6)}
+.fz-car.v4[hidden]{display:none}
+@media (min-width:900px){.fz-cars{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .fz-kind{align-self:flex-start;font-size:11px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:#1A1A24;background:#12B0E8;border-radius:6px;padding:1px 7px}
 .fz-st{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:900;color:#fff;text-transform:uppercase}
 .fz-st i{width:48px;flex:none;font-style:normal}
@@ -629,12 +643,14 @@ function renderRace(){
   // v4 garage (job 1104-2330): 11 real 3D cars; each card = in-game picture, type, and chunky 5-step Speed / Grip / Acceleration bars
   // (segmented "arcade" bars from the Gemini direction; selected card pops like the 60fps.design card/badge patterns)
   const seg=(k,v,cl)=>'<span class="fz-st '+cl+'"><i>'+k+'</i><s>'+[1,2,3,4,5].map(q=>'<em class="'+(q<=v?"on":"")+'"></em>').join("")+'</s></span>';
-  const cards=GP_CARS.map(c=>'<button class="fz-car v4'+(c.id===sel?" on":"")+'" data-car="'+c.id+'" onclick="gpPickCar(\''+c.id+'\')" aria-label="'+esc(c.n)+'">'
+  const grp=window._gpGrp||(GP_CARS.find(c=>c.id===sel)||{}).grp||"racers";
+  const cards=GP_CARS.map(c=>'<button class="fz-car v4'+(c.id===sel?" on":"")+'"'+((c.grp||"racers")===grp?'':' hidden')+' data-grp="'+(c.grp||"racers")+'" data-car="'+c.id+'" onclick="gpPickCar(\''+c.id+'\')" aria-label="'+esc(c.n)+'">'
     +'<span class="fz-thumb" style="--bg:url(assets/cars3d/thumbs/'+c.id+'.webp)"></span><span class="fz-kind">'+esc(c.kind||c.type)+'</span><b>'+esc(c.n)+'</b>'
     +seg("Speed",c.speed,"sp")+seg("Grip",c.grip||c.handle,"gr")+seg("Accel",c.accel,"ac")+'<small>'+esc(c.bio)+'</small></button>').join("");
   const sw=GP_PAINTS.map(h=>'<button class="fz-sw'+(h===paint?" on":"")+'" style="background:'+h+'" data-paint="'+h+'" onclick="gpPickPaint(\''+h+'\')" aria-label="Paint colour"></button>').join("");
   app.innerHTML='<div class="'+gpShellClass()+(GP_PICS[sel]?" pic":"")+'" id="fzShell" style="max-width:980px;margin:0 auto;padding:0 8px">'
    +gpHead("Japan · choose your car",GP_WORLD.title,"center 44%")
+   +'<div class="fz-gtabs" role="tablist">'+GP_GROUPS.map(g=>'<button role="tab" class="'+(g[0]===grp?'on':'')+'" data-grp="'+g[0]+'" aria-selected="'+(g[0]===grp)+'" onclick="gpPickGrp(\''+g[0]+'\')"><i>'+g[1]+'</i><b>'+g[2]+'</b><small>'+GP_CARS.filter(c=>(c.grp||"racers")===g[0]).length+' cars</small></button>').join('')+'</div>'
    +'<div class="fz-cars">'+cards+'</div>'
    +(GP_GLB[sel]?'<div class="fz-paint-note">🎨 Win races to unlock new paint and stickers for every car.</div>':'<div class="fz-paints">'+sw+'</div><div class="fz-paint-note">🎨 New paint colours come from race upgrades.</div>')+gpGarageHtml()
    +'<div class="center" style="margin-top:14px"><button class="btn big" onclick="renderCircuits()">Next: choose a route ▶</button></div>'
@@ -644,6 +660,8 @@ function renderRace(){
   say("Grand Fable Horizon! Choose your car.");
 }
 function gpDrawPreviews(){if(!window.THREE)return;const pc=gpCar().id,pp=gpPaint();document.querySelectorAll("canvas[data-prev]").forEach(cv=>{const c=GP_CARS.find(x=>x.id===cv.dataset.prev);if(c)gpCarDraw(cv,c,c.id===pc?pp:c.paint);});}
+const GP_GROUPS=[["racers","🏁","RACERS"],["exotics","💎","EXOTICS"],["trucks","🛻","TRUCKS"]];
+function gpPickGrp(g){window._gpGrp=g;document.querySelectorAll(".fz-gtabs button").forEach(b=>{const on=b.dataset.grp===g;b.classList.toggle("on",on);b.setAttribute("aria-selected",on);});document.querySelectorAll(".fz-car.v4").forEach(b=>{b.hidden=b.dataset.grp!==g;});sfx("tick");}
 function gpPickCar(id){if(P){P.gpCar=id;save();}else window._gpCar=id;document.querySelectorAll(".fz-car").forEach(b=>b.classList.toggle("on",b.dataset.car===id));const sh=$("fzShell");if(sh)sh.classList.toggle("pic",!!GP_PICS[id]);gpDrawPreviews();sfx("tick");}
 function gpPickPaint(h){if(P){P.gpPaint=h;save();}else window._gpPaint=h;document.querySelectorAll(".fz-sw").forEach(b=>b.classList.toggle("on",b.dataset.paint===h));gpDrawPreviews();sfx("tick");}
 function gpPickRacer(id){gpPickCar(GP_CARS.some(c=>c.id===id)?id:"falcon");}
@@ -681,7 +699,7 @@ function renderCircuits(tab){
   const best=P&&P.race?P.race:{};
   const tracks='<div class="fz-mode fz-m"><button data-m="race" class="'+(gpMode()==="race"?"on":"")+'" onclick="gpPickMode(\'race\')">🏁 Race: beat 4 rivals</button><button data-m="free" class="'+(gpMode()==="free"?"on":"")+'" onclick="gpPickMode(\'free\')">🎵 Free drive: collect the music</button></div>'
    +'<div class="fz-tracks">'+GP_TRACK_ORDER().map(i=>gpTrackCard(GP_CIRCUITS[i],i,best)).join("")+'</div>'
-   +'<div class="fz-hint">Tap a track to start · '+gpLaps()+' lap'+(gpLaps()>1?'s':'')+' · '+({chase:"chase cam",bumper:"bumper cam",cockpit:"cockpit cam"}[gpCamMode()])+' · traffic '+(gpTrafficOn()?'on':'off')+' <button class="fz-link" onclick="renderCircuits(\'opts\')">change ⚙️</button></div>';
+   +'<div class="fz-hint">Tap a track to start · '+gpLaps()+' lap'+(gpLaps()>1?'s':'')+' · '+(GP_VIEW_NAME[gpCamMode()]||"CHASE").toLowerCase()+' cam'+' · traffic '+(gpTrafficOn()?'on':'off')+' <button class="fz-link" onclick="renderCircuits(\'opts\')">change ⚙️</button></div>';
   const opts='<div class="fz-opts">'
    +gpOptRow("gpCam","🎥 Camera",[["chase","🚗 Chase"],["far","🔭 Far"],["hood","🏁 Hood"],["bumper","📷 Bumper"],["cockpit","🎛️ Cockpit"]],gpCamMode())
    +gpOptRow("gpTraffic","🚕 Traffic in town",[[true,"On"],[false,"Off"]],gpTrafficOn())
@@ -981,7 +999,9 @@ function gpGarageSet(k,v){const u=gpUpState();u[k]=v||null;gpUpSave(u);sfx("tick
 /* ---------- real car pictures ---------- */
 /* Loads only the sheets used by this grid, so the SUV race texture stays lazy until the SUV is selected. Resolves with a map id → texture
    or null when a picture failed; a null means that car keeps its 3D model. */
-function gpRivalCars(cid){const mine=gpCar(),others=GP_CARS.filter(c=>c.id!==mine.id),k=Math.max(0,GP_CIRCUITS.findIndex(c=>c.id===cid));const out=[];for(let q=0;q<4;q++)out.push(others[(k*3+q*Math.max(1,Math.floor(others.length/4)))%others.length]);return out;}
+function gpRivalCars(cid){const mine=gpCar(),others=GP_CARS.filter(c=>c.id!==mine.id),k=Math.max(0,GP_CIRCUITS.findIndex(c=>c.id===cid));const out=[];
+  if(cid==="desert"){const tr=others.filter(c=>c.grp==="trucks"),ot=others.filter(c=>c.grp!=="trucks");return[ot[2],tr[0],ot[9]||ot[0],tr[2]||tr[1]];}   // desert: two trucks on the grid
+  for(let q=0;q<4;q++)out.push(others[(k*3+q*Math.max(1,Math.floor(others.length/4)))%others.length]);return out;}
 function gpRacePicIds(cid){return[gpCar()].concat(gpRivalCars(cid)).map(c=>c.id);}
 function gpLoadPics(ids){
   if(!window.THREE)return Promise.resolve({});
@@ -2454,7 +2474,7 @@ function gpUpdate(dt,waiting){
     pos.addScaledVector(nor,kt.x*(R3.W-1.2));gpVert(kt,pos,dt,waiting);kt.pos.copy(pos);
     kt.g.position.copy(pos);kt.travel+=Math.abs(kt.speed)*dt;kt.wheelPhase+=kt.speed*dt/Math.max(0.01,kt.wheelRadius);
     let y=0;if(offroad)y=Math.abs(Math.sin(kt.t*len*3))*0.08;if(kt.hop>0)y+=Math.sin(Math.PI*(1-kt.hop/0.22))*0.25;
-    const vib=spd*(Math.sin(kt.travel*(kt.racer.car.type==="suv"?5.2:7.4))*0.005+Math.sin(kt.travel*2.3+1.1)*0.002);kt.body.position.y=kt.pic?(offroad?Math.min(0.08,y+vib):0):y+vib;   // photo tyre line stays planted on-road; the 3D fallback keeps its suspension motion
+    const vib=spd*(Math.sin(kt.travel*(kt.racer.car.type==="suv"||kt.racer.car.type==="truck"?5.2:7.4))*0.005+Math.sin(kt.travel*2.3+1.1)*0.002);kt.body.position.y=kt.pic?(offroad?Math.min(0.08,y+vib):0):y+vib;   // photo tyre line stays planted on-road; the 3D fallback keeps its suspension motion
     {const fl=Math.hypot(tan.x,tan.z)||1,sR=kt.sR=tan.y/fl,sT=kt.air?Math.max(-0.45,Math.min(0.4,kt.vy/Math.max(8,kt.speed)))*0.85:sR;   // in the air the nose follows the flight path (up off the ramp, dipping as it falls)
       kt.pS=kt.pS==null?sR:kt.pS+(sT-kt.pS)*Math.min(1,dt*(kt.air?2.6:30));kt.g.lookAt(pos.x+tan.x/fl,pos.y+kt.pS,pos.z+tan.z/fl);}
     const yaw=Math.atan2(tan.x,tan.z);let yawRate=0;if(kt.yaw!==null){let d=yaw-kt.yaw;if(d>Math.PI)d-=Math.PI*2;if(d<-Math.PI)d+=Math.PI*2;yawRate=d/Math.max(dt,0.001);}kt.yaw=yaw;
@@ -2467,7 +2487,7 @@ function gpUpdate(dt,waiting){
       kt.headV+=((headT-kt.headA)*38-kt.headV*10.5)*dt;kt.headA+=kt.headV*dt;kt.g.rotateY(-(kt.headA+(kt.lossA||0)));
       const ph=window.__gp&&window.__gp.phys;if(ph){ph.slipDeg=kt.headA*57.3;ph.steerIn=kt.steerIn;ph.sv=kt.sv;ph.drift=kt.drift;ph.x=kt.x;ph.speed=kt.speed;}
     }else{kt.yawRel=vx*0.05+(kt.drift?kt.drift*0.35:0);kt.g.rotateY(-kt.yawRel);}
-    const heavy=kt.racer.car.type==="suv",settle=heavy?4.5:6,rollMax=kt.pic?0:(heavy?0.105:0.09);
+    const heavy=kt.racer.car.type==="suv"||kt.racer.car.type==="truck",settle=heavy?4.5:6,rollMax=kt.pic?0:(heavy?0.105:0.09);
     const acc=(kt.speed-kt.lastSpeed)/Math.max(dt,0.001);kt.lastSpeed=kt.speed;
     if(kt.glb){   // model cars: body on springs (a touch of overshoot) - leans out of corners and slides, dives on the brakes, squats on launch
       // roll saturates softly at ~7.3 deg in the hardest corners / slides; dive reaches ~3.7 deg on the brakes. The body turns about a
