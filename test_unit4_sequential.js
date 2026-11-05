@@ -106,7 +106,7 @@ assert.strictEqual(run("JSON.stringify(WB.cur)"),signature);
 assert(saves>0,"in-progress state was persisted");
 
 // Static guard checks cover direct lesson, direct start, workbook start, and reload entry paths.
-assert(/function renderRevealLesson\(id\)[\s\S]{0,220}revealUnit4Gate\(P,id\)/.test(revealSource));
+assert(/function renderRevealLesson\(id(?:,opts)?\)[\s\S]{0,220}revealUnit4Gate\(P,id\)/.test(revealSource));
 assert(/function startReveal\(id\)[\s\S]{0,180}revealUnit4Gate\(P,id\)/.test(revealSource));
 assert(/function wbStart\(id,opts\)[\s\S]{0,220}revealUnit4Gate\(P,id\)/.test(workbookSource));
 assert(/function sessTryResume\(\)[\s\S]{0,360}savedResumeAllowed\(r\)/.test(indexSource));

@@ -142,13 +142,21 @@ function revealPassMigrate(profile){
   ids.forEach(id=>{if(!pass[id]&&revealOldRulePassed(profile,id))pass[id]={how:"legacy",date:(profile.reveal&&profile.reveal[id]&&profile.reveal[id].date)||""};});
   profile.passRuleV2=Date.now();
 }
+/* READ-ONLY: never changes the profile. Before the one-time migration has run, old-rule passes count exactly as the
+   migration would record them. The migration + fix-round seed run once in revealProgressInit() when a learner opens. */
 function revealProfilePassed(profile,id){
   if(!profile)return false;
-  revealPassMigrate(profile);
-  if(!profile.fixSeedV1&&typeof lztSeedFromLog==="function")lztSeedFromLog(profile); // his last test's misses become a "fix" round
   if(profile.revealPass&&profile.revealPass[id])return true;
+  if(!profile.passRuleV2&&revealOldRulePassed(profile,id))return true;
   if(revealIsFlex(id))return false;
   return revealOldRulePassed(profile,id);
+}
+/* One-time, write step: copy old-rule passes into P.revealPass, then turn his last test's misses into a "fix" round. */
+function revealProgressInit(profile){
+  if(!profile)return false;const changed=!profile.passRuleV2||!profile.fixSeedV1;
+  revealPassMigrate(profile);
+  if(!profile.fixSeedV1&&typeof lztSeedFromLog==="function")lztSeedFromLog(profile);
+  return changed;
 }
 function revealUnit4Gate(profile,id){
   const index=REVEAL_UNIT4_IDS.indexOf(id);
@@ -176,7 +184,7 @@ function lzBack(fn,label){
 }
 function lzBackHide(){const b=typeof document!=="undefined"&&document.getElementById("lzBackBtn");if(b)b.hidden=true;_lzBackFn=null;_lzBackFor=null;if(typeof document!=="undefined")document.body.classList.remove("lz-back");}
 function lzBackGo(){const f=_lzBackFn;if(typeof f==="function"){try{if(typeof stopRecorded==="function")stopRecorded();}catch(e){}f();}else if(typeof renderHome==="function")renderHome();}
-const revealProgressionPublic={unit4Ids:REVEAL_UNIT4_IDS.slice(),flex:REVEAL_FLEX.slice(),isPrince:revealProfileIsPrince,recordPassed:revealRecordPassed,profilePassed:revealProfilePassed,migrate:revealPassMigrate,gate:revealUnit4Gate,nextId:revealUnit4NextId};
+const revealProgressionPublic={unit4Ids:REVEAL_UNIT4_IDS.slice(),flex:REVEAL_FLEX.slice(),isPrince:revealProfileIsPrince,recordPassed:revealRecordPassed,profilePassed:revealProfilePassed,migrate:revealPassMigrate,init:revealProgressInit,gate:revealUnit4Gate,nextId:revealUnit4NextId};
 if(typeof window!=="undefined")window.__revealProgression=revealProgressionPublic;else if(typeof globalThis!=="undefined")globalThis.__revealProgression=revealProgressionPublic;
 /* Review cards — the book's "Review" box, in Ananse's words */
 const REVEAL_REVIEW={
