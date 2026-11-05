@@ -723,7 +723,7 @@ function workbookMirrorQuestion(id,slot,g,n){
     else if(slot===4){q='There are fewer than ten $5 bills. How much money might there be?';rows=['Dollars: {0}'];expected=[k*5];kind='multiple5';model='For example, '+k+' bills make $'+(k*5)+'.';}
     else if(slot===5){q='Can 17 socks be arranged in pairs with none left over? Explain.';rows=['Answer: {0}','Because {1}'];expected=['no','even'];kind='explain';reason='even';model='No. Pairs make an even number; 17 is odd.';}
     else if(slot===6){q='A packet uses 10 sheets. Fewer than 8 packets are made. How many sheets could be used? Explain.';rows=['Sheets: {0}','Because {1}'];expected=[h*10,'10'];kind='multiple10small';reason='10';model='For example, '+h+' packets use '+(h*10)+' sheets, a multiple of 10.';}
-    else if(slot===7){q='Can a number be a product of 2, 5, and 10? Explain.';rows=['Answer: {0}','Because {1}'];expected=['yes','0'];kind='explain';reason='0';model='Yes. For example, 10 is a product of all three and ends in 0.';}
+    else if(slot===7){q='Can one number show up when you skip count by 2s, by 5s and by 10s? Explain.';rows=['Answer: {0}','Because {1}'];expected=['yes','0'];kind='explain';reason='0';model='Yes. For example, 10 ends in 0, so it shows up when you count by 2s, by 5s and by 10s.';}
     else if(slot===8){q='How much money is in '+k+' nickels?';rows=['Cents: {0}'];expected=[k*5];model=k+' × 5 = '+(k*5)+' cents.';}
     else {q='Write two equations for the same total: a number added to itself and 2 times that number.';rows=['Addition equation: {0}','Multiplication equation: {1}'];expected=[k+' + '+k+' = '+(2*k),'2 × '+k+' = '+(2*k)];kind='twoEquations';model='For example, '+k+' + '+k+' = '+(2*k)+' and 2 × '+k+' = '+(2*k)+'.';}
   }
