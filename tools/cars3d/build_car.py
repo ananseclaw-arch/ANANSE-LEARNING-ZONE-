@@ -1,4 +1,4 @@
-# Grand Fable GP - Rosso Falcon #7 GT race car, built headless in Blender 4.2 and exported to GLB.
+# Grand Fable GP - Rosso Falcon #7 GT race car (v3: rounded body, haunches, deep tyres, recessed rims), built headless in Blender 4.2 and exported to GLB.
 # Run: Blender -b -P build_car.py -- <out.glb> [render_dir]
 # Everything is modelled in GAME coordinates (x = right, y = up, z = forward/nose, metres) and mapped to
 # Blender (x, -z, y) so the glTF export (+Y up) comes back out exactly in game coordinates.
@@ -60,6 +60,7 @@ M = {
     "lamp": mat("lamp", srgb("#ffffff"), 0.1, 0.0, emit=(1, 0.97, 0.9), emit_str=2.0),
     "tail": mat("tail", srgb("#b0000a"), 0.25, 0.0, emit=(1, 0.05, 0.03), emit_str=0.6),
     "exhaust": mat("exhaust", srgb("#2b2b2e"), 0.4, 0.6),
+    "spoke": mat("spoke", srgb("#3a3d44"), 0.35, 0.6),
     "decal": mat("decal", (1, 1, 1), 0.35, 0.0, tex=os.path.join(HERE, "num7.png")),
 }
 MAT_ORDER = list(M.keys())
@@ -126,11 +127,16 @@ class MB:
             s.face(list(reversed(ring[0])), m); s.face(ring[1], m)
 
 # ---------------------------------------------------------------- dimensions (match GP_SHAPE.super)
-L = 4.70; HW = 1.02
-ZN, ZT = 2.35, -2.26
-FLOOR = 0.13
-WF = dict(z=1.45, r=0.37, w=0.30); WR = dict(z=-1.45, r=0.39, w=0.38)
-for W_ in (WF, WR): W_["x"] = HW - 0.02 - W_["w"] / 2   # tyre outer face 2 cm inside the fender lip
+# v3: rounder, lower body. Every cross-section is a smooth curve (sill tucks under, side bulges, shoulder rolls over into a
+# fender crown), the rear fenders rise into haunches above the deck and the front fenders above the hood (Ferrari-style
+# valleys), the cabin narrows (tumblehome) and the tail corners are rounded in plan and profile.
+L = 4.70; HW = 1.05
+ZN, ZT = 2.35, -2.30
+FLOOR = 0.11
+WF = dict(z=1.45, r=0.37, w=0.30); WR = dict(z=-1.42, r=0.39, w=0.38)
+WF["x"] = 1.00 - 0.015 - WF["w"] / 2     # tyre outer face 1.5 cm inside the fender: wide track, wheels fill the arches
+WR["x"] = 1.05 - 0.015 - WR["w"] / 2
+ARCH_GAP = 0.10                           # tyre top to arch lip (room for the body to roll / dive over the wheels)
 
 def lerp(a, b, t): return a + (b - a) * t
 def keys(K, z):
@@ -140,90 +146,105 @@ def keys(K, z):
             t = (z - K[i-1][0]) / (K[i][0] - K[i-1][0]); t = t * t * (3 - 2 * t)
             return lerp(K[i-1][1], K[i][1], t)
     return K[-1][1]
-def bump(d, R):  # smooth 1 -> 0 over |d| in [0,R]
-    if abs(d) >= R: return 0.0
-    t = abs(d) / R; return (1 - t * t) ** 2
 
-# centre-line top (hood / windscreen / roof / fastback / deck)
-TOP = [(-2.26, 0.90), (-2.12, 0.885), (-1.9, 0.89), (-1.55, 0.93), (-0.9, 1.10), (-0.55, 1.15), (0.0, 1.14), (0.32, 1.02), (0.78, 0.76),
-       (1.5, 0.66), (2.0, 0.56), (2.25, 0.46), (2.35, 0.38)]
-# shoulder / belt line (fender tops bulge over both axles)
-BELT = [(-2.26, 0.86), (-1.9, 0.88), (-1.45, 0.92), (-0.75, 0.82), (0.0, 0.76), (0.8, 0.76), (1.45, 0.84), (2.0, 0.70), (2.35, 0.40)]
-# half width: wide hips, slight coke-bottle waist, rounded nose
-WID = [(-2.26, 0.90), (-2.1, 0.97), (-1.85, 1.01), (-1.45, 1.02), (-0.6, 0.97), (0.3, 0.96), (1.1, 1.0), (1.45, 1.02), (1.95, 0.99), (2.2, 0.93), (2.35, 0.80)]
-CAB = [(-1.7, 0.0), (-1.45, 1.0), (0.55, 1.0), (0.8, 0.0)]          # 1 = greenhouse
-ROOFW = [(-1.6, 0.66), (-0.8, 0.56), (0.0, 0.58), (0.7, 0.70)]   # roof half width
+# half width (max, at the side bulge): wide rear hips, waist, front fenders, rounded nose / tail in plan
+WID = [(-2.30, 0.86), (-2.22, 0.95), (-2.05, 1.01), (-1.8, 1.045), (-1.42, 1.05), (-1.0, 1.02), (-0.45, 0.945), (0.2, 0.935),
+       (0.9, 0.97), (1.45, 1.00), (1.9, 0.98), (2.15, 0.92), (2.35, 0.78)]
+# centre-line top: deck / rear glass / roof / windscreen / hood
+TOP = [(-2.30, 0.835), (-2.2, 0.87), (-1.9, 0.885), (-1.6, 0.905), (-1.42, 0.93), (-0.9, 1.065), (-0.5, 1.095), (0.0, 1.085),
+       (0.3, 1.02), (0.85, 0.745), (1.4, 0.675), (1.9, 0.59), (2.2, 0.49), (2.35, 0.36)]
+# fender crown height (about 20 cm in from the side): haunches over the rear wheels, crowns over the front wheels
+FPK = [(-2.30, 0.835), (-2.15, 0.92), (-1.9, 0.975), (-1.42, 1.0), (-0.95, 0.9), (-0.4, 0.80), (0.4, 0.78), (1.0, 0.80),
+       (1.45, 0.81), (1.9, 0.74), (2.2, 0.59), (2.35, 0.40)]
+CAB = [(-1.62, 0.0), (-1.42, 1.0), (0.62, 1.0), (0.86, 0.0)]          # 1 = greenhouse
+ROOFW = [(-1.5, 0.56), (-0.8, 0.50), (0.0, 0.52), (0.7, 0.60)]       # roof half width (tumblehome)
 
 def hw(z): return keys(WID, z)
 def arch_y(z):
     """bottom edge of the body side: sill height, rising to the wheel-arch lip over each wheel"""
-    y = FLOOR + 0.07
+    base = FLOOR + 0.06; y = base
     for W_ in (WF, WR):
-        d = z - W_["z"]; R = W_["r"] + 0.13
+        d = z - W_["z"]; R = W_["r"] + 0.15
         if abs(d) < R:
             t = math.sqrt(max(0.0, 1 - (d / R) ** 2))
-            y = max(y, lerp(FLOOR + 0.07, 2 * W_["r"] + 0.06, t ** 0.55))
-    if z < WR["z"]:   # open GT3-style rear: the body stays up behind the rear wheels so the fat tyres show from behind
-        k = min(1.0, (WR["z"] - z) / (WR["z"] - ZT)); y = lerp(2 * WR["r"] + 0.06, 0.58, k ** 0.8)
+            y = max(y, lerp(base, 2 * W_["r"] + ARCH_GAP, t ** 0.5))
+    if z < WR["z"]:   # open GT-style rear: the haunch stays up behind the rear wheels so the fat tyres show from the chase cam
+        k = min(1.0, (WR["z"] - z) / (WR["z"] - ZT)); y = lerp(2 * WR["r"] + ARCH_GAP, 0.70, k ** 0.9)
     return y
 def floor_in(z):
     f = hw(z) - 0.12
     for W_ in (WF, WR):
-        f = lerp(f, min(f, W_["x"] - W_["w"] / 2 - 0.06), max(0, min(1, (W_["r"] + 0.16 - abs(z - W_["z"])) / 0.05)))
-    if z < WR["z"]: f = min(f, WR["x"] - WR["w"] / 2 - 0.06)
+        f = lerp(f, min(f, W_["x"] - W_["w"] / 2 - 0.05), max(0, min(1, (W_["r"] + 0.17 - abs(z - W_["z"])) / 0.05)))
+    if z < WR["z"]: f = min(f, WR["x"] - WR["w"] / 2 - 0.05)
     return f
 
+def catmull(p0, p1, p2, p3, t):
+    t2, t3 = t * t, t * t * t
+    return tuple(0.5 * ((2 * p1[k]) + (-p0[k] + p2[k]) * t + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t2 +
+                        (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * t3) for k in range(2))
+
+SMOOTH_FROM, SMOOTH_TO = 4, 12      # key points 4..12 (sill .. top) get a Catmull-Rom midpoint per span
 def section(z):
     """half cross-section from bottom centre to top centre: list of (x, y, tag)"""
-    w = hw(z); top = keys(TOP, z); belt = max(keys(BELT, z), arch_y(z) + 0.06); cab = keys(CAB, z)
+    w = hw(z); top = keys(TOP, z); cab = keys(CAB, z)
     sb = arch_y(z); fi = floor_in(z)
+    fpk = max(keys(FPK, z), sb + 0.1)
     fl = FLOOR + max(0.0, (z - 1.9)) * 0.25          # splitter lip rises a touch at the very nose
     if z < WR["z"] - 0.1:                             # diffuser ramp: the floor sweeps up behind the rear axle
-        k = min(1.0, (WR["z"] - 0.1 - z) / (WR["z"] - 0.1 - ZT)); fl = FLOOR + 0.24 * k ** 1.3
-    pts = []
-    pts.append((0.0, fl, "floor"))
-    pts.append((fi * 0.5, fl, "floor"))
-    pts.append((fi, fl, "floor"))
-    pts.append((fi, max(fl + 0.01, sb - 0.03), "well"))   # inner wheel-well wall (vertical at the arches)
-    pts.append((w - 0.035, sb, "sill"))
-    pts.append((w, lerp(sb, belt, 0.40), "side"))
-    pts.append((w - 0.008, lerp(sb, belt, 0.78), "side"))
-    pts.append((w - 0.05, belt, "shoulder"))
-    # top: window base -> roof edge -> stripes -> centre
+        k = min(1.0, (WR["z"] - 0.1 - z) / (WR["z"] - 0.1 - ZT)); fl = FLOOR + 0.2 * k ** 1.3
+    ym = lerp(sb, fpk, 0.42)
     rw = keys(ROOFW, z)
-    ytop = top
-    hood_x = w - 0.16
-    y6 = belt + 0.015 if cab > 0.02 else lerp(belt - 0.01, ytop, 0.35)
-    x7 = lerp(min(hood_x - 0.08, 0.62), rw, cab)
-    y7 = lerp(lerp(belt, ytop, 0.75), ytop - 0.06, cab)
-    pts.append((hood_x, y6, "winbase"))
-    pts.append((x7, y7, "roofedge"))
-    pts.append((0.32, ytop - 0.012 - 0.01 * (1 - cab), "top"))
-    pts.append((0.20, ytop - 0.004, "stripe"))
-    pts.append((0.05, ytop, "stripe"))
-    pts.append((0.0, ytop, "top"))
+    pts = [(0.0, fl, "floor"), (fi * 0.5, fl, "floor"), (fi, fl, "floor"),
+           (fi, max(fl + 0.01, sb - 0.03), "well"),                 # inner wheel-well wall (vertical at the arches)
+           (w - 0.075, sb, "sill"),                                  # sill / arch lip tucks under
+           (w - 0.02, lerp(sb, ym, 0.55), "side"),
+           (w, ym, "side"),                                          # widest point
+           (w - 0.028, lerp(ym, fpk, 0.6), "side"),
+           (w - 0.1, fpk - 0.028, "shoulder"),
+           (w - 0.21, fpk, "crown")]                                 # fender crown
+    # inboard of the crown: hood / deck valley (no cabin) or window base -> roof edge (cabin)
+    x10 = lerp(w - 0.37, w - 0.27, cab); y10 = lerp(lerp(fpk, top, 0.45), fpk + 0.006, cab)
+    x11 = lerp(0.43, rw, cab);           y11 = lerp(lerp(top, fpk, 0.12), top - 0.055, cab)
+    pts += [(x10, y10, "winbase"), (x11, y11, "roofedge"),
+            (0.30, top - 0.008 - 0.006 * (1 - cab), "top"), (0.20, top - 0.003, "stripe"), (0.05, top, "stripe"), (0.0, top, "top")]
+    # smooth: a Catmull-Rom midpoint in every span between the sill and the top
+    out = pts[:SMOOTH_FROM]
+    for i in range(SMOOTH_FROM, SMOOTH_TO):
+        p0 = pts[max(0, i - 1)]; p1 = pts[i]; p2 = pts[i + 1]; p3 = pts[min(len(pts) - 1, i + 2)]
+        m = catmull(p0, p1, p2, p3, 0.5)
+        out.append(p1); out.append((m[0], m[1], p1[2]))
+    out += pts[SMOOTH_TO:]
+    pts = out
     # tail: round the last few centimetres so the rear corners are not a sharp box
-    if z < ZT + 0.14:
-        k = (ZT + 0.14 - z) / 0.14
-        pts = [(x * (1 - 0.05 * k * k) if x > 0.3 else x, y - (0.035 * k * k if y > 0.7 else 0.0), tg) for (x, y, tg) in pts]
+    if z < ZT + 0.16:
+        k = (ZT + 0.16 - z) / 0.16
+        pts = [(x * (1 - 0.06 * k * k) if x > 0.3 else x, y - (0.04 * k * k if y > 0.72 else 0.0), tg) for (x, y, tg) in pts]
     # nose: pull the section in so the front is rounded in plan and profile
     if z > 2.05:
         k = (z - 2.05) / (ZN - 2.05)
         mid = 0.36
-        out = []
+        o2 = []
         for (x, y, tg) in pts:
             x2 = x * (1 - 0.18 * k * k)
             y2 = lerp(y, mid + (y - mid) * 0.55, k ** 1.6) if y > mid else lerp(y, max(y, FLOOR + 0.03 * k), k)
-            out.append((x2, y2, tg))
-        pts = out
+            o2.append((x2, y2, tg))
+        pts = o2
     return pts
+
+def side_x(z, y):
+    """outer body surface x at height y on station z (for decals that follow the curved side)"""
+    s = [p for p in section(z) if p[2] in ("sill", "side", "shoulder")]
+    for a, b in zip(s, s[1:]):
+        if a[1] <= y <= b[1]:
+            t = (y - a[1]) / max(1e-6, b[1] - a[1]); return lerp(a[0], b[0], t)
+    return hw(z)
 
 # stations: dense where things change
 zs = []
 z = ZT
 while z < ZN - 1e-6:
-    dense = any(abs(z - W_["z"]) < W_["r"] + 0.22 for W_ in (WF, WR)) or z > 2.0 or z < -2.15
-    zs.append(z); z += 0.03 if dense else 0.045
+    dense = any(abs(z - W_["z"]) < W_["r"] + 0.24 for W_ in (WF, WR)) or z > 2.0 or z < -2.1
+    zs.append(z); z += 0.03 if dense else 0.05
 zs.append(ZN)
 
 body = MB()
@@ -239,14 +260,13 @@ def face_mat(sec, i, z0, z1):
     """material of the quad between section points i..i+1 and stations z0..z1"""
     zc = (z0 + z1) / 2; cab = keys(CAB, zc)
     t0, t1 = sec[i][2], sec[i + 1][2]
-    if t0 == "floor" or t0 == "well": return "carbon"
-    if t0 == "sill" and arch_y(zc) < 0.3: return "carbon" if False else "paint"
-    if t0 == "winbase" and t1 == "roofedge":
-        if -1.38 < zc < 0.5 and cab > 0.6: return "glass"
+    if t0 == "floor": return "carbon"
+    if t0 == "well": return "paint" if zc < WR["z"] - WR["r"] - 0.12 else "carbon"   # behind the rear wheels the inner wall is the red bumper side
+    if t0 == "winbase":
+        if -1.38 < zc < 0.56 and cab > 0.6: return "glass"
         return "paint"
-    top = keys(TOP, zc)
-    windscreen = 0.08 < zc < 0.74
-    rearglass = -1.42 < zc < -0.62
+    windscreen = 0.1 < zc < 0.8
+    rearglass = -1.38 < zc < -0.66
     if t0 == "stripe" and t1 == "stripe" and not windscreen: return "stripe"
     if t0 in ("roofedge", "top", "stripe") and (windscreen or rearglass): return "glass"
     return "paint"
@@ -258,152 +278,143 @@ for a in range(len(rings) - 1):
         body.face([R0[i], R1[i], R1[i + 1], R0[i + 1]], m)       # right side (normals out)
         if not (s0[i][0] < 1e-6 and s0[i + 1][0] < 1e-6):
             body.face([L0[i + 1], L1[i + 1], L1[i], L0[i]], m)   # mirrored
-# tail cap (rear panel) and nose cap
 # rear panel: horizontal bands between the mirrored section points (dark below the light line, paint above)
 R_, L_, s_, z_ = rings[0]
 for i in range(NP - 1):
     if s_[i][0] < 1e-6 and s_[i + 1][0] < 1e-6: continue
-    ym = (s_[i][1] + s_[i + 1][1]) / 2
+    ym_ = (s_[i][1] + s_[i + 1][1]) / 2
     q = [R_[i], L_[i], L_[i + 1], R_[i + 1]] if s_[i][0] > 1e-6 else [R_[i], L_[i + 1], R_[i + 1]]
     if s_[i + 1][0] < 1e-6: q = [R_[i], L_[i], R_[i + 1]]
-    body.face(q, "carbon" if ym < 0.56 else "paint")
-for (R_, L_, s_, z_), flip in ((rings[-1], True),):
-    loop = R_ + list(reversed(L_[1:-1]))
-    c = body.vert((0, sum(p[1] for p in s_) / len(s_), z_ + (0.0 if not flip else 0.0)))
-    for i in range(len(loop)):
-        j = (i + 1) % len(loop)
-        f = [loop[i], loop[j], c] if flip else [loop[j], loop[i], c]
-        body.face(f, "paint")
+    body.face(q, "carbon" if ym_ < 0.34 else "paint")
+# nose cap
+R_, L_, s_, z_ = rings[-1]
+loop = R_ + list(reversed(L_[1:-1]))
+c = body.vert((0, sum(p[1] for p in s_) / len(s_), z_))
+for i in range(len(loop)):
+    j = (i + 1) % len(loop)
+    body.face([loop[i], loop[j], c], "paint")
 
 # ---- aero + detail parts (all part of the body mesh)
-# front splitter, side skirts, rear diffuser with fins
-body.box((0, FLOOR - 0.005, 2.1), (1.86, 0.035, 0.5), "carbon")
+body.box((0, FLOOR - 0.005, 2.1), (1.84, 0.035, 0.5), "carbon")                     # front splitter
 for sd in (-1, 1):
-    body.box((sd * (HW - 0.05), FLOOR + 0.03, 0.03), (0.08, 0.06, 2.0), "carbon")
+    body.box((sd * 0.86, FLOOR + 0.025, 0.03), (0.07, 0.05, 1.9), "carbon")         # side skirts
 for k in range(-2, 3):
-    body.box((k * 0.24, 0.25, ZT + 0.2), (0.025, 0.1, 0.42), "carbon", rot_x=0.4)
-# front grille (dark mouth), canards
-body.box((0, 0.27, 2.31), (1.1, 0.12, 0.06), "carbon")
+    body.box((k * 0.22, 0.22, ZT + 0.2), (0.025, 0.1, 0.42), "carbon", rot_x=0.4)   # diffuser fins
+body.box((0, 0.27, 2.31), (1.0, 0.11, 0.06), "carbon")                               # front grille (dark mouth)
 for sd in (-1, 1):
-    body.box((sd * 0.78, 0.34, 2.15), (0.24, 0.02, 0.18), "carbon", rot_x=0.2)
-# headlights: slim LED strips raked along the nose
+    body.box((sd * 0.78, 0.33, 2.15), (0.24, 0.02, 0.18), "carbon", rot_x=0.2)       # canards
 for sd in (-1, 1):
-    x0 = 0.62
-    body.box((sd * x0, 0.55, 2.13), (0.42, 0.045, 0.16), "lamp", rot_x=-0.35)
-# rear light bar + rain light (brake lights)
-body.box((0, 0.775, ZT - 0.014), (1.5, 0.04, 0.03), "tail")
+    body.box((sd * 0.6, 0.5, 2.19), (0.36, 0.04, 0.14), "lamp", rot_x=-0.55)         # slim LED headlights
+# rear: full-width light bar on the panel top, LED clusters, rain light, dark vents, twin centre exhausts
+body.box((0, 0.785, ZT - 0.012), (1.42, 0.04, 0.03), "tail")
 for sd in (-1, 1):
-    body.box((sd * 0.68, 0.72, ZT - 0.016), (0.34, 0.12, 0.034), "tail")
-    body.box((sd * 0.68, 0.72, ZT - 0.006), (0.4, 0.17, 0.02), "carbon")
-body.box((0, 0.5, ZT - 0.03), (0.18, 0.09, 0.05), "tail")          # centre rain light
-body.box((0, 0.6, ZT - 0.006), (0.7, 0.08, 0.02), "carbon")        # rear vent
-# exhausts
+    body.box((sd * 0.6, 0.745, ZT - 0.014), (0.36, 0.08, 0.034), "tail")
+    body.box((sd * 0.6, 0.745, ZT - 0.004), (0.42, 0.13, 0.02), "carbon")
+    body.box((sd * 0.4, 0.53, ZT - 0.004), (0.34, 0.16, 0.02), "carbon")              # rear vents
+    body.box((sd * 0.4, 0.53, ZT - 0.002), (0.3, 0.025, 0.02), "spoke")
+body.box((0, 0.6, ZT - 0.03), (0.18, 0.09, 0.05), "tail")                            # centre rain light
 for sd in (-1, 1):
-    body.cyl((sd * 0.3, 0.44, ZT - 0.03), 0.062, 0.14, "carbon", axis="z", seg=12)
-    body.cyl((sd * 0.3, 0.44, ZT - 0.095), 0.048, 0.01, "carbon", axis="z", seg=12)
-# big rear wing: end plates, main plane, gurney flap, swan-neck pylons
+    body.cyl((sd * 0.11, 0.4, ZT - 0.03), 0.062, 0.14, "exhaust", axis="z", seg=12)
+    body.cyl((sd * 0.11, 0.4, ZT - 0.095), 0.046, 0.01, "carbon", axis="z", seg=12)
+# big rear wing: end plates, main plane, gurney flap, swan-neck pylons (rising from the deck valley)
 WZ, WY = -2.02, 1.24
 body.box((0, WY, WZ), (1.92, 0.04, 0.42), "carbon", rot_x=-0.1)
 body.box((0, WY + 0.03, WZ - 0.21), (1.92, 0.05, 0.02), "carbon")
 for sd in (-1, 1):
     body.box((sd * 0.97, WY - 0.06, WZ - 0.02), (0.03, 0.3, 0.56), "paint")
     body.box((sd * 0.97, WY - 0.06, WZ - 0.02), (0.035, 0.05, 0.5), "stripe")
-    body.box((sd * 0.36, (WY + 0.84) / 2, WZ + 0.06), (0.04, WY - 0.84, 0.12), "carbon", rot_x=0.25)
-# mirrors
+    body.box((sd * 0.32, (WY + 0.86) / 2, WZ + 0.06), (0.04, WY - 0.86, 0.12), "carbon", rot_x=0.25)
+# mirrors on slim stalks
 for sd in (-1, 1):
-    body.box((sd * 1.0, 0.9, 0.36), (0.17, 0.09, 0.13), "paint")
-    body.box((sd * 1.0, 0.9, 0.29), (0.15, 0.07, 0.012), "carbon")
-    body.box((sd * 0.9, 0.84, 0.38), (0.1, 0.06, 0.05), "carbon")
+    body.box((sd * 0.99, 0.9, 0.38), (0.16, 0.085, 0.13), "paint")
+    body.box((sd * 0.99, 0.9, 0.31), (0.14, 0.065, 0.012), "carbon")
+    body.box((sd * 0.88, 0.85, 0.40), (0.12, 0.03, 0.05), "carbon")
 # roof scoop + shark fin
-body.box((0, 1.18, -0.05), (0.32, 0.07, 0.3), "carbon", taper=0.8)
-body.box((0, 1.1, -1.25), (0.03, 0.16, 0.9), "paint")
-# hood vents
+body.box((0, 1.12, -0.05), (0.3, 0.06, 0.3), "carbon", taper=0.8)
+body.box((0, keys(TOP, -1.25) + 0.07, -1.3), (0.03, 0.14, 0.8), "paint")
+# hood vents (in the hood valley)
 for sd in (-1, 1):
-    body.box((sd * 0.4, 0.705, 1.15), (0.36, 0.02, 0.32), "carbon", rot_x=0.12)
+    body.box((sd * 0.36, keys(TOP, 1.15) + 0.005, 1.15), (0.3, 0.02, 0.3), "carbon", rot_x=0.12)
 
-# number roundels on both doors and on the hood (textured quads sitting just proud of the paint)
-def decal(center, normal_x, size, upz=None):
-    cx, cy, cz = center; h = size / 2
-    if upz is None:   # door (faces +x or -x)
-        sx = normal_x
-        p = [(cx, cy - h, cz - h * sx), (cx, cy - h, cz + h * sx), (cx, cy + h, cz + h * sx), (cx, cy + h, cz - h * sx)]
-        p = [(cx, cy - h, cz + h * -sx * -1), (cx, cy - h, cz - h * sx * -1), (cx, cy + h, cz - h * sx * -1), (cx, cy + h, cz + h * -sx * -1)]
-        # x stays fixed; order so the normal points outward and the 7 reads front-to-back
-        if sx > 0: p = [(cx, cy - h, cz - h), (cx, cy - h, cz + h), (cx, cy + h, cz + h), (cx, cy + h, cz - h)]
-        else:      p = [(cx, cy - h, cz + h), (cx, cy - h, cz - h), (cx, cy + h, cz - h), (cx, cy + h, cz + h)]
-        uv = [(1, 0), (0, 0), (0, 1), (1, 1)]
-    else:             # hood (faces up, readable from the front)
-        y = cy
-        p = [(cx + h, y, cz - h), (cx - h, y, cz - h), (cx - h, y + 0.0, cz + h), (cx + h, y, cz + h)]
-        uv = [(0, 0), (1, 0), (1, 1), (0, 1)]
-        p = [(cx - h, y, cz - h), (cx + h, y, cz - h), (cx + h, y, cz + h), (cx - h, y, cz + h)]
-        uv = [(0, 0), (1, 0), (1, 1), (0, 1)]
-    idx = [body.vert(q) for q in p]
-    body.face(idx, "decal", uv)
-
+# number roundels on both doors (following the curved side) and on the hood
+def door_decal(sd, zc, yc, size, n=4):
+    h = size / 2; cols = []
+    for zi in (zc - h, zc + h):
+        col = []
+        for k in range(n + 1):
+            y = yc - h + size * k / n
+            col.append(body.vert((sd * (side_x(zi, y) + 0.012), y, zi)))
+        cols.append(col)
+    for k in range(n):
+        v0, v1 = k / n, (k + 1) / n
+        a, b, c_, d = cols[0][k], cols[1][k], cols[1][k + 1], cols[0][k + 1]
+        if sd > 0: body.face([a, b, c_, d], "decal", [(1, v0), (0, v0), (0, v1), (1, v1)])
+        else:      body.face([b, a, d, c_], "decal", [(1, v0), (0, v0), (0, v1), (1, v1)])
 DZ = -0.15
-sec = section(DZ); sb = arch_y(DZ); belt = keys(BELT, DZ)
-dy = lerp(sb, belt, 0.55)
+sb0 = arch_y(DZ); ym0 = lerp(sb0, max(keys(FPK, DZ), sb0 + 0.1), 0.42)
 for sd in (-1, 1):
-    decal((sd * (hw(DZ) + 0.012), dy, DZ), sd, 0.42)
-decal((0, keys(TOP, 1.25) + 0.012, 1.25), 0, 0.38, upz=True)
+    door_decal(sd, DZ, ym0 + 0.02, 0.4)
+hz = 1.22; hy = keys(TOP, hz) + 0.01; h = 0.19
+idx = [body.vert(q) for q in [(-h, hy, hz - h), (h, hy, hz - h), (h, hy, hz + h), (-h, hy, hz + h)]]
+body.face(idx, "decal", [(0, 0), (1, 0), (1, 1), (0, 1)])
 
-body_ob = body.to_obj("body", smooth_angle=50)
+body_ob = body.to_obj("body", smooth_angle=62)
 
 # ---------------------------------------------------------------- wheels
 def wheel_mesh(W_, side):
-    r, tw = W_["r"], W_["w"]; mb = MB(); seg = 32
-    o = side  # +1 = outer face toward +x
-    # tyre: lathe profile (x across tread, radius); outer and inner sidewalls + rounded tread shoulders
-    prof = [(-tw / 2, r * 0.70), (-tw / 2 - 0.004, r * 0.80), (-tw / 2 + 0.002, r * 0.92), (-tw / 2 + 0.03, r * 0.995), (-tw / 2 + 0.07, r),
-            (tw / 2 - 0.07, r), (tw / 2 - 0.03, r * 0.995), (tw / 2 - 0.002, r * 0.92), (tw / 2 + 0.004, r * 0.80), (tw / 2, r * 0.70)]
+    """deep wheel: lathe tyre with bulging sidewalls, rounded shoulders and three tread grooves; the rim face sits ~6 cm
+    inside the sidewall (a dish), dark gunmetal spokes run from a proud centre-lock hub back to a polished lip"""
+    r, tw = W_["r"], W_["w"]; mb = MB(); seg = 32; o = side
+    rr = r * 0.64; s = tw / 0.38; hw_ = tw / 2
+    # outer half profile, tread centre -> bead (x across the tyre, radius)
+    tread = [(0.0, r)]
+    for gx in (0.072 * s,):
+        tread += [(gx - 0.010, r), (gx - 0.007, r - 0.013), (gx + 0.007, r - 0.013), (gx + 0.010, r)]
+    shoulder = [(hw_ - 0.04, r), (hw_ - 0.014, r - 0.008), (hw_ - 0.002, r - 0.03), (hw_ + 0.008, r - 0.065)]
+    wall = [(hw_ + 0.013, r * 0.86), (hw_ + 0.012, r * 0.78), (hw_ + 0.006, r * 0.71), (hw_ - 0.006, rr + 0.004)]
+    half = tread + shoulder + wall
+    # full profile inner bead -> outer bead; centre groove on the middle
+    prof = [(-x, rad, "wall" if x > hw_ - 0.001 else "tyre") for (x, rad) in reversed(half)]
+    prof += [(x, rad, "wall" if x > hw_ - 0.001 else "tyre") for (x, rad) in half[1:]]
     rings_ = []
-    for (px, pr) in prof:
-        ring = []
-        for i in range(seg):
-            a = 2 * math.pi * i / seg
-            ring.append(mb.vert((px * o, math.cos(a) * pr, math.sin(a) * pr)))
+    for (px, pr, tg) in prof:
+        ring = [mb.vert((px * o, math.cos(2 * math.pi * i / seg) * pr, math.sin(2 * math.pi * i / seg) * pr)) for i in range(seg)]
         rings_.append(ring)
     for k in range(len(prof) - 1):
-        tread = 3 <= k <= 5
+        m = "tyrewall" if (prof[k][2] == "wall" and prof[k + 1][2] == "wall") else "tyre"
         for i in range(seg):
             j = (i + 1) % seg
             q = [rings_[k][i], rings_[k][j], rings_[k + 1][j], rings_[k + 1][i]]
             if o < 0: q = q[::-1]
-            mb.face(q[::-1], "tyre")
-    # rim barrel (dark) and outer lip
-    rr = r * 0.70; xo = (tw / 2 - 0.01) * o; xi = (-tw / 2 + 0.03) * o
-    mb.cyl(((xo + xi) / 2, 0, 0), rr, abs(xo - xi), "rimdark", axis="x", seg=seg, cap=False)
-    # dish behind the spokes (dark) so the spokes read against it
-    mb.cyl((xo - 0.05 * o, 0, 0), rr * 0.98, 0.012, "rimdark", axis="x", seg=seg)
-    # brake disc
-    mb.cyl((xo - 0.1 * o, 0, 0), rr * 0.82, 0.03, "rimdark", axis="x", seg=24)
-    # 10 split spokes (5 pairs) in bright machined silver, centre-lock hub
+            mb.face(q[::-1], m)
+    x_lip = (hw_ - 0.006) * o; x_face = (hw_ - 0.065) * o; x_in = (-hw_ + 0.03) * o; x_hub = (hw_ - 0.028) * o
+    mb.cyl(((x_lip + x_in) / 2, 0, 0), rr, abs(x_lip - x_in), "rimdark", axis="x", seg=seg, cap=False)     # barrel
+    mb.cyl((x_lip - 0.004 * o, 0, 0), rr * 1.0, 0.012, "rim", axis="x", seg=seg, r2=rr * 0.9, cap=False)   # polished lip (cone)
+    mb.cyl(((x_lip + x_face) / 2, 0, 0), rr * 0.9, abs(x_lip - x_face), "spoke", axis="x", seg=seg, cap=False)   # recess wall
+    mb.cyl((x_face - 0.03 * o, 0, 0), rr * 0.9, 0.01, "rimdark", axis="x", seg=seg)                         # dark dish
+    mb.cyl(((hw_ - 0.13) * o, 0, 0), rr * 0.8, 0.025, "disc", axis="x", seg=24)  # brake disc
+    # 10 spokes (5 pairs), concave: from the hub (proud) back to the rim face
+    def beam(p0, p1, wd0, wd1, th, tang):
+        vs = []
+        for (p, wd) in ((p0, wd0), (p1, wd1)):
+            for (u, v) in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+                vs.append(mb.vert((p[0] + u * th / 2, p[1] + v * wd / 2 * tang[0], p[2] + v * wd / 2 * tang[1])))
+        for f in [(0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4), (2, 3, 7, 6), (1, 2, 6, 5), (0, 4, 7, 3)]:
+            mb.face([vs[i] for i in f], "spoke")
     for k in range(5):
-        for dd in (-0.13, 0.13):
-            a = 2 * math.pi * k / 5 + dd
-            c = (xo - 0.02 * o, math.cos(a) * rr * 0.52, math.sin(a) * rr * 0.52)
-            # spoke as a thin box oriented radially
-            ca, sa = math.cos(a), math.sin(a)
-            ln = rr * 0.9; wd = 0.05; th = 0.03
-            base = []
-            for (u, v, w) in [(-th, -wd, -ln / 2), (th, -wd, -ln / 2), (th, wd, -ln / 2), (-th, wd, -ln / 2), (-th, -wd, ln / 2), (th, -wd, ln / 2), (th, wd, ln / 2), (-th, wd, ln / 2)]:
-                # local: u along x, v tangential, w radial
-                y = w * ca - v * sa; z = w * sa + v * ca
-                base.append(mb.vert((c[0] + u, c[1] + y, c[2] + z)))
-            for f in [(0,3,2,1),(4,5,6,7),(0,1,5,4),(2,3,7,6),(1,2,6,5),(0,4,7,3)]:
-                mb.face([base[i] for i in f], "rim")
-    mb.cyl((xo - 0.01 * o, 0, 0), rr * 0.2, 0.06, "rim", axis="x", seg=12)
-    mb.cyl((xo + 0.02 * o, 0, 0), rr * 0.1, 0.03, "rim", axis="x", seg=6)    # centre-lock nut (yellow)
-    mb.cyl((xo + 0.005 * o, 0, 0), rr * 1.0, 0.014, "rim", axis="x", seg=seg, r2=rr * 1.03, cap=False)  # polished lip
+        for dd in (-0.11, 0.11):
+            a = 2 * math.pi * k / 5 + dd; ca, sa = math.cos(a), math.sin(a)
+            p0 = (x_hub - 0.005 * o, ca * rr * 0.2, sa * rr * 0.2); p1 = (x_face + 0.006 * o, ca * rr * 0.9, sa * rr * 0.9)
+            beam(p0, p1, 0.05, 0.034, 0.024, (-sa, ca))
+    mb.cyl((x_hub, 0, 0), rr * 0.24, 0.05, "spoke", axis="x", seg=12)
+    mb.cyl((x_hub + 0.028 * o, 0, 0), rr * 0.12, 0.02, "rim", axis="x", seg=6)    # centre-lock nut
     return mb
 
 def caliper_mesh(W_, side, front):
-    r, tw = W_["r"], W_["w"]; mb = MB(); rr = r * 0.70; xo = (tw / 2 - 0.01) * side
-    # caliper sits at the back of the disc (toward -z for front, -z for rear too), clamping the disc edge
+    r, tw = W_["r"], W_["w"]; mb = MB(); rr = r * 0.64; xo = (tw / 2 - 0.115) * side
     ang = math.radians(200 if front else 160)
-    cy, cz = math.sin(ang) * rr * 0.72, math.cos(ang) * rr * 0.72
-    mb.box((xo - 0.1 * side, cy, cz), (0.07, 0.2, 0.12), "caliper")
+    cy, cz = math.sin(ang) * rr * 0.68, math.cos(ang) * rr * 0.68
+    mb.box((xo, cy, cz), (0.06, 0.2, 0.12), "caliper")
     return mb
 
 for name, W_, side in (("FL", WF, 1), ("FR", WF, -1), ("RL", WR, 1), ("RR", WR, -1)):
