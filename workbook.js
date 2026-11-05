@@ -56,21 +56,8 @@ function wbN2(){const a=wbName();let b=wbName(),t=0;while(b===a&&t++<40)b=wbName
 function wbNorm(s){return String(s==null?"":s).toLowerCase().replace(/[✕*]/g,"×").replace(/[^a-z0-9×+=\s$]/g," ").replace(/\s+/g," ").trim();}
 function wbLev(a,b){const m=a.length,n=b.length;if(!m)return n;if(!n)return m;let prev=[];for(let j=0;j<=n;j++)prev[j]=j;for(let i=1;i<=m;i++){const cur=[i];for(let j=1;j<=n;j++)cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));prev=cur;}return prev[n];}
 function wbWordOK(text,accept){const t=wbNorm(text).replace(/^(a|an|the)\s+/,"");if(!t)return false;return accept.some(w=>{w=String(w).toLowerCase();if(t===w)return true;if(w.length>=4&&wbLev(t,w)<=1)return true;if(w.length>=7&&wbLev(t,w)<=2)return true;return false;});}
-function wbReasonOK(text,keys,p){let n=wbNorm(text).replace(/^because\s+/,"");const tokens=n.split(" ").filter(Boolean);if(tokens.length<3||/\b(?:idk|dunno|dont know|don t know|do not know|no idea|not sure)\b/.test(n))return false;
-  // Parity and the final-digit pattern depend on the actual yes/no answer.
-  // Refuse direct contradictions before considering the child's key words.
-  if(p&&p.lesson==="4-5"&&p.answer&&p.answer.f){
-    const yes=p.answer.f.a==="yes";
-    if(/pairs of/.test(p.q)){
-      const odd=/\b(?:odd|od)\b/.test(n),even=/\b(?:even|evn)\b/.test(n);
-      if((yes&&odd&&!even)||(!yes&&even&&!odd))return false;
-    }else if(/product of 2, a product of 5, and a product of 10/.test(p.q)){
-      const endsZero=/\b(?:ends?|ending|end|last digit)\b.*\b(?:0|zero)\b/.test(n);
-      const negative=/\b(?:not|never|doesnt|doesn t|does not|cannot|can t)\b/.test(n);
-      if(endsZero&&negative===yes)return false;
-    }
-  }
-  return keys.some(k=>{k=String(k).toLowerCase();if(!/[a-z0-9]/.test(k))return n.indexOf(k)>=0;if(k.length===1||/^\d+$/.test(k))return tokens.indexOf(k)>=0;if(k.indexOf(" ")>=0)return n.indexOf(k)>=0;return tokens.some(t=>t===k||(k.length>=4&&t.length>=3&&(t.indexOf(k)===0||k.indexOf(t)===0&&t.length>=4||wbLev(t,k)<=(k.length>=7?2:1))));});}
+/* Explain reasons are NEVER auto-marked (Eb, 2026-11-04, option A): only the answer is checked; the reason is saved
+   for the parent (P.explains) and the model explanation is always shown. */
 function wbYN(text){const t=wbNorm(text).split(" ")[0];if(/^(y|yes|yep|yeah|yup|correct|true|sure)$/.test(t))return"yes";if(/^(n|no|nope|nah|false|not|incorrect)$/.test(t))return"no";return null;}
 function wbNum(text){const t=String(text==null?"":text).trim().replace(/^\$/,"").replace(/,/g,"");return /^\d{1,4}$/.test(t)?Number(t):NaN;}
 function wbSideParse(str){if(!str)return null;const terms=str.split("+").map(t=>t.split("*"));if(terms.some(t=>t.some(f=>!/^\d{1,3}$/.test(f))))return null;const nums=terms.map(t=>t.map(Number));return{terms:nums,value:nums.reduce((s,t)=>s+t.reduce((a,b)=>a*b,1),0)};}
@@ -80,11 +67,11 @@ function wbTwoEqOK(a,b,g){const x=wbClassEq(a),y=wbClassEq(b);if(!x||!y)return f
 function wbFormCheck(p,f){
   if(!f||typeof f!=="object")return false;
   for(const c of (p.checks||[])){
+    if(c.t==="reason")continue; // the "because" part is saved, not marked
     const v=f[c.k];if(v==null||String(v).trim()==="")return false;
     if(c.t==="num"){if(wbNum(v)!==c.want)return false;}
     else if(c.t==="word"){if(!wbWordOK(v,c.accept))return false;}
     else if(c.t==="yn"){if(wbYN(v)!==c.want)return false;}
-    else if(c.t==="reason"){if(!wbReasonOK(v,c.keys,p))return false;}
     else if(c.t==="mult"){const n=wbNum(v);if(!(n>=c.min&&n<=c.max&&n%c.of===0))return false;}
     else if(c.t==="divides"){const n=wbNum(v);if(!(n>=2&&n<=c.max&&c.of%n===0))return false;}
     else return false;
@@ -457,17 +444,42 @@ function wbLogInfo(p,a){try{
     correct=(p.equations?p.equations.map(e=>eqT("×",e)).join(" and ")+"; ":"")+"product "+p.answer.product+(p.answer.compare!=null?"; "+p.answer.compare:"");}
   return{shown:shown,given:given,correct:correct};
 }catch(e){return null;}}
+/* ---------- Explain questions (Eb, 2026-11-04, option A): mark the ANSWER only, save his "because" for the parent ---------- */
+function wbIsExplain(p){return!!(p&&p.type==="form"&&(p.checks||[]).some(c=>c.t==="reason"));}
+function wbExplainParts(p,f){
+  f=f||{};const rk=(p.checks||[]).filter(c=>c.t==="reason").map(c=>c.k),ans=[],why=[];
+  (p.rows||[]).forEach(r=>{const keys=[];String(r).replace(/\{[nt]:(\w+)\}/g,(m,k)=>{keys.push(k);return m;});
+    if(keys.some(k=>rk.indexOf(k)>=0))keys.forEach(k=>{if(rk.indexOf(k)>=0)why.push(f[k]==null?"":String(f[k]));});
+    else ans.push(String(r).replace(/\{[nt]:(\w+)\}/g,(m,k)=>f[k]==null||String(f[k]).trim()===""?"__":String(f[k]).trim()));});
+  return{answer:ans.join(" / "),reason:why.join(" / ")};
+}
+/* Additive profile field P.explains (never touches older fields): one record per Explain attempt, reason kept exactly as typed. */
+function wbSaveExplain(p,a,ok){
+  try{
+    if(!wbIsExplain(p)||typeof P==="undefined"||!P)return null;
+    const x=wbExplainParts(p,(a&&a.f)||{});
+    const rec={at:new Date().toISOString(),date:typeof today==="function"?today():new Date().toISOString().slice(0,10),lesson:(WB&&WB.lessonId)||p.lesson||"",q:p.q,answer:x.answer,ok:!!ok,reason:x.reason,model:p.explain||"",mode:WB&&WB.flex?(WB.phase==="fix"?"fix":"test"):"practice"};
+    if(!Array.isArray(P.explains))P.explains=[];
+    P.explains.push(rec);if(P.explains.length>1000)P.explains=P.explains.slice(-1000);
+    return rec;
+  }catch(e){return null;}
+}
+function wbModelHTML(p,reason){
+  return'<div class="lzt-model" role="status">'+(reason?'<p class="lzt-you">You wrote: <i>because '+wbEscape(String(reason).trim().replace(/^because\s+/i,""))+'</i></p>':'')
+   +'<p class="lzt-model-h">💬 Nice thinking! Here’s another way to say it:</p><p class="lzt-model-t">'+wbEscape(p.explain||"")+'</p></div>';
+}
+function wbModelSpoken(p){return"Nice thinking! Here's another way to say it. "+lztSpeakable(p.explain||"");}
 function wbSubmit(){
   if(!wbCanSubmit()){if(typeof toast==="function")toast(wbWorkDone()?"Finish every answer box first":"Show your work first");return;}
-  WB.answered=true;if(WB.workTab==="draw")wbRememberCanvas();const p=WB.cur,a=wbCollectAnswer(),ok=wbCheck(p,a);WB.lastAnswer=a;WB.lastOK=ok;const built=wbBuiltRecord(),rec={lesson:WB.lessonId,type:p.type,q:p.q,answer:wbCompactAnswer(a),correct:ok,built:built,drew:!!WB.drew,at:new Date().toISOString()};
+  WB.answered=true;if(WB.workTab==="draw")wbRememberCanvas();const p=WB.cur,a=wbCollectAnswer(),ok=wbCheck(p,a);WB.lastAnswer=a;WB.lastOK=ok;wbSaveExplain(p,a,ok);const built=wbBuiltRecord(),rec={lesson:WB.lessonId,type:p.type,q:p.q,answer:wbCompactAnswer(a),correct:ok,built:built,drew:!!WB.drew,at:new Date().toISOString()};
   const data=wbData();data.log.push(rec);if(data.log.length>2000)data.log=data.log.slice(-2000);if(!WB.isTwin&&!WB.flex)WB.results.push(ok);if(typeof logQuestion==="function")logQuestion("workbook","math","reveal "+WB.lessonId+" workbook","workbook:"+WB.lessonId,p.q,ok,0,Date.now()-WB.startedAt,wbLogInfo(p,a));else if(typeof save==="function")save();wbSendDrawing(rec);if(typeof save==="function")save();if(typeof sfx==="function")sfx(ok?"correct":"wrong");if(WB.flex){lztAfterAnswer(ok,a);return;}wbRenderFeedback(ok,a);
 }
 function wbCorrectEquation(p){if(p.type==="fill"){let used=false;return p.parts.map(x=>{if(x==="□"&&!used){used=true;return p.answer;}return x;}).join(" ");}if(p.eq)return p.eq.values[0]+" "+p.eq.op+" "+p.eq.values[1]+" = "+p.eq.values[2];return"";}
 function wbCorrectAnswerHTML(p){if(p.type==="form")return'<div class="wb-multi-review">'+(p.answerLines||[]).map(l=>'<div class="wb-multi-line"><b>'+wbEscape(l)+'</b></div>').join("")+'</div>';if(p.type==="multi")return'<div class="wb-multi-review">'+p.options.map(o=>'<div class="wb-multi-line"><b>'+(o.true?'✓':'✗')+' '+o.id+'. '+wbEscape(o.text)+'</b><br>'+wbEscape(o.why)+'</div>').join("")+'</div>';if(p.type==="match")return'<div class="wb-multi-review">'+p.pairs.map(x=>'<div class="wb-multi-line">'+wbEscape(x.left)+' ↔ '+wbEscape(x.right)+'</div>').join("")+'</div>';if(p.type==="pair"){let h=(p.equations||[]).map(e=>'<div class="wb-review-eq">'+e[0]+' × '+e[1]+' = '+e[2]+'</div>').join("");h+='<div class="wb-review-eq">Shared product: '+p.answer.product+'</div>';if(p.answer.compare)h+='<div class="wb-review-eq">Who has more? '+wbEscape(p.answer.compare)+'</div>';return h;}if(p.type==="who"){const who=p.answer&&p.answer.person!=null?p.answer.person:p.answer;return'<p><b>'+wbEscape(who)+(who==="Yes"?' — the shared product is '+p.valueAnswer:' is right.')+'</b></p>';}let h=wbCorrectEquation(p)?'<div class="wb-review-eq">'+wbEscape(wbCorrectEquation(p))+'</div>':'';if(p.extraEq)h+='<div class="wb-review-eq">'+wbEscape(p.extraEq.values[0]+" "+p.extraEq.op+" "+p.extraEq.values[1]+" = "+p.extraEq.values[2])+'</div>';if(p.type==="story")h+='<div class="wb-review-eq">Answer: '+p.answer.value+' '+wbEscape(p.unit)+(p.answer.remainder!=null?' and '+p.answer.remainder+' '+wbEscape(p.remainderUnit):'')+'</div>';return h;}
 function wbRenderFeedback(ok,a){
   const p=WB.cur,model=p.model||p.visual,head=ok?(WB.isTwin?"You got the new one!":"Yes — nice work!"):"Let’s look at the model.",voice=ok?"Nice work. Your answer is correct.":"Good try. Look at the model and the equation.";
-  app.innerHTML='<div class="fadein wb-shell"><div class="wb-page">'+wbPageHead(WB.lessonId)+'<div class="wb-feedback '+(ok?'good':'try')+'"><h2>'+(ok?'✓ ':'')+wbEscape(head)+'</h2>'+(!ok&&model?'<div class="wb-visual">'+wbVisual(model)+'</div>':'')+wbCorrectAnswerHTML(p)+'<div class="wb-teach">'+wbEscape(p.explain||"Use the model to check each number in the equation.")+'</div></div><div class="wb-btnrow">'+(!ok&&!WB.isTwin?'<button class="wb-primary" onclick="wbTryTwin()">Try one like it ↻</button>':'')+'<button class="wb-secondary" onclick="wbContinue()">'+(WB.index===(WB.size||8)-1?'See my score':'Next problem')+' ▶</button></div></div></div>';
-  wbResumeSave();if(typeof say==="function")say(voice+" "+(p.explain||""));
+  app.innerHTML='<div class="fadein wb-shell"><div class="wb-page">'+wbPageHead(WB.lessonId)+'<div class="wb-feedback '+(ok?'good':'try')+'"><h2>'+(ok?'✓ ':'')+wbEscape(head)+'</h2>'+(!ok&&model?'<div class="wb-visual">'+wbVisual(model)+'</div>':'')+wbCorrectAnswerHTML(p)+(wbIsExplain(p)?wbModelHTML(p,wbExplainParts(p,(a&&a.f)||{}).reason):'<div class="wb-teach">'+wbEscape(p.explain||"Use the model to check each number in the equation.")+'</div>')+'</div><div class="wb-btnrow">'+(!ok&&!WB.isTwin?'<button class="wb-primary" onclick="wbTryTwin()">Try one like it ↻</button>':'')+'<button class="wb-secondary" onclick="wbContinue()">'+(WB.index===(WB.size||8)-1?'See my score':'Next problem')+' ▶</button></div></div></div>';
+  wbResumeSave();if(typeof say==="function")say(voice+" "+(wbIsExplain(p)?wbModelSpoken(p):(p.explain||"")));
 }
 function wbTryTwin(){const original=WB.cur,type=original.type;let twin=null;for(let tries=0;tries<10&&!twin;tries++){const osig=wbSig(original),pool=wbGenerate(WB.lessonId,30).filter(x=>x.type===type&&(original.slot==null||x.slot===original.slot)&&wbSig(x)!==osig);if(pool.length)twin=wbPick(pool);}if(!twin){wbContinue();return;}wbLoadProblem(twin,true);}
 function wbContinue(){WB.index++;if(WB.index>=(WB.size||8))return wbFinish();wbLoadProblem(WB.problems[WB.index],false);}
@@ -555,7 +567,7 @@ function lztExit(){lztSave();_lztTok++;if(typeof renderRevealLesson==="function"
 function lztShowDone(i){
   WB.answered=true;const area=document.querySelector(".wb-answerarea");
   document.querySelectorAll(".wb-answerarea button,.wb-answerarea input,.wb-work button").forEach(b=>{if(!b.closest(".lzt-row"))b.disabled=true;});
-  if(area)area.insertAdjacentHTML("beforeend",'<div class="lzt-praise lzt-static" role="status"><span class="lzt-star" aria-hidden="true">✓</span><b>You got this one right.</b></div><div class="lzt-row"><button type="button" class="lzt-btn lzt-next" onclick="lztNext()">Next ▶</button></div>');
+  if(area)area.insertAdjacentHTML("beforeend",'<div class="lzt-praise lzt-static" role="status"><span class="lzt-star" aria-hidden="true">✓</span><b>You got this one right.</b></div>'+(wbIsExplain(WB.cur)?wbModelHTML(WB.cur,""):"")+'<div class="lzt-row"><button type="button" class="lzt-btn lzt-next" onclick="lztNext()">Next ▶</button></div>');
 }
 function lztDoneOnly(i){ // a question already right in his last test (rebuilt from the answer log): nothing to redo
   const id=WB.lessonId;
@@ -565,7 +577,7 @@ function lztDoneOnly(i){ // a question already right in his last test (rebuilt f
 function lztAfterAnswer(ok,a){
   const i=WB.index,st=WB.st[i],p=WB.cur;let info=null;try{info=wbLogInfo(p,a);}catch(e){}
   st.ui=lztSnapUI();st.given=info&&info.given!=null?(Array.isArray(info.given)?info.given.join(", "):String(info.given)):"";
-  if(ok){if(st.first===null||st.first===undefined)st.first=true;st.s="right";st.tip="";st.why="";lztSave();lztPraise();}
+  if(ok){if(st.first===null||st.first===undefined)st.first=true;st.s="right";st.tip="";st.why="";lztSave();if(wbIsExplain(p))lztExplainPraise(p,a);else lztPraise();}
   else{if(st.first===null||st.first===undefined)st.first=false;st.s="wrong";st.tries=(st.tries||0)+1;const t=lztTip(p,a);st.tip=t.tip;st.why=t.why;st.tipShown=true;lztSave();lztWrong(t,st.tries);}
 }
 function lztPraise(){
@@ -574,6 +586,14 @@ function lztPraise(){
   const t0=Date.now(),go=()=>setTimeout(()=>{if(tok===_lztTok&&document.getElementById("lztNextBtn"))lztNext();},Math.max(0,1300-(Date.now()-t0)));
   lztIntoView("lztNextBtn");
   if(typeof sayAndThen==="function")sayAndThen(line,go,2600);else{if(typeof say==="function")say(line);go();}
+}
+function lztExplainPraise(p,a){ // answer right on an Explain question: no score for the reason, just the model explanation (spoken); Next when ready
+  _lztTok++;const area=document.querySelector(".wb-answerarea");lztRefreshStrip();
+  const why=wbExplainParts(p,(a&&a.f)||{}).reason;
+  if(area)area.innerHTML='<div class="lzt-praise lzt-praise-explain" role="status"><span class="lzt-star" aria-hidden="true">⭐</span><b>Your answer is right!</b></div>'+wbModelHTML(p,why)
+    +'<div class="lzt-row"><button type="button" class="lzt-btn lzt-next" id="lztNextBtn" onclick="lztNext()">Next ▶</button></div>';
+  lztIntoView("lztNextBtn");
+  if(typeof say==="function")say("Your answer is right! "+wbModelSpoken(p));
 }
 function lztWrong(t,tries){
   _lztTok++;const area=document.querySelector(".wb-answerarea"),p=WB.cur,shown=tries>=3;lztRefreshStrip();
@@ -688,8 +708,6 @@ function lztTip(p,a){
     else if(bad.t==="num"){why=v?"Check this number: you wrote "+v+".":"One box is empty.";tip=m?lztCount(+m[1],+m[2]):(review||"Work it out step by step.");}
     else if(bad.t==="mult"){why=v?v+" doesn't work here.":"One box is empty.";tip="It has to be a number you say when you count by "+bad.of+"s, from "+bad.min+" to "+bad.max+".";}
     else if(bad.t==="divides"){why=v?v+" doesn't work here.":"One box is empty.";tip="Pick a number that shares "+bad.of+" into equal groups with none left over.";}
-    else if(bad.t==="reason"){const allNums=(p.checks||[]).filter(c=>c.t!=="reason").every(c=>wbFormCheck({checks:[c],group:null,lesson:p.lesson,q:p.q,answer:p.answer},f));
-      why=(allNums?"Your number is right! ":"")+"The \"because\" part needs to say why.";const last=(p.answerLines||[]).slice(-1)[0]||"";tip="Say the big idea in your own words, like: "+last.replace(/^Reason:\s*/i,"").replace(/\s*\/\s*/g," or ");}
     else{why=v?"Check your answer: you wrote "+v+".":"One box is empty.";tip=review||"Read the question again slowly.";}
   }else if(p.type==="story"||p.type==="picture"){
     const e=p.answer.eq,op=p.eq.op,got=a&&a.eq;const eqOK=got&&wbEquationMatches(p,got,e);
@@ -787,6 +805,10 @@ span.lzt-dot{cursor:default}
 .lzt-praise.lzt-static{background:#dcfce7;animation:none}.lzt-praise.lzt-static b{font-size:22px}.lzt-praise.lzt-static .lzt-star{color:#15803d!important;font-size:34px;animation:none}
 .lzt-tip{margin:12px 0;padding:14px 16px;background:#fff;border:3px solid #1E293B;border-left:12px solid #FF6B6B;border-radius:18px;box-shadow:4px 5px 0 #1E293B;animation:lztIn .3s ease-out}
 .lzt-tip h3{font-size:24px!important;margin:0 0 6px;color:#1E293B!important}.lzt-why{font-size:19px;font-weight:700;line-height:1.4;margin:4px 0;color:#334155!important}.lzt-tipline{font-size:20px;font-weight:800;line-height:1.4;margin:6px 0;color:#1E293B!important}
+.lzt-model{margin:12px 0;padding:14px 16px;background:#EAF7EF;border:3px solid #1E293B;border-left:12px solid #47D18C;border-radius:18px;box-shadow:4px 5px 0 #1E293B;text-align:left;animation:lztIn .3s ease-out}
+.lzt-model-h{font-size:21px;font-weight:900;margin:0 0 6px;color:#1E293B!important}.lzt-model-t{font-size:20px;font-weight:700;line-height:1.45;margin:0;color:#1E293B!important}
+.lzt-you{font-size:17px;font-weight:600;margin:0 0 8px;color:#475569!important;overflow-wrap:anywhere}
+.wb-feedback .lzt-model{margin:14px 0 4px}
 .lzt-hint{margin:0 0 10px;padding:10px 12px;background:#fff7ed;border:2px solid #FF9F1C;border-radius:14px;font-size:18px;font-weight:700;color:#1E293B!important}
 .lzt-row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:12px}
 .lzt-btn{min-height:64px;padding:10px 24px;border:3px solid #1E293B;border-radius:18px;font:inherit;font-size:21px;font-weight:900;cursor:pointer;box-shadow:4px 5px 0 #1E293B;color:#fff!important;transition:transform .1s ease,box-shadow .1s ease}
