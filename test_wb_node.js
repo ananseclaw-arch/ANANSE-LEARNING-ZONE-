@@ -28,7 +28,7 @@ function wrongVariants(p){
     const keys=new Set((p.group&&p.group.keys)||[]);
     for(const f of p.fields){
       const c=(p.checks||[]).find(x=>x.k===f.key);const cur=ans.f[f.key];let bad;
-      if(c){if(c.t==="num"||c.t==="mult"||c.t==="divides")bad=String(Number(cur)+1);else if(c.t==="word")bad="qzxwv";else if(c.t==="yn")bad=cur==="yes"?"no":"yes";else if(c.t==="reason")bad="zzzz qqqq";}
+      if(c){if(c.t==="num"||c.t==="mult"||c.t==="divides")bad=String(Number(cur)+1);else if(c.t==="word")bad="qzxwv";else if(c.t==="yn")bad=cur==="yes"?"no":"yes";else if(c.t==="reason")continue; /* reasons are never marked (option A) */}
       else if(keys.has(f.key)){if(p.group.kind==="zeroblank"&&f.key===p.group.keys[1])continue;bad=f.kind==="num"?String(Number(cur)+1):"4 + 8 = 32";}
       if(bad==null)continue;const f2=Object.assign({},ans.f);f2[f.key]=bad;out.push({f:f2});
     }
@@ -82,14 +82,23 @@ for(const id of ids){
 }
 // helper unit tests (wrong order of operations, spelling, reasons)
 const T=(c,m)=>{if(!c)fail("unit: "+m);};
-const wbFormCheck=run("wbFormCheck"),wbEqParse=run("wbEqParse"),wbTwoEqOK=run("wbTwoEqOK"),wbReasonOK=run("wbReasonOK"),wbWordOK=run("wbWordOK"),wbYN=run("wbYN");
+const wbFormCheck=run("wbFormCheck"),wbEqParse=run("wbEqParse"),wbTwoEqOK=run("wbTwoEqOK"),wbWordOK=run("wbWordOK"),wbYN=run("wbYN");
 T(!wbEqParse("4 + 8 = 32").ok,"4+8=32 must be false");T(wbEqParse("4 x 8 = 32").ok,"4x8=32");T(wbEqParse("32 = 4 × 8").ok,"32=4x8");T(!wbEqParse("4 + 8").ok,"no equals");
 T(wbTwoEqOK("6 + 6 = 12","2 × 6 = 12",{fixedCount:2}),"doubles ok");T(wbTwoEqOK("12 = 6 + 6","6 x 2 = 12",{fixedCount:2}),"doubles ok reversed forms");
 T(!wbTwoEqOK("6 + 6 = 12","2 × 6 = 13",{fixedCount:2}),"wrong total");T(!wbTwoEqOK("6 + 6 = 12","6 + 6 = 12",{fixedCount:2}),"two additions");T(!wbTwoEqOK("2 + 2 + 2 = 6","2 × 3 = 6",{fixedCount:2}),"count must be 2");
 T(wbTwoEqOK("2 + 2 + 2 = 6","3 × 2 = 6",{fixedValue:2}),"seeds ok");T(!wbTwoEqOK("3 + 3 = 6","3 × 2 = 6",{fixedValue:2}),"seeds wrong 3+3");
 T(wbWordOK("Evan","even".split(" "))===false||true,"noop");T(wbWordOK("evan",["even"]),"typo evan");T(!wbWordOK("odd",["even"]),"odd not even");
-T(wbReasonOK("Because they come in pairs",run("WB_R").even),"pairs");T(wbReasonOK("its evn",run("WB_R").even),"typo evn");T(!wbReasonOK("i dont know",run("WB_R").even)===false||true,"noop");T(!wbReasonOK("banana smoothie",run("WB_R").even),"junk reason");T(!wbReasonOK("",run("WB_R").even),"empty reason");
-T(wbReasonOK("the order doesnt matter",run("WB_R").order),"order");T(wbReasonOK("anything times zero is zero",run("WB_R").zero),"zero");T(wbReasonOK("it ends in 0",run("WB_R").ones),"ones");T(wbReasonOK("it is double",run("WB_R").dbl),"double");
+// Explain = option A (Eb 2026-11-04): the reason is NEVER marked. Any reason (even junk or blank) with the right answer passes;
+// a wrong answer with a great reason still fails. wbReasonOK must be gone.
+T(typeof ctx.wbReasonOK==="undefined"&&vm.runInContext("typeof wbReasonOK",ctx)==="undefined","reason checker removed");
+{let explains=0;for(const id of ids)for(const p of wb.gen(id,60)){if(!(p.type==="form"&&(p.checks||[]).some(c=>c.t==="reason")))continue;explains++;
+  const rk=p.checks.filter(c=>c.t==="reason").map(c=>c.k);
+  for(const junk of ["banana smoothie","zzzz","i dont know",""]){const f2=Object.assign({},p.answer.f);rk.forEach(k=>f2[k]=junk);if(!wb.check(p,{f:f2}))fail(id+": right answer + reason '"+junk+"' marked wrong: "+p.q.slice(0,50));}
+  const nk=p.checks.find(c=>c.t!=="reason");if(nk){const f3=Object.assign({},p.answer.f);f3[nk.k]=nk.t==="yn"?(f3[nk.k]==="yes"?"no":"yes"):String(Number(f3[nk.k])+1);if(wb.check(p,{f:f3}))fail(id+": wrong answer with good reason accepted");}
+  if(!p.explain)fail(id+": Explain question without a model explanation: "+p.q.slice(0,50));
+  const parts=vm.runInContext("wbExplainParts",ctx)(p,Object.assign({},p.answer.f,Object.fromEntries(rk.map(k=>[k,"  Because It's EVEN!! "]))));
+  if(parts.reason!=="  Because It's EVEN!! ")fail(id+": reason not kept exactly as typed");if(/\{|because/i.test(parts.answer))fail(id+": answer text wrong: "+parts.answer);}
+ T(explains>20,"explain questions found ("+explains+")");}
 T(wbYN("Yes it is")==="yes"&&wbYN("nope")==="no"&&wbYN("maybe")===null,"yn parse");
 // no pick-the-reason (multiple choice) allowed outside lettered multi: no problem has p.options unless type multi
 for(const id of ids)for(const p of wb.gen(id,40)){if(p.options&&p.type!=="multi")fail(id+": options on non-multi");if(p.type==="form"&&p.fields.length<1)fail("form without fields");}
@@ -117,7 +126,7 @@ for(const id of ids){
     if(!run("wbCanSubmit")()){fail(id+": submit disabled after filling ("+p.type+") "+p.q.slice(0,50));}
     run("wbSubmit")();
     if(!/wb-feedback/.test(ctx.app.innerHTML))fail(id+": no feedback screen");
-    if(!/wb-teach/.test(ctx.app.innerHTML))fail(id+": explanation not shown");
+    if(!/wb-teach|lzt-model/.test(ctx.app.innerHTML))fail(id+": explanation not shown");if(p.type==="form"&&(p.checks||[]).some(c=>c.t==="reason")&&!/Nice thinking! Here’s another way to say it:/.test(ctx.app.innerHTML))fail(id+": Explain model line missing");
     if(!/wb-feedback good/.test(ctx.app.innerHTML))fail(id+": canonical answer marked wrong via UI ("+p.type+") "+p.q.slice(0,60));
     run("wbContinue")();
   }

@@ -113,21 +113,50 @@ const REVEAL_LESSONS=[
  {id:"13-4",u:13,t:"Draw Quadrilaterals",g:"quad",p:["draw"]}
 ];
 
-/* Prince's staging path starts at Unit 4 and advances one passed lesson at a time.
-   This is deliberately computed from existing records; it never migrates, deletes or
-   rewrites them. The session engine's established pass rule is ceil(total * 0.75),
-   which accepts legacy 6/8 sessions and current 8/10 Unit 4 sessions. */
+/* Prince's path starts at Unit 4 and advances one passed lesson at a time.
+   PASSING (Eb 2026-11-04, "it should be more flexible"): ONE helper, revealProfilePassed(), is the source of truth for
+   stars, chips, the Unit 4 gate and Up next.
+   - Lessons with the flexible test (REVEAL_FLEX: workbook-engine lessons 3-7, 4-1..4-5) pass only when EVERY question
+     has been answered right, first try or on a redo -> P.revealPass[id]={how:"all",...}.
+   - Lessons passed under the old rule (ceil(total*0.75) first try) BEFORE this rule arrived stay passed: a one-time
+     migration copies them into P.revealPass as {how:"legacy"}. Nothing is ever re-locked or deleted.
+   - Other lessons (still on the classic one-try engine) keep the old score rule. */
 const REVEAL_UNIT4_IDS=REVEAL_LESSONS.filter(l=>l.u===4).map(l=>l.id);
-function revealProfileIsPrince(profile){return !!profile&&String(profile.name||"").trim().toLowerCase()==="prince";}
+const REVEAL_FLEX=["3-7","4-1","4-2","4-3","4-4","4-5"];
+function revealIsFlex(id){return REVEAL_FLEX.indexOf(id)>=0;}
+/* "Prince" is the real learner; a preview Test profile opts in with seqUnit4 so the same sequential rule applies. */
+function revealProfileIsPrince(profile){return !!profile&&(profile.seqUnit4===true||String(profile.name||"").trim().toLowerCase()==="prince");}
 function revealRecordPassed(rec){
   if(!rec||typeof rec!=="object")return false;
   const total=Number(rec.total),score=Number(rec.best!=null?rec.best:(rec.correct!=null?rec.correct:rec.score));
   return Number.isFinite(total)&&total>0&&Number.isFinite(score)&&score>=Math.ceil(total*0.75);
 }
-function revealProfilePassed(profile,id){
-  if(!profile)return false;
+function revealOldRulePassed(profile,id){
   if(revealRecordPassed(profile.reveal&&profile.reveal[id]))return true;
   return (profile.sessions||[]).some(s=>s&&s.lesson==="reveal:"+id&&revealRecordPassed(s));
+}
+function revealPassMigrate(profile){
+  if(!profile||profile.passRuleV2)return;
+  const pass=profile.revealPass=profile.revealPass||{},ids=new Set(Object.keys(profile.reveal||{}));
+  (profile.sessions||[]).forEach(s=>{if(s&&typeof s.lesson==="string"&&s.lesson.indexOf("reveal:")===0)ids.add(s.lesson.slice(7));});
+  ids.forEach(id=>{if(!pass[id]&&revealOldRulePassed(profile,id))pass[id]={how:"legacy",date:(profile.reveal&&profile.reveal[id]&&profile.reveal[id].date)||""};});
+  profile.passRuleV2=Date.now();
+}
+/* READ-ONLY: never changes the profile. Before the one-time migration has run, old-rule passes count exactly as the
+   migration would record them. The migration + fix-round seed run once in revealProgressInit() when a learner opens. */
+function revealProfilePassed(profile,id){
+  if(!profile)return false;
+  if(profile.revealPass&&profile.revealPass[id])return true;
+  if(!profile.passRuleV2&&revealOldRulePassed(profile,id))return true;
+  if(revealIsFlex(id))return false;
+  return revealOldRulePassed(profile,id);
+}
+/* One-time, write step: copy old-rule passes into P.revealPass, then turn his last test's misses into a "fix" round. */
+function revealProgressInit(profile){
+  if(!profile)return false;const changed=!profile.passRuleV2||!profile.fixSeedV1;
+  revealPassMigrate(profile);
+  if(!profile.fixSeedV1&&typeof lztSeedFromLog==="function")lztSeedFromLog(profile);
+  return changed;
 }
 function revealUnit4Gate(profile,id){
   const index=REVEAL_UNIT4_IDS.indexOf(id);
@@ -141,9 +170,21 @@ function revealUnit4NextId(profile){
 }
 function revealDefaultLesson(profile){
   const unit4=revealUnit4NextId(profile);if(unit4)return revealLesson(unit4);
-  return(profile&&profile.revealCurrent&&revealLesson(profile.revealCurrent))||REVEAL_LESSONS.find(l=>{const r=profile&&profile.reveal&&profile.reveal[l.id];return !r||!r.total||r.best/r.total<0.8;})||REVEAL_LESSONS[0];
+  return(profile&&profile.revealCurrent&&revealLesson(profile.revealCurrent))||REVEAL_LESSONS.find(l=>!revealProfilePassed(profile,l.id))||REVEAL_LESSONS[0];
 }
-const revealProgressionPublic={unit4Ids:REVEAL_UNIT4_IDS.slice(),isPrince:revealProfileIsPrince,recordPassed:revealRecordPassed,profilePassed:revealProfilePassed,gate:revealUnit4Gate,nextId:revealUnit4NextId};
+function revealNextInUnit(id){const L=revealLesson(id);if(!L)return null;const ls=REVEAL_LESSONS.filter(l=>l.u===L.u);return ls[ls.indexOf(L)+1]||null;}
+/* ---------- Big Back button (Eb 2026-11-04): top-left, 64px+, on every lesson-flow screen ----------
+   Call lzBack(fn,label) right AFTER a screen sets app.innerHTML. Any other screen replacing #app hides it again. */
+let _lzBackFn=null,_lzBackFor=null,_lzBackObs=null;
+function lzBack(fn,label){
+  if(typeof document==="undefined")return;const b=document.getElementById("lzBackBtn"),a=document.getElementById("app");if(!b||!a)return;
+  _lzBackFn=fn;_lzBackFor=a.firstElementChild;b.hidden=false;const lb=b.querySelector(".lzb-to");if(lb)lb.textContent=label||"";
+  document.body.classList.add("lz-back");
+  if(!_lzBackObs&&typeof MutationObserver!=="undefined"){_lzBackObs=new MutationObserver(()=>{if(a.firstElementChild!==_lzBackFor)lzBackHide();});_lzBackObs.observe(a,{childList:true});}
+}
+function lzBackHide(){const b=typeof document!=="undefined"&&document.getElementById("lzBackBtn");if(b)b.hidden=true;_lzBackFn=null;_lzBackFor=null;if(typeof document!=="undefined")document.body.classList.remove("lz-back");}
+function lzBackGo(){const f=_lzBackFn;if(typeof f==="function"){try{if(typeof stopRecorded==="function")stopRecorded();}catch(e){}f();}else if(typeof renderHome==="function")renderHome();}
+const revealProgressionPublic={unit4Ids:REVEAL_UNIT4_IDS.slice(),flex:REVEAL_FLEX.slice(),isPrince:revealProfileIsPrince,recordPassed:revealRecordPassed,profilePassed:revealProfilePassed,migrate:revealPassMigrate,init:revealProgressInit,gate:revealUnit4Gate,nextId:revealUnit4NextId};
 if(typeof window!=="undefined")window.__revealProgression=revealProgressionPublic;else if(typeof globalThis!=="undefined")globalThis.__revealProgression=revealProgressionPublic;
 /* Review cards — the book's "Review" box, in Ananse's words */
 const REVEAL_REVIEW={
@@ -449,15 +490,16 @@ function renderReveal(){
   clearTimers();closeOverlay();defocus();showAnanseCorner(true);
   const princePath=revealProfileIsPrince(P),cur=princePath?revealDefaultLesson(P):(P.revealCurrent&&revealLesson(P.revealCurrent));
   const units=Object.keys(REVEAL_UNITS).map(u=>{
-    const ls=REVEAL_LESSONS.filter(l=>l.u==u);const done=ls.filter(l=>{const r=revealRec(l.id);return r&&r.best/r.total>=0.8;}).length;
+    const ls=REVEAL_LESSONS.filter(l=>l.u==u);const done=ls.filter(l=>revealProfilePassed(P,l.id)).length;
     return '<button class="opt" style="display:flex;justify-content:space-between;align-items:center;gap:10px" onclick="renderRevealUnit('+u+')"><span style="text-align:left"><b>Unit '+u+' · '+esc(REVEAL_UNITS[u].t)+'</b><br><span class="muted" style="font-size:13px">'+ls.length+' lessons</span></span><span class="lvl-badge" style="background:'+(done===ls.length?"#2f8f4e":(done?"#f5a623":"#6f88ad"))+'">'+done+'/'+ls.length+' ★</span></button>';
   }).join("");
   app.innerHTML='<div class="fadein" style="max-width:680px;margin:0 auto">'
-   +'<div class="center"><h1>📘 Reveal Math · Grade 3</h1><p class="muted">The same units and lessons as your Reveal Math practice book, with fresh problems every time. Each lesson: Review, then 8 problems. Earn a ★ with 80% or better.</p></div>'
+   +'<div class="center"><h1>📘 Reveal Math · Grade 3</h1><p class="muted">The same units and lessons as your Reveal Math practice book, with fresh problems every time. Each lesson: Review, then the problems. Get every problem right (fix the ones you miss) to earn a ★.</p></div>'
    +'<div class="kente-strip" style="margin:14px 0 10px"></div>'
    +(cur?'<div class="card gold" style="margin-bottom:12px"><b>📍 '+(princePath?'Your Unit 4 next lesson:':'Where the class is:')+'</b> Lesson '+esc(cur.id)+' · '+esc(cur.t)+'<div class="btn-row" style="justify-content:flex-start;margin-top:8px"><button class="btn" onclick="renderRevealLesson(\''+cur.id+'\')">Practice this lesson ▶</button></div></div>':'<p class="muted center" style="margin-bottom:10px">Tip: a parent can set "where the class is" in the Parent Portal so today\'s lesson shows up here first.</p>')
    +'<div class="opts">'+units+'</div>'
    +'<div class="btn-row" style="margin-top:18px"><button class="btn" onclick="renderHome()">⟵ Back to Adventure</button></div><div class="spacer"></div></div>';
+  lzBack(()=>renderHome(),"Home");
   say("Reveal Math practice, "+P.name+". Pick a unit, or practice the lesson your class is on.");
 }
 /* Unit screen look (Eb's Gemini design, 2026-11-03): current lesson = big blue card with picture tiles + green Start,
@@ -471,7 +513,7 @@ function renderRevealUnit(u){
   clearTimers();closeOverlay();defocus();showAnanseCorner(false);
   const ls=REVEAL_LESSONS.filter(l=>l.u==u);
   const seq=revealProfileIsPrince(P)&&+u===4;
-  const passed=l=>{const r=revealRec(l.id);return seq?revealProfilePassed(P,l.id):!!(r&&r.total&&r.best/r.total>=0.8);};
+  const passed=l=>revealProfilePassed(P,l.id);
   const gateOf=l=>revealUnit4Gate(P,l.id);
   const open=l=>!passed(l)&&gateOf(l).allowed;
   const cur=ls.find(l=>P.revealCurrent===l.id&&open(l))||ls.find(open)||null;
@@ -483,9 +525,10 @@ function renderRevealUnit(u){
       +'<div class="s4-now-t">Lesson '+esc(l.id)+' • '+esc(l.t)+here+'</div>'
       +'<div class="s4-now-row">'+s4Art(l.id)+'<span class="s4-now-side">'+(r?'<span class="s4-now-best">Best so far '+r.best+'/'+r.total+'</span>':'')
       +'<button class="s4-start" onclick="event.stopPropagation();'+go+'">Start Lesson →</button></span></div></div>'+coach;
-    const st=star?'done':(!gate.allowed?'lock':(r?'tried':'new'));
+    const fx=!star&&typeof lztStatus==="function"?lztStatus(l.id):null;
+    const st=star?'done':(!gate.allowed?'lock':(fx||r?'tried':'new'));
     const badge=st==='done'?'<span class="s4-badge s4-b-done"><b>★</b>'+(seq?'Passed':'Mastered')+'<br>'+(r?r.best+'/'+r.total:'saved')+'</span>'
-      :st==='tried'?'<span class="s4-badge s4-b-tried"><b>✎</b>Practiced<br>'+r.best+'/'+r.total+'</span>'
+      :st==='tried'?(fx?'<span class="s4-badge s4-b-tried"><b>✎</b>'+(fx.phase==='fix'?'Fix '+fx.left+'<br>to pass':'On '+fx.at+'<br>of '+fx.total)+'</span>':'<span class="s4-badge s4-b-tried"><b>✎</b>Practiced<br>'+r.best+'/'+r.total+'</span>')
       :st==='lock'?'<span class="s4-badge s4-b-lock"><b>🔒</b>Finish '+esc(gate.prerequisite)+'<br>first</span>'
       :'<span class="s4-badge s4-b-new"><b>○</b>Not<br>started</span>';
     return '<button class="s4-card s4-'+st+'" onclick="'+go+'"'+(st==='lock'?' aria-disabled="true"':'')+'><span class="s4-t">Lesson '+esc(l.id)+' • '+esc(l.t)+here+'</span>'+badge+'</button>';}).join("");
@@ -496,20 +539,37 @@ function renderRevealUnit(u){
    +'<div class="card s4-home"><b>🏠 Math @ Home</b><p class="muted" style="margin-top:6px">'+esc(REVEAL_UNITS[u].home)+'</p></div>'
    +'<div class="btn-row" style="margin-top:14px"><button class="btn secondary" onclick="renderReveal()">⟵ All units</button></div><div class="spacer"></div>'
    +'</div>';
+  lzBack(()=>renderHome(),"Home");
 }
 function renderRevealLockedLesson(id,gate){
-  const prior=revealLesson(gate.prerequisite);
-  clearTimers();closeOverlay();defocus();showAnanseCorner(true);
-  app.innerHTML='<div class="fadein center" style="max-width:620px;margin:0 auto"><div class="hud"><span class="pill">📘 <b>Reveal Math</b></span><span class="pill">Unit 4</span></div><h1 style="margin-top:16px">🔒 Lesson '+esc(id)+' is next later</h1><div class="card gold" style="margin-top:14px"><p style="font-size:20px">Finish and pass <b>Lesson '+esc(prior.id)+' · '+esc(prior.t)+'</b> first.</p><p class="muted" style="margin-top:8px">Your earlier lesson records and other units are still available.</p></div><div class="spacer"></div><div class="btn-row"><button class="btn big" onclick="renderRevealLesson(\''+prior.id+'\')">Go to Lesson '+esc(prior.id)+' ▶</button><button class="btn secondary" onclick="renderRevealUnit(4)">⟵ Unit 4 path</button><button class="btn secondary" onclick="renderReveal()">All units</button></div></div>';
-  say("Lesson "+id+" is locked for now. Finish lesson "+prior.id+" first.");
+  const prior=revealLesson(gate.prerequisite),L=revealLesson(id),u=L?L.u:4,next=revealNextInUnit(prior.id);
+  clearTimers();closeOverlay();defocus();showAnanseCorner(false);
+  const st=typeof lztStatus==="function"?lztStatus(prior.id):null,flex=revealIsFlex(prior.id),unlock=next?next.id:id;
+  const later=unlock!==id?' Lessons open one at a time, so after that comes '+unlock+', then the next one, up to '+id+'.':'';
+  let msg,btn,go,dots='';
+  if(st&&st.phase==='fix'){msg='Finish the '+(st.left===1?'question':st.left+' questions')+' you missed in Lesson '+prior.id+' to unlock '+unlock+'.';btn='Fix '+(st.left===1?'it':'them')+' now ▶';go='lztStart(\''+prior.id+'\')';}
+  else if(st){msg='Finish Lesson '+prior.id+' to unlock '+unlock+'. You are on question '+st.at+' of '+st.total+', and your answers are saved.';btn='Keep going ▶';go='lztStart(\''+prior.id+'\')';}
+  else{msg=(flex?'Do Lesson '+prior.id+' and get every question right to unlock '+unlock+'. Any you miss, you fix with a tip.':'Pass Lesson '+prior.id+' to unlock '+unlock+'.');btn='Go to Lesson '+prior.id+' ▶';go='renderRevealLesson(\''+prior.id+'\')';}
+  if(st&&typeof lztDotsHTML==="function")dots=lztDotsHTML(st.dots,false);
+  app.innerHTML='<div class="fadein lzt-screen" style="max-width:640px;margin:0 auto"><div class="hud"><span class="pill">📘 <b>Reveal Math</b></span><span class="pill">Unit '+u+'</span></div>'
+   +'<section class="lzt-card lzt-lock"><div class="lzt-lockic" aria-hidden="true">🔒</div><h1 class="lzt-h">Lesson '+esc(id)+' is locked</h1>'
+   +'<p class="lzt-big">'+esc(msg)+'</p>'+(later?'<p class="lzt-small">'+esc(later.trim())+'</p>':'')+dots
+   +'<div class="lzt-row"><button class="lzt-btn lzt-go" id="lztLockGo" onclick="'+go+'">'+esc(btn)+'</button></div></section>'
+   +'<p class="muted center" style="margin-top:12px">Your earlier lessons and other units are still open.</p><div class="spacer"></div></div>';
+  lzBack(()=>renderRevealUnit(u),"Unit "+u);
+  say(msg);
 }
-function renderRevealLesson(id){
+function renderRevealLesson(id,opts){
   const L=revealLesson(id);if(!L)return renderReveal();
   const gate=revealUnit4Gate(P,id);if(!gate.allowed)return renderRevealLockedLesson(id,gate);
-  if(typeof videoGate==="function"&&videoGate("reveal:"+id,()=>renderRevealLesson(id),()=>renderRevealUnit(L.u)))return;
-  if(typeof catchUpGate==="function"&&catchUpGate(id))return;
+  const fromTest=!!(opts&&opts.fromTest); // Back from inside a test: show this page, don't re-run the video/catch-up gates
+  if(!fromTest&&typeof videoGate==="function"&&videoGate("reveal:"+id,()=>renderRevealLesson(id),()=>renderRevealUnit(L.u)))return;
+  if(!fromTest&&typeof catchUpGate==="function"&&catchUpGate(id))return;
   clearTimers();closeOverlay();defocus();showAnanseCorner(false);
   const r=revealRec(id);
+  const fx=typeof lztStatus==="function"?lztStatus(id):null,nx=revealNextInUnit(id);
+  const sres=!fx&&typeof DB!=="undefined"&&DB.resume&&P&&DB.resume[P.id],sKeep=!!(sres&&sres.s&&sres.s.cur&&typeof savedResumeLesson==="function"&&savedResumeLesson(sres)===id&&Date.now()-sres.t<86400000);
+  const fxCard=fx?'<section class="lzt-card lzt-note"><p class="lzt-big">'+(fx.phase==='fix'?esc('You have '+(fx.left===1?'1 question':fx.left+' questions')+' to fix. Each one comes with a tip.'+(nx&&!revealProfilePassed(P,id)?' Fix '+(fx.left===1?'it':'them')+' to unlock Lesson '+nx.id+'.':'')):esc('You stopped at question '+fx.at+' of '+fx.total+'. Your answers are saved.'))+'</p>'+(typeof lztDotsHTML==="function"?lztDotsHTML(fx.dots,false):'')+'</section>':'';
   const sample=revealGen(L,false,revealTier(L));
   const wbReview=revealUsesWorkbook(id)&&typeof wbRevealReview==="function"?wbRevealReview(id):"";
   app.innerHTML='<div class="fadein" style="max-width:660px;margin:0 auto">'
@@ -518,11 +578,14 @@ function renderRevealLesson(id){
    +(wbReview||('<div class="card gold" style="margin-top:12px"><h3 style="margin-bottom:8px">Review</h3><p style="font-size:19px;line-height:1.6">'+esc(REVEAL_REVIEW[id]||"")+'</p>'+(id==='4-6'?'<div aria-label="Four groups of eight" style="text-align:center;font-size:21px">[ ● ● ● ● ● ● ● ● ] [ ● ● ● ● ● ● ● ● ]<br>[ ● ● ● ● ● ● ● ● ] [ ● ● ● ● ● ● ● ● ]</div>':'')
    +(id==='5-1'?'<div aria-label="Three rows of four dots split after two columns" style="text-align:center;font-size:23px">● ● │ ● ●<br>● ● │ ● ●<br>● ● │ ● ●</div>':'')
    +(sample.vis&&!["4-6","5-1","5-2"].includes(id)?'<div class="qvis" style="margin-top:10px">'+sample.vis+'</div><p class="muted" style="font-size:14px;margin-top:6px">Example: '+esc(sample.q)+' → '+esc(sample.opts[sample.a])+'</p>':'')+'</div>'))
-   +(r?'<p class="muted center" style="margin-top:10px">Best so far: '+r.best+' of '+r.total+' · tried '+r.tries+' time'+(r.tries===1?'':'s')+'</p>':'')
-   +'<div class="center"><div class="spacer"></div><div class="btn-row"><button class="btn big" onclick="startReveal(\''+id+'\')">Start practice ▶</button>'
+   +(r?'<p class="muted center" style="margin-top:10px">Best first try: '+r.best+' of '+r.total+' · tried '+r.tries+' time'+(r.tries===1?'':'s')+(revealProfilePassed(P,id)?' · ★ passed':'')+'</p>':'')
+   +fxCard
+   +'<div class="center"><div class="spacer"></div><div class="btn-row">'+(fx?'<button class="btn big" id="lztLessonGo" onclick="lztStart(\''+id+'\')">'+(fx.phase==='fix'?'Fix the '+(fx.left===1?'one':fx.left)+' I missed ▶':'▶ Keep going · question '+fx.at)+'</button>':(sKeep?'<button class="btn big" onclick="sessResumeBtn()">▶ Keep going · question '+Math.min((sres.s.n||0)+1,sres.s.total||8)+'</button>':'<button class="btn big" onclick="startReveal(\''+id+'\')">Start practice ▶</button>'))
    +(typeof videoAgainBtn==="function"?videoAgainBtn("reveal:"+id):'')
    +'<button class="btn secondary" onclick="say(REVEAL_REVIEW[\''+id+'\'])">🔊 Read it to me</button><button class="btn secondary" onclick="renderRevealUnit('+L.u+')">⟵ Unit '+L.u+'</button></div></div></div>';
-  say("Lesson "+id+", "+L.t+". "+(REVEAL_REVIEW[id]||""));
+  lzBack(()=>renderRevealUnit(L.u),"Unit "+L.u);
+  if(fromTest&&fx)say(fx.phase==='fix'?"Your answers are saved. Tap the button when you are ready to fix them.":"Your answers are saved. Tap keep going when you are ready.");
+  else say("Lesson "+id+", "+L.t+". "+(REVEAL_REVIEW[id]||""));
 }
 const REVEAL_WB_IDS=["3-7","4-1","4-2","4-3","4-4","4-5"];
 function revealUsesWorkbook(id){return REVEAL_WB_IDS.includes(id)&&typeof wbStart==="function"&&typeof WB_LESSONS!=="undefined"&&!!WB_LESSONS[id];}
@@ -538,7 +601,7 @@ function wbRevealExit(id){const L=revealLesson(id);if(L)renderRevealUnit(L.u);el
 function startReveal(id){
   const L=revealLesson(id);if(!L)return;
   const gate=revealUnit4Gate(P,id);if(!gate.allowed){renderRevealLockedLesson(id,gate);return;}
-  if(revealUsesWorkbook(id)){P.revealAsked=P.revealAsked||{};if(typeof clearTimers==="function")clearTimers();wbStart(id,{reveal:true,size:10});return;}
+  if(revealUsesWorkbook(id)){P.revealAsked=P.revealAsked||{};if(typeof clearTimers==="function")clearTimers();if(typeof lztStart==="function"&&revealIsFlex(id)){lztStart(id);return;}wbStart(id,{reveal:true,size:10});return;}
   P.revealAsked=P.revealAsked||{};P.revealAsked[id]=P.revealAsked[id]||{};
   const mirror=["3-7","4-1","4-2","4-3","4-4","4-5","4-6","5-1","5-2"].includes(id)?mirrorSession(id):null;
   S={subject:"math",total:mirror?10:8,n:0,correct:0,results:[],consecR:0,consecW:0,

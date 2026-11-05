@@ -667,6 +667,7 @@ body.learningworld #app{max-width:1180px}
 </script>
 <div id="topbar">
   <div class="tb-group">
+    <button class="tb-btn lzb" id="lzBackBtn" onclick="lzBackGo()" title="Back" aria-label="Back" hidden><span class="lzb-ar" aria-hidden="true">←</span><span class="lzb-to"></span></button>
     <button class="tb-btn" id="homeBtn" onclick="goHome()" title="Home" aria-label="Home"><span class="tb-ic">🏠</span><span class="tb-lb">Home</span></button>
     <button class="tb-btn" id="usersBtn" onclick="exitToProfiles()" title="Switch learner" aria-label="Switch learner"><span class="tb-ic">👥</span><span class="tb-lb">Learners</span></button>
   </div>
@@ -1684,21 +1685,50 @@ const REVEAL_LESSONS=[
  {id:"13-4",u:13,t:"Draw Quadrilaterals",g:"quad",p:["draw"]}
 ];
 
-/* Prince's staging path starts at Unit 4 and advances one passed lesson at a time.
-   This is deliberately computed from existing records; it never migrates, deletes or
-   rewrites them. The session engine's established pass rule is ceil(total * 0.75),
-   which accepts legacy 6/8 sessions and current 8/10 Unit 4 sessions. */
+/* Prince's path starts at Unit 4 and advances one passed lesson at a time.
+   PASSING (Eb 2026-11-04, "it should be more flexible"): ONE helper, revealProfilePassed(), is the source of truth for
+   stars, chips, the Unit 4 gate and Up next.
+   - Lessons with the flexible test (REVEAL_FLEX: workbook-engine lessons 3-7, 4-1..4-5) pass only when EVERY question
+     has been answered right, first try or on a redo -> P.revealPass[id]={how:"all",...}.
+   - Lessons passed under the old rule (ceil(total*0.75) first try) BEFORE this rule arrived stay passed: a one-time
+     migration copies them into P.revealPass as {how:"legacy"}. Nothing is ever re-locked or deleted.
+   - Other lessons (still on the classic one-try engine) keep the old score rule. */
 const REVEAL_UNIT4_IDS=REVEAL_LESSONS.filter(l=>l.u===4).map(l=>l.id);
-function revealProfileIsPrince(profile){return !!profile&&String(profile.name||"").trim().toLowerCase()==="prince";}
+const REVEAL_FLEX=["3-7","4-1","4-2","4-3","4-4","4-5"];
+function revealIsFlex(id){return REVEAL_FLEX.indexOf(id)>=0;}
+/* "Prince" is the real learner; a preview Test profile opts in with seqUnit4 so the same sequential rule applies. */
+function revealProfileIsPrince(profile){return !!profile&&(profile.seqUnit4===true||String(profile.name||"").trim().toLowerCase()==="prince");}
 function revealRecordPassed(rec){
   if(!rec||typeof rec!=="object")return false;
   const total=Number(rec.total),score=Number(rec.best!=null?rec.best:(rec.correct!=null?rec.correct:rec.score));
   return Number.isFinite(total)&&total>0&&Number.isFinite(score)&&score>=Math.ceil(total*0.75);
 }
-function revealProfilePassed(profile,id){
-  if(!profile)return false;
+function revealOldRulePassed(profile,id){
   if(revealRecordPassed(profile.reveal&&profile.reveal[id]))return true;
   return (profile.sessions||[]).some(s=>s&&s.lesson==="reveal:"+id&&revealRecordPassed(s));
+}
+function revealPassMigrate(profile){
+  if(!profile||profile.passRuleV2)return;
+  const pass=profile.revealPass=profile.revealPass||{},ids=new Set(Object.keys(profile.reveal||{}));
+  (profile.sessions||[]).forEach(s=>{if(s&&typeof s.lesson==="string"&&s.lesson.indexOf("reveal:")===0)ids.add(s.lesson.slice(7));});
+  ids.forEach(id=>{if(!pass[id]&&revealOldRulePassed(profile,id))pass[id]={how:"legacy",date:(profile.reveal&&profile.reveal[id]&&profile.reveal[id].date)||""};});
+  profile.passRuleV2=Date.now();
+}
+/* READ-ONLY: never changes the profile. Before the one-time migration has run, old-rule passes count exactly as the
+   migration would record them. The migration + fix-round seed run once in revealProgressInit() when a learner opens. */
+function revealProfilePassed(profile,id){
+  if(!profile)return false;
+  if(profile.revealPass&&profile.revealPass[id])return true;
+  if(!profile.passRuleV2&&revealOldRulePassed(profile,id))return true;
+  if(revealIsFlex(id))return false;
+  return revealOldRulePassed(profile,id);
+}
+/* One-time, write step: copy old-rule passes into P.revealPass, then turn his last test's misses into a "fix" round. */
+function revealProgressInit(profile){
+  if(!profile)return false;const changed=!profile.passRuleV2||!profile.fixSeedV1;
+  revealPassMigrate(profile);
+  if(!profile.fixSeedV1&&typeof lztSeedFromLog==="function")lztSeedFromLog(profile);
+  return changed;
 }
 function revealUnit4Gate(profile,id){
   const index=REVEAL_UNIT4_IDS.indexOf(id);
@@ -1712,9 +1742,21 @@ function revealUnit4NextId(profile){
 }
 function revealDefaultLesson(profile){
   const unit4=revealUnit4NextId(profile);if(unit4)return revealLesson(unit4);
-  return(profile&&profile.revealCurrent&&revealLesson(profile.revealCurrent))||REVEAL_LESSONS.find(l=>{const r=profile&&profile.reveal&&profile.reveal[l.id];return !r||!r.total||r.best/r.total<0.8;})||REVEAL_LESSONS[0];
+  return(profile&&profile.revealCurrent&&revealLesson(profile.revealCurrent))||REVEAL_LESSONS.find(l=>!revealProfilePassed(profile,l.id))||REVEAL_LESSONS[0];
 }
-const revealProgressionPublic={unit4Ids:REVEAL_UNIT4_IDS.slice(),isPrince:revealProfileIsPrince,recordPassed:revealRecordPassed,profilePassed:revealProfilePassed,gate:revealUnit4Gate,nextId:revealUnit4NextId};
+function revealNextInUnit(id){const L=revealLesson(id);if(!L)return null;const ls=REVEAL_LESSONS.filter(l=>l.u===L.u);return ls[ls.indexOf(L)+1]||null;}
+/* ---------- Big Back button (Eb 2026-11-04): top-left, 64px+, on every lesson-flow screen ----------
+   Call lzBack(fn,label) right AFTER a screen sets app.innerHTML. Any other screen replacing #app hides it again. */
+let _lzBackFn=null,_lzBackFor=null,_lzBackObs=null;
+function lzBack(fn,label){
+  if(typeof document==="undefined")return;const b=document.getElementById("lzBackBtn"),a=document.getElementById("app");if(!b||!a)return;
+  _lzBackFn=fn;_lzBackFor=a.firstElementChild;b.hidden=false;const lb=b.querySelector(".lzb-to");if(lb)lb.textContent=label||"";
+  document.body.classList.add("lz-back");
+  if(!_lzBackObs&&typeof MutationObserver!=="undefined"){_lzBackObs=new MutationObserver(()=>{if(a.firstElementChild!==_lzBackFor)lzBackHide();});_lzBackObs.observe(a,{childList:true});}
+}
+function lzBackHide(){const b=typeof document!=="undefined"&&document.getElementById("lzBackBtn");if(b)b.hidden=true;_lzBackFn=null;_lzBackFor=null;if(typeof document!=="undefined")document.body.classList.remove("lz-back");}
+function lzBackGo(){const f=_lzBackFn;if(typeof f==="function"){try{if(typeof stopRecorded==="function")stopRecorded();}catch(e){}f();}else if(typeof renderHome==="function")renderHome();}
+const revealProgressionPublic={unit4Ids:REVEAL_UNIT4_IDS.slice(),flex:REVEAL_FLEX.slice(),isPrince:revealProfileIsPrince,recordPassed:revealRecordPassed,profilePassed:revealProfilePassed,migrate:revealPassMigrate,init:revealProgressInit,gate:revealUnit4Gate,nextId:revealUnit4NextId};
 if(typeof window!=="undefined")window.__revealProgression=revealProgressionPublic;else if(typeof globalThis!=="undefined")globalThis.__revealProgression=revealProgressionPublic;
 /* Review cards — the book's "Review" box, in Ananse's words */
 const REVEAL_REVIEW={
@@ -2020,15 +2062,16 @@ function renderReveal(){
   clearTimers();closeOverlay();defocus();showAnanseCorner(true);
   const princePath=revealProfileIsPrince(P),cur=princePath?revealDefaultLesson(P):(P.revealCurrent&&revealLesson(P.revealCurrent));
   const units=Object.keys(REVEAL_UNITS).map(u=>{
-    const ls=REVEAL_LESSONS.filter(l=>l.u==u);const done=ls.filter(l=>{const r=revealRec(l.id);return r&&r.best/r.total>=0.8;}).length;
+    const ls=REVEAL_LESSONS.filter(l=>l.u==u);const done=ls.filter(l=>revealProfilePassed(P,l.id)).length;
     return '<button class="opt" style="display:flex;justify-content:space-between;align-items:center;gap:10px" onclick="renderRevealUnit('+u+')"><span style="text-align:left"><b>Unit '+u+' · '+esc(REVEAL_UNITS[u].t)+'</b><br><span class="muted" style="font-size:13px">'+ls.length+' lessons</span></span><span class="lvl-badge" style="background:'+(done===ls.length?"#2f8f4e":(done?"#f5a623":"#6f88ad"))+'">'+done+'/'+ls.length+' ★</span></button>';
   }).join("");
   app.innerHTML='<div class="fadein" style="max-width:680px;margin:0 auto">'
-   +'<div class="center"><h1>📘 Reveal Math · Grade 3</h1><p class="muted">The same units and lessons as your Reveal Math practice book, with fresh problems every time. Each lesson: Review, then 8 problems. Earn a ★ with 80% or better.</p></div>'
+   +'<div class="center"><h1>📘 Reveal Math · Grade 3</h1><p class="muted">The same units and lessons as your Reveal Math practice book, with fresh problems every time. Each lesson: Review, then the problems. Get every problem right (fix the ones you miss) to earn a ★.</p></div>'
    +'<div class="kente-strip" style="margin:14px 0 10px"></div>'
    +(cur?'<div class="card gold" style="margin-bottom:12px"><b>📍 '+(princePath?'Your Unit 4 next lesson:':'Where the class is:')+'</b> Lesson '+esc(cur.id)+' · '+esc(cur.t)+'<div class="btn-row" style="justify-content:flex-start;margin-top:8px"><button class="btn" onclick="renderRevealLesson(\''+cur.id+'\')">Practice this lesson ▶</button></div></div>':'<p class="muted center" style="margin-bottom:10px">Tip: a parent can set "where the class is" in the Parent Portal so today\'s lesson shows up here first.</p>')
    +'<div class="opts">'+units+'</div>'
    +'<div class="btn-row" style="margin-top:18px"><button class="btn" onclick="renderHome()">⟵ Back to Adventure</button></div><div class="spacer"></div></div>';
+  lzBack(()=>renderHome(),"Home");
   say("Reveal Math practice, "+P.name+". Pick a unit, or practice the lesson your class is on.");
 }
 /* Unit screen look (Eb's Gemini design, 2026-11-03): current lesson = big blue card with picture tiles + green Start,
@@ -2042,7 +2085,7 @@ function renderRevealUnit(u){
   clearTimers();closeOverlay();defocus();showAnanseCorner(false);
   const ls=REVEAL_LESSONS.filter(l=>l.u==u);
   const seq=revealProfileIsPrince(P)&&+u===4;
-  const passed=l=>{const r=revealRec(l.id);return seq?revealProfilePassed(P,l.id):!!(r&&r.total&&r.best/r.total>=0.8);};
+  const passed=l=>revealProfilePassed(P,l.id);
   const gateOf=l=>revealUnit4Gate(P,l.id);
   const open=l=>!passed(l)&&gateOf(l).allowed;
   const cur=ls.find(l=>P.revealCurrent===l.id&&open(l))||ls.find(open)||null;
@@ -2054,9 +2097,10 @@ function renderRevealUnit(u){
       +'<div class="s4-now-t">Lesson '+esc(l.id)+' • '+esc(l.t)+here+'</div>'
       +'<div class="s4-now-row">'+s4Art(l.id)+'<span class="s4-now-side">'+(r?'<span class="s4-now-best">Best so far '+r.best+'/'+r.total+'</span>':'')
       +'<button class="s4-start" onclick="event.stopPropagation();'+go+'">Start Lesson →</button></span></div></div>'+coach;
-    const st=star?'done':(!gate.allowed?'lock':(r?'tried':'new'));
+    const fx=!star&&typeof lztStatus==="function"?lztStatus(l.id):null;
+    const st=star?'done':(!gate.allowed?'lock':(fx||r?'tried':'new'));
     const badge=st==='done'?'<span class="s4-badge s4-b-done"><b>★</b>'+(seq?'Passed':'Mastered')+'<br>'+(r?r.best+'/'+r.total:'saved')+'</span>'
-      :st==='tried'?'<span class="s4-badge s4-b-tried"><b>✎</b>Practiced<br>'+r.best+'/'+r.total+'</span>'
+      :st==='tried'?(fx?'<span class="s4-badge s4-b-tried"><b>✎</b>'+(fx.phase==='fix'?'Fix '+fx.left+'<br>to pass':'On '+fx.at+'<br>of '+fx.total)+'</span>':'<span class="s4-badge s4-b-tried"><b>✎</b>Practiced<br>'+r.best+'/'+r.total+'</span>')
       :st==='lock'?'<span class="s4-badge s4-b-lock"><b>🔒</b>Finish '+esc(gate.prerequisite)+'<br>first</span>'
       :'<span class="s4-badge s4-b-new"><b>○</b>Not<br>started</span>';
     return '<button class="s4-card s4-'+st+'" onclick="'+go+'"'+(st==='lock'?' aria-disabled="true"':'')+'><span class="s4-t">Lesson '+esc(l.id)+' • '+esc(l.t)+here+'</span>'+badge+'</button>';}).join("");
@@ -2067,20 +2111,37 @@ function renderRevealUnit(u){
    +'<div class="card s4-home"><b>🏠 Math @ Home</b><p class="muted" style="margin-top:6px">'+esc(REVEAL_UNITS[u].home)+'</p></div>'
    +'<div class="btn-row" style="margin-top:14px"><button class="btn secondary" onclick="renderReveal()">⟵ All units</button></div><div class="spacer"></div>'
    +'</div>';
+  lzBack(()=>renderHome(),"Home");
 }
 function renderRevealLockedLesson(id,gate){
-  const prior=revealLesson(gate.prerequisite);
-  clearTimers();closeOverlay();defocus();showAnanseCorner(true);
-  app.innerHTML='<div class="fadein center" style="max-width:620px;margin:0 auto"><div class="hud"><span class="pill">📘 <b>Reveal Math</b></span><span class="pill">Unit 4</span></div><h1 style="margin-top:16px">🔒 Lesson '+esc(id)+' is next later</h1><div class="card gold" style="margin-top:14px"><p style="font-size:20px">Finish and pass <b>Lesson '+esc(prior.id)+' · '+esc(prior.t)+'</b> first.</p><p class="muted" style="margin-top:8px">Your earlier lesson records and other units are still available.</p></div><div class="spacer"></div><div class="btn-row"><button class="btn big" onclick="renderRevealLesson(\''+prior.id+'\')">Go to Lesson '+esc(prior.id)+' ▶</button><button class="btn secondary" onclick="renderRevealUnit(4)">⟵ Unit 4 path</button><button class="btn secondary" onclick="renderReveal()">All units</button></div></div>';
-  say("Lesson "+id+" is locked for now. Finish lesson "+prior.id+" first.");
+  const prior=revealLesson(gate.prerequisite),L=revealLesson(id),u=L?L.u:4,next=revealNextInUnit(prior.id);
+  clearTimers();closeOverlay();defocus();showAnanseCorner(false);
+  const st=typeof lztStatus==="function"?lztStatus(prior.id):null,flex=revealIsFlex(prior.id),unlock=next?next.id:id;
+  const later=unlock!==id?' Lessons open one at a time, so after that comes '+unlock+', then the next one, up to '+id+'.':'';
+  let msg,btn,go,dots='';
+  if(st&&st.phase==='fix'){msg='Finish the '+(st.left===1?'question':st.left+' questions')+' you missed in Lesson '+prior.id+' to unlock '+unlock+'.';btn='Fix '+(st.left===1?'it':'them')+' now ▶';go='lztStart(\''+prior.id+'\')';}
+  else if(st){msg='Finish Lesson '+prior.id+' to unlock '+unlock+'. You are on question '+st.at+' of '+st.total+', and your answers are saved.';btn='Keep going ▶';go='lztStart(\''+prior.id+'\')';}
+  else{msg=(flex?'Do Lesson '+prior.id+' and get every question right to unlock '+unlock+'. Any you miss, you fix with a tip.':'Pass Lesson '+prior.id+' to unlock '+unlock+'.');btn='Go to Lesson '+prior.id+' ▶';go='renderRevealLesson(\''+prior.id+'\')';}
+  if(st&&typeof lztDotsHTML==="function")dots=lztDotsHTML(st.dots,false);
+  app.innerHTML='<div class="fadein lzt-screen" style="max-width:640px;margin:0 auto"><div class="hud"><span class="pill">📘 <b>Reveal Math</b></span><span class="pill">Unit '+u+'</span></div>'
+   +'<section class="lzt-card lzt-lock"><div class="lzt-lockic" aria-hidden="true">🔒</div><h1 class="lzt-h">Lesson '+esc(id)+' is locked</h1>'
+   +'<p class="lzt-big">'+esc(msg)+'</p>'+(later?'<p class="lzt-small">'+esc(later.trim())+'</p>':'')+dots
+   +'<div class="lzt-row"><button class="lzt-btn lzt-go" id="lztLockGo" onclick="'+go+'">'+esc(btn)+'</button></div></section>'
+   +'<p class="muted center" style="margin-top:12px">Your earlier lessons and other units are still open.</p><div class="spacer"></div></div>';
+  lzBack(()=>renderRevealUnit(u),"Unit "+u);
+  say(msg);
 }
-function renderRevealLesson(id){
+function renderRevealLesson(id,opts){
   const L=revealLesson(id);if(!L)return renderReveal();
   const gate=revealUnit4Gate(P,id);if(!gate.allowed)return renderRevealLockedLesson(id,gate);
-  if(typeof videoGate==="function"&&videoGate("reveal:"+id,()=>renderRevealLesson(id),()=>renderRevealUnit(L.u)))return;
-  if(typeof catchUpGate==="function"&&catchUpGate(id))return;
+  const fromTest=!!(opts&&opts.fromTest); // Back from inside a test: show this page, don't re-run the video/catch-up gates
+  if(!fromTest&&typeof videoGate==="function"&&videoGate("reveal:"+id,()=>renderRevealLesson(id),()=>renderRevealUnit(L.u)))return;
+  if(!fromTest&&typeof catchUpGate==="function"&&catchUpGate(id))return;
   clearTimers();closeOverlay();defocus();showAnanseCorner(false);
   const r=revealRec(id);
+  const fx=typeof lztStatus==="function"?lztStatus(id):null,nx=revealNextInUnit(id);
+  const sres=!fx&&typeof DB!=="undefined"&&DB.resume&&P&&DB.resume[P.id],sKeep=!!(sres&&sres.s&&sres.s.cur&&typeof savedResumeLesson==="function"&&savedResumeLesson(sres)===id&&Date.now()-sres.t<86400000);
+  const fxCard=fx?'<section class="lzt-card lzt-note"><p class="lzt-big">'+(fx.phase==='fix'?esc('You have '+(fx.left===1?'1 question':fx.left+' questions')+' to fix. Each one comes with a tip.'+(nx&&!revealProfilePassed(P,id)?' Fix '+(fx.left===1?'it':'them')+' to unlock Lesson '+nx.id+'.':'')):esc('You stopped at question '+fx.at+' of '+fx.total+'. Your answers are saved.'))+'</p>'+(typeof lztDotsHTML==="function"?lztDotsHTML(fx.dots,false):'')+'</section>':'';
   const sample=revealGen(L,false,revealTier(L));
   const wbReview=revealUsesWorkbook(id)&&typeof wbRevealReview==="function"?wbRevealReview(id):"";
   app.innerHTML='<div class="fadein" style="max-width:660px;margin:0 auto">'
@@ -2089,11 +2150,14 @@ function renderRevealLesson(id){
    +(wbReview||('<div class="card gold" style="margin-top:12px"><h3 style="margin-bottom:8px">Review</h3><p style="font-size:19px;line-height:1.6">'+esc(REVEAL_REVIEW[id]||"")+'</p>'+(id==='4-6'?'<div aria-label="Four groups of eight" style="text-align:center;font-size:21px">[ ● ● ● ● ● ● ● ● ] [ ● ● ● ● ● ● ● ● ]<br>[ ● ● ● ● ● ● ● ● ] [ ● ● ● ● ● ● ● ● ]</div>':'')
    +(id==='5-1'?'<div aria-label="Three rows of four dots split after two columns" style="text-align:center;font-size:23px">● ● │ ● ●<br>● ● │ ● ●<br>● ● │ ● ●</div>':'')
    +(sample.vis&&!["4-6","5-1","5-2"].includes(id)?'<div class="qvis" style="margin-top:10px">'+sample.vis+'</div><p class="muted" style="font-size:14px;margin-top:6px">Example: '+esc(sample.q)+' → '+esc(sample.opts[sample.a])+'</p>':'')+'</div>'))
-   +(r?'<p class="muted center" style="margin-top:10px">Best so far: '+r.best+' of '+r.total+' · tried '+r.tries+' time'+(r.tries===1?'':'s')+'</p>':'')
-   +'<div class="center"><div class="spacer"></div><div class="btn-row"><button class="btn big" onclick="startReveal(\''+id+'\')">Start practice ▶</button>'
+   +(r?'<p class="muted center" style="margin-top:10px">Best first try: '+r.best+' of '+r.total+' · tried '+r.tries+' time'+(r.tries===1?'':'s')+(revealProfilePassed(P,id)?' · ★ passed':'')+'</p>':'')
+   +fxCard
+   +'<div class="center"><div class="spacer"></div><div class="btn-row">'+(fx?'<button class="btn big" id="lztLessonGo" onclick="lztStart(\''+id+'\')">'+(fx.phase==='fix'?'Fix the '+(fx.left===1?'one':fx.left)+' I missed ▶':'▶ Keep going · question '+fx.at)+'</button>':(sKeep?'<button class="btn big" onclick="sessResumeBtn()">▶ Keep going · question '+Math.min((sres.s.n||0)+1,sres.s.total||8)+'</button>':'<button class="btn big" onclick="startReveal(\''+id+'\')">Start practice ▶</button>'))
    +(typeof videoAgainBtn==="function"?videoAgainBtn("reveal:"+id):'')
    +'<button class="btn secondary" onclick="say(REVEAL_REVIEW[\''+id+'\'])">🔊 Read it to me</button><button class="btn secondary" onclick="renderRevealUnit('+L.u+')">⟵ Unit '+L.u+'</button></div></div></div>';
-  say("Lesson "+id+", "+L.t+". "+(REVEAL_REVIEW[id]||""));
+  lzBack(()=>renderRevealUnit(L.u),"Unit "+L.u);
+  if(fromTest&&fx)say(fx.phase==='fix'?"Your answers are saved. Tap the button when you are ready to fix them.":"Your answers are saved. Tap keep going when you are ready.");
+  else say("Lesson "+id+", "+L.t+". "+(REVEAL_REVIEW[id]||""));
 }
 const REVEAL_WB_IDS=["3-7","4-1","4-2","4-3","4-4","4-5"];
 function revealUsesWorkbook(id){return REVEAL_WB_IDS.includes(id)&&typeof wbStart==="function"&&typeof WB_LESSONS!=="undefined"&&!!WB_LESSONS[id];}
@@ -2109,7 +2173,7 @@ function wbRevealExit(id){const L=revealLesson(id);if(L)renderRevealUnit(L.u);el
 function startReveal(id){
   const L=revealLesson(id);if(!L)return;
   const gate=revealUnit4Gate(P,id);if(!gate.allowed){renderRevealLockedLesson(id,gate);return;}
-  if(revealUsesWorkbook(id)){P.revealAsked=P.revealAsked||{};if(typeof clearTimers==="function")clearTimers();wbStart(id,{reveal:true,size:10});return;}
+  if(revealUsesWorkbook(id)){P.revealAsked=P.revealAsked||{};if(typeof clearTimers==="function")clearTimers();if(typeof lztStart==="function"&&revealIsFlex(id)){lztStart(id);return;}wbStart(id,{reveal:true,size:10});return;}
   P.revealAsked=P.revealAsked||{};P.revealAsked[id]=P.revealAsked[id]||{};
   const mirror=["3-7","4-1","4-2","4-3","4-4","4-5","4-6","5-1","5-2"].includes(id)?mirrorSession(id):null;
   S={subject:"math",total:mirror?10:8,n:0,correct:0,results:[],consecR:0,consecW:0,
@@ -2337,21 +2401,8 @@ function wbN2(){const a=wbName();let b=wbName(),t=0;while(b===a&&t++<40)b=wbName
 function wbNorm(s){return String(s==null?"":s).toLowerCase().replace(/[✕*]/g,"×").replace(/[^a-z0-9×+=\s$]/g," ").replace(/\s+/g," ").trim();}
 function wbLev(a,b){const m=a.length,n=b.length;if(!m)return n;if(!n)return m;let prev=[];for(let j=0;j<=n;j++)prev[j]=j;for(let i=1;i<=m;i++){const cur=[i];for(let j=1;j<=n;j++)cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));prev=cur;}return prev[n];}
 function wbWordOK(text,accept){const t=wbNorm(text).replace(/^(a|an|the)\s+/,"");if(!t)return false;return accept.some(w=>{w=String(w).toLowerCase();if(t===w)return true;if(w.length>=4&&wbLev(t,w)<=1)return true;if(w.length>=7&&wbLev(t,w)<=2)return true;return false;});}
-function wbReasonOK(text,keys,p){let n=wbNorm(text).replace(/^because\s+/,"");const tokens=n.split(" ").filter(Boolean);if(tokens.length<3||/\b(?:idk|dunno|dont know|don t know|do not know|no idea|not sure)\b/.test(n))return false;
-  // Parity and the final-digit pattern depend on the actual yes/no answer.
-  // Refuse direct contradictions before considering the child's key words.
-  if(p&&p.lesson==="4-5"&&p.answer&&p.answer.f){
-    const yes=p.answer.f.a==="yes";
-    if(/pairs of/.test(p.q)){
-      const odd=/\b(?:odd|od)\b/.test(n),even=/\b(?:even|evn)\b/.test(n);
-      if((yes&&odd&&!even)||(!yes&&even&&!odd))return false;
-    }else if(/product of 2, a product of 5, and a product of 10/.test(p.q)){
-      const endsZero=/\b(?:ends?|ending|end|last digit)\b.*\b(?:0|zero)\b/.test(n);
-      const negative=/\b(?:not|never|doesnt|doesn t|does not|cannot|can t)\b/.test(n);
-      if(endsZero&&negative===yes)return false;
-    }
-  }
-  return keys.some(k=>{k=String(k).toLowerCase();if(!/[a-z0-9]/.test(k))return n.indexOf(k)>=0;if(k.length===1||/^\d+$/.test(k))return tokens.indexOf(k)>=0;if(k.indexOf(" ")>=0)return n.indexOf(k)>=0;return tokens.some(t=>t===k||(k.length>=4&&t.length>=3&&(t.indexOf(k)===0||k.indexOf(t)===0&&t.length>=4||wbLev(t,k)<=(k.length>=7?2:1))));});}
+/* Explain reasons are NEVER auto-marked (Eb, 2026-11-04, option A): only the answer is checked; the reason is saved
+   for the parent (P.explains) and the model explanation is always shown. */
 function wbYN(text){const t=wbNorm(text).split(" ")[0];if(/^(y|yes|yep|yeah|yup|correct|true|sure)$/.test(t))return"yes";if(/^(n|no|nope|nah|false|not|incorrect)$/.test(t))return"no";return null;}
 function wbNum(text){const t=String(text==null?"":text).trim().replace(/^\$/,"").replace(/,/g,"");return /^\d{1,4}$/.test(t)?Number(t):NaN;}
 function wbSideParse(str){if(!str)return null;const terms=str.split("+").map(t=>t.split("*"));if(terms.some(t=>t.some(f=>!/^\d{1,3}$/.test(f))))return null;const nums=terms.map(t=>t.map(Number));return{terms:nums,value:nums.reduce((s,t)=>s+t.reduce((a,b)=>a*b,1),0)};}
@@ -2361,11 +2412,11 @@ function wbTwoEqOK(a,b,g){const x=wbClassEq(a),y=wbClassEq(b);if(!x||!y)return f
 function wbFormCheck(p,f){
   if(!f||typeof f!=="object")return false;
   for(const c of (p.checks||[])){
+    if(c.t==="reason")continue; // the "because" part is saved, not marked
     const v=f[c.k];if(v==null||String(v).trim()==="")return false;
     if(c.t==="num"){if(wbNum(v)!==c.want)return false;}
     else if(c.t==="word"){if(!wbWordOK(v,c.accept))return false;}
     else if(c.t==="yn"){if(wbYN(v)!==c.want)return false;}
-    else if(c.t==="reason"){if(!wbReasonOK(v,c.keys,p))return false;}
     else if(c.t==="mult"){const n=wbNum(v);if(!(n>=c.min&&n<=c.max&&n%c.of===0))return false;}
     else if(c.t==="divides"){const n=wbNum(v);if(!(n>=2&&n<=c.max&&c.of%n===0))return false;}
     else return false;
@@ -2611,6 +2662,7 @@ function wbResumeRestore(snapshot){
   try{
     if(!snapshot||!snapshot.reveal||!/^4-/.test(snapshot.lessonId)||!Array.isArray(snapshot.problems)||!snapshot.cur)return false;
     if(typeof revealUnit4Gate==="function"&&!revealUnit4Gate(P,snapshot.lessonId).allowed)return false;
+    if(snapshot.flex&&typeof lztStart==="function"){lztStart(snapshot.lessonId);return true;}
     WB=JSON.parse(JSON.stringify(snapshot));WB.canvas=null;WB.ctx=null;
     WB.results=Array.isArray(WB.results)?WB.results:[];WB.fields=WB.fields||{};WB.selected=Array.isArray(WB.selected)?WB.selected:[];WB.match=WB.match||{};WB.groupDots=Array.isArray(WB.groupDots)?WB.groupDots:[];WB.pairBuild=Array.isArray(WB.pairBuild)?WB.pairBuild:[];
     if(WB.answered&&typeof WB.lastOK==="boolean")wbRenderFeedback(WB.lastOK,WB.lastAnswer||null);else wbRenderProblem(true);
@@ -2644,7 +2696,7 @@ function renderWorkbookLesson(id){
   if(typeof say==="function")say("Lesson "+id+", "+L.title+". Review. "+L.review);
 }
 function wbStart(id,opts){opts=opts||{};if(opts.reveal&&typeof revealUnit4Gate==="function"){const gate=revealUnit4Gate(P,id);if(!gate.allowed){if(typeof renderRevealLockedLesson==="function")renderRevealLockedLesson(id,gate);return;}}const size=Math.max(1,Math.floor(Number(opts.size)||(opts.reveal?10:8)));WB={lessonId:id,size:size,reveal:!!opts.reveal,problems:wbGenerate(id,size),index:0,results:[],cur:null,isTwin:false,answered:false,start:Date.now()};wbLoadProblem(WB.problems[0],false);}
-function wbLoadProblem(p,isTwin){WB.cur=p;WB.isTwin=!!isTwin;WB.answered=false;WB.lastAnswer=null;WB.lastOK=null;WB.startedAt=Date.now();WB.fields={};WB.active=null;WB.selected=[];WB.person=null;WB.match={};WB.matchLeft=null;WB.matchOrder=null;if(p.type==="match"){p.pairs.forEach(x=>WB.fields[x.id]="");WB.active=p.pairs[0].id;}WB.workTab="build";WB.groupDots=[];WB.rows=0;WB.cols=0;WB.pairBuild=(p.models||[]).map(m=>m.kind==="array"?{rows:0,cols:0}:{groupDots:[]});WB.drew=false;WB.strokes=0;WB.canvasData=null;WB.canvas=null;WB.ctx=null;WB.drawTool="pen";WB.drawColor="#17243a";if(p.type==="form"){p.fields.forEach(f=>{WB.fields[f.key]="";});}if(p.type==="fill"){WB.fields.ans="";WB.active="ans";}if(p.type==="picture"){p.eq.values.forEach((v,i)=>WB.fields["e"+i]="");if(p.extraEq)p.extraEq.values.forEach((v,i)=>WB.fields["x"+i]="");WB.active="e0";}if(p.type==="story"){p.eq.values.forEach((v,i)=>WB.fields["e"+i]="");WB.fields.ans="";if(p.answer.remainder!=null)WB.fields.rem="";WB.active="e0";}if(p.type==="who"&&p.valueAnswer!=null){WB.fields.ans="";WB.active="ans";}if(p.type==="pair"){WB.fields.ans="";if(p.equations){p.equations[0].forEach((v,i)=>WB.fields["e"+i]="");p.equations[1].forEach((v,i)=>WB.fields["x"+i]="");WB.active="e0";}else WB.active="ans";}wbRenderProblem();}
+function wbLoadProblem(p,isTwin,restore,silent){WB.cur=p;WB.isTwin=!!isTwin;WB.answered=false;WB.lastAnswer=null;WB.lastOK=null;WB.startedAt=Date.now();WB.fields={};WB.active=null;WB.selected=[];WB.person=null;WB.match={};WB.matchLeft=null;WB.matchOrder=null;if(p.type==="match"){p.pairs.forEach(x=>WB.fields[x.id]="");WB.active=p.pairs[0].id;}WB.workTab="build";WB.groupDots=[];WB.rows=0;WB.cols=0;WB.pairBuild=(p.models||[]).map(m=>m.kind==="array"?{rows:0,cols:0}:{groupDots:[]});WB.drew=false;WB.strokes=0;WB.canvasData=null;WB.canvas=null;WB.ctx=null;WB.drawTool="pen";WB.drawColor="#17243a";if(p.type==="form"){p.fields.forEach(f=>{WB.fields[f.key]="";});}if(p.type==="fill"){WB.fields.ans="";WB.active="ans";}if(p.type==="picture"){p.eq.values.forEach((v,i)=>WB.fields["e"+i]="");if(p.extraEq)p.extraEq.values.forEach((v,i)=>WB.fields["x"+i]="");WB.active="e0";}if(p.type==="story"){p.eq.values.forEach((v,i)=>WB.fields["e"+i]="");WB.fields.ans="";if(p.answer.remainder!=null)WB.fields.rem="";WB.active="e0";}if(p.type==="who"&&p.valueAnswer!=null){WB.fields.ans="";WB.active="ans";}if(p.type==="pair"){WB.fields.ans="";if(p.equations){p.equations[0].forEach((v,i)=>WB.fields["e"+i]="");p.equations[1].forEach((v,i)=>WB.fields["x"+i]="");WB.active="e0";}else WB.active="ans";}if(restore){const r=JSON.parse(JSON.stringify(restore));["fields","selected","match","person","groupDots","rows","cols","pairBuild"].forEach(k=>{if(r[k]!==undefined&&r[k]!==null)WB[k]=r[k];});}wbRenderProblem(silent);}
 function wbNeedsWork(p){return p&&(p.type==="story"||p.type==="who"||p.requireWork);}
 function wbOneModelMatches(m,state,allowTurn){if(!m||!state)return false;if(m.kind==="array")return state.rows===m.rows&&state.cols===m.cols||!!(allowTurn&&state.rows===m.cols&&state.cols===m.rows);if(!Array.isArray(state.groupDots)||state.groupDots.length!==m.groups)return false;return state.groupDots.every(n=>n===m.size);}
 function wbModelMatches(){const p=WB&&WB.cur,m=p&&p.model;if(!m)return false;if(m.kind==="pair")return m.models.every((x,i)=>wbOneModelMatches(x,WB.pairBuild[i],false));if(m.kind==="array")return wbOneModelMatches(m,{rows:WB.rows,cols:WB.cols},p.allowTurn);return wbOneModelMatches(m,{groupDots:WB.groupDots},false);}
@@ -2665,8 +2717,10 @@ function wbSubmitButton(){return'<div class="wb-btnrow"><button id="wbSubmit" cl
 function wbRenderProblem(silent){
   const p=WB.cur,L=WB_LESSONS[WB.lessonId],pct=Math.round(WB.index/(WB.size||8)*100),num=WB.index+1,work=wbNeedsWork(p),visual=p.visual?'<div class="wb-visual">'+wbVisual(p.visual)+'</div>':'';
   let controls=wbQuestionAnswerHTML(p),submit=(p.type==="fill"||p.type==="picture"||p.type==="story"||p.type==="pair"||p.type==="match"||(p.type==="who"&&p.valueAnswer!=null))?wbNumberPad():wbSubmitButton();
-  app.innerHTML='<div class="fadein wb-shell"><div class="wb-page">'+wbPageHead(WB.lessonId)+'<div class="wb-progress"><i style="width:'+pct+'%"></i></div><div class="wb-problem"><div class="wb-questionarea"><div class="wb-qrow"><div class="wb-qnum">'+(WB.isTwin?'↻':num+'.')+'</div><div><div class="wb-qcopy">'+(WB.isTwin?'<span style="color:#207141">Try one like it:</span> ':'')+wbEscape(p.q)+'</div>'+(p.instruction&&p.instruction!==p.q?'<div class="wb-instruction">'+wbEscape(p.instruction)+'</div>':'')+'<button class="wb-read" onclick="say(WB.cur.spoken)">🔊 Read it</button></div></div>'+visual+(work?wbWorkHTML(p):'')+'</div><div class="wb-answerarea">'+controls+submit+'</div></div></div></div>';
+  app.innerHTML='<div class="fadein wb-shell'+(WB.flex?' lzt-test':'')+'"><div class="wb-page">'+wbPageHead(WB.lessonId)+(WB.flex?lztStripHTML():'<div class="wb-progress"><i style="width:'+pct+'%"></i></div>')+'<div class="wb-problem"><div class="wb-questionarea"><div class="wb-qrow"><div class="wb-qnum">'+(WB.isTwin?'↻':num+'.')+'</div><div><div class="wb-qcopy">'+(WB.isTwin?'<span style="color:#207141">Try one like it:</span> ':'')+wbEscape(p.q)+'</div>'+(p.instruction&&p.instruction!==p.q?'<div class="wb-instruction">'+wbEscape(p.instruction)+'</div>':'')+'<button class="wb-read" onclick="say(WB.cur.spoken)">🔊 Read it</button></div></div>'+visual+(work?wbWorkHTML(p):'')+'</div><div class="wb-answerarea">'+controls+submit+'</div></div></div></div>';
+  if(WB.flex)lztAfterRender();
   if(work&&WB.workTab==="draw")setTimeout(wbInitCanvas,0);wbResumeSave();if(!silent&&typeof say==="function")say((WB.isTwin?"Try one like it. ":"")+p.spoken);
+  if(!silent)wbWarmExplain();
 }
 
 function wbWorkHTML(p){return'<section class="wb-work"><div class="wb-worktop"><b>✏️ SHOW YOUR WORK</b><div class="wb-tabs"><button class="wb-tab '+(WB.workTab==="build"?'on':'')+'" onclick="wbWorkTab(\'build\')">Build it</button><button class="wb-tab '+(WB.workTab==="draw"?'on':'')+'" onclick="wbWorkTab(\'draw\')">Draw it</button></div></div><div class="wb-workbody" id="wbWorkBody">'+(WB.workTab==="build"?wbBuildHTML(p):wbDrawHTML())+'</div></section>';}
@@ -2736,17 +2790,51 @@ function wbLogInfo(p,a){try{
     correct=(p.equations?p.equations.map(e=>eqT("×",e)).join(" and ")+"; ":"")+"product "+p.answer.product+(p.answer.compare!=null?"; "+p.answer.compare:"");}
   return{shown:shown,given:given,correct:correct};
 }catch(e){return null;}}
+/* ---------- Explain questions (Eb, 2026-11-04, option A): mark the ANSWER only, save his "because" for the parent ---------- */
+function wbIsExplain(p){return!!(p&&p.type==="form"&&(p.checks||[]).some(c=>c.t==="reason"));}
+function wbExplainParts(p,f){
+  f=f||{};const rk=(p.checks||[]).filter(c=>c.t==="reason").map(c=>c.k),ans=[],why=[];
+  (p.rows||[]).forEach(r=>{const keys=[];String(r).replace(/\{[nt]:(\w+)\}/g,(m,k)=>{keys.push(k);return m;});
+    if(keys.some(k=>rk.indexOf(k)>=0))keys.forEach(k=>{if(rk.indexOf(k)>=0)why.push(f[k]==null?"":String(f[k]));});
+    else ans.push(String(r).replace(/\{[nt]:(\w+)\}/g,(m,k)=>f[k]==null||String(f[k]).trim()===""?"__":String(f[k]).trim()));});
+  return{answer:ans.join(" / "),reason:why.join(" / ")};
+}
+/* Additive profile field P.explains (never touches older fields): one record per Explain attempt, reason kept exactly as typed. */
+function wbSaveExplain(p,a,ok){
+  try{
+    if(!wbIsExplain(p)||typeof P==="undefined"||!P)return null;
+    const x=wbExplainParts(p,(a&&a.f)||{});
+    const rec={at:new Date().toISOString(),date:typeof today==="function"?today():new Date().toISOString().slice(0,10),lesson:(WB&&WB.lessonId)||p.lesson||"",q:p.q,answer:x.answer,ok:!!ok,reason:x.reason,model:p.explain||"",mode:WB&&WB.flex?(WB.phase==="fix"?"fix":"test"):"practice"};
+    if(!Array.isArray(P.explains))P.explains=[];
+    P.explains.push(rec);if(P.explains.length>1000)P.explains=P.explains.slice(-1000);
+    return rec;
+  }catch(e){return null;}
+}
+function wbModelHTML(p,reason){
+  return'<div class="lzt-model" role="status">'+(reason?'<p class="lzt-you">You wrote: <i>because '+wbEscape(String(reason).trim().replace(/^because\s+/i,""))+'</i></p>':'')
+   +'<p class="lzt-model-h">💬 Nice thinking! Here’s another way to say it:</p><p class="lzt-model-t">'+wbEscape(p.explain||"")+'</p></div>';
+}
+/* While he types an Explain answer, quietly pre-render the model line in the teacher voice so it plays at once. */
+/* Spoken in sentence-sized pieces: the fixed opening is rendered once and cached for good; each new sentence is short
+   enough for the teacher voice to make quickly. */
+const WB_EXPLAIN_CHUNK=90;
+function wbExplainLine(p){return(WB&&WB.flex?"Your answer is right! ":"Nice work. Your answer is correct. ")+wbModelSpoken(p);}
+function wbWarmExplain(){
+  const p=WB&&WB.cur;if(!wbIsExplain(p)||typeof warmTeacherLine!=="function")return;
+  setTimeout(()=>{if(WB&&WB.cur===p&&!WB.answered)warmTeacherLine(wbExplainLine(p),WB_EXPLAIN_CHUNK);},4000); // after the question read-out
+}
+function wbModelSpoken(p){return"Nice thinking! Here's another way to say it. "+lztSpeakable(p.explain||"");}
 function wbSubmit(){
   if(!wbCanSubmit()){if(typeof toast==="function")toast(wbWorkDone()?"Finish every answer box first":"Show your work first");return;}
-  WB.answered=true;if(WB.workTab==="draw")wbRememberCanvas();const p=WB.cur,a=wbCollectAnswer(),ok=wbCheck(p,a);WB.lastAnswer=a;WB.lastOK=ok;const built=wbBuiltRecord(),rec={lesson:WB.lessonId,type:p.type,q:p.q,answer:wbCompactAnswer(a),correct:ok,built:built,drew:!!WB.drew,at:new Date().toISOString()};
-  const data=wbData();data.log.push(rec);if(data.log.length>2000)data.log=data.log.slice(-2000);if(!WB.isTwin)WB.results.push(ok);if(typeof logQuestion==="function")logQuestion("workbook","math","reveal "+WB.lessonId+" workbook","workbook:"+WB.lessonId,p.q,ok,0,Date.now()-WB.startedAt,wbLogInfo(p,a));else if(typeof save==="function")save();wbSendDrawing(rec);if(typeof save==="function")save();if(typeof sfx==="function")sfx(ok?"correct":"wrong");wbRenderFeedback(ok,a);
+  WB.answered=true;if(WB.workTab==="draw")wbRememberCanvas();const p=WB.cur,a=wbCollectAnswer(),ok=wbCheck(p,a);WB.lastAnswer=a;WB.lastOK=ok;wbSaveExplain(p,a,ok);const built=wbBuiltRecord(),rec={lesson:WB.lessonId,type:p.type,q:p.q,answer:wbCompactAnswer(a),correct:ok,built:built,drew:!!WB.drew,at:new Date().toISOString()};
+  const data=wbData();data.log.push(rec);if(data.log.length>2000)data.log=data.log.slice(-2000);if(!WB.isTwin&&!WB.flex)WB.results.push(ok);if(typeof logQuestion==="function")logQuestion("workbook","math","reveal "+WB.lessonId+" workbook","workbook:"+WB.lessonId,p.q,ok,0,Date.now()-WB.startedAt,wbLogInfo(p,a));else if(typeof save==="function")save();wbSendDrawing(rec);if(typeof save==="function")save();if(typeof sfx==="function")sfx(ok?"correct":"wrong");if(WB.flex){lztAfterAnswer(ok,a);return;}wbRenderFeedback(ok,a);
 }
 function wbCorrectEquation(p){if(p.type==="fill"){let used=false;return p.parts.map(x=>{if(x==="□"&&!used){used=true;return p.answer;}return x;}).join(" ");}if(p.eq)return p.eq.values[0]+" "+p.eq.op+" "+p.eq.values[1]+" = "+p.eq.values[2];return"";}
 function wbCorrectAnswerHTML(p){if(p.type==="form")return'<div class="wb-multi-review">'+(p.answerLines||[]).map(l=>'<div class="wb-multi-line"><b>'+wbEscape(l)+'</b></div>').join("")+'</div>';if(p.type==="multi")return'<div class="wb-multi-review">'+p.options.map(o=>'<div class="wb-multi-line"><b>'+(o.true?'✓':'✗')+' '+o.id+'. '+wbEscape(o.text)+'</b><br>'+wbEscape(o.why)+'</div>').join("")+'</div>';if(p.type==="match")return'<div class="wb-multi-review">'+p.pairs.map(x=>'<div class="wb-multi-line">'+wbEscape(x.left)+' ↔ '+wbEscape(x.right)+'</div>').join("")+'</div>';if(p.type==="pair"){let h=(p.equations||[]).map(e=>'<div class="wb-review-eq">'+e[0]+' × '+e[1]+' = '+e[2]+'</div>').join("");h+='<div class="wb-review-eq">Shared product: '+p.answer.product+'</div>';if(p.answer.compare)h+='<div class="wb-review-eq">Who has more? '+wbEscape(p.answer.compare)+'</div>';return h;}if(p.type==="who"){const who=p.answer&&p.answer.person!=null?p.answer.person:p.answer;return'<p><b>'+wbEscape(who)+(who==="Yes"?' — the shared product is '+p.valueAnswer:' is right.')+'</b></p>';}let h=wbCorrectEquation(p)?'<div class="wb-review-eq">'+wbEscape(wbCorrectEquation(p))+'</div>':'';if(p.extraEq)h+='<div class="wb-review-eq">'+wbEscape(p.extraEq.values[0]+" "+p.extraEq.op+" "+p.extraEq.values[1]+" = "+p.extraEq.values[2])+'</div>';if(p.type==="story")h+='<div class="wb-review-eq">Answer: '+p.answer.value+' '+wbEscape(p.unit)+(p.answer.remainder!=null?' and '+p.answer.remainder+' '+wbEscape(p.remainderUnit):'')+'</div>';return h;}
 function wbRenderFeedback(ok,a){
   const p=WB.cur,model=p.model||p.visual,head=ok?(WB.isTwin?"You got the new one!":"Yes — nice work!"):"Let’s look at the model.",voice=ok?"Nice work. Your answer is correct.":"Good try. Look at the model and the equation.";
-  app.innerHTML='<div class="fadein wb-shell"><div class="wb-page">'+wbPageHead(WB.lessonId)+'<div class="wb-feedback '+(ok?'good':'try')+'"><h2>'+(ok?'✓ ':'')+wbEscape(head)+'</h2>'+(!ok&&model?'<div class="wb-visual">'+wbVisual(model)+'</div>':'')+wbCorrectAnswerHTML(p)+'<div class="wb-teach">'+wbEscape(p.explain||"Use the model to check each number in the equation.")+'</div></div><div class="wb-btnrow">'+(!ok&&!WB.isTwin?'<button class="wb-primary" onclick="wbTryTwin()">Try one like it ↻</button>':'')+'<button class="wb-secondary" onclick="wbContinue()">'+(WB.index===(WB.size||8)-1?'See my score':'Next problem')+' ▶</button></div></div></div>';
-  wbResumeSave();if(typeof say==="function")say(voice+" "+(p.explain||""));
+  app.innerHTML='<div class="fadein wb-shell"><div class="wb-page">'+wbPageHead(WB.lessonId)+'<div class="wb-feedback '+(ok?'good':'try')+'"><h2>'+(ok?'✓ ':'')+wbEscape(head)+'</h2>'+(!ok&&model?'<div class="wb-visual">'+wbVisual(model)+'</div>':'')+wbCorrectAnswerHTML(p)+(wbIsExplain(p)?wbModelHTML(p,wbExplainParts(p,(a&&a.f)||{}).reason):'<div class="wb-teach">'+wbEscape(p.explain||"Use the model to check each number in the equation.")+'</div>')+'</div><div class="wb-btnrow">'+(!ok&&!WB.isTwin?'<button class="wb-primary" onclick="wbTryTwin()">Try one like it ↻</button>':'')+'<button class="wb-secondary" onclick="wbContinue()">'+(WB.index===(WB.size||8)-1?'See my score':'Next problem')+' ▶</button></div></div></div>';
+  wbResumeSave();if(typeof say==="function")say(wbIsExplain(p)&&ok?wbExplainLine(p):voice+" "+(wbIsExplain(p)?wbModelSpoken(p):(p.explain||"")),{chunk:WB_EXPLAIN_CHUNK});
 }
 function wbTryTwin(){const original=WB.cur,type=original.type;let twin=null;for(let tries=0;tries<10&&!twin;tries++){const osig=wbSig(original),pool=wbGenerate(WB.lessonId,30).filter(x=>x.type===type&&(original.slot==null||x.slot===original.slot)&&wbSig(x)!==osig);if(pool.length)twin=wbPick(pool);}if(!twin){wbContinue();return;}wbLoadProblem(twin,true);}
 function wbContinue(){WB.index++;if(WB.index>=(WB.size||8))return wbFinish();wbLoadProblem(WB.problems[WB.index],false);}
@@ -2762,6 +2850,343 @@ function wbFinish(){
 }
 function wbRevealReview(id){const L=WB_LESSONS[id];if(!L)return"";return'<section class="wb-review"><div><h2>Review</h2><p>'+wbEscape(L.review)+'</p><div class="wb-review-eq">'+wbEscape(L.reviewEq)+'</div></div><div class="wb-review-visual">'+wbVisual(L.reviewModel)+'</div></section>';}
 
+/* ===================== Flexible lesson test (Eb 2026-11-04, "it should be more flexible") =====================
+   Used by the Reveal lessons that run on this engine (REVEAL_FLEX in reveal.js: 3-7, 4-1..4-5).
+   1. Instant feedback: right -> a short varied praise line (recorded teacher clips); wrong -> "Not quite right" + a tip,
+      then Try again or Next (it comes back in the fix round).
+   2. Question strip (done / to fix / skipped / not yet) with Back and Skip; tap any dot to jump.
+   3. After the first pass, ONLY the missed or skipped questions come back, each after a tip card built from his
+      own answer. 4. Every question right = lesson passed (P.revealPass) and the next lesson opens.
+   State lives in P.revealTest[id] (saved on every step), so Back, closing the app or the locked screen all resume it. */
+const LZT_PRAISE=["Great!","Well done!","You got it!","Nice thinking!","Exactly right!","Brilliant!"]; // each is a recorded teacher-voice clip
+let _lztBag=[],_lztLastPraise="",_lztTok=0;
+function lztPraiseLine(){if(!_lztBag.length){_lztBag=wbShuffle(LZT_PRAISE);if(_lztBag[0]===_lztLastPraise)_lztBag.push(_lztBag.shift());}_lztLastPraise=_lztBag.shift();return _lztLastPraise;}
+function lztSpeakable(t){return String(t||"").replace(/□|__+/g," blank ").replace(/×/g," times ").replace(/÷/g," divided by ").replace(/(\d)\s*[−-]\s*(\d)/g,"$1 minus $2").replace(/\+/g," plus ").replace(/=/g," equals ").replace(/\s+/g," ").trim();}
+function lztKid(n){return n===1?"1 question":n+" questions";}
+function lztStatus(id){
+  const t=typeof P!=="undefined"&&P&&P.revealTest&&P.revealTest[id];if(!t||!Array.isArray(t.st)||!t.st.length)return null;
+  const left=t.st.filter(x=>x.s!=="right").length;if(!left)return null;
+  return{phase:t.phase,left:left,total:t.st.length,at:Math.min(t.st.length,(t.index||0)+1),dots:t.st.map(x=>x.s)};
+}
+function lztDotsHTML(dots,live,cur){
+  const name={right:"done",wrong:"to fix",skip:"skipped",todo:"not yet"};
+  return'<div class="lzt-dots'+(live?' live':'')+'"'+(live?'':' role="img" aria-label="'+dots.filter(s=>s==="right").length+' of '+dots.length+' done"')+'>'+dots.map((s,i)=>{const inner=s==="right"?"✓":String(i+1);
+    return live?'<button type="button" class="lzt-dot '+s+(i===cur?' cur':'')+'" onclick="lztJump('+i+')" aria-label="Question '+(i+1)+', '+name[s]+'">'+inner+'</button>':'<span class="lzt-dot '+s+'">'+inner+'</span>';}).join("")+'</div>';
+}
+function lztStripHTML(){
+  const st=WB.st||[],fix=WB.phase==="fix";
+  return'<div class="lzt-strip"><button type="button" class="lzt-nav" id="lztPrev" onclick="lztPrev()"'+(WB.index>0?'':' disabled')+'>◀ Back</button>'
+   +lztDotsHTML(st.map(x=>x.s),true,WB.index)
+   +'<button type="button" class="lzt-nav lzt-skipbtn" id="lztSkip" onclick="lztSkip()">'+(fix?'Next one ▶':'Skip ▶')+'</button></div>'
+   +'<div class="lzt-legend"><span><i class="right"></i>done</span><span><i class="wrong"></i>to fix</span><span><i class="skip"></i>skipped</span><span><i class="todo"></i>not yet</span>'+(fix?'<b>Fix round: '+lztKid(st.filter(x=>x.s!=="right").length)+' left</b>':'')+'</div>';
+}
+function lztRefreshStrip(){const old=document.querySelector(".lzt-strip"),leg=document.querySelector(".lzt-legend");if(!old)return;const tmp=document.createElement("div");tmp.innerHTML=lztStripHTML();old.replaceWith(tmp.firstElementChild);if(leg)leg.replaceWith(tmp.firstElementChild);}
+function lztSnapUI(){const o={};["fields","selected","match","person","groupDots","rows","cols","pairBuild"].forEach(k=>{if(WB[k]!==undefined)o[k]=WB[k];});return JSON.parse(JSON.stringify(o));}
+/* Bring his last answer back only where editing it makes sense (typed words, ticked choices); number boxes start empty. */
+function lztKeepUI(p){return p&&(p.type==="form"||p.type==="multi"||p.type==="who");}
+function lztSave(){
+  if(!WB||!WB.flex||typeof P==="undefined"||!P)return;
+  P.revealTest=P.revealTest||{};
+  P.revealTest[WB.lessonId]={lessonId:WB.lessonId,size:WB.size,phase:WB.phase,index:WB.index,scored:!!WB.scored,introShown:!!WB.introShown,start:WB.start,t:Date.now(),seeded:WB.seeded||null,problems:WB.problems,st:WB.st};
+  if(typeof save==="function")save();
+}
+function lztNewState(id,saved){
+  if(saved){const t=JSON.parse(JSON.stringify(saved));return{lessonId:id,size:t.st.length,reveal:true,flex:true,problems:t.problems,st:t.st,phase:t.phase||"test",index:Math.max(0,Math.min(t.st.length-1,t.index||0)),scored:!!t.scored,introShown:!!t.introShown,start:t.start||Date.now(),seeded:t.seeded||null,results:[],cur:null,isTwin:false,answered:false};}
+  const size=10,problems=wbGenerate(id,size);
+  return{lessonId:id,size:size,reveal:true,flex:true,problems:problems,st:problems.map(()=>({s:"todo",first:null,tries:0})),phase:"test",index:0,scored:false,start:Date.now(),results:[],cur:null,isTwin:false,answered:false};
+}
+function lztStart(id){
+  if(typeof P==="undefined"||!P)return;
+  if(typeof revealUnit4Gate==="function"){const gate=revealUnit4Gate(P,id);if(!gate.allowed){if(typeof renderRevealLockedLesson==="function")renderRevealLockedLesson(id,gate);return;}}
+  if(typeof clearTimers==="function")clearTimers();if(typeof closeOverlay==="function")closeOverlay();
+  const saved=P.revealTest&&P.revealTest[id];
+  WB=lztNewState(id,saved&&Array.isArray(saved.st)&&saved.st.some(x=>x.s!=="right")?saved:null);
+  if(WB.phase==="fix"&&!WB.introShown){WB.introShown=true;lztSave();return lztFixIntro();}
+  lztSave();lztShow();
+}
+function lztShow(){
+  const i=WB.index,st=WB.st[i],p=WB.problems[i];
+  if(WB.phase==="fix"&&st.s!=="right"&&!st.tipShown)return lztFixTip(i);
+  if(!p){lztDoneOnly(i);return;}
+  const keep=st.ui&&st.s!=="right"&&lztKeepUI(p)?st.ui:null;
+  wbLoadProblem(p,false,st.s==="right"?st.ui:keep,st.s==="right");
+  if(st.s==="right")lztShowDone(i);
+}
+function lztAfterRender(){
+  const id=WB.lessonId;
+  if(typeof lzBack==="function")lzBack(lztExit,"Lesson "+id);
+  const st=WB.st[WB.index];
+  if(st&&st.s==="wrong"&&st.tip&&!WB.answered){const area=document.querySelector(".wb-answerarea");if(area)area.insertAdjacentHTML("afterbegin",'<div class="lzt-hint"><b>💡 Tip:</b> '+wbEscape(st.tip)+'</div>');}
+}
+function lztExit(){lztSave();_lztTok++;if(typeof renderRevealLesson==="function")renderRevealLesson(WB.lessonId,{fromTest:true});}
+function lztShowDone(i){
+  WB.answered=true;const area=document.querySelector(".wb-answerarea");
+  document.querySelectorAll(".wb-answerarea button,.wb-answerarea input,.wb-work button").forEach(b=>{if(!b.closest(".lzt-row"))b.disabled=true;});
+  if(area)area.insertAdjacentHTML("beforeend",'<div class="lzt-praise lzt-static" role="status"><span class="lzt-star" aria-hidden="true">✓</span><b>You got this one right.</b></div>'+(wbIsExplain(WB.cur)?wbModelHTML(WB.cur,""):"")+'<div class="lzt-row"><button type="button" class="lzt-btn lzt-next" onclick="lztNext()">Next ▶</button></div>');
+}
+function lztDoneOnly(i){ // a question already right in his last test (rebuilt from the answer log): nothing to redo
+  const id=WB.lessonId;
+  app.innerHTML='<div class="fadein wb-shell lzt-test"><div class="wb-page">'+wbPageHead(id)+lztStripHTML()+'<div class="lzt-card lzt-note"><p class="lzt-big">✓ You got question '+(i+1)+' right last time. Nothing to fix here!</p><div class="lzt-row"><button type="button" class="lzt-btn lzt-next" onclick="lztNext()">Next ▶</button></div></div></div></div>';
+  if(typeof lzBack==="function")lzBack(lztExit,"Lesson "+id);
+}
+function lztAfterAnswer(ok,a){
+  const i=WB.index,st=WB.st[i],p=WB.cur;let info=null;try{info=wbLogInfo(p,a);}catch(e){}
+  st.ui=lztSnapUI();st.given=info&&info.given!=null?(Array.isArray(info.given)?info.given.join(", "):String(info.given)):"";
+  if(ok){if(st.first===null||st.first===undefined)st.first=true;st.s="right";st.tip="";st.why="";lztSave();if(wbIsExplain(p))lztExplainPraise(p,a);else lztPraise();}
+  else{if(st.first===null||st.first===undefined)st.first=false;st.s="wrong";st.tries=(st.tries||0)+1;const t=lztTip(p,a);st.tip=t.tip;st.why=t.why;st.tipShown=true;lztSave();lztWrong(t,st.tries);}
+}
+function lztPraise(){
+  const line=lztPraiseLine(),tok=++_lztTok,area=document.querySelector(".wb-answerarea");lztRefreshStrip();
+  if(area)area.innerHTML='<div class="lzt-praise" role="status"><span class="lzt-star" aria-hidden="true">⭐</span><b>'+wbEscape(line)+'</b></div><div class="lzt-row"><button type="button" class="lzt-btn lzt-next" id="lztNextBtn" onclick="lztNext()">Next ▶</button></div>';
+  const t0=Date.now(),go=()=>setTimeout(()=>{if(tok===_lztTok&&document.getElementById("lztNextBtn"))lztNext();},Math.max(0,1300-(Date.now()-t0)));
+  lztIntoView("lztNextBtn");
+  if(typeof sayAndThen==="function")sayAndThen(line,go,2600);else{if(typeof say==="function")say(line);go();}
+}
+function lztExplainPraise(p,a){ // answer right on an Explain question: no score for the reason, just the model explanation (spoken); Next when ready
+  _lztTok++;const area=document.querySelector(".wb-answerarea");lztRefreshStrip();
+  const why=wbExplainParts(p,(a&&a.f)||{}).reason;
+  if(area)area.innerHTML='<div class="lzt-praise lzt-praise-explain" role="status"><span class="lzt-star" aria-hidden="true">⭐</span><b>Your answer is right!</b></div>'+wbModelHTML(p,why)
+    +'<div class="lzt-row"><button type="button" class="lzt-btn lzt-next" id="lztNextBtn" onclick="lztNext()">Next ▶</button></div>';
+  lztIntoView("lztNextBtn");
+  if(typeof say==="function")say(wbExplainLine(p),{chunk:WB_EXPLAIN_CHUNK});
+}
+function lztWrong(t,tries){
+  _lztTok++;const area=document.querySelector(".wb-answerarea"),p=WB.cur,shown=tries>=3;lztRefreshStrip();
+  const body=shown?'<p class="lzt-why">Here is how this one works:</p>'+wbCorrectAnswerHTML(p)+'<p class="lzt-tipline">'+wbEscape(p.explain||"")+'</p>':(t.why?'<p class="lzt-why">'+wbEscape(t.why)+'</p>':'')+'<p class="lzt-tipline"><b>💡 Tip:</b> '+wbEscape(t.tip)+'</p>';
+  if(area)area.innerHTML='<div class="lzt-tip" role="alert"><h3>Not quite right. That\'s OK!</h3>'+body+'</div><div class="lzt-row">'
+    +(shown?'<button type="button" class="lzt-btn lzt-try" id="lztTryBtn" onclick="lztFresh()">↻ Try a new one like it</button>':'<button type="button" class="lzt-btn lzt-try" id="lztTryBtn" onclick="lztRetry()">↻ Try again</button>')
+    +'<button type="button" class="lzt-btn lzt-next" id="lztNextBtn" onclick="lztNext()">Next ▶</button></div>'+(WB.phase==="test"?'<p class="lzt-small">If you move on, this one comes back at the end with its tip.</p>':'');
+  lztIntoView("lztNextBtn");
+  if(typeof say==="function")say(shown?"That's not quite right. Here is how this one works. Then try a new one like it.":"That's not quite right. "+lztSpeakable(t.tip));
+}
+function lztIntoView(id){try{const e=document.getElementById(id);if(e&&e.scrollIntoView)e.scrollIntoView({block:"nearest",behavior:"smooth"});}catch(x){}}
+function lztRetry(){_lztTok++;if(typeof stopRecorded==="function")stopRecorded();lztShow();}
+function lztFresh(){ // after 3 misses on one question he sees the worked answer, then gets a NEW one of the same kind (still must be right)
+  _lztTok++;const i=WB.index,o=WB.problems[i];let twin=null;
+  for(let k=0;k<12&&!twin;k++){const pool=wbGenerate(WB.lessonId,30).filter(x=>x.type===o.type&&(o.slot==null||x.slot===o.slot)&&wbSig(x)!==wbSig(o));if(pool.length)twin=wbPick(pool);}
+  if(twin){twin.slot=o.slot;WB.problems[i]=twin;}
+  const st=WB.st[i];st.tries=0;st.ui=null;st.tip="";st.why="";lztSave();lztShow();
+}
+function lztGo(i){if(!WB||!WB.flex||i<0||i>=WB.st.length)return;_lztTok++;if(typeof stopRecorded==="function")stopRecorded();WB.index=i;lztSave();lztShow();}
+function lztJump(i){lztGo(i);}
+function lztPrev(){if(WB&&WB.index>0)lztGo(WB.index-1);}
+function lztSkip(){if(!WB||!WB.flex)return;const st=WB.st[WB.index];if(st.s==="todo")st.s="skip";lztNext();}
+function lztNext(){
+  if(!WB||!WB.flex)return;_lztTok++;if(typeof stopRecorded==="function")stopRecorded();
+  const n=WB.st.length,from=WB.index,want=WB.phase==="test"?(x=>x.s==="todo"):(x=>x.s!=="right");
+  for(let k=1;k<=n;k++){const j=(from+k)%n;if(want(WB.st[j])){WB.index=j;lztSave();return lztShow();}}
+  if(WB.phase==="test"){const open=WB.st.findIndex(x=>x.s!=="right");if(open<0)return lztPassed();return lztFirstPassDone();}
+  if(WB.st.every(x=>x.s==="right"))return lztPassed();
+}
+function lztRecordScore(){
+  if(WB.scored)return;WB.scored=true;const first=WB.st.filter(x=>x.first===true).length;
+  if(typeof window!=="undefined"&&typeof window.wbRevealDone==="function")window.wbRevealDone(WB.lessonId,first,WB.st.length);
+}
+function lztFirstPassDone(){
+  lztRecordScore();WB.phase="fix";WB.st.forEach(x=>{if(x.s!=="right")x.tipShown=false;});
+  WB.index=WB.st.findIndex(x=>x.s!=="right");WB.introShown=true;lztSave();
+  if(typeof syncProgress==="function")syncProgress("finish");lztFixIntro(true);
+}
+function lztFixIntro(afterTest){
+  const id=WB.lessonId,right=WB.st.filter(x=>x.s==="right").length,left=WB.st.length-right,next=typeof revealNextInUnit==="function"?revealNextInUnit(id):null;
+  const passedAlready=typeof revealProfilePassed==="function"&&revealProfilePassed(P,id);
+  const unlock=next&&!passedAlready?' Fix '+(left===1?'it':'them all')+' to unlock Lesson '+next.id+'.':'';
+  const head=afterTest?'You got '+right+' of '+WB.st.length+' right!':'Let\'s fix the ones you missed';
+  const msg='Now fix the '+lztKid(left)+' you missed. Each one comes with a tip first.'+unlock;
+  app.innerHTML='<div class="fadein wb-shell lzt-test"><div class="wb-page">'+wbPageHead(id)+'<section class="lzt-card lzt-result"><div class="lzt-score"><b>'+right+'</b><span>/'+WB.st.length+'</span></div><h2 class="lzt-h">'+wbEscape(head)+' ⭐</h2><p class="lzt-big">'+wbEscape(msg)+'</p>'+lztDotsHTML(WB.st.map(x=>x.s),false)
+    +'<p class="lzt-small">You only redo these. Everything you got right stays done.</p><div class="lzt-row"><button type="button" class="lzt-btn lzt-go" id="lztFixGo" onclick="lztShow()">Fix '+(left===1?'it':'them')+' now ▶</button></div></section></div></div>';
+  if(typeof lzBack==="function")lzBack(lztExit,"Lesson "+id);
+  if(typeof say==="function")say((afterTest?"You got "+right+" right! ":"")+"Now let's fix the other "+left+". Each one comes with a tip.");
+}
+function lztFixTip(i){
+  const id=WB.lessonId,st=WB.st[i],p=WB.problems[i];
+  if(!st.tip){const t=lztTip(p,st.s==="skip"?null:lztParseGiven(p,st.given),st.given);st.tip=t.tip;st.why=t.why;}
+  const why=st.s==="skip"?"You skipped this one.":st.like?"This one is like a question you missed last time.":(st.why||"");
+  app.innerHTML='<div class="fadein wb-shell lzt-test"><div class="wb-page">'+wbPageHead(id)+lztStripHTML()+'<section class="lzt-card lzt-fix"><div class="lzt-kicker">Let\'s fix question '+(i+1)+'</div><p class="lzt-q">'+wbEscape(p?p.q:"")+'</p>'
+    +(st.s==="wrong"&&st.given?'<p class="lzt-you">You answered: <b>'+wbEscape(st.given)+'</b></p>':'')
+    +(why?'<p class="lzt-why">'+wbEscape(why)+'</p>':'')+'<p class="lzt-tipline"><b>💡 Tip:</b> '+wbEscape(st.tip)+'</p>'
+    +'<div class="lzt-row"><button type="button" class="lzt-btn lzt-go" id="lztReady" onclick="lztFixGo()">I\'m ready, let me try ▶</button></div></section></div></div>';
+  if(typeof lzBack==="function")lzBack(lztExit,"Lesson "+id);
+  if(typeof say==="function")say("Let's fix this one. "+lztSpeakable((why?why+" ":"")+"Here is a tip. "+st.tip));
+}
+function lztFixGo(){const st=WB.st[WB.index];st.tipShown=true;lztSave();lztShow();}
+function lztPassed(){
+  const id=WB.lessonId,next=typeof revealNextInUnit==="function"?revealNextInUnit(id):null;lztRecordScore();_lztTok++;
+  P.revealPass=P.revealPass||{};const had=!!P.revealPass[id];if(!had)P.revealPass[id]={how:"all",date:typeof today==="function"?today():"",t:Date.now()};
+  if(P.revealTest)delete P.revealTest[id];if(typeof sessClear==="function")sessClear();if(typeof save==="function")save();
+  if(typeof markTodayPlanDone==="function")try{markTodayPlanDone("reveal",id);}catch(e){}
+  if(typeof syncProgress==="function")syncProgress("finish");if(typeof confetti==="function")confetti();
+  const L=typeof revealLesson==="function"?revealLesson(id):null,u=L?L.u:4,seq=typeof revealProfileIsPrince==="function"&&revealProfileIsPrince(P);
+  const nextOpen=next&&(typeof revealUnit4Gate!=="function"||revealUnit4Gate(P,next.id).allowed);
+  const msg='Every question is right.'+(next?(nextOpen?(seq?' Lesson '+next.id+' is unlocked!':' Lesson '+next.id+' is next!'):''):' You finished this unit!');
+  app.innerHTML='<div class="fadein wb-shell lzt-test"><div class="wb-page">'+wbPageHead(id)+'<section class="lzt-card lzt-passed"><div class="lzt-burst" aria-hidden="true">⭐</div><h2 class="lzt-h">Lesson '+wbEscape(id)+' passed!</h2><p class="lzt-big">'+wbEscape(msg)+'</p>'+lztDotsHTML(WB.st.map(x=>x.s),false)
+    +'<div class="lzt-row">'+(next&&nextOpen?'<button type="button" class="lzt-btn lzt-go" id="lztNextLesson" onclick="renderRevealLesson(\''+next.id+'\')">Go to Lesson '+next.id+' ▶</button>':'')+'<button type="button" class="lzt-btn lzt-plain" onclick="renderRevealUnit('+u+')">Unit '+u+'</button></div></section></div></div>';
+  if(typeof lzBack==="function")lzBack(()=>renderRevealUnit(u),"Unit "+u);
+  if(typeof say==="function")say("Lesson passed! Every question is right."+(next&&nextOpen?" The next lesson is unlocked.":""));
+}
+/* ---- kid-words tips: what went wrong (from HIS answer) + how to get it, never the answer itself ---- */
+const LZT_RULE={"3-7":"Share the total into equal groups, or think of the times fact that uses the same numbers.","4-1":"Times 2 means doubling: add the number to itself.","4-2":"Count by 5s. Products of 5 end in 0 or 5.","4-3":"Count by 10s. A product of 10 always ends in 0.","4-4":"Any number times 1 stays the same. Any number times 0 is 0.","4-5":"Use the patterns: times 2 is even, times 5 ends in 0 or 5, times 10 ends in 0."};
+function lztReview(id){if(LZT_RULE[id])return LZT_RULE[id];const L=WB_LESSONS[id];return L&&L.review?String(L.review).split(/(?<=\.)\s+/)[0]:"";}
+function lztCount(x,y){ // skip-count tip for x × y, counting by the lesson's friendly factor
+  if(x===0||y===0)return"Any number times 0 is 0.";if(x===1||y===1)return"Any number times 1 stays the same number.";
+  const base=[10,5,2].find(f=>f===x||f===y)||Math.min(x,y),times=base===x?y:x;
+  return"Count by "+base+"s, "+times+(times===1?" time":" times")+". Keep track on your fingers.";
+}
+function lztTip(p,a){
+  const id=p&&p.lesson,review=lztReview(id);let why="",tip="";
+  if(!p)return{why:"",tip:review||"Read the question again slowly."};
+  try{
+  if(p.type==="fill"){
+    const parts=p.parts.map(String),eq=parts.indexOf("="),left=parts.slice(0,eq),right=parts.slice(eq+1),g=a&&Number.isFinite(a.value)?a.value:null;
+    const one=left.length===1?left:right,expr=left.length===1?right:left,op=expr[1];
+    if(op==="×"){
+      if(one[0]==="□"){const x=+expr[0],y=+expr[2];if(g!=null)why=x+" × "+y+" is not "+g+".";tip=lztCount(x,y);}
+      else{const total=+one[0],known=+(expr[0]==="□"?expr[2]:expr[0]);
+        if(g!=null)why=g===total?"You wrote "+g+", but "+total+" is the total. The box is how many "+known+"s make "+total+".":(known+" × "+g+" makes "+known*g+", not "+total+".");
+        tip=known===0?"0 times any number is 0. Which number makes this true?":known===1?"1 times a number is that same number.":p.lesson==="4-4"&&total===0?"Any number times 0 is 0. Which number makes this true?":p.lesson==="4-4"&&total===known?"Think about which number keeps "+known+" the same when you multiply.":"Count by "+known+"s until you reach "+total+". The number of jumps goes in the box.";}
+      if(g!=null&&p.lesson==="4-2"&&one[0]==="□"&&g%5!==0)tip+=" Products of 5 end in 0 or 5.";
+    }else if(op==="÷"){
+      const total=+expr[0],div=+expr[2];
+      if(one[0]==="□"){if(g!=null)why=total+" ÷ "+div+" is not "+g+".";tip="Think: "+div+" times what number makes "+total+"? Or share "+total+" into "+div+" equal groups.";}
+      else tip="Think of the multiplication fact that uses these numbers.";
+    }else tip=review||"Work out each side, then check that both sides match.";
+  }else if(p.type==="multi"){
+    const sel=a&&a.selected||[],bad=p.options.filter(o=>sel.indexOf(o.id)>=0&&!o.true),miss=p.options.filter(o=>o.true&&sel.indexOf(o.id)<0);
+    if(bad.length)why="You picked "+bad[0].id+". "+(bad[0].why||"Its two sides are not equal.");
+    else if(!sel.length)why="You did not pick any.";else if(miss.length)why=miss.length===1?"One more of them is true.":miss.length+" more of them are true.";
+    tip=(p.answer.length===1?"Only one is true. ":"")+"Work out both sides of each one. Pick it only if both sides make the same number.";
+  }else if(p.type==="form"){
+    const f=a&&a.f||{};let bad=null;for(const c of p.checks||[]){const one={checks:[c],group:null,lesson:p.lesson,q:p.q,answer:p.answer};if(!wbFormCheck(one,f)){bad=c;break;}}
+    const row=bad?(p.rows||[]).find(r=>String(r).indexOf(":"+bad.k+"}")>=0)||"":"",m=/(\d+)\s*×\s*(\d+)/.exec(row)||/(\d+)\s*×\s*(\d+)/.exec(p.q||"");
+    const v=bad?String(f[bad.k]==null?"":f[bad.k]).trim():"";
+    if(!bad){const g=p.group;why="Check how your answers fit together.";tip=review||"Read each part again.";if(g&&g.kind==="twoEq")tip="Write one adding equation and one times equation that make the same total.";}
+    else if(bad.t==="num"){why=v?"Check this number: you wrote "+v+".":"One box is empty.";tip=m?lztCount(+m[1],+m[2]):(review||"Work it out step by step.");}
+    else if(bad.t==="mult"){why=v?v+" doesn't work here.":"One box is empty.";tip="It has to be a number you say when you count by "+bad.of+"s, from "+bad.min+" to "+bad.max+".";}
+    else if(bad.t==="divides"){why=v?v+" doesn't work here.":"One box is empty.";tip="Pick a number that shares "+bad.of+" into equal groups with none left over.";}
+    else{why=v?"Check your answer: you wrote "+v+".":"One box is empty.";tip=review||"Read the question again slowly.";}
+  }else if(p.type==="story"||p.type==="picture"){
+    const e=p.answer.eq,op=p.eq.op,got=a&&a.eq;const eqOK=got&&wbEquationMatches(p,got,e);
+    if(got&&!eqOK)why="Check your equation: "+got.map(x=>Number.isFinite(x)?x:"_").join(" ").replace(/^(\S+) (\S+) (\S+)$/,"$1 "+op+" $2 = $3")+".";
+    else if(p.type==="story"&&a&&a.value!==e[2])why="Your equation is right, but the answer line doesn't match it.";
+    const m=p.model||p.visual;
+    if(p.type==="story"&&eqOK)tip="Copy the answer from your equation onto the answer line.";
+    else if(op==="÷")tip="Share "+e[0]+" into "+e[1]+" equal groups. How many land in each group?";
+    else if(m&&m.kind==="array")tip="Count the rows, then how many are in each row. Write rows × how many in each row.";
+    else if(m&&m.kind==="groups")tip="Count the groups, then how many are in each group. "+lztCount(m.groups,m.size);
+    else tip=review||"Write the equation one part at a time.";
+  }else if(p.type==="match")tip="Solve each one first, then find its partner.";
+  else if(p.type==="who")tip="Work it out yourself first, then see whose answer matches yours.";
+  else if(p.type==="pair")tip="Build both models, count each one, then compare them.";
+  }catch(e){}
+  return{why:why,tip:tip||review||"Read the question again slowly and check each step."};
+}
+/* His logged answer text (P.qlog "given") back into an answer object, so tips can talk about what he actually wrote. */
+function lztParseGiven(p,given){
+  if(!p||given==null||given==="")return null;const g=String(given);
+  try{
+  if(p.type==="fill"){const toks=g.split(/\s+/),bi=p.parts.indexOf("□");const v=Number(toks[bi]);return Number.isFinite(v)?{value:v}:null;}
+  if(p.type==="multi"){const ids=(g.match(/(?:^|[\[,'"\s])([A-F])\./g)||[]).map(x=>x.replace(/[^A-F]/g,""));return{selected:ids};}
+  if(p.type==="form"){const parts=g.split(" / "),f={};(p.rows||[]).forEach((r,ri)=>{const keys=[];const rx=new RegExp("^"+String(r).replace(/[.*+?^$()|[\]\\]/g,"\\$&").replace(/\\?\{[nt]:(\w+)\\?\}/g,(m0,k)=>{keys.push(k);return"(.*?)";})+"$");const mm=rx.exec(parts[ri]||"");if(mm)keys.forEach((k,j)=>f[k]=mm[j+1]==="__"?"":mm[j+1]);});return{f:f};}
+  if(p.type==="story"||p.type==="picture"){const n=(g.match(/\d+|_/g)||[]).map(x=>x==="_"?NaN:Number(x));return{eq:n.slice(0,3),value:n[3]};}
+  }catch(e){}
+  return null;
+}
+/* ---- one-time: his LAST finished test of a lesson (from P.qlog, shown/given/correct since d8dc399) becomes a fix round ---- */
+const LZT_GEN={"3-7":wbGen37,"4-1":wbGen41,"4-2":wbGen42,"4-3":wbGen43,"4-4":wbGen44,"4-5":wbGen45};
+function lztClip(v){return typeof qlogClip==="function"?qlogClip(v):String(v==null?"":v).replace(/\s+/g," ").trim();}
+function lztShown(p){try{return lztClip(wbLogInfo(p,null).shown);}catch(e){return"";}}
+function lztWords(t){const w=new Set(String(t||"").toLowerCase().replace(/[^a-z ]/g," ").split(/\s+/).filter(w=>w.length>2));const shape=String(t||"").replace(/\d+/g,"#").replace(/[^#_×÷=+?]/g,"");w.add("§"+shape);w.add("§§"+shape);return w;} // the equation's shape (5 × __ = 15 vs 5 × 2 = __) tells look-alike slots apart
+function lztSim(a,b){let n=0;a.forEach(w=>{if(b.has(w))n++;});return n/Math.max(1,a.size+b.size-n);}
+function lztRebuild(id,e,exactNeeded){
+  const fn=LZT_GEN[id];if(!fn||!e)return null;const tw=lztWords(e.shown||e.q);
+  const ranked=[];for(let slot=0;slot<10;slot++){let best=0,sample=null;for(let k=0;k<10;k++){const p=fn(slot);const sc=lztSim(lztWords(lztShown(p)),tw);if(sc>best){best=sc;sample=p;}}ranked.push({slot:slot,score:best,sample:sample});}
+  ranked.sort((x,y)=>y.score-x.score);if(!ranked[0]||ranked[0].score<0.35)return null;
+  if(!exactNeeded)return{slot:ranked[0].slot,p:null,exact:false};
+  const target=lztClip(e.shown);
+  if(/ Options: /.test(target)&&!/\.\.\.$/.test(target)){const m=lztMultiFromLog(id,e,ranked[0]);if(m)return m;}
+  for(const r of ranked.slice(0,3)){if(r.score<0.35)break;for(let k=0;k<6000;k++){const p=fn(r.slot);if(lztShown(p)===target){p.slot=r.slot;return{slot:r.slot,p:p,exact:true};}}}
+  const p=fn(ranked[0].slot);p.slot=ranked[0].slot;return{slot:ranked[0].slot,p:p,exact:false}; // same kind of question, new numbers
+}
+function lztMultiFromLog(id,e,r){
+  const opts=String(e.shown).split(" Options: ")[1].split(" | ").map(x=>{const m=/^([A-F])\. (.*)$/.exec(x.trim());return m?{id:m[1],text:m[2]}:null;});
+  if(opts.some(o=>!o))return null;const truth=new Set((Array.isArray(e.correct)?e.correct:[e.correct]).map(x=>String(x).trim().charAt(0)));
+  const built=opts.map(o=>{const q=wbEqParse(o.text),ok=!!q.ok;return{text:o.text,true:ok,why:ok?"Both sides equal "+q.total+".":(q.L&&q.R?"The left side is "+q.L.value+" but the right side is "+q.R.value+".":"The two sides are not equal.")};});
+  if(built.some((o,i)=>o.true!==truth.has(opts[i].id)))return null; // the maths must agree with the logged key
+  const s=r.sample||{};const p=wbMulti(id,s.factor||0,built);p.q=e.q||s.q;p.spoken=s.spoken||p.spoken;p.explain=s.explain||"Work out both sides of each equation.";p.slot=r.slot;
+  return{slot:r.slot,p:p,exact:true};
+}
+function lztSeedFromLog(profile){
+  if(!profile||profile.fixSeedV1)return;profile.fixSeedV1=Date.now();
+  try{
+    profile.revealTest=profile.revealTest||{};
+    Object.keys(LZT_GEN).forEach(id=>{
+      if(profile.revealTest[id]||(profile.revealPass&&profile.revealPass[id]))return;
+      const ses=(profile.sessions||[]).filter(s=>s&&s.lesson==="reveal:"+id&&s.total&&s.t).sort((x,y)=>x.t-y.t);if(!ses.length)return;
+      const last=ses[ses.length-1],prevT=ses.length>1?ses[ses.length-2].t:0;
+      const log=(profile.qlog||[]).filter(x=>x&&x.lesson==="workbook:"+id&&x.t>prevT&&x.t<=last.t+2000).sort((x,y)=>x.t-y.t);
+      if(!log.length||log.some(x=>!x.shown))return;
+      const rows=log.map(x=>({e:x,r:lztRebuild(id,x,false)}));if(rows.some(x=>!x.r))return;
+      const prim=[];for(let k=0;k<rows.length;k++){const pr=prim[prim.length-1];if(pr&&pr===rows[k-1]&&!pr.e.ok&&!pr.twin&&pr.r.slot===rows[k].r.slot){pr.twin=rows[k];continue;}prim.push(rows[k]);} // "Try one like it" twins are not test questions
+      const wrong=prim.filter(x=>!x.e.ok);
+      if(prim.length!==Number(last.total)||!wrong.length||wrong.length!==Number(last.total)-Number(last.correct))return;
+      const problems=[],st=[];
+      for(const x of prim){if(x.e.ok){problems.push(null);st.push({s:"right",first:true,tries:0});continue;}
+        const r=lztRebuild(id,x.e,true);if(!r||!r.p)return;problems.push(r.p);st.push({s:"wrong",first:false,tries:1,given:r.exact?String(Array.isArray(x.e.given)?x.e.given.join(", "):x.e.given||""):"",like:!r.exact,tipShown:false});}
+      profile.revealTest[id]={lessonId:id,size:st.length,phase:"fix",index:st.findIndex(x=>x.s!=="right"),scored:true,start:Date.now(),t:Date.now(),seeded:"qlog:"+last.t,problems:problems,st:st};
+    });
+  }catch(e){}
+}
+
+const LZT_CSS=`
+#topbar .tb-btn.lzb{min-width:84px;height:68px;padding:0 14px 0 10px;flex-direction:row;gap:8px;background:#fff;color:#1E293B;border:3px solid #1E293B;border-radius:18px;box-shadow:4px 5px 0 #1E293B;font-weight:900;backdrop-filter:none;-webkit-backdrop-filter:none;transition:transform .1s ease,box-shadow .1s ease}
+#topbar .tb-btn.lzb .lzb-ar{font-size:34px;line-height:1}#topbar .tb-btn.lzb .lzb-to{font-size:18px;font-weight:900;white-space:nowrap;line-height:1.05;text-transform:none;letter-spacing:0;opacity:1}
+#topbar .tb-btn.lzb:active{transform:translate(4px,5px);box-shadow:0 0 0 #1E293B}#topbar .tb-btn.lzb[hidden]{display:none}
+body.lz-back #app{padding-top:98px!important}
+@media(max-width:520px){#topbar .tb-btn.lzb{min-width:72px;height:64px;padding:0 10px 0 8px;gap:4px}#topbar .tb-btn.lzb .lzb-ar{font-size:28px}#topbar .tb-btn.lzb .lzb-to{font-size:14px;max-width:62px;white-space:normal}
+ body.lz-back #topbar .tb-group{gap:5px}body.lz-back #topbar .tb-btn:not(.lzb){min-width:46px;padding:4px 5px}body.lz-back #topbar .tb-btn:not(.lzb) .tb-lb{display:none}body.lz-back #app{padding-top:90px!important}}
+.lzt-strip{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;margin:12px 0 4px}
+.lzt-nav{min-height:56px;min-width:96px;padding:0 14px;border:3px solid #1E293B;border-radius:14px;background:#fff;color:#1E293B!important;font:inherit;font-size:18px;font-weight:900;box-shadow:3px 4px 0 #1E293B;cursor:pointer}
+.lzt-nav:active{transform:translate(3px,4px);box-shadow:0 0 0 #1E293B}.lzt-nav:disabled{opacity:.35;box-shadow:none;cursor:default}
+.lzt-nav.lzt-skipbtn{background:#2EC4B6;color:#fff!important}
+.lzt-dots{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:10px 0}.lzt-dots.live{margin:0}
+.lzt-dot{width:40px;height:40px;border-radius:50%;border:3px solid #1E293B;display:inline-flex;align-items:center;justify-content:center;font:inherit;font-size:16px;font-weight:900;padding:0;background:#e2e8f0;color:#1E293B!important;cursor:pointer;flex:0 0 auto}
+span.lzt-dot{cursor:default}
+.lzt-dot.right{background:#22c55e;color:#fff!important}.lzt-dot.wrong{background:#FF6B6B;color:#fff!important}.lzt-dot.skip{background:#FFD166}.lzt-dot.todo{background:#fff;border-style:dashed;color:#64748b!important}
+.lzt-dot.cur{outline:4px solid #FF9F1C;outline-offset:2px;transform:scale(1.08)}
+.lzt-legend{display:flex;flex-wrap:wrap;gap:4px 14px;justify-content:center;font-size:14px;font-weight:800;color:#475569;margin:2px 0 10px}.lzt-legend i{display:inline-block;width:13px;height:13px;border-radius:50%;border:2px solid #1E293B;margin-right:4px;vertical-align:-2px}
+.lzt-legend i.right{background:#22c55e}.lzt-legend i.wrong{background:#FF6B6B}.lzt-legend i.skip{background:#FFD166}.lzt-legend i.todo{background:#fff;border-style:dashed}.lzt-legend b{color:#c2410c}
+.lzt-praise{display:flex;align-items:center;justify-content:center;gap:14px;margin:12px 0;padding:16px 18px;background:#FFD166;border:3px solid #1E293B;border-radius:20px;box-shadow:4px 5px 0 #1E293B;animation:lztPop .45s cubic-bezier(.3,1.6,.5,1)}
+.lzt-praise b{font-size:30px;line-height:1.1;color:#1E293B!important}.lzt-star{font-size:44px;line-height:1;animation:lztSpin .6s ease-out}
+.lzt-praise.lzt-static{background:#dcfce7;animation:none}.lzt-praise.lzt-static b{font-size:22px}.lzt-praise.lzt-static .lzt-star{color:#15803d!important;font-size:34px;animation:none}
+.lzt-tip{margin:12px 0;padding:14px 16px;background:#fff;border:3px solid #1E293B;border-left:12px solid #FF6B6B;border-radius:18px;box-shadow:4px 5px 0 #1E293B;animation:lztIn .3s ease-out}
+.lzt-tip h3{font-size:24px!important;margin:0 0 6px;color:#1E293B!important}.lzt-why{font-size:19px;font-weight:700;line-height:1.4;margin:4px 0;color:#334155!important}.lzt-tipline{font-size:20px;font-weight:800;line-height:1.4;margin:6px 0;color:#1E293B!important}
+.lzt-model{margin:12px 0;padding:14px 16px;background:#EAF7EF;border:3px solid #1E293B;border-left:12px solid #47D18C;border-radius:18px;box-shadow:4px 5px 0 #1E293B;text-align:left;animation:lztIn .3s ease-out}
+.lzt-model-h{font-size:21px;font-weight:900;margin:0 0 6px;color:#1E293B!important}.lzt-model-t{font-size:20px;font-weight:700;line-height:1.45;margin:0;color:#1E293B!important}
+.lzt-you{font-size:17px;font-weight:600;margin:0 0 8px;color:#475569!important;overflow-wrap:anywhere}
+.wb-feedback .lzt-model{margin:14px 0 4px}
+.lzt-hint{margin:0 0 10px;padding:10px 12px;background:#fff7ed;border:2px solid #FF9F1C;border-radius:14px;font-size:18px;font-weight:700;color:#1E293B!important}
+.lzt-row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:12px}
+.lzt-btn{min-height:64px;padding:10px 24px;border:3px solid #1E293B;border-radius:18px;font:inherit;font-size:21px;font-weight:900;cursor:pointer;box-shadow:4px 5px 0 #1E293B;color:#fff!important;transition:transform .1s ease,box-shadow .1s ease}
+.lzt-btn:active{transform:translate(4px,5px);box-shadow:0 0 0 #1E293B}.lzt-try{background:#FF9F1C}.lzt-next{background:#2EC4B6}.lzt-go{background:#FF9F1C;font-size:23px;min-height:72px;padding:12px 30px}.lzt-plain{background:#fff;color:#1E293B!important}
+.lzt-small{font-size:15px;font-weight:700;color:#64748b!important;text-align:center;margin:8px 0 0}
+.lzt-card{background:#fff;color:#1E293B;border:3px solid #1E293B;border-radius:24px;box-shadow:6px 7px 0 #1E293B;padding:20px 22px;margin:16px auto;max-width:640px;text-align:center;animation:lztPop .4s cubic-bezier(.3,1.5,.6,1)}
+.lzt-card *{color:inherit}.lzt-h{font-size:28px!important;line-height:1.15;margin:4px 0 8px;color:#1E293B!important}.lzt-big{font-size:21px;font-weight:800;line-height:1.4;margin:6px 0}
+.lzt-card.lzt-lock{border-style:solid;background:#fffaf0}.lzt-lockic{font-size:54px;line-height:1}
+.lzt-card.lzt-note{background:#f0fbfa;border-color:#1E293B;box-shadow:4px 5px 0 #1E293B;padding:14px 16px}.lzt-card.lzt-note .lzt-big{font-size:19px}
+.lzt-card.lzt-fix{text-align:left;border-left:12px solid #FF6B6B}.lzt-kicker{font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#c2410c!important}
+.lzt-q{font-size:21px;font-weight:800;line-height:1.35;margin:8px 0;padding:10px 12px;background:#f1f5f9;border-radius:12px}.lzt-you{font-size:19px;margin:8px 0}.lzt-you b{color:#b91c1c!important}
+.lzt-card.lzt-fix .lzt-row{justify-content:flex-start}
+.lzt-score{display:inline-flex;align-items:baseline;justify-content:center;width:104px;height:104px;border-radius:50%;background:#1E293B;padding-top:24px}.lzt-score b{font-size:44px;color:#fff!important}.lzt-score span{font-size:22px;color:#cbd5e1!important}
+.lzt-card.lzt-passed{background:#f0fdf4}.lzt-burst{font-size:72px;line-height:1;animation:lztSpin .8s ease-out}
+@keyframes lztPop{0%{transform:scale(.85);opacity:0}70%{transform:scale(1.04)}100%{transform:none;opacity:1}}
+@keyframes lztSpin{0%{transform:scale(0) rotate(-40deg)}60%{transform:scale(1.3) rotate(12deg)}100%{transform:none}}
+@keyframes lztIn{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.lzt-praise,.lzt-star,.lzt-card,.lzt-tip,.lzt-burst{animation:none}}
+@media(max-width:520px){.lzt-strip{grid-template-columns:1fr 1fr;gap:8px}.lzt-strip .lzt-dots{grid-column:1 / -1;grid-row:1}.lzt-nav{min-width:0;width:100%}
+ .lzt-dot{width:30px;height:30px;font-size:13px;border-width:2px}.lzt-dots{gap:4px}.lzt-dots:not(.live){gap:3px;flex-wrap:nowrap}.lzt-dots:not(.live) .lzt-dot{width:26px;height:26px;font-size:12px}.lzt-tip h3{font-size:21px!important}.lzt-why{font-size:17px}.lzt-btn{flex:1 1 140px;font-size:19px;padding:10px 12px}.lzt-praise b{font-size:26px}.lzt-card{padding:16px 14px}.lzt-h{font-size:24px!important}.lzt-big{font-size:18px}.lzt-tipline{font-size:18px}.lzt-q{font-size:18px}}
+`;
+function lztInstallStyle(){if(typeof document==="undefined")return;let s=document.getElementById("lzt-style");if(!s){s=document.createElement("style");s.id="lzt-style";document.head.appendChild(s);}s.textContent=LZT_CSS;}
+lztInstallStyle();
 const wbPublic={lessons:WB_LESSONS,gen:wbGenerate,check:wbCheck,review:wbRevealReview,tenSlot:WB_TEN,resumeSnapshot:wbResumeSnapshot,resumeRestore:wbResumeRestore};
 if(typeof window!=="undefined")window.__wb=wbPublic;else if(typeof globalThis!=="undefined")globalThis.__wb=wbPublic;
 
@@ -5888,6 +6313,12 @@ function sessionQuestionMode(){
   if(S.phase==="review"||S.warmupOnly)return"review";
   return"practice";
 }
+/* Explain attempts (P.explains, additive) ride along with the progress upload: newest 200, long text clipped so the
+   payload stays far below the server's 600 KB limit. */
+function lzExplainsForSync(profile){
+  const cut=(t,n)=>{t=t==null?"":String(t);return t.length>n?t.slice(0,n)+"…":t;};
+  return(Array.isArray(profile.explains)?profile.explains:[]).slice(-200).map(e=>({at:e.at,date:e.date,lesson:e.lesson,q:cut(e.q,400),answer:cut(e.answer,200),ok:!!e.ok,reason:cut(e.reason,500),model:cut(e.model,400),mode:e.mode}));
+}
 let _progressSyncBusy=false,_progressSyncPending=false;
 function syncProgress(reason){
   try{
@@ -5898,7 +6329,7 @@ function syncProgress(reason){
     const profile=P,base=voiceBase();
     const payload={id:profile.id,name:profile.name,grade:profile.grade,levels:profile.levels,streak:profile.streak,
       bestStreak:profile.bestStreak,trophies:(profile.trophies||[]).length,xp:profile.xp,
-      sessions:(profile.sessions||[]).slice(-300),reveal:profile.reveal||{},lessons:profile.lessons||{},lab:profile.lab||{},
+      sessions:(profile.sessions||[]).slice(-300),reveal:profile.reveal||{},revealPass:profile.revealPass||{},explains:lzExplainsForSync(profile),lessons:profile.lessons||{},lab:profile.lab||{},
       wrongLog:(profile.wrongLog||[]).slice(-150),qlog:(profile.qlog||[]).slice(-400),sm2:profile.sm2||{},
       schoolFocus:Array.isArray(FOCUS.topics)?FOCUS.topics:[],appVersion};
     _progressSyncBusy=true;
@@ -6042,6 +6473,7 @@ function fetchTeacherPart(text,seq){
   const key=voiceKey(text);
   if(!canUseLive(key)||Date.now()<=_voiceDownUntil)return Promise.resolve(false);
   if(_spkCache[key])return playVoiceUrl(_spkCache[key],seq);
+  if(_spkWarm[key])return _spkWarm[key].then(u=>u&&seq===_spkSeq?playVoiceUrl(u,seq):false);
   const ctrl=(typeof AbortController!=="undefined")?new AbortController():null;_voiceCtrl=ctrl;
   const timer=ctrl?setTimeout(()=>ctrl.abort(),13000):null;
   return fetch(voiceBase()+"/speak",{method:"POST",headers:ananseHeaders(),body:JSON.stringify({text:key}),signal:ctrl?ctrl.signal:undefined})
@@ -6107,6 +6539,23 @@ function sayRecorded(text,opts){
 /* Lines made up on the spot (maths, names, results) get the SAME teacher voice from the Ananse
    server; the phone's own voice is only the last resort (server off, offline, or too slow). */
 let _spkCache={};
+/* Pre-render a NEW line in the teacher voice while the child is still working (Explain model explanations are long and
+   take Ming ~20 s the first time, longer than the 13 s play timeout). Silent: the clip only lands in _spkCache, and
+   fetchTeacherPart waits for a warm-up that is still running instead of starting a second render. */
+const _spkWarm={};
+function warmTeacherLine(text,chunk){
+  try{
+    if(!DB.sound||typeof fetch!=="function"||!voiceBase())return;
+    let chain=Promise.resolve(); // one piece at a time: the teacher voice renders one line at a time
+    voiceChunks(text,chunk||300).forEach(part=>{
+      const key=voiceKey(part);if(!key||(VOICE_MAP&&VOICE_MAP[key])||_spkCache[key]||_spkWarm[key]||!canUseLive(key)||Date.now()<=_voiceDownUntil)return;
+      const w=chain.then(()=>fetch(voiceBase()+"/speak",{method:"POST",headers:ananseHeaders(),body:JSON.stringify({text:key})}))
+        .then(r=>r.ok?r.blob():null).then(b=>{if(b&&!_spkCache[key])_spkCache[key]=URL.createObjectURL(b);return _spkCache[key]||null;})
+        .catch(()=>null).finally(()=>{if(_spkWarm[key]===w)delete _spkWarm[key];});
+      _spkWarm[key]=w;chain=w;
+    });
+  }catch(e){}
+}
 function sayLive(text,opts){const seq=++_spkSeq,key=voiceKey(text);cancelVoiceWork();try{speechSynthesis.cancel()}catch(e){};(async()=>{if(!await fetchTeacherPart(key,seq)&&seq===_spkSeq&&!(Date.now()>_voiceDownUntil&&await fetchTeacherPart(key,seq))&&seq===_spkSeq)await sayDevice(key,seq);finishSpeech(seq,opts);})();}
 /* The teacher voice works on EVERY device (Eb, 4 Oct 2026), not only ones with the tutor key: the voice
    server address comes from tutor.json. After 3 failures in a row (offline / Mac asleep) use a short
@@ -6115,7 +6564,7 @@ let _voiceFails=0,_voiceDownUntil=0;
 function voiceBase(){return ananseBase()||((DB.voiceUrl||"").trim().replace(/\/+$/,""))}
 function sayQueued(text,opts){
   const seq=++_spkSeq;cancelVoiceWork();try{speechSynthesis.cancel()}catch(e){}
-  (async()=>{for(const part of voiceChunks(text,300)){if(seq!==_spkSeq)return;await playTeacherPart(part,seq);}finishSpeech(seq,opts);})();
+  (async()=>{for(const part of voiceChunks(text,(opts&&opts.chunk)||300)){if(seq!==_spkSeq)return;await playTeacherPart(part,seq);}finishSpeech(seq,opts);})();
 }
 function say(text,opts){
   if(!DB.sound){finishSpeech(_spkSeq,opts);return;}
@@ -6981,6 +7430,7 @@ function selectProfile(id){
 }
 function kidEnter(p){
   P=p;
+  if(typeof revealProgressInit==="function"&&revealProgressInit(P))save();
   DB.lastProfile=p.id;save();   // remember this learner for next launch
   if(P.retest){startDiagnostic({retest:P.diagDone});return;} // only when a parent queued a placement check
   if(sessTryResume())return;   // reopen mid-lesson → land on the exact same question
@@ -7421,6 +7871,7 @@ function renderQuestion(){
   S.qStart=Date.now();S.qShownAt=S.qStart;S.qTries=0;S.typedGiven=null;
   S.tried=false;               // fresh mastery slate for this question
   sessSave();                  // auto-save: reopening resumes exactly here
+  if(S.lesson&&S.lesson.indexOf("reveal:")===0&&typeof lzBack==="function"){const _id=S.lesson.slice(7);lzBack(()=>{sessSave();renderRevealLesson(_id,{fromTest:true});},"Lesson "+_id);}
   if(showScratch&&q.mirror&&/draw a representation/i.test(q.q))initScratch();
   const lead=S.leadIn||"";S.leadIn="";
   say(lead+q.q+(gate?". Use your scratchpad to work it out first, then show your choices.":"")+(typed?". Type your answer.":""));
@@ -8203,6 +8654,7 @@ function endSession(){
    +'</div></div>';
   if(!lessonPassed)say("Almost there! You got "+S.correct+" of "+S.total+" right the first time. You need "+passNeed+" to pass. Let's look at the lesson again, then try a new set.");
   else say("Session complete! "+praiseLine+(earned.length?" And you earned a new trophy!":"")+(S.results.length>=S.total?" You also unlocked Rebound Rescue!":""));
+  if(isRv&&typeof lzBack==="function"){const _u=revealLesson(S.lesson.slice(7)).u;lzBack(()=>renderRevealUnit(_u),"Unit "+_u);}
   S=null;
 }
 
@@ -9163,6 +9615,48 @@ function renderLegacyMath(){
   const cards=[3,4,5].map(g=>'<h3 style="margin:18px 0 8px">Grade '+g+'</h3><div class="opts">'+lessonsFor(g,'math').map(L=>'<button class="opt" onclick="renderLesson(\''+L.id+'\')">'+esc(L.title)+'</button>').join('')+'</div>').join('');
   app.innerHTML='<div style="max-width:680px;margin:auto"><h1>Old lessons</h1><p class="muted">The earlier maths tutorials. They are hidden from the learner screens, and everything already earned is kept.</p>'+cards+'<div class="btn-row" style="margin-top:16px"><button class="btn secondary" onclick="renderParent()">Parent dashboard</button></div><div class="spacer"></div></div>';
 }
+/* ---------- Parent: "His explanations" (Explain questions, option A - Eb 2026-11-04). Behind the Parent PIN. ---------- */
+function pexpLessonTitle(id){try{const L=(typeof REVEAL_LESSONS!=="undefined"?REVEAL_LESSONS:[]).find(x=>x.id===id);return L?"Lesson "+id+" · "+L.t:"Lesson "+id;}catch(e){return"Lesson "+id;}}
+function pexpWhen(e){try{const d=new Date(e.at);if(isNaN(d))return esc(e.date||"");return d.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})+" · "+d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});}catch(x){return esc(e.date||"");}}
+function pexpList(){return(Array.isArray(P&&P.explains)?P.explains:[]).slice().sort((a,b)=>String(b.at||"").localeCompare(String(a.at||"")));}
+function parentExplainsCardHTML(){
+  const all=pexpList(),wk=Date.now()-7*864e5,recent=all.filter(e=>Date.parse(e.at)>=wk).length;
+  return'<h3>💬 His explanations</h3><p class="muted">When a lesson asks him to <b>Explain</b>, he types an answer and a "because...". The app marks only the answer, never the reason, and always shows him a model explanation. His reasons are saved here for you to read.</p>'
+   +'<div class="btn-row" style="justify-content:flex-start"><button class="btn secondary" onclick="renderParentExplains()">💬 Read his explanations ('+all.length+(recent&&recent!==all.length?', '+recent+' this week':'')+')</button></div>';
+}
+function pexpInstallStyle(){if(document.getElementById("pexp-style"))return;const s=document.createElement("style");s.id="pexp-style";s.textContent=`
+.pexp{max-width:820px;margin:0 auto}.pexp h1{margin:6px 0 4px}
+.pexp-group{margin:18px 0 8px}.pexp-lesson{font-size:19px;font-weight:900;color:#4b2fd6;border-bottom:3px solid #7B61FF;padding:0 0 6px;margin:0 0 10px}
+.pexp-item{background:#fff;border:2px solid #2D3142;border-left:8px solid #7B61FF;border-radius:14px;padding:12px 14px;margin:0 0 12px;box-shadow:3px 4px 0 #2D3142;color:#2D3142}
+.pexp-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:space-between;margin:0 0 6px}
+.pexp-when{font-size:14px;font-weight:700;color:#64748b}
+.pexp-tag{display:inline-block;font-size:13px;font-weight:900;padding:3px 10px;border-radius:999px;border:2px solid #2D3142}
+.pexp-tag.ok{background:#bbf7d0;color:#14532d}.pexp-tag.no{background:#fed7aa;color:#7c2d12}.pexp-tag.mode{background:#eef2ff;color:#3730a3;border-color:#c7d2fe}
+.pexp-q{font-size:16px;font-weight:700;line-height:1.4;margin:4px 0 8px}
+.pexp-row{font-size:16px;line-height:1.45;margin:6px 0}.pexp-row b{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#64748b}
+.pexp-reason{white-space:pre-wrap;overflow-wrap:anywhere;background:#fff7d6;border:2px dashed #FFD166;border-radius:10px;padding:6px 10px;font-weight:700}
+.pexp-model{background:#EAF7EF;border-radius:10px;padding:6px 10px}
+.pexp-empty{background:#fff;border:2px dashed #94a3b8;border-radius:14px;padding:18px;text-align:center;color:#475569}
+@media(max-width:520px){.pexp-item{padding:10px 11px}.pexp-q,.pexp-row{font-size:15px}}`;document.head.appendChild(s);}
+function renderParentExplains(){
+  clearTimers();showAnanseCorner(false);document.body.classList.remove("learningworld","storyworld","focus");
+  if(!P){renderParent();return;}
+  pexpInstallStyle();
+  const list=pexpList(),groups=[],by={};
+  list.forEach(e=>{const k=String(e.lesson||"?");if(!by[k]){by[k]={id:k,items:[]};groups.push(by[k]);}by[k].items.push(e);});
+  const mode={test:"lesson test",fix:"fix round",practice:"workbook practice"};
+  const item=e=>'<div class="pexp-item"><div class="pexp-top"><span class="pexp-when">'+pexpWhen(e)+'</span><span><span class="pexp-tag '+(e.ok?'ok">✓ Answer right':'no">✗ Answer wrong')+'</span> '+(mode[e.mode]?'<span class="pexp-tag mode">'+mode[e.mode]+'</span>':'')+'</span></div>'
+    +'<div class="pexp-q">'+esc(e.q||"")+'</div>'
+    +(e.answer?'<div class="pexp-row"><b>His answer</b>'+esc(e.answer)+'</div>':'')
+    +'<div class="pexp-row"><b>His reason (as he typed it)</b><div class="pexp-reason">because '+esc(e.reason||"")+'</div></div>'
+    +'<div class="pexp-row"><b>Model explanation he was shown</b><div class="pexp-model">'+esc(e.model||"")+'</div></div></div>';
+  const body=groups.length?groups.map(g=>'<div class="pexp-group"><div class="pexp-lesson">'+esc(pexpLessonTitle(g.id))+' <span class="muted" style="font-weight:700;font-size:14px">('+g.items.length+')</span></div>'+g.items.map(item).join("")+'</div>').join("")
+    :'<div class="pexp-empty">No explanations yet. When a lesson asks him to <b>Explain</b>, his answer and his "because..." will show up here.</div>';
+  app.innerHTML='<div class="fadein pexp"><div class="btn-row" style="justify-content:flex-start;margin-bottom:6px"><button class="btn secondary" onclick="renderParent()">⟵ Parent dashboard</button></div>'
+   +'<h1>💬 His explanations</h1><p class="muted">Newest first, grouped by lesson. Only the answer is marked; the reason is never scored. '+list.length+' saved.</p>'+body
+   +'<div class="btn-row" style="margin-top:16px"><button class="btn" onclick="renderParent()">Done ⟵</button></div><div class="spacer"></div></div>';
+  try{window.scrollTo(0,0);}catch(e){}
+}
 function renderParent(){
   clearTimers();showAnanseCorner(false);
   document.body.classList.remove("learningworld","storyworld","focus"); // parent pages use the light, high-contrast theme
@@ -9189,8 +9683,8 @@ function renderParent(){
   const goalOpts=ALL_TOPICS.map(t=>'<option value="'+esc(t)+'" '+(P.weeklyGoal.topic===t?"selected":"")+' style="text-transform:capitalize">'+esc(t)+'</option>').join("");
   app.innerHTML='<div class="fadein" style="max-width:680px;margin:0 auto">'
    +'<div class="btn-row" style="justify-content:space-between;margin-bottom:6px"><button class="btn secondary" onclick="parentDone()">⟵ Back to the app</button><button class="btn secondary" onclick="pinMode=\'set\';pinBuf=\'\';renderPinPad()">Change PIN</button></div>'
-   +'<h1>Parent Dashboard</h1><div class="btn-row"><button class="btn secondary" onclick="renderHowItWorks(\'parent\')">▶ How the app works</button><button class="btn secondary" onclick="renderLegacyMath()">Old lessons</button><button class="btn secondary" onclick="renderWorkbookPicker()">Workbook practice</button></div><p class="muted">'+esc(P.name)+' · joined '+esc(P.created)+(P.grade?' · '+GRADE_NAMES[P.grade]:'')+'</p>'
-   +'<div class="pnav">'+[["💡","This week","This Week"],["🗺️","Trail & grade","Explorer"],["📘","Reveal Math","Reveal Math"],["📚","Lessons & labs","Grade Lessons"],["🎯","Focus goal","Weekly Focus"],["🏠","At home","Offline Activities"],["🔊","Voice","Voice"],["📲","Reports","Telegram"],["🍃","Nature ID","Nature Walk"],["💾","Backup","Backup"],["♻️","Reset","Reset"]].map(x=>'<button class="pnav-chip" onclick="parentJump(\''+x[2]+'\')">'+x[0]+' '+x[1]+'</button>').join("")+'</div>'
+   +'<h1>Parent Dashboard</h1><div class="btn-row"><button class="btn secondary" onclick="renderHowItWorks(\'parent\')">▶ How the app works</button><button class="btn secondary" onclick="renderLegacyMath()">Old lessons</button><button class="btn secondary" onclick="renderWorkbookPicker()">Workbook practice</button><button class="btn secondary" onclick="renderParentExplains()">💬 His explanations</button></div><p class="muted">'+esc(P.name)+' · joined '+esc(P.created)+(P.grade?' · '+GRADE_NAMES[P.grade]:'')+'</p>'
+   +'<div class="pnav">'+[["💡","This week","This Week"],["🗺️","Trail & grade","Explorer"],["📘","Reveal Math","Reveal Math"],["💬","Explanations","His explanations"],["📚","Lessons & labs","Grade Lessons"],["🎯","Focus goal","Weekly Focus"],["🏠","At home","Offline Activities"],["🔊","Voice","Voice"],["📲","Reports","Telegram"],["🍃","Nature ID","Nature Walk"],["💾","Backup","Backup"],["♻️","Reset","Reset"]].map(x=>'<button class="pnav-chip" onclick="parentJump(\''+x[2]+'\')">'+x[0]+' '+x[1]+'</button>').join("")+'</div>'
    +(DB.profiles.length>1?'<div class="btn-row" style="justify-content:flex-start;margin-top:10px">'+DB.profiles.map(p=>'<button class="btn '+(p.id===P.id?"":"secondary")+'" style="font-size:15px;padding:8px 14px" onclick="parentPick(\''+p.id+'\')">'+esc(p.name)+'</button>').join("")+'</div>':"")
    +'<div class="kente-strip" style="margin:14px 0 20px"></div>'
    +'<h3>💡 This Week, In Plain English</h3><div class="spacer" style="height:10px"></div>'+insights
@@ -9205,6 +9699,7 @@ function renderParent(){
    +'<div class="spacer" style="height:10px"></div><div class="btn-row" style="justify-content:flex-start"><button class="btn secondary" onclick="parentSetGrade()">Save grade</button><button class="btn secondary" onclick="parentRetestNow()">🥾 Re-check now</button><button class="btn secondary" onclick="parentRetestNext()">'+(P.retest?'✓ Re-check queued for next login (tap to cancel)':'Re-check at next login')+'</button></div>'
    +'<div class="card" style="margin-top:12px">'+trailHistoryHTML()+'</div>'
    +'<div class="adinkra-divider">✦</div>'
+   +parentExplainsCardHTML()+'<div class="adinkra-divider">✦</div>'
    +'<h3>📘 Reveal Math — where the class is</h3>'
    +'<p class="muted">Pick the lesson '+esc(P.name)+'\'s class is on in the Reveal Math practice book. It is offered first on the Reveal Math screen and its portal glows on the home screen.</p>'
    +'<label>Current lesson</label><select id="rvSel"><option value="">— not set —</option>'+REVEAL_LESSONS.map(l=>'<option value="'+l.id+'" '+(P.revealCurrent===l.id?"selected":"")+'>Lesson '+l.id+' · '+esc(l.t)+'</option>').join("")+'</select>'
@@ -9495,6 +9990,7 @@ function autoResume(){
     const p=DB.profiles.find(x=>x.id===last);
     if(!p||!p.diagDone)return renderProfiles();  // finish onboarding properly first
     P=p;
+    if(typeof revealProgressInit==="function"&&revealProgressInit(P))save();
     if(sessTryResume())return;                   // mid-lesson → exact same question
     renderHome();
   }catch(e){renderProfiles();}
@@ -10641,6 +11137,7 @@ function videoGate(key,next,back,replay,forceIndex){
   const v=videoActive={key:due.key,index:due.index,requestedKey:key,replay:!!replay,profile:P,next,back,player:null,ready:false,failed:false,playing:false,watched:0,fallback:0,lastWall:performance.now(),lastMedia:null};
   app.innerHTML='<style>#lessonVideoRetry[hidden]{display:none!important}#lessonVideoStatus{margin:10px 0 14px}</style><div id="lessonVideoGate" class="fadein" style="max-width:660px;margin:0 auto"><h1>🎬 '+(replay?'Watch it again':'Watch the lesson first')+'</h1><p>'+(replay?'Watch as much as you like.':'Watch the video first. When most of it has played, the lesson opens.')+'</p><div style="position:relative;width:100%;aspect-ratio:16/9;background:#111"><div id="lessonVideoPlayer"></div></div><p id="lessonVideoStatus" role="status">Loading video…</p><div class="btn-row"><button id="lessonVideoContinue" class="btn big"'+(replay?'':' disabled')+'>'+(replay?'Back to the lesson ▶':'Continue ▶')+'</button><button id="lessonVideoBack" class="btn secondary">⟵ Back</button><button id="lessonVideoRetry" class="btn secondary" hidden>Retry video</button></div></div>';
   document.getElementById('lessonVideoBack').onclick=()=>{videoStop();back();};
+  if(typeof lzBack==="function")lzBack(()=>{videoStop();back();},"Back");
   document.getElementById('lessonVideoContinue').onclick=()=>videoComplete(v);
   document.getElementById('lessonVideoRetry').onclick=()=>videoLoad(v);
   v.timer=setInterval(()=>videoTick(v),250);videoLoad(v);return true;
@@ -10688,7 +11185,7 @@ function videoComplete(v){
 /* Which video helps with which kind of question: V1 big idea, V2 second strategy, V3 pattern trick, V4 word problems, V5 watch-outs. */
 const VIDEO_FOR_TYPE={picture:1,pair:2,match:2,fill:3,story:4,multi:5,who:5,form:5};
 const VIDEO_PART_NAMES={1:'the big idea',2:'a second way to solve it',3:'the pattern trick',4:'word problems',5:'watch-outs'};
-function lessonPassed(id){if(revealProfileIsPrince(P)&&REVEAL_UNIT4_IDS.includes(id))return revealProfilePassed(P,id);const r=revealRec(id);return !!r&&r.total>0&&r.best/r.total>=0.8;}
+function lessonPassed(id){return revealProfilePassed(P,id);} // one pass rule for chips, stars and gates (reveal.js)
 function upNextLesson(){
   if(revealProfileIsPrince(P))return revealLesson(revealUnit4NextId(P));
   const list=REVEAL_LESSONS;let L=(P.revealCurrent&&revealLesson(P.revealCurrent))||list.find(l=>!lessonPassed(l.id))||list[0];
