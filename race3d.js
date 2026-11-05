@@ -440,6 +440,7 @@ function gpCss(){if(document.getElementById("gpV4Css"))return;const s=document.c
 @keyframes fzBoostRdy{from{box-shadow:0 5px 0 #2F4F4F,0 0 0 rgba(255,215,0,0)}to{box-shadow:0 5px 0 #2F4F4F,0 0 22px rgba(255,215,0,.9)}}
 @keyframes fzBoostNo{0%,100%{transform:translateX(0)}30%{transform:translateX(-5px)}70%{transform:translateX(5px)}}
 .gp3-wrap.v3.done .fz-boost,.gp3-wrap.v3.done .fz-cam,.gp3-wrap.v3.done .fz-trick,.gp3-wrap.v3.done .fz-nitro{display:none}
+.gp3-wrap.v3:not(.done){touch-action:none}
 /* TRICK: only there while the car flies; big, chunky, pulsing */
 .gp3-wrap.v3 .fz-trick{position:absolute;z-index:8;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));width:clamp(112px,12vw,140px);height:clamp(112px,12vw,140px);margin-left:calc(clamp(112px,12vw,140px)/-2);border-radius:50%;border:5px solid #1A0B36;background:radial-gradient(circle at 50% 32%,#ff7ab5,#FF2A85 62%,#d40f63);color:#fff;box-shadow:0 8px 0 #1A0B36,0 0 34px rgba(255,42,133,.85);display:none;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:0;cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;font-family:inherit}
 .gp3-wrap.v3 .fz-trick.on{display:flex;animation:fzTrick .42s ease-in-out infinite}
