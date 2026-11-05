@@ -2365,7 +2365,7 @@ function gpWallFx(kt,sd,n){const V=R3.tmpV,R=R3,tn=R.curve.getTangentAt(kt.t),sa
    Rivals: within 15 m of Prince they race him for real; further ahead they ease off a little, further behind they push a little (full effect 130 m away).
    Prince: behind the leader by more than 12 m he gets a quiet top-speed and pick-up bonus that grows with the gap (full effect at 150 m) and fades as he closes in,
    plus a short extra after a wall hit or a slide; nothing at all once he leads. Grip is never touched, so corners stay his to get right. */
-const GP_PACK={gentle:{ahead:0.05,behind:0.11,me:0.12,hit:0.05,skill:1.015},normal:{ahead:0.04,behind:0.11,me:0.1,hit:0.03,skill:1.02}};
+const GP_PACK={gentle:{ahead:0.08,behind:0.13,me:0.12,hit:0.05,skill:1.015},normal:{ahead:0.04,behind:0.11,me:0.1,hit:0.03,skill:1.02}};
 function gpBand(kt){const R=R3,me=R.me,K=GP_PACK[gpPace()]||GP_PACK.normal,g=((kt.lap+kt.t)-(me.lap+me.t))*R.len,u=Math.min(1,Math.max(0,(Math.abs(g)-15)/115)),e=u*u*(3-2*u);return g>0?1-K.ahead*e:1+K.behind*e;}
 function gpPack(dt,waiting){const R=R3,me=R.me;if(waiting||R.mode!=="race"||R.done){me.cu=0;return;}const K=GP_PACK[gpPace()]||GP_PACK.normal;let top=-1e9;for(const k of R.karts)if(!k.player)top=Math.max(top,k.lap+k.t);
   const gap=top<-1e8?0:(top-(me.lap+me.t))*R.len,u=Math.min(1,Math.max(0,(gap-12)/138));R.recB=me.loss||me.wobT>0||me.wallRec>0.5?1:Math.max(0,(R.recB||0)-dt/4);
@@ -2437,7 +2437,7 @@ function gpVert(kt,pos,dt,waiting){const ry=pos.y;
   if(kt.vy==null||waiting||kt.ry==null||dt<=0){kt.y=ry;kt.vy=0;kt.ry=ry;kt.air=false;kt.airT=0;kt.tPrev=kt.t;return;}
   if(Math.abs(ry-kt.ry)>0.6+Math.abs(kt.speed)*dt*0.35){kt.y=ry;kt.vy=0;kt.ry=ry;kt.air=false;kt.airT=0;kt.tPrev=kt.t;kt.trick=null;pos.y=ry;return;}   // a placement jump (grid, test hook), not motion
   const tilt=Math.abs((kt.pS||0)-(kt.sR||0))*1.45,rv=Math.max(-kt.speed*0.6-2,Math.min(kt.speed*0.6+2,(ry-kt.ry)/dt));kt.ry=ry;
-  if(!kt.air&&kt.tPrev!=null&&R3.lips){const a=kt.tPrev,b=kt.t;if(b!==a&&kt.speed>0){for(const L of R3.lips){const hit=a<=b?(a<L.t&&b>=L.t):(a<L.t||b>=L.t);if(hit&&gpLaunch(kt,L,ry)){pos.y=kt.y;kt.tPrev=kt.t;return;}}}}
+  if(!kt.air&&kt.tPrev!=null&&R3.lips){const a=kt.tPrev,b=kt.t;if(b!==a&&kt.speed>0){for(const L of R3.lips){const hit=a<=b?(a<L.t&&b>=L.t):(a-b>0.5&&(a<L.t||b>=L.t));if(hit&&gpLaunch(kt,L,ry)){pos.y=kt.y;kt.tPrev=kt.t;return;}}}}
   kt.tPrev=kt.t;
   if(!kt.air&&R3.lips&&kt.speed>0){for(const L of R3.lips){let u=(kt.t-L.t)*R3.len;if(u>R3.len/2)u-=R3.len;else if(u<-R3.len/2)u+=R3.len;if(u>-52&&u<=0.5){kt.y=ry;kt.vy=rv;pos.y=ry+tilt;return;}}}   // on the ramp the car stays on it, right up to the lip
   if(!kt.air){const g=gpNearJump(kt)?GP_G:GP_G+0.0045*kt.speed*kt.speed,yb=kt.y+kt.vy*dt-0.5*g*dt*dt;   // downforce keeps the car on the road over ordinary crests
