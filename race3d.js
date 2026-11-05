@@ -2453,7 +2453,7 @@ function gpLand(kt,imp){const big=kt.airT>0.22||imp>2.5;if(!big)return;
   if(trk&&kt.speed>8)kt.speed*=1.02;   // long-travel suspension: trucks keep their speed over the landing
   const near=kt.player||kt.pos.distanceToSquared(R3.me.pos)<3600;
   if(near){kt.g.updateMatrixWorld(true);const V=R3.tmpV;[-1,1].forEach(sd=>[kt.xr,-kt.xr].forEach(zz=>{V.set(sd*(kt.tyreX||kt.S.w/2-0.04),0.1,zz);kt.g.localToWorld(V);
-      for(let q=0;q<(kt.player?(kt.airT>0.7?9:4):2);q++)R3.dust.emit(V.x,V.y+0.15,V.z,(Math.random()-0.5)*(kt.airT>0.7?7:4),0.8+Math.random()*(kt.airT>0.7?2.6:1.6),(Math.random()-0.5)*(kt.airT>0.7?7:4),0.66,0.6,0.5,kt.airT>0.7?1.2:0.9);}));
+      const tn=R3.curve.getTangentAt(kt.t),cv=kt.speed*0.6;for(let q=0;q<(kt.player?(kt.airT>0.7?7:4):2);q++)R3.dust.emit(V.x,V.y+0.15,V.z,tn.x*cv+(Math.random()-0.5)*(kt.airT>0.7?7:4),0.8+Math.random()*(kt.airT>0.7?2.6:1.6),tn.z*cv+(Math.random()-0.5)*(kt.airT>0.7?7:4),0.66,0.6,0.5,kt.airT>0.7?1.1:0.9);}));
     if(imp>4.5){V.set(0,0.12,0);kt.g.localToWorld(V);for(let q=0;q<10;q++)R3.sparks.emit(V.x,V.y,V.z,(Math.random()-0.5)*5,1+Math.random()*2.5,(Math.random()-0.5)*5,1,0.75,0.3,0.35);}}
   if(kt.player){R3.shake=Math.min(0.55,0.05+imp*0.055);GPA.play("land");
     const lg=R3.jumpLog||(R3.jumpLog=[]);lg.push({f:R3.frameN,t:+(R3.simT||0).toFixed(2),air:+kt.airT.toFixed(2),peak:+kt.airPeak.toFixed(2),impact:+imp.toFixed(1),takeoffKmh:kt.takeoff?kt.takeoff.v:null});
