@@ -3648,6 +3648,65 @@ function gpBuildCar(T,car,paint,shared){
     wg.userData.rad=rad;wheels.push(wg);if(z>0)steers.push(hub);});
   const blob=new T.Mesh(new T.PlaneGeometry(w*1.5,S.len*1.2),new T.MeshBasicMaterial({map:shared.blob,color:0x000000,transparent:true,opacity:0.42,depthWrite:false}));blob.material.userData.lin=1;blob.rotation.x=-Math.PI/2;blob.position.y=0.04;g.add(blob);
   return{g,body:b,wheels,steers,shadows:[blob],tailMat:mats.tail,bodyMat:mats.body,S,xr:S.xr,hw:G.hw};}
+/* ---------- real 3D car models (GLB) ----------
+   Built headless in Blender (lz-gp-3dcar-shots/blender/build_car.py) and loaded with the r128 GLTFLoader (vendored next to the game, so
+   it stays on the same Three.js as Kingdom). Node names the game drives: body (suspension lean/dive/squat), hub_FL/FR/RL/RR (front hubs
+   steer about y), wheel_XX (spin about x), caliper_XX (stay still). Materials are swapped by name so paint, brake lights and the number
+   decal are ours to drive. A model that fails to load leaves that car on its picture sprite. */
+const GP_GLB={falcon:{src:"assets/cars3d/falcon.glb",tyreX:0.81,xr:-1.45,tail:-2.26,glows:[[0.68,0.72,0.66,0.36],[-0.68,0.72,0.66,0.36],[0,0.5,0.36,0.26],[0.3,0.775,0.6,0.16],[-0.3,0.775,0.6,0.16]]}};   // glows: [x,y,w,h] over the lamps
+const GP_GLTF_SRC="assets/vendor/GLTFLoader.r128.js";
+function gpGltfLoader(){if(window.THREE&&THREE.GLTFLoader)return Promise.resolve(true);if(window._gpGltfP)return window._gpGltfP;
+  window._gpGltfP=new Promise(res=>{const s=document.createElement("script");s.src=GP_GLTF_SRC;s.async=true;s.onload=()=>res(!!(window.THREE&&THREE.GLTFLoader));s.onerror=()=>{window._gpGltfP=null;res(false);};document.head.appendChild(s);});return window._gpGltfP;}
+function gpLoadGlb(ids){
+  if(!window.THREE)return Promise.resolve({});window._gpGlb=window._gpGlb||{};
+  const want=[...new Set(ids||Object.keys(GP_GLB))].filter(id=>GP_GLB[id]&&!window._gpGlb[id]);if(!want.length)return Promise.resolve(window._gpGlb);
+  return gpGltfLoader().then(ok=>{if(!ok)return window._gpGlb;const L=new THREE.GLTFLoader();
+    return Promise.all(want.map(id=>new Promise(res=>L.load(GP_GLB[id].src,g=>{window._gpGlb[id]=g.scene;res();},undefined,()=>{res();})))).then(()=>window._gpGlb);});}
+function gpGlbShared(T,shared){if(shared.glb)return shared.glb;
+  const std=o=>{const m=new T.MeshStandardMaterial(o);m.userData.lin=1;return m;};
+  shared.glb={
+    stripe:std({color:gpLin("#f4f4f0"),roughness:0.32,metalness:0.02}),
+    carbon:std({color:gpLin("#16171b"),roughness:0.5,metalness:0.25,envMapIntensity:0.6}),
+    glass:std({color:gpLin("#0d141d"),roughness:0.06,metalness:0.7,envMapIntensity:1.8}),
+    tyre:std({color:gpLin("#151517"),roughness:0.9,metalness:0,envMapIntensity:0.3}),
+    tyrewall:std({color:gpLin("#222327"),roughness:0.72,metalness:0,envMapIntensity:0.4}),
+    rim:std({color:gpLin("#c9cdd4"),roughness:0.3,metalness:0.55,envMapIntensity:0.35}),   // low env: shiny rims mirrored the grass and looked green
+    rimdark:std({color:gpLin("#1b1c20"),roughness:0.45,metalness:0.3,envMapIntensity:0.3}),
+    disc:std({color:gpLin("#7b7e83"),roughness:0.45,metalness:0.8}),
+    caliper:std({color:gpLin("#f2c21b"),roughness:0.4,metalness:0.1}),
+    lamp:std({color:gpLin("#ffffff"),emissive:gpLin("#fff4e2"),emissiveIntensity:1.5,roughness:0.1}),
+    exhaust:std({color:gpLin("#2a2a2d"),roughness:0.45,metalness:0.5,envMapIntensity:0.25}),
+    decal:null,glowTex:gpSoftDot(),
+    // spoke blur: a soft spun-metal disc that fades in over the outer face as the wheel spins up, so fast wheels read as spinning, not strobing
+    blurTex:gpCanvasTex(128,128,(x,w,h)=>{x.clearRect(0,0,w,h);const c=64,g=x.createRadialGradient(c,c,0,c,c,63);g.addColorStop(0,"rgba(40,41,46,1)");g.addColorStop(0.2,"rgba(70,72,78,1)");g.addColorStop(0.24,"rgba(150,154,162,.95)");g.addColorStop(0.62,"rgba(126,130,138,.9)");g.addColorStop(0.9,"rgba(95,98,105,.92)");g.addColorStop(0.95,"rgba(205,208,214,1)");g.addColorStop(1,"rgba(205,208,214,0)");x.fillStyle=g;x.beginPath();x.arc(c,c,63,0,7);x.fill();
+      x.strokeStyle="rgba(255,255,255,.12)";for(let r=18;r<56;r+=6){x.lineWidth=1.5;x.beginPath();x.arc(c,c,r,0,7);x.stroke();}})};
+  return shared.glb;}
+function gpGlbPaintFor(car,player){const u=player&&gpUp().paint;return(u&&/^#[0-9a-f]{6}$/i.test(u))?u:car.paint;}   // model cars keep their own colour unless a paint upgrade was picked
+function gpUp(){const u=P&&P.gpUp;return(u&&typeof u==="object")?u:(window._gpUp||{});}
+function gpGlbPaint(paint){const m=new THREE.MeshPhysicalMaterial({color:gpLin(paint).multiplyScalar(0.8),metalness:0.05,roughness:0.38,clearcoat:1,clearcoatRoughness:0.08,envMapIntensity:0.6});m.userData.lin=1;return m;}
+function gpBuildGlbCar(T,car,src,paint,shared){
+  const S=GP_SHAPE[car.type],D=GP_GLB[car.id],SM=gpGlbShared(T,shared),g=new T.Group(),root=src.clone(true);g.add(root);
+  const paintM=gpGlbPaint(paint),stripe=SM.stripe;
+  const tail=new T.MeshStandardMaterial({color:gpLin("#5a0004"),emissive:gpLin("#ff0d06"),emissiveIntensity:0.55,roughness:0.3});tail.userData.lin=1;tail.toneMapped=false;   // stays RED when lit (tone mapping turned it orange)
+  let body=null;const hubs={},wh={};
+  root.traverse(o=>{if(o.name==="body")body=o;else if(/^hub_/.test(o.name))hubs[o.name.slice(4)]=o;else if(/^wheel_/.test(o.name))wh[o.name.slice(6)]=o;
+    if(!o.isMesh)return;const nm=o.material&&o.material.name;
+    if(nm==="decal"){if(!SM.decal){const d=o.material;d.alphaTest=0.5;d.transparent=false;d.polygonOffset=true;d.polygonOffsetFactor=-2;d.polygonOffsetUnits=-2;d.roughness=0.35;d.metalness=0;d.userData.lin=1;SM.decal=d;}o.material=SM.decal;o.castShadow=false;return;}
+    o.material=nm==="paint"?paintM:nm==="tail"?tail:(SM[nm]||o.material);if(!o.material.userData.lin)o.material.userData.lin=1;
+    o.castShadow=nm!=="glass"&&!/^(wheel|caliper|hub)_/.test(o.parent&&o.parent.name||o.name);o.receiveShadow=false;});   // wheels skip the shadow pass (draw calls); the body shadow + soft footprint ground them
+  if(!body)body=root;
+  const wheels=[],steers=[],blurs=[];if(!SM.blurGeo)SM.blurGeo=new T.CircleGeometry(1,28);
+  ["FL","FR","RL","RR"].forEach(k=>{const w=wh[k];if(!w)return;const rad=k[0]==="F"?S.rad:S.radR,tw=k[0]==="F"?0.3:0.38,sd=hubs[k]&&hubs[k].position.x<0?-1:1;w.userData.rad=rad;wheels.push(w);if(k[0]==="F"&&hubs[k])steers.push(hubs[k]);
+    const bm=new T.MeshBasicMaterial({map:SM.blurTex,transparent:true,opacity:0,depthWrite:false});bm.userData.lin=1;const b=new T.Mesh(SM.blurGeo,bm);b.scale.setScalar(rad*0.72);b.position.x=sd*(tw/2+0.012);b.rotation.y=sd*Math.PI/2;b.visible=false;b.renderOrder=2;w.add(b);blurs.push(b);});
+  // brake lights: soft additive glows over the LED clusters and the rain light, faded in on the brake (plus the emissive lamp material)
+  const glows=(D.glows||[]).map(q=>{const m=new T.SpriteMaterial({map:SM.glowTex,color:0xff1606,transparent:true,opacity:0,depthWrite:false,blending:T.AdditiveBlending});m.toneMapped=false;m.userData.lin=1;
+    const s=new T.Sprite(m);s.position.set(q[0],q[1],D.tail-0.08);s.scale.set(q[2],q[3],1);s.visible=false;body.add(s);return s;});
+  const blob=new T.Mesh(new T.PlaneGeometry(S.w*1.25,S.len*1.08),new T.MeshBasicMaterial({map:shared.ao||shared.blob,color:0x000000,transparent:true,opacity:0.55,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}));blob.material.userData.lin=1;blob.rotation.x=-Math.PI/2;blob.position.y=0.03;g.add(blob);
+  return{g,body,wheels,steers,shadows:[blob],tailMat:tail,bodyMat:paintM,stripeMat:stripe,S,xr:D.xr||S.xr,hw:z=>S.w/2,tyreX:D.tyreX,glb:{glows,blurs,glow:0,rollV:0,pitchV:0,heave:0,heaveV:0}};}
+/* per frame for model cars: brake glow fade (the springs for lean / dive / squat run in gpUpdate) */
+function gpGlbUpdate(kt,dt){const G=kt.glb;G.glow+=((kt.brakeOn?1:0)-G.glow)*Math.min(1,dt*(kt.brakeOn?18:7));
+  const om=Math.abs(kt.speed)/Math.max(0.1,kt.S.radR),bo=Math.max(0,Math.min(0.88,(om-18)/34));G.blurs.forEach(b=>{const v=bo>0.02;if(b.visible!==v)b.visible=v;if(v)b.material.opacity=bo;});
+  kt.tailMat.emissiveIntensity=0.5+G.glow*1.9;G.glows.forEach(s=>{const v=G.glow>0.02;if(s.visible!==v)s.visible=v;if(v)s.material.opacity=G.glow*0.7;});}
 /* ---------- real car pictures ---------- */
 /* Loads only the sheets used by this grid, so the SUV race texture stays lazy until the SUV is selected. Resolves with a map id → texture
    or null when a picture failed; a null means that car keeps its 3D model. */
@@ -3848,13 +3907,13 @@ function gpSmoke(T,scene,n,tex,fog){
     vertexShader:"attribute float aLife;attribute float aSize;uniform float scale;uniform float maxPx;varying float vA;varying float vFog;varying vec2 vFlip;void main(){vec4 mv=modelViewMatrix*vec4(position,1.0);float age=1.0-aLife;float px=aSize*(0.55+0.9*age)*scale/max(1.0,-mv.z);gl_PointSize=min(px,maxPx);vA=aLife*aLife;vFog=-mv.z;vFlip=vec2(step(0.5,fract(aSize*37.0)),step(0.5,fract(aSize*91.0)));gl_Position=projectionMatrix*mv;}",
     fragmentShader:"uniform sampler2D map;uniform float opacity;uniform vec3 tint;uniform vec3 fogColor;uniform float fogNear;uniform float fogFar;varying float vA;varying float vFog;varying vec2 vFlip;void main(){vec2 uv=abs(vFlip-gl_PointCoord);vec4 c=texture2D(map,uv);float f=smoothstep(fogNear,fogFar,vFog);gl_FragColor=vec4(mix(tint*c.rgb,fogColor,f),c.a*vA*opacity);}"});
   const pts=new T.Points(g,mat);pts.frustumCulled=false;scene.add(pts);
-  return{pts,g,pos,life,size,n,max:new Float32Array(n),vel:new Float32Array(n*3),next:0,liveN:0,cap:Math.min(n,56),base:0.24,mat,dirty:0,
+  return{pts,g,pos,life,size,n,max:new Float32Array(n),vel:new Float32Array(n*3),next:0,liveN:0,cap:Math.min(n,84),base:0.3,lim:0.08,mat,dirty:0,
     emit(x,y,z,vx,vy,vz,sz,lf){if(this.liveN>=this.cap)return;const i=this.next;this.next=(i+1)%this.n;if(this.life[i]>0)return;const k=i*3;this.pos[k]=x;this.pos[k+1]=y;this.pos[k+2]=z;this.vel[k]=vx;this.vel[k+1]=vy;this.vel[k+2]=vz;this.size[i]=sz;this.life[i]=1;this.max[i]=lf;this.liveN++;this.dirty=1;},
     update(dt,camPos,W,H){if(!this.liveN&&!this.dirty)return;let live=0,cov=0;const sc=this.mat.uniforms.scale.value,mx=this.mat.uniforms.maxPx.value;
       for(let i=0;i<this.n;i++){if(this.life[i]<=0)continue;this.life[i]-=dt/this.max[i];const k=i*3;if(this.life[i]<=0){this.life[i]=0;this.pos[k+1]=-999;continue;}live++;
         this.vel[k+1]+=0.9*dt;this.vel[k]*=1-dt*0.9;this.vel[k+2]*=1-dt*0.9;this.pos[k]+=this.vel[k]*dt;this.pos[k+1]+=this.vel[k+1]*dt;this.pos[k+2]+=this.vel[k+2]*dt;
         const dx=this.pos[k]-camPos.x,dy=this.pos[k+1]-camPos.y,dz=this.pos[k+2]-camPos.z;const d=Math.max(1,Math.sqrt(dx*dx+dy*dy+dz*dz));const px=Math.min(mx,this.size[i]*(0.55+0.9*(1-this.life[i]))*sc/d);cov+=px*px*0.55*this.life[i]*this.life[i];}
-      this.liveN=live;const frac=cov/Math.max(1,W*H);this.mat.uniforms.opacity.value=frac>0.08?this.base*0.08/frac:this.base;
+      this.liveN=live;const frac=cov/Math.max(1,W*H);const lim=this.lim||0.08;this.mat.uniforms.opacity.value=frac>lim?this.base*lim/frac:this.base;
       this.g.attributes.position.needsUpdate=true;this.g.attributes.aLife.needsUpdate=true;this.g.attributes.aSize.needsUpdate=true;this.dirty=live?1:0;}};
 }
 /* ---------- the race ---------- */
@@ -3867,7 +3926,7 @@ async function startRace3D(cid){
   const intro=gpIntro(false);   // started inside the tap so iOS lets it play with sound
   try{await loadThree();}catch(e){document.querySelectorAll(".fz-intro").forEach(e=>e.remove());toast("3D engine could not load — using the classic racer");fb();return;}
   // car pictures load lazily here (a slow network never holds the race more than a few seconds: cars without a picture use the 3D model)
-  if(!gpStory()){try{await Promise.race([Promise.all([gpLoadPics(gpRacePicIds()),gpLoadWorld()]),new Promise(r=>setTimeout(r,7000))]);}catch(e){}}
+  if(!gpStory()){try{await Promise.race([Promise.all([gpLoadPics(gpRacePicIds()),gpLoadGlb(gpRacePicIds()),gpLoadWorld()]),new Promise(r=>setTimeout(r,7000))]);}catch(e){}}
   await intro;
   if(!app.querySelector("h2"))return;   // the player left while the intro was playing
   try{gpBuild(C);}catch(e){console.error(e);gpStop();toast("3D racer hit a problem — using the classic racer");fb();}
@@ -4214,7 +4273,8 @@ function gpBuild(C){
   const pname=(P&&typeof P.name==="string"&&P.name.trim())?P.name.trim().split(/\s+/)[0]:"You";
   const racers=[{n:pname,car:myCar,css:myPaint,player:true}].concat(gpMode()==="race"?others.slice(0,4).map((c,i)=>({n:GP_DRIVERS[i%GP_DRIVERS.length],car:c,css:c.paint,player:false})):[]);
   const pics=story?{}:(window._gpPics||{});   // the storybook look keeps the drawn 3D cars (the ink filter buries a photo)
-  const pace=gpPaceMul();const karts=racers.map((r,i)=>{const m=(GP_PICS[r.car.id]&&pics[r.car.id])?gpBuildPicCar(T,r.car,pics[r.car.id],shared):gpBuildCar(T,r.car,r.css,shared);scene.add(m.g);const st=gpStats(r.car);st.max*=pace;st.accel*=0.75;
+  const glbs=story?{}:(window._gpGlb||{});   // real 3D models (GLB) win over the photo sprites when they loaded
+  const pace=gpPaceMul();const karts=racers.map((r,i)=>{const m=(GP_GLB[r.car.id]&&glbs[r.car.id])?gpBuildGlbCar(T,r.car,glbs[r.car.id],gpGlbPaintFor(r.car,r.player),shared):(GP_PICS[r.car.id]&&pics[r.car.id])?gpBuildPicCar(T,r.car,pics[r.car.id],shared):gpBuildCar(T,r.car,r.css,shared);scene.add(m.g);const st=gpStats(r.car);st.max*=pace;st.accel*=0.75;
     return{racer:r,player:r.player,...m,...st,t:0,x:0,px:0,speed:0,lap:0,spin:0,drift:0,off:0,hop:0,roll:0,pitch:0,steerVis:0,st1:0,steerIn:0,sv:0,dHold:0,wasBrake:false,lockT:0,gasT:0,wallT:0,knock:0,headA:0,headV:0,leanT:0,liftT:0,chatter:0,yaw:null,lastSpeed:0,wheelPhase:0,wheelRadius:m.S.radR,travel:0,skidD:0,ahead:true,started:false,pos:new T.Vector3(),draft:false,brakeOn:false,aiSkill:r.player?1:0.95+(i%3)*0.025+r.car.handle*0.006};});
   const rows=karts.length,pitch=8/(len/M);karts.forEach((k,i)=>{const row=k.player?rows-1:i-1;k.t=((M-5-row*pitch)/M)%1;k.x=(row%2?0.4:-0.4)*(rows>1?1:0);k.px=k.x;});
   if(gpMode()==="race"){const boxTex=gpCanvasTex(128,256,(x,w,h)=>{x.clearRect(0,0,w,h);x.strokeStyle="rgba(255,255,255,.9)";x.lineWidth=10;x.strokeRect(6,6,w-12,h-12);});
@@ -4266,9 +4326,9 @@ function gpBuild(C){
   document.addEventListener("touchmove",R3.blockTouch,{passive:false});document.addEventListener("gesturestart",R3.blockTouch,{passive:false});
   R3.onVis=()=>{if(!GPA.ctx)return;if(document.hidden)GPA.ctx.suspend();else GPA.ctx.resume();};document.addEventListener("visibilitychange",R3.onVis);
   const wrapEl=$("gp3");
-  R3.onResize=()=>{if(!R3)return;const w=wrapEl.clientWidth||720,h=wrapEl.clientHeight||Math.round(w*9/16);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();const pr=renderer.getPixelRatio();R3.vpW=w*pr;R3.vpH=h*pr;R3.smoke.mat.uniforms.scale.value=h*pr*0.72;R3.smoke.mat.uniforms.maxPx.value=h*pr*0.08;if(R3.post)R3.post.resize(w,h,renderer.getPixelRatio());if(R3.fx){R3.fxW=Math.max(16,Math.round(w/2));R3.fxH=Math.max(9,Math.round(h/2));R3.fx.width=R3.fxW;R3.fx.height=R3.fxH;}};
+  R3.onResize=()=>{if(!R3)return;const w=wrapEl.clientWidth||720,h=wrapEl.clientHeight||Math.round(w*9/16);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();const pr=renderer.getPixelRatio();R3.vpW=w*pr;R3.vpH=h*pr;R3.smoke.mat.uniforms.scale.value=h*pr*0.72;R3.smoke.mat.uniforms.maxPx.value=h*pr*(R3.me&&R3.me.glb?0.2:0.08);if(R3.post)R3.post.resize(w,h,renderer.getPixelRatio());if(R3.fx){R3.fxW=Math.max(16,Math.round(w/2));R3.fxH=Math.max(9,Math.round(h/2));R3.fx.width=R3.fxW;R3.fx.height=R3.fxH;}};
   R3.onOrient=()=>{[150,400,900].forEach(ms=>setTimeout(()=>{if(R3)R3.onResize();},ms));};
-  window.addEventListener("resize",R3.onResize);window.addEventListener("orientationchange",R3.onOrient);R3.onResize();
+  window.addEventListener("resize",R3.onResize);window.addEventListener("orientationchange",R3.onOrient);if(R3.me.glb){R3.smoke.lim=0.16;R3.smoke.base=0.46;R3.smoke.mat.uniforms.tint.value.setRGB(1,1,1);}R3.onResize();
   setTimeout(()=>{const c=$("gp3Card");if(c)c.classList.add("hide");},2000);
   GPA.startEngine();
   say(C.name+". "+myCar.n+". Three, two, one, go!");
@@ -4406,29 +4466,42 @@ function gpUpdate(dt,waiting){
       const ph=window.__gp&&window.__gp.phys;if(ph){ph.slipDeg=kt.headA*57.3;ph.steerIn=kt.steerIn;ph.sv=kt.sv;ph.drift=kt.drift;ph.x=kt.x;ph.speed=kt.speed;}
     }else kt.g.rotateY((-vx*0.05)+(kt.drift?-kt.drift*0.35:0));
     const heavy=kt.racer.car.type==="suv",settle=heavy?4.5:6,rollMax=kt.pic?0:(heavy?0.105:0.09);
-    const rollT=Math.max(-rollMax,Math.min(rollMax,yawRate*0.18*spd-vx*0.04+(kt.drift?-kt.drift*0.05:0)));kt.roll+=(rollT-kt.roll)*Math.min(1,dt*settle);
-    const acc=(kt.speed-kt.lastSpeed)/Math.max(dt,0.001);kt.lastSpeed=kt.speed;const pitchMax=kt.pic?0.008:0.045,pitchT=Math.max(-pitchMax,Math.min(pitchMax,-acc*(kt.pic?0.00055:(heavy?0.0034:0.003))));kt.pitch+=(pitchT-kt.pitch)*Math.min(1,dt*settle);
+    const acc=(kt.speed-kt.lastSpeed)/Math.max(dt,0.001);kt.lastSpeed=kt.speed;
+    if(kt.glb){   // model cars: body on springs (a touch of overshoot) - leans out of corners and slides, dives on the brakes, squats on launch
+      const G=kt.glb,lat=kt.player?-kt.sv*0.11:-vx*0.05;
+      const rollT=waiting?0:Math.max(-0.085,Math.min(0.085,yawRate*0.13*spd+lat+(kt.drift?-kt.drift*0.035:0)));
+      G.rollV+=((rollT-kt.roll)*90-G.rollV*10)*dt;kt.roll+=G.rollV*dt;
+      const pitchT=waiting?0:Math.max(-0.035,Math.min(0.05,-acc*0.0026+(kt.brakeOn&&spd>0.15?0.022:0)));
+      G.pitchV+=((pitchT-kt.pitch)*80-G.pitchV*9.5)*dt;kt.pitch+=G.pitchV*dt;
+      kt.body.position.y+=-Math.abs(kt.roll)*0.12-Math.max(0,kt.pitch)*0.5;}   // the body sits down a little into the lean / dive
+    else{const rollT=Math.max(-rollMax,Math.min(rollMax,yawRate*0.18*spd-vx*0.04+(kt.drift?-kt.drift*0.05:0)));kt.roll+=(rollT-kt.roll)*Math.min(1,dt*settle);
+    const pitchMax=kt.pic?0.008:0.045,pitchT=Math.max(-pitchMax,Math.min(pitchMax,-acc*(kt.pic?0.00055:(heavy?0.0034:0.003))));kt.pitch+=(pitchT-kt.pitch)*Math.min(1,dt*settle);}
     kt.body.rotation.z=kt.roll;kt.body.rotation.x=kt.pitch;
     if(kt.pic){   // picture cars: body lean / tail lift / kerb chatter targets for the sprite shader (gpPicUpdate springs toward them)
       const cl=-yawRate*0.06*spd+(kt.player?kt.steerIn*0.03*spd+kt.headA*0.09:0);kt.leanT=Math.max(-0.08,Math.min(0.08,cl));
       kt.liftT=waiting?0:Math.max(-0.035,Math.min(0.06,-acc*0.0022));
       const edge=Math.abs(kt.x)>0.97&&spd>0.15;kt.knock=Math.max(0,(kt.knock||0)-dt*3);
       kt.chatter=(edge?Math.sin(kt.travel*11)*0.013*Math.min(1,spd*1.5):0)+kt.knock*Math.sin(kt.travel*5+R3.time*0.04)*0.03;}
-    const stT=Math.max(-0.45,Math.min(0.45,yawRate*0.32-vx*0.22+(kt.drift?kt.drift*0.35:0)));kt.steerVis+=(stT-kt.steerVis)*Math.min(1,dt*10);kt.steers.forEach(h=>h.rotation.y=kt.steerVis);
+    let stT;if(kt.glb){const path=Math.atan(2.77*kap*(kt.speed>0.5?1:0));   // Ackermann angle for the bend (wheelbase 2.77 m)
+      stT=kt.player?(kt.drift?path*0.4+kt.headA*1.05-kt.steerIn*0.06:path-kt.steerIn*0.42+kt.headA*0.25):path-vx*0.3;   // + = wheels point left; in a drift they point back along the slide (counter-steer)
+      stT=Math.max(-0.55,Math.min(0.55,stT));}
+    else stT=Math.max(-0.45,Math.min(0.45,yawRate*0.32-vx*0.22+(kt.drift?kt.drift*0.35:0)));
+    kt.steerVis+=(stT-kt.steerVis)*Math.min(1,dt*(kt.glb?12:10));kt.steers.forEach(h=>h.rotation.y=kt.steerVis);
     kt.wheels.forEach(w=>w.rotation.x+=kt.speed*dt/w.userData.rad);
-    kt.tailMat.emissiveIntensity=kt.brakeOn?3.4:0.9;
+    if(kt.glb)gpGlbUpdate(kt,dt);else kt.tailMat.emissiveIntensity=kt.brakeOn?3.4:0.9;
     if(kt.pic){if(!kt.player&&!waiting&&spd>0.8&&Math.random()<dt*0.1)gpFlame(kt,0.3);gpPicUpdate(kt,dt,R3.camPos,kt.player?((left?-1:0)+(right?1:0)):0);}
     // effects: tyre smoke + skid marks only for a real drift/brake-slide; dust stays off-road
     const near=kt.player||(kt.pos.distanceToSquared(me.pos)<2500&&kt.pos.distanceToSquared(R3.camPos)>30);
     const driftSlide=!!kt.drift&&spd>0.38,brakeSlide=kt.brakeOn&&((kt.slip>0.16&&spd>0.55)||(kt.lockT>0&&spd>0.5)),skid=!offroad&&(driftSlide||brakeSlide);if(!skid)kt.skidD=0;
     if(near&&(skid||(offroad&&spd>0.2))){kt.g.updateMatrixWorld(true);
-      [-1,1].forEach(sd=>{V.set(sd*(kt.S.w/2-0.04),0.1,kt.xr);kt.g.localToWorld(V);
-        if(skid){kt.smk=(kt.smk||0)+dt*(kt.player?(driftSlide?9:6):4);while(kt.smk>=1){kt.smk-=1;const big=kt.player&&driftSlide?1.35:1;R3.smoke.emit(V.x,V.y+0.14,V.z,(Math.random()-0.5)*0.9-tan.x*0.8,0.2+Math.random()*0.3,(Math.random()-0.5)*0.9-tan.z*0.8,(0.45+Math.random()*0.2)*big,(0.3+Math.random()*0.18)*big);}}
+      [-1,1].forEach(sd=>{V.set(sd*(kt.tyreX||kt.S.w/2-0.04),0.1,kt.xr);kt.g.localToWorld(V);
+        if(skid){const hero=kt.player&&!!kt.glb;kt.smk=(kt.smk||0)+dt*(kt.player?(driftSlide?(hero?16:9):(hero?9:6)):4);while(kt.smk>=1){kt.smk-=1;const big=kt.player&&driftSlide?(hero?2.0:1.35):(hero?1.4:1),lf=hero?(driftSlide?2.4:1.7):big;   // the model car's drift smoke billows: bigger puffs that hang in the air behind it
+          R3.smoke.emit(V.x,V.y+0.14,V.z,(Math.random()-0.5)*0.9-tan.x*0.8,0.2+Math.random()*0.3,(Math.random()-0.5)*0.9-tan.z*0.8,(0.45+Math.random()*0.2)*big,(0.3+Math.random()*0.18)*lf);}}
         else if(Math.random()<0.6)R3.dust.emit(V.x,V.y+0.2,V.z,-tan.x*3+(Math.random()-0.5)*2,0.8+Math.random()*1.2,-tan.z*3+(Math.random()-0.5)*2,0.6,0.5,0.35,0.9);});}
     if(skid&&near){kt.skidD+=kt.speed*dt;if(kt.skidD>0.9){const dl=Math.min(6,kt.skidD);kt.skidD=0;const D=R3.dummy;const fw=Math.atan2(tan.x,tan.z)-(kt.player?kt.headA:(kt.drift?kt.drift*0.42:0));   // each mark spans the distance since the last one, so the trail is continuous at any frame rate
-      [-1,1].forEach(sd=>{V.set(sd*(kt.S.w/2-0.04),0,kt.xr);kt.g.localToWorld(V);D.position.set(V.x-tan.x*dl*0.5,kt.pos.y+0.028,V.z-tan.z*dl*0.5);D.rotation.set(0,fw,0);D.scale.set(1,1,dl+0.1);D.updateMatrix();const si=R3.skN;R3.skids.setMatrixAt(si,D.matrix);R3.skidLife[si]=4;R3.skidFade.setX(si,1);R3.skN=(si+1)%700;});R3.skids.instanceMatrix.needsUpdate=true;R3.skidFade.needsUpdate=true;}}
+      [-1,1].forEach(sd=>{V.set(sd*(kt.tyreX||kt.S.w/2-0.04),0,kt.xr);kt.g.localToWorld(V);D.position.set(V.x-tan.x*dl*0.5,kt.pos.y+0.028,V.z-tan.z*dl*0.5);D.rotation.set(0,fw,0);D.scale.set(1,1,dl+0.1);D.updateMatrix();const si=R3.skN;R3.skids.setMatrixAt(si,D.matrix);R3.skidLife[si]=4;R3.skidFade.setX(si,1);R3.skN=(si+1)%700;});R3.skids.instanceMatrix.needsUpdate=true;R3.skidFade.needsUpdate=true;}}
     // a little dust off the outside wheel when the player runs right on the road edge / kerb
-    if(kt.player&&!offroad&&Math.abs(kt.x)>0.97&&spd>0.3&&Math.random()<0.45){const sd=-Math.sign(kt.x);kt.g.updateMatrixWorld(true);V.set(sd*(kt.S.w/2-0.04),0.1,kt.xr);kt.g.localToWorld(V);R3.dust.emit(V.x,V.y+0.15,V.z,-tan.x*2+(Math.random()-0.5)*1.5,0.5+Math.random()*0.8,-tan.z*2+(Math.random()-0.5)*1.5,0.62,0.55,0.42,0.6);}
+    if(kt.player&&!offroad&&Math.abs(kt.x)>0.97&&spd>0.3&&Math.random()<0.45){const sd=-Math.sign(kt.x);kt.g.updateMatrixWorld(true);V.set(sd*(kt.tyreX||kt.S.w/2-0.04),0.1,kt.xr);kt.g.localToWorld(V);R3.dust.emit(V.x,V.y+0.15,V.z,-tan.x*2+(Math.random()-0.5)*1.5,0.5+Math.random()*0.8,-tan.z*2+(Math.random()-0.5)*1.5,0.62,0.55,0.42,0.6);}
   });
   // bumps between cars
   for(let a=0;a<karts.length;a++)for(let b=a+1;b<karts.length;b++){const A=karts[a],B=karts[b];const d=(A.t-B.t+1)%1;const close=d<0.004||d>0.996;if(close&&Math.abs(A.x-B.x)<0.42){const back=d<0.5?B:A,front=back===A?B:A;if(back.speed>front.speed)back.speed=front.speed*0.88;A.x+=(A.x<B.x?-1:1)*0.18;B.x-=(A.x<B.x?-1:1)*0.18;
@@ -4492,6 +4565,7 @@ function gpRender(dt){
     target.y=Math.max(target.y,me.pos.y+(tall?3.4:1.4));
     look=foc.clone().addScaledVector(tan,tall?9:10).add(new T.Vector3(0,tall?-0.6:0.95,0));
     R3.camPos.copy(target);const cm=window.__gp.cam;cm.lagDeg=gpWrapAng(R3.camYaw-roadYaw)*57.3;cm.back=back;}
+  const dc=window.__gpCam;if(dc&&R3.countdown<=0.5){me.g.updateMatrixWorld(true);const o=me.g.localToWorld(R3.tmpV3.set(dc.side||0,dc.h||1.2,-(dc.back||5)));R3.camPos.copy(o);look=me.g.localToWorld(new T.Vector3(0,dc.look||0.5,dc.ahead||0));}   // test hook only: fixed replay angle on the player car
   R3.camera.position.copy(R3.camPos);
   R3.karts.forEach(k=>{if(k.player)return;const fwd=(k.pos.x-R3.camPos.x)*flat.x+(k.pos.z-R3.camPos.z)*flat.z;const vis=fwd>2.4;if(k.g.visible!==vis)k.g.visible=vis;});   // a solid car until it passes the camera (an opacity fade made rivals see-through)
   R3.camera.lookAt(look);
