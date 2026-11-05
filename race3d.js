@@ -2530,7 +2530,7 @@ function gpRivalSteer(kt,i,waiting){const XS=R3.W-1.2,L=R3.len,me=R3.me,hw=kt.S.
   const gain=1.1+kt.racer.car.handle*0.18,vmax=0.42;return Math.max(-vmax,Math.min(vmax,(target-kt.x)*gain));}
 /* put cars that a contact moved back on the road this same frame (the view never shows the overlap that was just removed) */
 function gpPlaceAll(){const XS=R3.W-1.2,T=R3.T;R3.karts.forEach(kt=>{if(!kt._mv)return;kt._mv=0;const pos=R3.curve.getPointAt(kt.t),tan=R3.curve.getTangentAt(kt.t);const nx=-tan.z,nz=tan.x,nl=Math.hypot(nx,nz)||1;
-  pos.x+=nx/nl*kt.x*XS;pos.z+=nz/nl*kt.x*XS;kt.pos.copy(pos);kt.g.position.copy(pos);});}
+  pos.x+=nx/nl*kt.x*XS;pos.z+=nz/nl*kt.x*XS;if(kt.air)pos.y=kt.y;kt.pos.copy(pos);kt.g.position.copy(pos);});}   // a car bumped in flight stays in the air
 /* ---------- start sequence: ONE clock ----------
    1. "intro": the track + car line is spoken while the grid sits still (no numbers, lamps dark). The count waits for that clip
       to finish (or ~1.3 s when no voice will play), so the voice never talks over the beeps.
