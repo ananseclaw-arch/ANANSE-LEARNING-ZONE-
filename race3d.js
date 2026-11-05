@@ -2364,7 +2364,7 @@ function gpWallFx(kt,sd,n){const V=R3.tmpV,R=R3,tn=R.curve.getTangentAt(kt.t),sa
    Rivals: within 15 m of Prince they race him for real; further ahead they ease off a little, further behind they push a little (full effect 130 m away).
    Prince: behind the leader by more than 12 m he gets a quiet top-speed and pick-up bonus that grows with the gap (full effect at 150 m) and fades as he closes in,
    plus a short extra after a wall hit or a slide; nothing at all once he leads. Grip is never touched, so corners stay his to get right. */
-const GP_PACK={gentle:{ahead:0.05,behind:0.11,me:0.12,hit:0.05,skill:1.015},normal:{ahead:0.025,behind:0.11,me:0.08,hit:0.03,skill:1.035}};
+const GP_PACK={gentle:{ahead:0.05,behind:0.11,me:0.12,hit:0.05,skill:1.015},normal:{ahead:0.04,behind:0.11,me:0.1,hit:0.03,skill:1.02}};
 function gpBand(kt){const R=R3,me=R.me,K=GP_PACK[gpPace()]||GP_PACK.normal,g=((kt.lap+kt.t)-(me.lap+me.t))*R.len,u=Math.min(1,Math.max(0,(Math.abs(g)-15)/115)),e=u*u*(3-2*u);return g>0?1-K.ahead*e:1+K.behind*e;}
 function gpPack(dt,waiting){const R=R3,me=R.me;if(waiting||R.mode!=="race"||R.done){me.cu=0;return;}const K=GP_PACK[gpPace()]||GP_PACK.normal;let top=-1e9;for(const k of R.karts)if(!k.player)top=Math.max(top,k.lap+k.t);
   const gap=top<-1e8?0:(top-(me.lap+me.t))*R.len,u=Math.min(1,Math.max(0,(gap-12)/138));R.recB=me.loss||me.wobT>0||me.wallRec>0.5?1:Math.max(0,(R.recB||0)-dt/4);
@@ -2423,24 +2423,27 @@ const GP_G=15.5;
 /* every lip's real place on this build's road (sample nearest the top), its slope, and the room after it before the next proper bend */
 function gpLipsBuild(){const R=R3,C=R.C,M=R.M,ds=R.len/M,S=R.samples;R.lips=(C.jumps||[]).map(J=>{const i0=Math.round(J[0]/C.lapM*M);let bi=i0,by=-1e9;for(let k=-14;k<=14;k++){const i=((i0+k)%M+M)%M;if(S[i].pos.y>by){by=S[i].pos.y;bi=i;}}
     const n=Math.round(10/ds),slope=Math.max(0,(by-S[((bi-n)%M+M)%M].pos.y)/(n*ds))*1.12;let room=0;for(let k=1;k<Math.round(240/ds);k++){if(Math.abs(R.kap[(bi+k)%M])>1/90)break;room=k*ds;}
-    return{t:bi/M,slope,room,kind:J[2]||"jump",h:J[1],hit:0};});}
+    return{t:bi/M,y:by,slope,room,kind:J[2]||"jump",h:J[1],hit:0};});}
 /* off the lip: the climb rate is slope x speed (exactly, at any frame rate); a mega ramp also fires a burst, so nobody stalls on it. The room left to land
    caps the flight, so a landing always comes before the next bend. */
+function gpFlightT(L,v,vy,y0){const R=R3,M=R.M,S=R.samples,ds=R.len/M,i0=Math.round(L.t*M);for(let T=0.1;T<3;T+=0.05){const k=Math.round(v*T/ds),y=y0+vy*T-0.5*GP_G*T*T;if(y<=S[(i0+k)%M].pos.y)return T;}return 3;}
 function gpLaunch(kt,L,ry){if(kt.speed<(L.kind==="mega"?8:15))return false;const mega=L.kind==="mega";
   if(mega){const v0=kt.speed;kt.speed=Math.max(kt.speed*1.05,Math.min(kt.max*0.86,kt.speed+30));if(kt.boostT!==undefined){kt.boostT=Math.max(kt.boostT,0.9);kt.boostMul=Math.max(kt.boostMul||1,1.12);}if(kt.player){GPA.play("boost");gpMsg("MEGA RAMP!");}}
-  const v=kt.speed,tMax=Math.max(0.55,(L.room-(mega?14:8))/Math.max(10,v)),vy=Math.min(Math.max(L.slope,mega?0.16:0.09)*v,tMax*GP_G/2,mega?7.6:6.5);
-  kt.air=true;kt.airT=0;kt.airPeak=0;kt.y=ry;kt.vy=vy;kt.takeoff={v:Math.round(v*3.6),vy:+vy.toFixed(2),f:R3.frameN,kind:L.kind};kt.lipT=R3.simT||0;gpRivalTrick(kt,vy);return true;}
+  const v=kt.speed,tMax=Math.min(mega?1.55:1.2,Math.max(0.62,(L.room-(mega?14:8))/Math.max(10,v)));let vy=Math.min(Math.max(L.slope,mega?0.16:0.09)*v,mega?7.6:6.5);
+  for(let n=0;n<5&&gpFlightT(L,v,vy,ry)>tMax;n++)vy*=0.86;   // the real flight over the real road ahead (a hillside can fall away under the car): never longer than the room allows
+  const over=Math.max(0,((kt.t-L.t+1.5)%1-0.5)*R3.len);kt.air=true;kt.airT=0;kt.airPeak=0;kt.y=Math.max(ry,L.y+vy*over/Math.max(10,v));kt.vy=vy;kt.takeoff={v:Math.round(v*3.6),vy:+vy.toFixed(2),f:R3.frameN,kind:L.kind};kt.lipT=R3.simT||0;gpRivalTrick(kt,vy);return true;}
 function gpVert(kt,pos,dt,waiting){const ry=pos.y;
   if(kt.vy==null||waiting||kt.ry==null||dt<=0){kt.y=ry;kt.vy=0;kt.ry=ry;kt.air=false;kt.airT=0;kt.tPrev=kt.t;return;}
   if(Math.abs(ry-kt.ry)>0.6+Math.abs(kt.speed)*dt*0.35){kt.y=ry;kt.vy=0;kt.ry=ry;kt.air=false;kt.airT=0;kt.tPrev=kt.t;kt.trick=null;pos.y=ry;return;}   // a placement jump (grid, test hook), not motion
   const tilt=Math.abs((kt.pS||0)-(kt.sR||0))*1.45,rv=Math.max(-kt.speed*0.6-2,Math.min(kt.speed*0.6+2,(ry-kt.ry)/dt));kt.ry=ry;
   if(!kt.air&&kt.tPrev!=null&&R3.lips){const a=kt.tPrev,b=kt.t;if(b!==a&&kt.speed>0){for(const L of R3.lips){const hit=a<=b?(a<L.t&&b>=L.t):(a<L.t||b>=L.t);if(hit&&gpLaunch(kt,L,ry)){pos.y=kt.y;kt.tPrev=kt.t;return;}}}}
   kt.tPrev=kt.t;
+  if(!kt.air&&R3.lips&&kt.speed>0){for(const L of R3.lips){let u=(kt.t-L.t)*R3.len;if(u>R3.len/2)u-=R3.len;else if(u<-R3.len/2)u+=R3.len;if(u>-52&&u<=0.5){kt.y=ry;kt.vy=rv;pos.y=ry+tilt;return;}}}   // on the ramp the car stays on it, right up to the lip
   if(!kt.air){const g=gpNearJump(kt)?GP_G:GP_G+0.0045*kt.speed*kt.speed,yb=kt.y+kt.vy*dt-0.5*g*dt*dt;   // downforce keeps the car on the road over ordinary crests
     if(yb>ry+0.04&&kt.speed>14){kt.air=true;kt.airT=0;kt.airPeak=0;kt.y=yb;kt.vy-=GP_G*dt;kt.takeoff={v:Math.round(kt.speed*3.6),vy:+kt.vy.toFixed(2),f:R3.frameN};}
     else{kt.y=ry;kt.vy=rv;}}
   else{kt.airT+=dt;kt.vy-=GP_G*dt;kt.y+=kt.vy*dt;kt.airPeak=Math.max(kt.airPeak,kt.y-ry);
-    if(kt.y-(kt.airT>0.3&&kt.vy<0?Math.min(0.5,tilt):0)<=ry){   // touches down on its lowest tyre (nose-low after a long flight), then pivots onto the road
+    if(kt.y-(kt.airT>0.3&&kt.vy<0?Math.min(0.9,tilt):0)<=ry){   // touches down on its lowest tyre (nose-low after a long flight), then pivots onto the road
       const imp=Math.max(0,rv-kt.vy);kt.y=ry;kt.vy=rv;kt.air=false;gpTrickLand(kt);gpLand(kt,imp);}}
   pos.y=kt.air?kt.y:kt.y+tilt;}   // on the ground the car rides on whichever tyre is lowest while its pitch catches up with the road
 function gpNearJump(kt){const C=R3.C,J=C.jumps;if(!J||!J.length)return false;const d=kt.t*C.lapM;for(const q of J){let u=d-q[0];if(u>C.lapM/2)u-=C.lapM;else if(u<-C.lapM/2)u+=C.lapM;if(u>-60&&u<40)return true;}return false;}
@@ -2603,7 +2606,7 @@ function gpUpdate(dt,waiting){
       if(kt.air)kt.sv*=Math.exp(-0.4*dt);else kt.sv+=(tgt-kt.sv)*Math.min(1,dt*(kt.drift?2.8:4.5));kt.x+=kt.sv*dt;
     }
     else if(!kt.player){if(!kt.air)kt.x+=gpRivalSteer(kt,i,waiting)*dt;if(kt.bv){kt.x+=kt.bv*dt;kt.bv*=Math.exp(-5*dt);if(Math.abs(kt.bv)<0.002)kt.bv=0;}}
-    if(kt.air&&Math.abs(kt.x)>0.8)kt.x-=Math.sign(kt.x)*(Math.abs(kt.x)-0.8)*1.4*dt;   // flying cars ease in from the edge: a landing is always on the road, never against the wall
+    if(kt.air&&Math.abs(kt.x)>0.8)kt.x-=Math.sign(kt.x)*(Math.abs(kt.x)-0.8)*2.6*dt;   // flying cars ease in from the edge: a landing is always on the road, never against the wall
     if(kt.player&&R3.mode==="race"&&!kt.drift&&!left&&!right&&Math.abs(kt.x)>0.95)kt.x-=Math.sign(kt.x)*dt*0.7;
     if(kt.player&&R3.mode==="free"&&!kt.drift&&!left&&!right&&Math.abs(kt.x)>0.7)kt.x-=Math.sign(kt.x)*dt*0.5;
     const lim=kt.player?(R3.mode==="free"?1.15:1.22):1.1;
@@ -2621,7 +2624,7 @@ function gpUpdate(dt,waiting){
     kt.g.position.copy(pos);kt.travel+=Math.abs(kt.speed)*dt;kt.wheelPhase+=kt.speed*dt/Math.max(0.01,kt.wheelRadius);
     let y=0;if(offroad)y=Math.abs(Math.sin(kt.t*len*3))*0.08;if(kt.hop>0)y+=Math.sin(Math.PI*(1-kt.hop/0.22))*0.25;
     const vib=spd*(Math.sin(kt.travel*(kt.racer.car.type==="suv"||kt.racer.car.type==="truck"?5.2:7.4))*0.005+Math.sin(kt.travel*2.3+1.1)*0.002);kt.body.position.y=kt.pic?(offroad?Math.min(0.08,y+vib):0):y+vib;   // photo tyre line stays planted on-road; the 3D fallback keeps its suspension motion
-    {const fl=Math.hypot(tan.x,tan.z)||1,sR=kt.sR=tan.y/fl,sT=kt.air?Math.max(-0.45,Math.min(0.4,kt.vy/Math.max(8,kt.speed)))*0.85:sR;   // in the air the nose follows the flight path (up off the ramp, dipping as it falls)
+    {const fl=Math.hypot(tan.x,tan.z)||1,sR=kt.sR=tan.y/fl,sT=kt.air?Math.max(-0.3,Math.min(0.4,kt.vy/Math.max(8,kt.speed)))*0.85:sR;   // in the air the nose follows the flight path (up off the ramp, dipping as it falls)
       kt.pS=kt.pS==null?sR:kt.pS+(sT-kt.pS)*Math.min(1,dt*(kt.air?2.6:30));kt.g.lookAt(pos.x+tan.x/fl,pos.y+kt.pS,pos.z+tan.z/fl);}
     const yaw=Math.atan2(tan.x,tan.z);let yawRate=0;if(kt.yaw!==null){let d=yaw-kt.yaw;if(d>Math.PI)d-=Math.PI*2;if(d<-Math.PI)d+=Math.PI*2;yawRate=d/Math.max(dt,0.001);}kt.yaw=yaw;
     const vx=(kt.x-kt.px)/Math.max(dt,0.001);
@@ -2648,7 +2651,7 @@ function gpUpdate(dt,waiting){
     const pitchMax=kt.pic?0.008:0.045,pitchT=Math.max(-pitchMax,Math.min(pitchMax,-acc*(kt.pic?0.00055:(heavy?0.0034:0.003))));kt.pitch+=(pitchT-kt.pitch)*Math.min(1,dt*settle);}
     kt.body.rotation.z=kt.roll;kt.body.rotation.x=kt.pitch;gpTrickTick(kt,dt);if(kt.trick||kt.tkRe||kt.wobT>0||kt.tkLift)gpTrickPose(kt);
     if(kt.sqV||kt.sq){kt.sqV+=(-kt.sq*170-kt.sqV*13)*dt;kt.sq+=kt.sqV*dt;if(Math.abs(kt.sq)<1e-4&&Math.abs(kt.sqV)<1e-3){kt.sq=0;kt.sqV=0;}}
-    kt.hang=(kt.hang||0)+(((kt.air&&kt.airT>0.06)?0.12:0)-(kt.hang||0))*Math.min(1,dt*(kt.air?9:22));
+    kt.hang=(kt.hang||0)+(((kt.air&&kt.airT>0.06&&kt.y-(kt.ry||0)>1.1)?0.12:0)-(kt.hang||0))*Math.min(1,dt*(kt.air?9:22));
     kt.body.position.y+=(kt.sq||0)+kt.hang*0.35+(kt.tkLift||0);if(kt.hubs)kt.hubs.forEach(h=>{h.position.y=h.userData.y0-kt.hang;});
     if(kt.shadows&&kt.air){const lift=Math.max(0,kt.y-kt.ry);kt.shadows.forEach(s=>{if(s.userData.y0==null)s.userData.y0=s.position.y;s.position.y=s.userData.y0-lift;});}
     else if(kt.shadows&&kt.shadows[0]&&kt.shadows[0].userData.y0!=null&&kt.shadows[0].position.y!==kt.shadows[0].userData.y0)kt.shadows.forEach(s=>{s.position.y=s.userData.y0;});
