@@ -1227,7 +1227,8 @@ html:has(.lzq-bar){scroll-padding-bottom:calc(var(--lzqBar) + 24px)}
 .rvq .opts:not(.g2){grid-template-columns:1fr!important}
 .rvq .rvq-tools{display:flex!important;flex-wrap:wrap;align-items:center;gap:10px;margin:8px 0 4px!important}
 .rvq .rvq-tools .readbtn{margin:0;min-height:48px}
-.rvq .rvq-tools .scratch{flex:1 1 160px;margin:0;padding:0 12px;min-height:48px;display:flex;flex-direction:column;justify-content:center}
+@media(max-width:520px){.rvq .rvq-tools .readbtn{padding:6px 12px;font-size:16px}.rvq .rvq-tools .scratch summary{font-size:16px}}
+.rvq .rvq-tools .scratch{flex:1 1 110px;min-width:0;margin:0;padding:0 12px;min-height:48px;display:flex;flex-direction:column;justify-content:center}
 .rvq .rvq-tools .scratch[open]{flex-basis:100%;padding:8px 10px;display:block}
 .rvq .rvq-tools .scratch summary{min-height:44px;display:flex;align-items:center;font-size:17px}
 /* 10 Exit pill: solid, dark text, 48pt; Learners moves to the right group so nothing sits next to Exit */
@@ -1246,9 +1247,9 @@ body.lz-exit #topbar .tb-group:first-child+.tb-group{margin-left:8px}
 @media(min-width:900px){
  .wb-shell.lzq{max-width:1000px}.rvq.focus-wrap{max-width:1000px}
  .wb-shell.lzq .wb-page,.rvq .card.gold{padding:22px 44px 18px}
- .lzq-bar .lzq-grp{max-width:1000px;padding:0 44px;justify-content:center;gap:20px}
+ .lzq-bar .lzq-grp{max-width:1000px;padding:0 44px;justify-content:center;gap:16px}
  .lzq-main{flex:0 1 440px}
- .lzq-bar .lzq-check,.lzq-bar .lzq-check.wait,.lzq-bar .lzq-check:disabled{min-height:60px;font-size:23px}
+ .lzq-bar .lzq-check,.lzq-bar .lzq-check.wait,.lzq-bar .lzq-check:disabled{min-height:60px;font-size:23px;max-width:none}
  .lzq-ghost{min-height:52px;padding:0 20px;font-size:18px}
  .wb-shell.lzq .wb-qhead,.rvq .wb-qhead{font-size:20px!important}
  .lzt-strip .lzt-count,.lzt-strip .lzt-count b,.rvq .rvq-head .lzt-count,.rvq .rvq-head .lzt-count b{font-size:21px}
