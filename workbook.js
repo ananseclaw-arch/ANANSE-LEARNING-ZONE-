@@ -330,6 +330,7 @@ function wbResumeRestore(snapshot){
   try{
     if(!snapshot||!snapshot.reveal||!/^4-/.test(snapshot.lessonId)||!Array.isArray(snapshot.problems)||!snapshot.cur)return false;
     if(typeof revealUnit4Gate==="function"&&!revealUnit4Gate(P,snapshot.lessonId).allowed)return false;
+    if(snapshot.flex&&typeof lztStart==="function"){lztStart(snapshot.lessonId);return true;}
     WB=JSON.parse(JSON.stringify(snapshot));WB.canvas=null;WB.ctx=null;
     WB.results=Array.isArray(WB.results)?WB.results:[];WB.fields=WB.fields||{};WB.selected=Array.isArray(WB.selected)?WB.selected:[];WB.match=WB.match||{};WB.groupDots=Array.isArray(WB.groupDots)?WB.groupDots:[];WB.pairBuild=Array.isArray(WB.pairBuild)?WB.pairBuild:[];
     if(WB.answered&&typeof WB.lastOK==="boolean")wbRenderFeedback(WB.lastOK,WB.lastAnswer||null);else wbRenderProblem(true);
@@ -363,7 +364,7 @@ function renderWorkbookLesson(id){
   if(typeof say==="function")say("Lesson "+id+", "+L.title+". Review. "+L.review);
 }
 function wbStart(id,opts){opts=opts||{};if(opts.reveal&&typeof revealUnit4Gate==="function"){const gate=revealUnit4Gate(P,id);if(!gate.allowed){if(typeof renderRevealLockedLesson==="function")renderRevealLockedLesson(id,gate);return;}}const size=Math.max(1,Math.floor(Number(opts.size)||(opts.reveal?10:8)));WB={lessonId:id,size:size,reveal:!!opts.reveal,problems:wbGenerate(id,size),index:0,results:[],cur:null,isTwin:false,answered:false,start:Date.now()};wbLoadProblem(WB.problems[0],false);}
-function wbLoadProblem(p,isTwin){WB.cur=p;WB.isTwin=!!isTwin;WB.answered=false;WB.lastAnswer=null;WB.lastOK=null;WB.startedAt=Date.now();WB.fields={};WB.active=null;WB.selected=[];WB.person=null;WB.match={};WB.matchLeft=null;WB.matchOrder=null;if(p.type==="match"){p.pairs.forEach(x=>WB.fields[x.id]="");WB.active=p.pairs[0].id;}WB.workTab="build";WB.groupDots=[];WB.rows=0;WB.cols=0;WB.pairBuild=(p.models||[]).map(m=>m.kind==="array"?{rows:0,cols:0}:{groupDots:[]});WB.drew=false;WB.strokes=0;WB.canvasData=null;WB.canvas=null;WB.ctx=null;WB.drawTool="pen";WB.drawColor="#17243a";if(p.type==="form"){p.fields.forEach(f=>{WB.fields[f.key]="";});}if(p.type==="fill"){WB.fields.ans="";WB.active="ans";}if(p.type==="picture"){p.eq.values.forEach((v,i)=>WB.fields["e"+i]="");if(p.extraEq)p.extraEq.values.forEach((v,i)=>WB.fields["x"+i]="");WB.active="e0";}if(p.type==="story"){p.eq.values.forEach((v,i)=>WB.fields["e"+i]="");WB.fields.ans="";if(p.answer.remainder!=null)WB.fields.rem="";WB.active="e0";}if(p.type==="who"&&p.valueAnswer!=null){WB.fields.ans="";WB.active="ans";}if(p.type==="pair"){WB.fields.ans="";if(p.equations){p.equations[0].forEach((v,i)=>WB.fields["e"+i]="");p.equations[1].forEach((v,i)=>WB.fields["x"+i]="");WB.active="e0";}else WB.active="ans";}wbRenderProblem();}
+function wbLoadProblem(p,isTwin,restore,silent){WB.cur=p;WB.isTwin=!!isTwin;WB.answered=false;WB.lastAnswer=null;WB.lastOK=null;WB.startedAt=Date.now();WB.fields={};WB.active=null;WB.selected=[];WB.person=null;WB.match={};WB.matchLeft=null;WB.matchOrder=null;if(p.type==="match"){p.pairs.forEach(x=>WB.fields[x.id]="");WB.active=p.pairs[0].id;}WB.workTab="build";WB.groupDots=[];WB.rows=0;WB.cols=0;WB.pairBuild=(p.models||[]).map(m=>m.kind==="array"?{rows:0,cols:0}:{groupDots:[]});WB.drew=false;WB.strokes=0;WB.canvasData=null;WB.canvas=null;WB.ctx=null;WB.drawTool="pen";WB.drawColor="#17243a";if(p.type==="form"){p.fields.forEach(f=>{WB.fields[f.key]="";});}if(p.type==="fill"){WB.fields.ans="";WB.active="ans";}if(p.type==="picture"){p.eq.values.forEach((v,i)=>WB.fields["e"+i]="");if(p.extraEq)p.extraEq.values.forEach((v,i)=>WB.fields["x"+i]="");WB.active="e0";}if(p.type==="story"){p.eq.values.forEach((v,i)=>WB.fields["e"+i]="");WB.fields.ans="";if(p.answer.remainder!=null)WB.fields.rem="";WB.active="e0";}if(p.type==="who"&&p.valueAnswer!=null){WB.fields.ans="";WB.active="ans";}if(p.type==="pair"){WB.fields.ans="";if(p.equations){p.equations[0].forEach((v,i)=>WB.fields["e"+i]="");p.equations[1].forEach((v,i)=>WB.fields["x"+i]="");WB.active="e0";}else WB.active="ans";}if(restore){const r=JSON.parse(JSON.stringify(restore));["fields","selected","match","person","groupDots","rows","cols","pairBuild"].forEach(k=>{if(r[k]!==undefined&&r[k]!==null)WB[k]=r[k];});}wbRenderProblem(silent);}
 function wbNeedsWork(p){return p&&(p.type==="story"||p.type==="who"||p.requireWork);}
 function wbOneModelMatches(m,state,allowTurn){if(!m||!state)return false;if(m.kind==="array")return state.rows===m.rows&&state.cols===m.cols||!!(allowTurn&&state.rows===m.cols&&state.cols===m.rows);if(!Array.isArray(state.groupDots)||state.groupDots.length!==m.groups)return false;return state.groupDots.every(n=>n===m.size);}
 function wbModelMatches(){const p=WB&&WB.cur,m=p&&p.model;if(!m)return false;if(m.kind==="pair")return m.models.every((x,i)=>wbOneModelMatches(x,WB.pairBuild[i],false));if(m.kind==="array")return wbOneModelMatches(m,{rows:WB.rows,cols:WB.cols},p.allowTurn);return wbOneModelMatches(m,{groupDots:WB.groupDots},false);}
@@ -384,7 +385,8 @@ function wbSubmitButton(){return'<div class="wb-btnrow"><button id="wbSubmit" cl
 function wbRenderProblem(silent){
   const p=WB.cur,L=WB_LESSONS[WB.lessonId],pct=Math.round(WB.index/(WB.size||8)*100),num=WB.index+1,work=wbNeedsWork(p),visual=p.visual?'<div class="wb-visual">'+wbVisual(p.visual)+'</div>':'';
   let controls=wbQuestionAnswerHTML(p),submit=(p.type==="fill"||p.type==="picture"||p.type==="story"||p.type==="pair"||p.type==="match"||(p.type==="who"&&p.valueAnswer!=null))?wbNumberPad():wbSubmitButton();
-  app.innerHTML='<div class="fadein wb-shell"><div class="wb-page">'+wbPageHead(WB.lessonId)+'<div class="wb-progress"><i style="width:'+pct+'%"></i></div><div class="wb-problem"><div class="wb-questionarea"><div class="wb-qrow"><div class="wb-qnum">'+(WB.isTwin?'↻':num+'.')+'</div><div><div class="wb-qcopy">'+(WB.isTwin?'<span style="color:#207141">Try one like it:</span> ':'')+wbEscape(p.q)+'</div>'+(p.instruction&&p.instruction!==p.q?'<div class="wb-instruction">'+wbEscape(p.instruction)+'</div>':'')+'<button class="wb-read" onclick="say(WB.cur.spoken)">🔊 Read it</button></div></div>'+visual+(work?wbWorkHTML(p):'')+'</div><div class="wb-answerarea">'+controls+submit+'</div></div></div></div>';
+  app.innerHTML='<div class="fadein wb-shell'+(WB.flex?' lzt-test':'')+'"><div class="wb-page">'+wbPageHead(WB.lessonId)+(WB.flex?lztStripHTML():'<div class="wb-progress"><i style="width:'+pct+'%"></i></div>')+'<div class="wb-problem"><div class="wb-questionarea"><div class="wb-qrow"><div class="wb-qnum">'+(WB.isTwin?'↻':num+'.')+'</div><div><div class="wb-qcopy">'+(WB.isTwin?'<span style="color:#207141">Try one like it:</span> ':'')+wbEscape(p.q)+'</div>'+(p.instruction&&p.instruction!==p.q?'<div class="wb-instruction">'+wbEscape(p.instruction)+'</div>':'')+'<button class="wb-read" onclick="say(WB.cur.spoken)">🔊 Read it</button></div></div>'+visual+(work?wbWorkHTML(p):'')+'</div><div class="wb-answerarea">'+controls+submit+'</div></div></div></div>';
+  if(WB.flex)lztAfterRender();
   if(work&&WB.workTab==="draw")setTimeout(wbInitCanvas,0);wbResumeSave();if(!silent&&typeof say==="function")say((WB.isTwin?"Try one like it. ":"")+p.spoken);
 }
 
@@ -458,7 +460,7 @@ function wbLogInfo(p,a){try{
 function wbSubmit(){
   if(!wbCanSubmit()){if(typeof toast==="function")toast(wbWorkDone()?"Finish every answer box first":"Show your work first");return;}
   WB.answered=true;if(WB.workTab==="draw")wbRememberCanvas();const p=WB.cur,a=wbCollectAnswer(),ok=wbCheck(p,a);WB.lastAnswer=a;WB.lastOK=ok;const built=wbBuiltRecord(),rec={lesson:WB.lessonId,type:p.type,q:p.q,answer:wbCompactAnswer(a),correct:ok,built:built,drew:!!WB.drew,at:new Date().toISOString()};
-  const data=wbData();data.log.push(rec);if(data.log.length>2000)data.log=data.log.slice(-2000);if(!WB.isTwin)WB.results.push(ok);if(typeof logQuestion==="function")logQuestion("workbook","math","reveal "+WB.lessonId+" workbook","workbook:"+WB.lessonId,p.q,ok,0,Date.now()-WB.startedAt,wbLogInfo(p,a));else if(typeof save==="function")save();wbSendDrawing(rec);if(typeof save==="function")save();if(typeof sfx==="function")sfx(ok?"correct":"wrong");wbRenderFeedback(ok,a);
+  const data=wbData();data.log.push(rec);if(data.log.length>2000)data.log=data.log.slice(-2000);if(!WB.isTwin&&!WB.flex)WB.results.push(ok);if(typeof logQuestion==="function")logQuestion("workbook","math","reveal "+WB.lessonId+" workbook","workbook:"+WB.lessonId,p.q,ok,0,Date.now()-WB.startedAt,wbLogInfo(p,a));else if(typeof save==="function")save();wbSendDrawing(rec);if(typeof save==="function")save();if(typeof sfx==="function")sfx(ok?"correct":"wrong");if(WB.flex){lztAfterAnswer(ok,a);return;}wbRenderFeedback(ok,a);
 }
 function wbCorrectEquation(p){if(p.type==="fill"){let used=false;return p.parts.map(x=>{if(x==="□"&&!used){used=true;return p.answer;}return x;}).join(" ");}if(p.eq)return p.eq.values[0]+" "+p.eq.op+" "+p.eq.values[1]+" = "+p.eq.values[2];return"";}
 function wbCorrectAnswerHTML(p){if(p.type==="form")return'<div class="wb-multi-review">'+(p.answerLines||[]).map(l=>'<div class="wb-multi-line"><b>'+wbEscape(l)+'</b></div>').join("")+'</div>';if(p.type==="multi")return'<div class="wb-multi-review">'+p.options.map(o=>'<div class="wb-multi-line"><b>'+(o.true?'✓':'✗')+' '+o.id+'. '+wbEscape(o.text)+'</b><br>'+wbEscape(o.why)+'</div>').join("")+'</div>';if(p.type==="match")return'<div class="wb-multi-review">'+p.pairs.map(x=>'<div class="wb-multi-line">'+wbEscape(x.left)+' ↔ '+wbEscape(x.right)+'</div>').join("")+'</div>';if(p.type==="pair"){let h=(p.equations||[]).map(e=>'<div class="wb-review-eq">'+e[0]+' × '+e[1]+' = '+e[2]+'</div>').join("");h+='<div class="wb-review-eq">Shared product: '+p.answer.product+'</div>';if(p.answer.compare)h+='<div class="wb-review-eq">Who has more? '+wbEscape(p.answer.compare)+'</div>';return h;}if(p.type==="who"){const who=p.answer&&p.answer.person!=null?p.answer.person:p.answer;return'<p><b>'+wbEscape(who)+(who==="Yes"?' — the shared product is '+p.valueAnswer:' is right.')+'</b></p>';}let h=wbCorrectEquation(p)?'<div class="wb-review-eq">'+wbEscape(wbCorrectEquation(p))+'</div>':'';if(p.extraEq)h+='<div class="wb-review-eq">'+wbEscape(p.extraEq.values[0]+" "+p.extraEq.op+" "+p.extraEq.values[1]+" = "+p.extraEq.values[2])+'</div>';if(p.type==="story")h+='<div class="wb-review-eq">Answer: '+p.answer.value+' '+wbEscape(p.unit)+(p.answer.remainder!=null?' and '+p.answer.remainder+' '+wbEscape(p.remainderUnit):'')+'</div>';return h;}
@@ -481,5 +483,332 @@ function wbFinish(){
 }
 function wbRevealReview(id){const L=WB_LESSONS[id];if(!L)return"";return'<section class="wb-review"><div><h2>Review</h2><p>'+wbEscape(L.review)+'</p><div class="wb-review-eq">'+wbEscape(L.reviewEq)+'</div></div><div class="wb-review-visual">'+wbVisual(L.reviewModel)+'</div></section>';}
 
+/* ===================== Flexible lesson test (Eb 2026-11-04, "it should be more flexible") =====================
+   Used by the Reveal lessons that run on this engine (REVEAL_FLEX in reveal.js: 3-7, 4-1..4-5).
+   1. Instant feedback: right -> a short varied praise line (recorded teacher clips); wrong -> "Not quite right" + a tip,
+      then Try again or Next (it comes back in the fix round).
+   2. Question strip (done / to fix / skipped / not yet) with Back and Skip; tap any dot to jump.
+   3. After the first pass, ONLY the missed or skipped questions come back, each after a tip card built from his
+      own answer. 4. Every question right = lesson passed (P.revealPass) and the next lesson opens.
+   State lives in P.revealTest[id] (saved on every step), so Back, closing the app or the locked screen all resume it. */
+const LZT_PRAISE=["Great!","Well done!","You got it!","Nice thinking!","Exactly right!","Brilliant!"]; // each is a recorded teacher-voice clip
+let _lztBag=[],_lztLastPraise="",_lztTok=0;
+function lztPraiseLine(){if(!_lztBag.length){_lztBag=wbShuffle(LZT_PRAISE);if(_lztBag[0]===_lztLastPraise)_lztBag.push(_lztBag.shift());}_lztLastPraise=_lztBag.shift();return _lztLastPraise;}
+function lztSpeakable(t){return String(t||"").replace(/□|__+/g," blank ").replace(/×/g," times ").replace(/÷/g," divided by ").replace(/(\d)\s*[−-]\s*(\d)/g,"$1 minus $2").replace(/\+/g," plus ").replace(/=/g," equals ").replace(/\s+/g," ").trim();}
+function lztKid(n){return n===1?"1 question":n+" questions";}
+function lztStatus(id){
+  const t=typeof P!=="undefined"&&P&&P.revealTest&&P.revealTest[id];if(!t||!Array.isArray(t.st)||!t.st.length)return null;
+  const left=t.st.filter(x=>x.s!=="right").length;if(!left)return null;
+  return{phase:t.phase,left:left,total:t.st.length,at:Math.min(t.st.length,(t.index||0)+1),dots:t.st.map(x=>x.s)};
+}
+function lztDotsHTML(dots,live,cur){
+  const name={right:"done",wrong:"to fix",skip:"skipped",todo:"not yet"};
+  return'<div class="lzt-dots'+(live?' live':'')+'"'+(live?'':' role="img" aria-label="'+dots.filter(s=>s==="right").length+' of '+dots.length+' done"')+'>'+dots.map((s,i)=>{const inner=s==="right"?"✓":String(i+1);
+    return live?'<button type="button" class="lzt-dot '+s+(i===cur?' cur':'')+'" onclick="lztJump('+i+')" aria-label="Question '+(i+1)+', '+name[s]+'">'+inner+'</button>':'<span class="lzt-dot '+s+'">'+inner+'</span>';}).join("")+'</div>';
+}
+function lztStripHTML(){
+  const st=WB.st||[],fix=WB.phase==="fix";
+  return'<div class="lzt-strip"><button type="button" class="lzt-nav" id="lztPrev" onclick="lztPrev()"'+(WB.index>0?'':' disabled')+'>◀ Back</button>'
+   +lztDotsHTML(st.map(x=>x.s),true,WB.index)
+   +'<button type="button" class="lzt-nav lzt-skipbtn" id="lztSkip" onclick="lztSkip()">'+(fix?'Next one ▶':'Skip ▶')+'</button></div>'
+   +'<div class="lzt-legend"><span><i class="right"></i>done</span><span><i class="wrong"></i>to fix</span><span><i class="skip"></i>skipped</span><span><i class="todo"></i>not yet</span>'+(fix?'<b>Fix round: '+lztKid(st.filter(x=>x.s!=="right").length)+' left</b>':'')+'</div>';
+}
+function lztRefreshStrip(){const old=document.querySelector(".lzt-strip"),leg=document.querySelector(".lzt-legend");if(!old)return;const tmp=document.createElement("div");tmp.innerHTML=lztStripHTML();old.replaceWith(tmp.firstElementChild);if(leg)leg.replaceWith(tmp.firstElementChild);}
+function lztSnapUI(){const o={};["fields","selected","match","person","groupDots","rows","cols","pairBuild"].forEach(k=>{if(WB[k]!==undefined)o[k]=WB[k];});return JSON.parse(JSON.stringify(o));}
+/* Bring his last answer back only where editing it makes sense (typed words, ticked choices); number boxes start empty. */
+function lztKeepUI(p){return p&&(p.type==="form"||p.type==="multi"||p.type==="who");}
+function lztSave(){
+  if(!WB||!WB.flex||typeof P==="undefined"||!P)return;
+  P.revealTest=P.revealTest||{};
+  P.revealTest[WB.lessonId]={lessonId:WB.lessonId,size:WB.size,phase:WB.phase,index:WB.index,scored:!!WB.scored,introShown:!!WB.introShown,start:WB.start,t:Date.now(),seeded:WB.seeded||null,problems:WB.problems,st:WB.st};
+  if(typeof save==="function")save();
+}
+function lztNewState(id,saved){
+  if(saved){const t=JSON.parse(JSON.stringify(saved));return{lessonId:id,size:t.st.length,reveal:true,flex:true,problems:t.problems,st:t.st,phase:t.phase||"test",index:Math.max(0,Math.min(t.st.length-1,t.index||0)),scored:!!t.scored,introShown:!!t.introShown,start:t.start||Date.now(),seeded:t.seeded||null,results:[],cur:null,isTwin:false,answered:false};}
+  const size=10,problems=wbGenerate(id,size);
+  return{lessonId:id,size:size,reveal:true,flex:true,problems:problems,st:problems.map(()=>({s:"todo",first:null,tries:0})),phase:"test",index:0,scored:false,start:Date.now(),results:[],cur:null,isTwin:false,answered:false};
+}
+function lztStart(id){
+  if(typeof P==="undefined"||!P)return;
+  if(typeof revealUnit4Gate==="function"){const gate=revealUnit4Gate(P,id);if(!gate.allowed){if(typeof renderRevealLockedLesson==="function")renderRevealLockedLesson(id,gate);return;}}
+  if(typeof clearTimers==="function")clearTimers();if(typeof closeOverlay==="function")closeOverlay();
+  const saved=P.revealTest&&P.revealTest[id];
+  WB=lztNewState(id,saved&&Array.isArray(saved.st)&&saved.st.some(x=>x.s!=="right")?saved:null);
+  if(WB.phase==="fix"&&!WB.introShown){WB.introShown=true;lztSave();return lztFixIntro();}
+  lztSave();lztShow();
+}
+function lztShow(){
+  const i=WB.index,st=WB.st[i],p=WB.problems[i];
+  if(WB.phase==="fix"&&st.s!=="right"&&!st.tipShown)return lztFixTip(i);
+  if(!p){lztDoneOnly(i);return;}
+  const keep=st.ui&&st.s!=="right"&&lztKeepUI(p)?st.ui:null;
+  wbLoadProblem(p,false,st.s==="right"?st.ui:keep,st.s==="right");
+  if(st.s==="right")lztShowDone(i);
+}
+function lztAfterRender(){
+  const id=WB.lessonId;
+  if(typeof lzBack==="function")lzBack(lztExit,"Lesson "+id);
+  const st=WB.st[WB.index];
+  if(st&&st.s==="wrong"&&st.tip&&!WB.answered){const area=document.querySelector(".wb-answerarea");if(area)area.insertAdjacentHTML("afterbegin",'<div class="lzt-hint"><b>💡 Tip:</b> '+wbEscape(st.tip)+'</div>');}
+}
+function lztExit(){lztSave();_lztTok++;if(typeof renderRevealLesson==="function")renderRevealLesson(WB.lessonId,{fromTest:true});}
+function lztShowDone(i){
+  WB.answered=true;const area=document.querySelector(".wb-answerarea");
+  document.querySelectorAll(".wb-answerarea button,.wb-answerarea input,.wb-work button").forEach(b=>{if(!b.closest(".lzt-row"))b.disabled=true;});
+  if(area)area.insertAdjacentHTML("beforeend",'<div class="lzt-praise lzt-static" role="status"><span class="lzt-star" aria-hidden="true">✓</span><b>You got this one right.</b></div><div class="lzt-row"><button type="button" class="lzt-btn lzt-next" onclick="lztNext()">Next ▶</button></div>');
+}
+function lztDoneOnly(i){ // a question already right in his last test (rebuilt from the answer log): nothing to redo
+  const id=WB.lessonId;
+  app.innerHTML='<div class="fadein wb-shell lzt-test"><div class="wb-page">'+wbPageHead(id)+lztStripHTML()+'<div class="lzt-card lzt-note"><p class="lzt-big">✓ You got question '+(i+1)+' right last time. Nothing to fix here!</p><div class="lzt-row"><button type="button" class="lzt-btn lzt-next" onclick="lztNext()">Next ▶</button></div></div></div></div>';
+  if(typeof lzBack==="function")lzBack(lztExit,"Lesson "+id);
+}
+function lztAfterAnswer(ok,a){
+  const i=WB.index,st=WB.st[i],p=WB.cur;let info=null;try{info=wbLogInfo(p,a);}catch(e){}
+  st.ui=lztSnapUI();st.given=info&&info.given!=null?(Array.isArray(info.given)?info.given.join(", "):String(info.given)):"";
+  if(ok){if(st.first===null||st.first===undefined)st.first=true;st.s="right";st.tip="";st.why="";lztSave();lztPraise();}
+  else{if(st.first===null||st.first===undefined)st.first=false;st.s="wrong";st.tries=(st.tries||0)+1;const t=lztTip(p,a);st.tip=t.tip;st.why=t.why;st.tipShown=true;lztSave();lztWrong(t,st.tries);}
+}
+function lztPraise(){
+  const line=lztPraiseLine(),tok=++_lztTok,area=document.querySelector(".wb-answerarea");lztRefreshStrip();
+  if(area)area.innerHTML='<div class="lzt-praise" role="status"><span class="lzt-star" aria-hidden="true">⭐</span><b>'+wbEscape(line)+'</b></div><div class="lzt-row"><button type="button" class="lzt-btn lzt-next" id="lztNextBtn" onclick="lztNext()">Next ▶</button></div>';
+  const t0=Date.now(),go=()=>setTimeout(()=>{if(tok===_lztTok&&document.getElementById("lztNextBtn"))lztNext();},Math.max(0,1300-(Date.now()-t0)));
+  lztIntoView("lztNextBtn");
+  if(typeof sayAndThen==="function")sayAndThen(line,go,2600);else{if(typeof say==="function")say(line);go();}
+}
+function lztWrong(t,tries){
+  _lztTok++;const area=document.querySelector(".wb-answerarea"),p=WB.cur,shown=tries>=3;lztRefreshStrip();
+  const body=shown?'<p class="lzt-why">Here is how this one works:</p>'+wbCorrectAnswerHTML(p)+'<p class="lzt-tipline">'+wbEscape(p.explain||"")+'</p>':(t.why?'<p class="lzt-why">'+wbEscape(t.why)+'</p>':'')+'<p class="lzt-tipline"><b>💡 Tip:</b> '+wbEscape(t.tip)+'</p>';
+  if(area)area.innerHTML='<div class="lzt-tip" role="alert"><h3>Not quite right. That\'s OK!</h3>'+body+'</div><div class="lzt-row">'
+    +(shown?'<button type="button" class="lzt-btn lzt-try" id="lztTryBtn" onclick="lztFresh()">↻ Try a new one like it</button>':'<button type="button" class="lzt-btn lzt-try" id="lztTryBtn" onclick="lztRetry()">↻ Try again</button>')
+    +'<button type="button" class="lzt-btn lzt-next" id="lztNextBtn" onclick="lztNext()">Next ▶</button></div>'+(WB.phase==="test"?'<p class="lzt-small">If you move on, this one comes back at the end with its tip.</p>':'');
+  lztIntoView("lztNextBtn");
+  if(typeof say==="function")say(shown?"That's not quite right. Here is how this one works. Then try a new one like it.":"That's not quite right. "+lztSpeakable(t.tip));
+}
+function lztIntoView(id){try{const e=document.getElementById(id);if(e&&e.scrollIntoView)e.scrollIntoView({block:"nearest",behavior:"smooth"});}catch(x){}}
+function lztRetry(){_lztTok++;if(typeof stopRecorded==="function")stopRecorded();lztShow();}
+function lztFresh(){ // after 3 misses on one question he sees the worked answer, then gets a NEW one of the same kind (still must be right)
+  _lztTok++;const i=WB.index,o=WB.problems[i];let twin=null;
+  for(let k=0;k<12&&!twin;k++){const pool=wbGenerate(WB.lessonId,30).filter(x=>x.type===o.type&&(o.slot==null||x.slot===o.slot)&&wbSig(x)!==wbSig(o));if(pool.length)twin=wbPick(pool);}
+  if(twin){twin.slot=o.slot;WB.problems[i]=twin;}
+  const st=WB.st[i];st.tries=0;st.ui=null;st.tip="";st.why="";lztSave();lztShow();
+}
+function lztGo(i){if(!WB||!WB.flex||i<0||i>=WB.st.length)return;_lztTok++;if(typeof stopRecorded==="function")stopRecorded();WB.index=i;lztSave();lztShow();}
+function lztJump(i){lztGo(i);}
+function lztPrev(){if(WB&&WB.index>0)lztGo(WB.index-1);}
+function lztSkip(){if(!WB||!WB.flex)return;const st=WB.st[WB.index];if(st.s==="todo")st.s="skip";lztNext();}
+function lztNext(){
+  if(!WB||!WB.flex)return;_lztTok++;if(typeof stopRecorded==="function")stopRecorded();
+  const n=WB.st.length,from=WB.index,want=WB.phase==="test"?(x=>x.s==="todo"):(x=>x.s!=="right");
+  for(let k=1;k<=n;k++){const j=(from+k)%n;if(want(WB.st[j])){WB.index=j;lztSave();return lztShow();}}
+  if(WB.phase==="test"){const open=WB.st.findIndex(x=>x.s!=="right");if(open<0)return lztPassed();return lztFirstPassDone();}
+  if(WB.st.every(x=>x.s==="right"))return lztPassed();
+}
+function lztRecordScore(){
+  if(WB.scored)return;WB.scored=true;const first=WB.st.filter(x=>x.first===true).length;
+  if(typeof window!=="undefined"&&typeof window.wbRevealDone==="function")window.wbRevealDone(WB.lessonId,first,WB.st.length);
+}
+function lztFirstPassDone(){
+  lztRecordScore();WB.phase="fix";WB.st.forEach(x=>{if(x.s!=="right")x.tipShown=false;});
+  WB.index=WB.st.findIndex(x=>x.s!=="right");WB.introShown=true;lztSave();
+  if(typeof syncProgress==="function")syncProgress("finish");lztFixIntro(true);
+}
+function lztFixIntro(afterTest){
+  const id=WB.lessonId,right=WB.st.filter(x=>x.s==="right").length,left=WB.st.length-right,next=typeof revealNextInUnit==="function"?revealNextInUnit(id):null;
+  const passedAlready=typeof revealProfilePassed==="function"&&revealProfilePassed(P,id);
+  const unlock=next&&!passedAlready?' Fix '+(left===1?'it':'them all')+' to unlock Lesson '+next.id+'.':'';
+  const head=afterTest?'You got '+right+' of '+WB.st.length+' right!':'Let\'s fix the ones you missed';
+  const msg='Now fix the '+lztKid(left)+' you missed. Each one comes with a tip first.'+unlock;
+  app.innerHTML='<div class="fadein wb-shell lzt-test"><div class="wb-page">'+wbPageHead(id)+'<section class="lzt-card lzt-result"><div class="lzt-score"><b>'+right+'</b><span>/'+WB.st.length+'</span></div><h2 class="lzt-h">'+wbEscape(head)+' ⭐</h2><p class="lzt-big">'+wbEscape(msg)+'</p>'+lztDotsHTML(WB.st.map(x=>x.s),false)
+    +'<p class="lzt-small">You only redo these. Everything you got right stays done.</p><div class="lzt-row"><button type="button" class="lzt-btn lzt-go" id="lztFixGo" onclick="lztShow()">Fix '+(left===1?'it':'them')+' now ▶</button></div></section></div></div>';
+  if(typeof lzBack==="function")lzBack(lztExit,"Lesson "+id);
+  if(typeof say==="function")say((afterTest?"You got "+right+" right! ":"")+"Now let's fix the other "+left+". Each one comes with a tip.");
+}
+function lztFixTip(i){
+  const id=WB.lessonId,st=WB.st[i],p=WB.problems[i];
+  if(!st.tip){const t=lztTip(p,st.s==="skip"?null:lztParseGiven(p,st.given),st.given);st.tip=t.tip;st.why=t.why;}
+  const why=st.s==="skip"?"You skipped this one.":st.like?"This one is like a question you missed last time.":(st.why||"");
+  app.innerHTML='<div class="fadein wb-shell lzt-test"><div class="wb-page">'+wbPageHead(id)+lztStripHTML()+'<section class="lzt-card lzt-fix"><div class="lzt-kicker">Let\'s fix question '+(i+1)+'</div><p class="lzt-q">'+wbEscape(p?p.q:"")+'</p>'
+    +(st.s==="wrong"&&st.given?'<p class="lzt-you">You answered: <b>'+wbEscape(st.given)+'</b></p>':'')
+    +(why?'<p class="lzt-why">'+wbEscape(why)+'</p>':'')+'<p class="lzt-tipline"><b>💡 Tip:</b> '+wbEscape(st.tip)+'</p>'
+    +'<div class="lzt-row"><button type="button" class="lzt-btn lzt-go" id="lztReady" onclick="lztFixGo()">I\'m ready, let me try ▶</button></div></section></div></div>';
+  if(typeof lzBack==="function")lzBack(lztExit,"Lesson "+id);
+  if(typeof say==="function")say("Let's fix this one. "+lztSpeakable((why?why+" ":"")+"Here is a tip. "+st.tip));
+}
+function lztFixGo(){const st=WB.st[WB.index];st.tipShown=true;lztSave();lztShow();}
+function lztPassed(){
+  const id=WB.lessonId,next=typeof revealNextInUnit==="function"?revealNextInUnit(id):null;lztRecordScore();_lztTok++;
+  P.revealPass=P.revealPass||{};const had=!!P.revealPass[id];if(!had)P.revealPass[id]={how:"all",date:typeof today==="function"?today():"",t:Date.now()};
+  if(P.revealTest)delete P.revealTest[id];if(typeof sessClear==="function")sessClear();if(typeof save==="function")save();
+  if(typeof markTodayPlanDone==="function")try{markTodayPlanDone("reveal",id);}catch(e){}
+  if(typeof syncProgress==="function")syncProgress("finish");if(typeof confetti==="function")confetti();
+  const L=typeof revealLesson==="function"?revealLesson(id):null,u=L?L.u:4,seq=typeof revealProfileIsPrince==="function"&&revealProfileIsPrince(P);
+  const nextOpen=next&&(typeof revealUnit4Gate!=="function"||revealUnit4Gate(P,next.id).allowed);
+  const msg='Every question is right.'+(next?(nextOpen?(seq?' Lesson '+next.id+' is unlocked!':' Lesson '+next.id+' is next!'):''):' You finished this unit!');
+  app.innerHTML='<div class="fadein wb-shell lzt-test"><div class="wb-page">'+wbPageHead(id)+'<section class="lzt-card lzt-passed"><div class="lzt-burst" aria-hidden="true">⭐</div><h2 class="lzt-h">Lesson '+wbEscape(id)+' passed!</h2><p class="lzt-big">'+wbEscape(msg)+'</p>'+lztDotsHTML(WB.st.map(x=>x.s),false)
+    +'<div class="lzt-row">'+(next&&nextOpen?'<button type="button" class="lzt-btn lzt-go" id="lztNextLesson" onclick="renderRevealLesson(\''+next.id+'\')">Go to Lesson '+next.id+' ▶</button>':'')+'<button type="button" class="lzt-btn lzt-plain" onclick="renderRevealUnit('+u+')">Unit '+u+'</button></div></section></div></div>';
+  if(typeof lzBack==="function")lzBack(()=>renderRevealUnit(u),"Unit "+u);
+  if(typeof say==="function")say("Lesson passed! Every question is right."+(next&&nextOpen?" The next lesson is unlocked.":""));
+}
+/* ---- kid-words tips: what went wrong (from HIS answer) + how to get it, never the answer itself ---- */
+const LZT_RULE={"3-7":"Share the total into equal groups, or think of the times fact that uses the same numbers.","4-1":"Times 2 means doubling: add the number to itself.","4-2":"Count by 5s. Products of 5 end in 0 or 5.","4-3":"Count by 10s. A product of 10 always ends in 0.","4-4":"Any number times 1 stays the same. Any number times 0 is 0.","4-5":"Use the patterns: times 2 is even, times 5 ends in 0 or 5, times 10 ends in 0."};
+function lztReview(id){if(LZT_RULE[id])return LZT_RULE[id];const L=WB_LESSONS[id];return L&&L.review?String(L.review).split(/(?<=\.)\s+/)[0]:"";}
+function lztCount(x,y){ // skip-count tip for x × y, counting by the lesson's friendly factor
+  if(x===0||y===0)return"Any number times 0 is 0.";if(x===1||y===1)return"Any number times 1 stays the same number.";
+  const base=[10,5,2].find(f=>f===x||f===y)||Math.min(x,y),times=base===x?y:x;
+  return"Count by "+base+"s, "+times+(times===1?" time":" times")+". Keep track on your fingers.";
+}
+function lztTip(p,a){
+  const id=p&&p.lesson,review=lztReview(id);let why="",tip="";
+  if(!p)return{why:"",tip:review||"Read the question again slowly."};
+  try{
+  if(p.type==="fill"){
+    const parts=p.parts.map(String),eq=parts.indexOf("="),left=parts.slice(0,eq),right=parts.slice(eq+1),g=a&&Number.isFinite(a.value)?a.value:null;
+    const one=left.length===1?left:right,expr=left.length===1?right:left,op=expr[1];
+    if(op==="×"){
+      if(one[0]==="□"){const x=+expr[0],y=+expr[2];if(g!=null)why=x+" × "+y+" is not "+g+".";tip=lztCount(x,y);}
+      else{const total=+one[0],known=+(expr[0]==="□"?expr[2]:expr[0]);
+        if(g!=null)why=g===total?"You wrote "+g+", but "+total+" is the total. The box is how many "+known+"s make "+total+".":(known+" × "+g+" makes "+known*g+", not "+total+".");
+        tip=known===0?"0 times any number is 0. Which number makes this true?":known===1?"1 times a number is that same number.":p.lesson==="4-4"&&total===0?"Any number times 0 is 0. Which number makes this true?":p.lesson==="4-4"&&total===known?"Think about which number keeps "+known+" the same when you multiply.":"Count by "+known+"s until you reach "+total+". The number of jumps goes in the box.";}
+      if(g!=null&&p.lesson==="4-2"&&one[0]==="□"&&g%5!==0)tip+=" Products of 5 end in 0 or 5.";
+    }else if(op==="÷"){
+      const total=+expr[0],div=+expr[2];
+      if(one[0]==="□"){if(g!=null)why=total+" ÷ "+div+" is not "+g+".";tip="Think: "+div+" times what number makes "+total+"? Or share "+total+" into "+div+" equal groups.";}
+      else tip="Think of the multiplication fact that uses these numbers.";
+    }else tip=review||"Work out each side, then check that both sides match.";
+  }else if(p.type==="multi"){
+    const sel=a&&a.selected||[],bad=p.options.filter(o=>sel.indexOf(o.id)>=0&&!o.true),miss=p.options.filter(o=>o.true&&sel.indexOf(o.id)<0);
+    if(bad.length)why="You picked "+bad[0].id+". "+(bad[0].why||"Its two sides are not equal.");
+    else if(!sel.length)why="You did not pick any.";else if(miss.length)why=miss.length===1?"One more of them is true.":miss.length+" more of them are true.";
+    tip=(p.answer.length===1?"Only one is true. ":"")+"Work out both sides of each one. Pick it only if both sides make the same number.";
+  }else if(p.type==="form"){
+    const f=a&&a.f||{};let bad=null;for(const c of p.checks||[]){const one={checks:[c],group:null,lesson:p.lesson,q:p.q,answer:p.answer};if(!wbFormCheck(one,f)){bad=c;break;}}
+    const row=bad?(p.rows||[]).find(r=>String(r).indexOf(":"+bad.k+"}")>=0)||"":"",m=/(\d+)\s*×\s*(\d+)/.exec(row)||/(\d+)\s*×\s*(\d+)/.exec(p.q||"");
+    const v=bad?String(f[bad.k]==null?"":f[bad.k]).trim():"";
+    if(!bad){const g=p.group;why="Check how your answers fit together.";tip=review||"Read each part again.";if(g&&g.kind==="twoEq")tip="Write one adding equation and one times equation that make the same total.";}
+    else if(bad.t==="num"){why=v?"Check this number: you wrote "+v+".":"One box is empty.";tip=m?lztCount(+m[1],+m[2]):(review||"Work it out step by step.");}
+    else if(bad.t==="mult"){why=v?v+" doesn't work here.":"One box is empty.";tip="It has to be a number you say when you count by "+bad.of+"s, from "+bad.min+" to "+bad.max+".";}
+    else if(bad.t==="divides"){why=v?v+" doesn't work here.":"One box is empty.";tip="Pick a number that shares "+bad.of+" into equal groups with none left over.";}
+    else if(bad.t==="reason"){const allNums=(p.checks||[]).filter(c=>c.t!=="reason").every(c=>wbFormCheck({checks:[c],group:null,lesson:p.lesson,q:p.q,answer:p.answer},f));
+      why=(allNums?"Your number is right! ":"")+"The \"because\" part needs to say why.";const last=(p.answerLines||[]).slice(-1)[0]||"";tip="Say the big idea in your own words, like: "+last.replace(/^Reason:\s*/i,"").replace(/\s*\/\s*/g," or ");}
+    else{why=v?"Check your answer: you wrote "+v+".":"One box is empty.";tip=review||"Read the question again slowly.";}
+  }else if(p.type==="story"||p.type==="picture"){
+    const e=p.answer.eq,op=p.eq.op,got=a&&a.eq;const eqOK=got&&wbEquationMatches(p,got,e);
+    if(got&&!eqOK)why="Check your equation: "+got.map(x=>Number.isFinite(x)?x:"_").join(" ").replace(/^(\S+) (\S+) (\S+)$/,"$1 "+op+" $2 = $3")+".";
+    else if(p.type==="story"&&a&&a.value!==e[2])why="Your equation is right, but the answer line doesn't match it.";
+    const m=p.model||p.visual;
+    if(p.type==="story"&&eqOK)tip="Copy the answer from your equation onto the answer line.";
+    else if(op==="÷")tip="Share "+e[0]+" into "+e[1]+" equal groups. How many land in each group?";
+    else if(m&&m.kind==="array")tip="Count the rows, then how many are in each row. Write rows × how many in each row.";
+    else if(m&&m.kind==="groups")tip="Count the groups, then how many are in each group. "+lztCount(m.groups,m.size);
+    else tip=review||"Write the equation one part at a time.";
+  }else if(p.type==="match")tip="Solve each one first, then find its partner.";
+  else if(p.type==="who")tip="Work it out yourself first, then see whose answer matches yours.";
+  else if(p.type==="pair")tip="Build both models, count each one, then compare them.";
+  }catch(e){}
+  return{why:why,tip:tip||review||"Read the question again slowly and check each step."};
+}
+/* His logged answer text (P.qlog "given") back into an answer object, so tips can talk about what he actually wrote. */
+function lztParseGiven(p,given){
+  if(!p||given==null||given==="")return null;const g=String(given);
+  try{
+  if(p.type==="fill"){const toks=g.split(/\s+/),bi=p.parts.indexOf("□");const v=Number(toks[bi]);return Number.isFinite(v)?{value:v}:null;}
+  if(p.type==="multi"){const ids=(g.match(/(?:^|[\[,'"\s])([A-F])\./g)||[]).map(x=>x.replace(/[^A-F]/g,""));return{selected:ids};}
+  if(p.type==="form"){const parts=g.split(" / "),f={};(p.rows||[]).forEach((r,ri)=>{const keys=[];const rx=new RegExp("^"+String(r).replace(/[.*+?^$()|[\]\\]/g,"\\$&").replace(/\\?\{[nt]:(\w+)\\?\}/g,(m0,k)=>{keys.push(k);return"(.*?)";})+"$");const mm=rx.exec(parts[ri]||"");if(mm)keys.forEach((k,j)=>f[k]=mm[j+1]==="__"?"":mm[j+1]);});return{f:f};}
+  if(p.type==="story"||p.type==="picture"){const n=(g.match(/\d+|_/g)||[]).map(x=>x==="_"?NaN:Number(x));return{eq:n.slice(0,3),value:n[3]};}
+  }catch(e){}
+  return null;
+}
+/* ---- one-time: his LAST finished test of a lesson (from P.qlog, shown/given/correct since d8dc399) becomes a fix round ---- */
+const LZT_GEN={"3-7":wbGen37,"4-1":wbGen41,"4-2":wbGen42,"4-3":wbGen43,"4-4":wbGen44,"4-5":wbGen45};
+function lztClip(v){return typeof qlogClip==="function"?qlogClip(v):String(v==null?"":v).replace(/\s+/g," ").trim();}
+function lztShown(p){try{return lztClip(wbLogInfo(p,null).shown);}catch(e){return"";}}
+function lztWords(t){const w=new Set(String(t||"").toLowerCase().replace(/[^a-z ]/g," ").split(/\s+/).filter(w=>w.length>2));const shape=String(t||"").replace(/\d+/g,"#").replace(/[^#_×÷=+?]/g,"");w.add("§"+shape);w.add("§§"+shape);return w;} // the equation's shape (5 × __ = 15 vs 5 × 2 = __) tells look-alike slots apart
+function lztSim(a,b){let n=0;a.forEach(w=>{if(b.has(w))n++;});return n/Math.max(1,a.size+b.size-n);}
+function lztRebuild(id,e,exactNeeded){
+  const fn=LZT_GEN[id];if(!fn||!e)return null;const tw=lztWords(e.shown||e.q);
+  const ranked=[];for(let slot=0;slot<10;slot++){let best=0,sample=null;for(let k=0;k<10;k++){const p=fn(slot);const sc=lztSim(lztWords(lztShown(p)),tw);if(sc>best){best=sc;sample=p;}}ranked.push({slot:slot,score:best,sample:sample});}
+  ranked.sort((x,y)=>y.score-x.score);if(!ranked[0]||ranked[0].score<0.35)return null;
+  if(!exactNeeded)return{slot:ranked[0].slot,p:null,exact:false};
+  const target=lztClip(e.shown);
+  if(/ Options: /.test(target)&&!/\.\.\.$/.test(target)){const m=lztMultiFromLog(id,e,ranked[0]);if(m)return m;}
+  for(const r of ranked.slice(0,3)){if(r.score<0.35)break;for(let k=0;k<6000;k++){const p=fn(r.slot);if(lztShown(p)===target){p.slot=r.slot;return{slot:r.slot,p:p,exact:true};}}}
+  const p=fn(ranked[0].slot);p.slot=ranked[0].slot;return{slot:ranked[0].slot,p:p,exact:false}; // same kind of question, new numbers
+}
+function lztMultiFromLog(id,e,r){
+  const opts=String(e.shown).split(" Options: ")[1].split(" | ").map(x=>{const m=/^([A-F])\. (.*)$/.exec(x.trim());return m?{id:m[1],text:m[2]}:null;});
+  if(opts.some(o=>!o))return null;const truth=new Set((Array.isArray(e.correct)?e.correct:[e.correct]).map(x=>String(x).trim().charAt(0)));
+  const built=opts.map(o=>{const q=wbEqParse(o.text),ok=!!q.ok;return{text:o.text,true:ok,why:ok?"Both sides equal "+q.total+".":(q.L&&q.R?"The left side is "+q.L.value+" but the right side is "+q.R.value+".":"The two sides are not equal.")};});
+  if(built.some((o,i)=>o.true!==truth.has(opts[i].id)))return null; // the maths must agree with the logged key
+  const s=r.sample||{};const p=wbMulti(id,s.factor||0,built);p.q=e.q||s.q;p.spoken=s.spoken||p.spoken;p.explain=s.explain||"Work out both sides of each equation.";p.slot=r.slot;
+  return{slot:r.slot,p:p,exact:true};
+}
+function lztSeedFromLog(profile){
+  if(!profile||profile.fixSeedV1)return;profile.fixSeedV1=Date.now();
+  try{
+    profile.revealTest=profile.revealTest||{};
+    Object.keys(LZT_GEN).forEach(id=>{
+      if(profile.revealTest[id]||(profile.revealPass&&profile.revealPass[id]))return;
+      const ses=(profile.sessions||[]).filter(s=>s&&s.lesson==="reveal:"+id&&s.total&&s.t).sort((x,y)=>x.t-y.t);if(!ses.length)return;
+      const last=ses[ses.length-1],prevT=ses.length>1?ses[ses.length-2].t:0;
+      const log=(profile.qlog||[]).filter(x=>x&&x.lesson==="workbook:"+id&&x.t>prevT&&x.t<=last.t+2000).sort((x,y)=>x.t-y.t);
+      if(!log.length||log.some(x=>!x.shown))return;
+      const rows=log.map(x=>({e:x,r:lztRebuild(id,x,false)}));if(rows.some(x=>!x.r))return;
+      const prim=[];for(let k=0;k<rows.length;k++){const pr=prim[prim.length-1];if(pr&&pr===rows[k-1]&&!pr.e.ok&&!pr.twin&&pr.r.slot===rows[k].r.slot){pr.twin=rows[k];continue;}prim.push(rows[k]);} // "Try one like it" twins are not test questions
+      const wrong=prim.filter(x=>!x.e.ok);
+      if(prim.length!==Number(last.total)||!wrong.length||wrong.length!==Number(last.total)-Number(last.correct))return;
+      const problems=[],st=[];
+      for(const x of prim){if(x.e.ok){problems.push(null);st.push({s:"right",first:true,tries:0});continue;}
+        const r=lztRebuild(id,x.e,true);if(!r||!r.p)return;problems.push(r.p);st.push({s:"wrong",first:false,tries:1,given:r.exact?String(Array.isArray(x.e.given)?x.e.given.join(", "):x.e.given||""):"",like:!r.exact,tipShown:false});}
+      profile.revealTest[id]={lessonId:id,size:st.length,phase:"fix",index:st.findIndex(x=>x.s!=="right"),scored:true,start:Date.now(),t:Date.now(),seeded:"qlog:"+last.t,problems:problems,st:st};
+    });
+  }catch(e){}
+}
+
+const LZT_CSS=`
+#topbar .tb-btn.lzb{min-width:84px;height:68px;padding:0 14px 0 10px;flex-direction:row;gap:8px;background:#fff;color:#1E293B;border:3px solid #1E293B;border-radius:18px;box-shadow:4px 5px 0 #1E293B;font-weight:900;backdrop-filter:none;-webkit-backdrop-filter:none;transition:transform .1s ease,box-shadow .1s ease}
+#topbar .tb-btn.lzb .lzb-ar{font-size:34px;line-height:1}#topbar .tb-btn.lzb .lzb-to{font-size:18px;font-weight:900;white-space:nowrap;line-height:1.05;text-transform:none;letter-spacing:0;opacity:1}
+#topbar .tb-btn.lzb:active{transform:translate(4px,5px);box-shadow:0 0 0 #1E293B}#topbar .tb-btn.lzb[hidden]{display:none}
+body.lz-back #app{padding-top:98px!important}
+@media(max-width:520px){#topbar .tb-btn.lzb{min-width:72px;height:64px;padding:0 10px 0 8px;gap:4px}#topbar .tb-btn.lzb .lzb-ar{font-size:28px}#topbar .tb-btn.lzb .lzb-to{font-size:14px;max-width:62px;white-space:normal}
+ body.lz-back #topbar .tb-group{gap:5px}body.lz-back #topbar .tb-btn:not(.lzb){min-width:46px;padding:4px 5px}body.lz-back #topbar .tb-btn:not(.lzb) .tb-lb{display:none}body.lz-back #app{padding-top:90px!important}}
+.lzt-strip{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;margin:12px 0 4px}
+.lzt-nav{min-height:56px;min-width:96px;padding:0 14px;border:3px solid #1E293B;border-radius:14px;background:#fff;color:#1E293B!important;font:inherit;font-size:18px;font-weight:900;box-shadow:3px 4px 0 #1E293B;cursor:pointer}
+.lzt-nav:active{transform:translate(3px,4px);box-shadow:0 0 0 #1E293B}.lzt-nav:disabled{opacity:.35;box-shadow:none;cursor:default}
+.lzt-nav.lzt-skipbtn{background:#2EC4B6;color:#fff!important}
+.lzt-dots{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:10px 0}.lzt-dots.live{margin:0}
+.lzt-dot{width:40px;height:40px;border-radius:50%;border:3px solid #1E293B;display:inline-flex;align-items:center;justify-content:center;font:inherit;font-size:16px;font-weight:900;padding:0;background:#e2e8f0;color:#1E293B!important;cursor:pointer;flex:0 0 auto}
+span.lzt-dot{cursor:default}
+.lzt-dot.right{background:#22c55e;color:#fff!important}.lzt-dot.wrong{background:#FF6B6B;color:#fff!important}.lzt-dot.skip{background:#FFD166}.lzt-dot.todo{background:#fff;border-style:dashed;color:#64748b!important}
+.lzt-dot.cur{outline:4px solid #FF9F1C;outline-offset:2px;transform:scale(1.08)}
+.lzt-legend{display:flex;flex-wrap:wrap;gap:4px 14px;justify-content:center;font-size:14px;font-weight:800;color:#475569;margin:2px 0 10px}.lzt-legend i{display:inline-block;width:13px;height:13px;border-radius:50%;border:2px solid #1E293B;margin-right:4px;vertical-align:-2px}
+.lzt-legend i.right{background:#22c55e}.lzt-legend i.wrong{background:#FF6B6B}.lzt-legend i.skip{background:#FFD166}.lzt-legend i.todo{background:#fff;border-style:dashed}.lzt-legend b{color:#c2410c}
+.lzt-praise{display:flex;align-items:center;justify-content:center;gap:14px;margin:12px 0;padding:16px 18px;background:#FFD166;border:3px solid #1E293B;border-radius:20px;box-shadow:4px 5px 0 #1E293B;animation:lztPop .45s cubic-bezier(.3,1.6,.5,1)}
+.lzt-praise b{font-size:30px;line-height:1.1;color:#1E293B!important}.lzt-star{font-size:44px;line-height:1;animation:lztSpin .6s ease-out}
+.lzt-praise.lzt-static{background:#dcfce7;animation:none}.lzt-praise.lzt-static b{font-size:22px}.lzt-praise.lzt-static .lzt-star{color:#15803d!important;font-size:34px;animation:none}
+.lzt-tip{margin:12px 0;padding:14px 16px;background:#fff;border:3px solid #1E293B;border-left:12px solid #FF6B6B;border-radius:18px;box-shadow:4px 5px 0 #1E293B;animation:lztIn .3s ease-out}
+.lzt-tip h3{font-size:24px!important;margin:0 0 6px;color:#1E293B!important}.lzt-why{font-size:19px;font-weight:700;line-height:1.4;margin:4px 0;color:#334155!important}.lzt-tipline{font-size:20px;font-weight:800;line-height:1.4;margin:6px 0;color:#1E293B!important}
+.lzt-hint{margin:0 0 10px;padding:10px 12px;background:#fff7ed;border:2px solid #FF9F1C;border-radius:14px;font-size:18px;font-weight:700;color:#1E293B!important}
+.lzt-row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:12px}
+.lzt-btn{min-height:64px;padding:10px 24px;border:3px solid #1E293B;border-radius:18px;font:inherit;font-size:21px;font-weight:900;cursor:pointer;box-shadow:4px 5px 0 #1E293B;color:#fff!important;transition:transform .1s ease,box-shadow .1s ease}
+.lzt-btn:active{transform:translate(4px,5px);box-shadow:0 0 0 #1E293B}.lzt-try{background:#FF9F1C}.lzt-next{background:#2EC4B6}.lzt-go{background:#FF9F1C;font-size:23px;min-height:72px;padding:12px 30px}.lzt-plain{background:#fff;color:#1E293B!important}
+.lzt-small{font-size:15px;font-weight:700;color:#64748b!important;text-align:center;margin:8px 0 0}
+.lzt-card{background:#fff;color:#1E293B;border:3px solid #1E293B;border-radius:24px;box-shadow:6px 7px 0 #1E293B;padding:20px 22px;margin:16px auto;max-width:640px;text-align:center;animation:lztPop .4s cubic-bezier(.3,1.5,.6,1)}
+.lzt-card *{color:inherit}.lzt-h{font-size:28px!important;line-height:1.15;margin:4px 0 8px;color:#1E293B!important}.lzt-big{font-size:21px;font-weight:800;line-height:1.4;margin:6px 0}
+.lzt-card.lzt-lock{border-style:solid;background:#fffaf0}.lzt-lockic{font-size:54px;line-height:1}
+.lzt-card.lzt-note{background:#f0fbfa;border-color:#1E293B;box-shadow:4px 5px 0 #1E293B;padding:14px 16px}.lzt-card.lzt-note .lzt-big{font-size:19px}
+.lzt-card.lzt-fix{text-align:left;border-left:12px solid #FF6B6B}.lzt-kicker{font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#c2410c!important}
+.lzt-q{font-size:21px;font-weight:800;line-height:1.35;margin:8px 0;padding:10px 12px;background:#f1f5f9;border-radius:12px}.lzt-you{font-size:19px;margin:8px 0}.lzt-you b{color:#b91c1c!important}
+.lzt-card.lzt-fix .lzt-row{justify-content:flex-start}
+.lzt-score{display:inline-flex;align-items:baseline;justify-content:center;width:104px;height:104px;border-radius:50%;background:#1E293B;padding-top:24px}.lzt-score b{font-size:44px;color:#fff!important}.lzt-score span{font-size:22px;color:#cbd5e1!important}
+.lzt-card.lzt-passed{background:#f0fdf4}.lzt-burst{font-size:72px;line-height:1;animation:lztSpin .8s ease-out}
+@keyframes lztPop{0%{transform:scale(.85);opacity:0}70%{transform:scale(1.04)}100%{transform:none;opacity:1}}
+@keyframes lztSpin{0%{transform:scale(0) rotate(-40deg)}60%{transform:scale(1.3) rotate(12deg)}100%{transform:none}}
+@keyframes lztIn{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.lzt-praise,.lzt-star,.lzt-card,.lzt-tip,.lzt-burst{animation:none}}
+@media(max-width:520px){.lzt-strip{grid-template-columns:1fr 1fr;gap:8px}.lzt-strip .lzt-dots{grid-column:1 / -1;grid-row:1}.lzt-nav{min-width:0;width:100%}
+ .lzt-dot{width:30px;height:30px;font-size:13px;border-width:2px}.lzt-dots{gap:4px}.lzt-dots:not(.live){gap:3px;flex-wrap:nowrap}.lzt-dots:not(.live) .lzt-dot{width:26px;height:26px;font-size:12px}.lzt-tip h3{font-size:21px!important}.lzt-why{font-size:17px}.lzt-btn{flex:1 1 140px;font-size:19px;padding:10px 12px}.lzt-praise b{font-size:26px}.lzt-card{padding:16px 14px}.lzt-h{font-size:24px!important}.lzt-big{font-size:18px}.lzt-tipline{font-size:18px}.lzt-q{font-size:18px}}
+`;
+function lztInstallStyle(){if(typeof document==="undefined")return;let s=document.getElementById("lzt-style");if(!s){s=document.createElement("style");s.id="lzt-style";document.head.appendChild(s);}s.textContent=LZT_CSS;}
+lztInstallStyle();
 const wbPublic={lessons:WB_LESSONS,gen:wbGenerate,check:wbCheck,review:wbRevealReview,tenSlot:WB_TEN,resumeSnapshot:wbResumeSnapshot,resumeRestore:wbResumeRestore};
 if(typeof window!=="undefined")window.__wb=wbPublic;else if(typeof globalThis!=="undefined")globalThis.__wb=wbPublic;
