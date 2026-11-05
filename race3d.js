@@ -1503,8 +1503,10 @@ function gpTrafficUpdate(dt,waiting){const TR=R3.traffic;if(!TR)return;const me=
     const vx0=c.x;c.x+=(c.lane-c.x)*Math.min(1,dt*0.9)+c.bv*dt;c.bv*=Math.exp(-4*dt);if(Math.abs(c.bv)<0.002)c.bv=0;
     if(Math.abs(c.x)>0.98){c.x=Math.sign(c.x)*0.98;c.bv=0;}c.yawRel=Math.max(-0.12,Math.min(0.12,(c.x-vx0)/Math.max(dt,1e-3)*0.06));}}
 function gpTrafficPlace(){const TR=R3.traffic;if(!TR)return;const D=TR.dummy,XS=TR.XS,dirty=new Set();
-  TR.cars.forEach((c,q)=>{const p=R3.curve.getPointAt(c.t),tn=R3.curve.getTangentAt(c.t);const l=Math.hypot(tn.x,tn.z)||1,nx=-tn.z/l,nz=tn.x/l;p.x+=nx*c.x*XS;p.z+=nz*c.x*XS;c.pos.copy(p);
-    D.position.copy(p);D.rotation.order="YXZ";D.rotation.set(-Math.atan2(tn.y,l),Math.atan2(tn.x,tn.z)+c.yawRel,0);D.scale.set(1,1,1);D.updateMatrix();const ty=c.ty;["paint","glass","det","glow"].forEach(k=>{if(ty[k])ty[k].setMatrixAt(c.k,D.matrix);});dirty.add(ty);
+  TR.cars.forEach((c,q)=>{const p=R3.curve.getPointAt(c.t),tn=R3.curve.getTangentAt(c.t);const l=Math.hypot(tn.x,tn.z)||1,nx=-tn.z/l,nz=tn.x/l;p.x+=nx*c.x*XS;p.z+=nz*c.x*XS;
+    // sit on the road under the front and rear wheels (the chord), so a long bus over a crest or dip keeps all its wheels on the tarmac
+    const hl=c.S.len*0.36,yf=R3.curve.getPointAt(((c.t+hl/TR.len)%1+1)%1).y,yr=R3.curve.getPointAt(((c.t-hl/TR.len)%1+1)%1).y;p.y=(yf+yr)/2;c.pos.copy(p);
+    D.position.copy(p);D.rotation.order="YXZ";D.rotation.set(-Math.atan2(yf-yr,2*hl),Math.atan2(tn.x,tn.z)+c.yawRel,0);D.scale.set(1,1,1);D.updateMatrix();const ty=c.ty;["paint","glass","det","glow"].forEach(k=>{if(ty[k])ty[k].setMatrixAt(c.k,D.matrix);});dirty.add(ty);
     D.position.y+=0.03;D.scale.set(c.S.w*1.25,1,c.S.len*1.1);D.updateMatrix();TR.blob.setMatrixAt(q,D.matrix);});
   dirty.forEach(ty=>["paint","glass","det","glow"].forEach(k=>{if(ty[k])ty[k].instanceMatrix.needsUpdate=true;}));TR.blob.instanceMatrix.needsUpdate=true;}
 
@@ -2095,13 +2097,14 @@ const GP_G=15.5;
 function gpVert(kt,pos,dt,waiting){const ry=pos.y;
   if(kt.vy==null||waiting||kt.ry==null||dt<=0){kt.y=ry;kt.vy=0;kt.ry=ry;kt.air=false;kt.airT=0;return;}
   if(Math.abs(ry-kt.ry)>0.6+Math.abs(kt.speed)*dt*0.35){kt.y=ry;kt.vy=0;kt.ry=ry;kt.air=false;kt.airT=0;pos.y=ry;return;}   // a placement jump (grid, test hook), not motion
-  const rv=Math.max(-kt.speed*0.6-2,Math.min(kt.speed*0.6+2,(ry-kt.ry)/dt));kt.ry=ry;
+  const tilt=Math.abs((kt.pS||0)-(kt.sR||0))*1.45,rv=Math.max(-kt.speed*0.6-2,Math.min(kt.speed*0.6+2,(ry-kt.ry)/dt));kt.ry=ry;
   if(!kt.air){const g=gpNearJump(kt)?GP_G:GP_G+0.0075*kt.speed*kt.speed,yb=kt.y+kt.vy*dt-0.5*g*dt*dt;   // downforce keeps the car on the road over ordinary crests
     if(yb>ry+0.04&&kt.speed>14){kt.air=true;kt.airT=0;kt.airPeak=0;kt.y=yb;kt.vy-=GP_G*dt;kt.takeoff={v:Math.round(kt.speed*3.6),vy:+kt.vy.toFixed(2),f:R3.frameN};}
     else{kt.y=ry;kt.vy=rv;}}
   else{kt.airT+=dt;kt.vy-=GP_G*dt;kt.y+=kt.vy*dt;kt.airPeak=Math.max(kt.airPeak,kt.y-ry);
-    if(kt.y<=ry){const imp=Math.max(0,rv-kt.vy);kt.y=ry;kt.vy=rv;kt.air=false;gpLand(kt,imp);}}
-  pos.y=kt.y;}
+    if(kt.y-tilt<=ry){   // touches down on its lowest tyre (nose-low after a long flight), then pivots onto the road
+      const imp=Math.max(0,rv-kt.vy);kt.y=ry;kt.vy=rv;kt.air=false;gpLand(kt,imp);}}
+  pos.y=kt.air?kt.y:kt.y+tilt;}   // on the ground the car rides on whichever tyre is lowest while its pitch catches up with the road
 function gpNearJump(kt){const C=R3.C,J=C.jumps;if(!J||!J.length)return false;const d=kt.t*C.lapM;for(const q of J){let u=d-q[0];if(u>C.lapM/2)u-=C.lapM;else if(u<-C.lapM/2)u+=C.lapM;if(u>-60&&u<40)return true;}return false;}
 function gpLand(kt,imp){const big=kt.airT>0.22||imp>2.5;if(!big)return;
   kt.sqV=(kt.sqV||0)-Math.min(2.6,imp*0.22);   // springs squash, then a little bounce
@@ -2279,8 +2282,8 @@ function gpUpdate(dt,waiting){
     kt.g.position.copy(pos);kt.travel+=Math.abs(kt.speed)*dt;kt.wheelPhase+=kt.speed*dt/Math.max(0.01,kt.wheelRadius);
     let y=0;if(offroad)y=Math.abs(Math.sin(kt.t*len*3))*0.08;if(kt.hop>0)y+=Math.sin(Math.PI*(1-kt.hop/0.22))*0.25;
     const vib=spd*(Math.sin(kt.travel*(kt.racer.car.type==="suv"?5.2:7.4))*0.005+Math.sin(kt.travel*2.3+1.1)*0.002);kt.body.position.y=kt.pic?(offroad?Math.min(0.08,y+vib):0):y+vib;   // photo tyre line stays planted on-road; the 3D fallback keeps its suspension motion
-    {const fl=Math.hypot(tan.x,tan.z)||1,sR=tan.y/fl,sT=kt.air?Math.max(-0.45,Math.min(0.4,kt.vy/Math.max(8,kt.speed)))*0.85:sR;   // in the air the nose follows the flight path (up off the ramp, dipping as it falls)
-      kt.pS=kt.pS==null?sR:kt.pS+(sT-kt.pS)*Math.min(1,dt*(kt.air?2.6:16));kt.g.lookAt(pos.x+tan.x/fl,pos.y+kt.pS,pos.z+tan.z/fl);}
+    {const fl=Math.hypot(tan.x,tan.z)||1,sR=kt.sR=tan.y/fl,sT=kt.air?Math.max(-0.45,Math.min(0.4,kt.vy/Math.max(8,kt.speed)))*0.85:sR;   // in the air the nose follows the flight path (up off the ramp, dipping as it falls)
+      kt.pS=kt.pS==null?sR:kt.pS+(sT-kt.pS)*Math.min(1,dt*(kt.air?2.6:30));kt.g.lookAt(pos.x+tan.x/fl,pos.y+kt.pS,pos.z+tan.z/fl);}
     const yaw=Math.atan2(tan.x,tan.z);let yawRate=0;if(kt.yaw!==null){let d=yaw-kt.yaw;if(d>Math.PI)d-=Math.PI*2;if(d<-Math.PI)d+=Math.PI*2;yawRate=d/Math.max(dt,0.001);}kt.yaw=yaw;
     const vx=(kt.x-kt.px)/Math.max(dt,0.001);
     if(kt.player){
