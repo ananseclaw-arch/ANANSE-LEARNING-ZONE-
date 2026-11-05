@@ -1748,13 +1748,15 @@ function revealNextInUnit(id){const L=revealLesson(id);if(!L)return null;const l
 /* ---------- Big Back button (Eb 2026-11-04): top-left, 64px+, on every lesson-flow screen ----------
    Call lzBack(fn,label) right AFTER a screen sets app.innerHTML. Any other screen replacing #app hides it again. */
 let _lzBackFn=null,_lzBackFor=null,_lzBackObs=null;
-function lzBack(fn,label){
+function lzBack(fn,label,opts){ // opts.exit (Eb 2026-11-05): inside a lesson test it is a slim "✕ Exit lesson" chip, so "Back" only means "previous question"
   if(typeof document==="undefined")return;const b=document.getElementById("lzBackBtn"),a=document.getElementById("app");if(!b||!a)return;
   _lzBackFn=fn;_lzBackFor=a.firstElementChild;b.hidden=false;const lb=b.querySelector(".lzb-to");if(lb)lb.textContent=label||"";
-  document.body.classList.add("lz-back");
+  const ex=!!(opts&&opts.exit),ar=b.querySelector(".lzb-ar");if(ar)ar.textContent=ex?"✕":"←";if(b.classList)b.classList.toggle("lzb-exit",ex);
+  b.setAttribute("aria-label",ex?"Exit lesson. Your answers are saved.":"Back");b.title=ex?"Exit lesson (your answers are saved)":"Back";
+  document.body.classList.add("lz-back");document.body.classList.toggle("lz-exit",ex);
   if(!_lzBackObs&&typeof MutationObserver!=="undefined"){_lzBackObs=new MutationObserver(()=>{if(a.firstElementChild!==_lzBackFor)lzBackHide();});_lzBackObs.observe(a,{childList:true});}
 }
-function lzBackHide(){const b=typeof document!=="undefined"&&document.getElementById("lzBackBtn");if(b)b.hidden=true;_lzBackFn=null;_lzBackFor=null;if(typeof document!=="undefined")document.body.classList.remove("lz-back");}
+function lzBackHide(){const b=typeof document!=="undefined"&&document.getElementById("lzBackBtn");if(b)b.hidden=true;_lzBackFn=null;_lzBackFor=null;if(typeof document!=="undefined")document.body.classList.remove("lz-back","lz-exit");}
 function lzBackGo(){const f=_lzBackFn;if(typeof f==="function"){try{if(typeof stopRecorded==="function")stopRecorded();}catch(e){}f();}else if(typeof renderHome==="function")renderHome();}
 const revealProgressionPublic={unit4Ids:REVEAL_UNIT4_IDS.slice(),flex:REVEAL_FLEX.slice(),isPrince:revealProfileIsPrince,recordPassed:revealRecordPassed,profilePassed:revealProfilePassed,migrate:revealPassMigrate,init:revealProgressInit,gate:revealUnit4Gate,nextId:revealUnit4NextId};
 if(typeof window!=="undefined")window.__revealProgression=revealProgressionPublic;else if(typeof globalThis!=="undefined")globalThis.__revealProgression=revealProgressionPublic;
@@ -2684,6 +2686,23 @@ function wbVisual(model){
   return'<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+groups+' groups of '+size+'">'+body+'</svg>';
 }
 function wbPageHead(id){const L=WB_LESSONS[id];return'<div class="wb-head"><div><div class="wb-kicker">Lesson '+wbEscape(id)+'</div><h1 class="wb-title">Additional Practice</h1></div><div class="wb-name">Name&nbsp; '+wbEscape((P&&P.name)||"")+'</div></div><div style="font-size:16px;font-weight:800;margin-top:5px">'+wbEscape(L.title)+'</div>';}
+/* Question screens: ONE slim line "Lesson 4-2 · Multiply by 5" (Eb 2026-11-05 look fix); the workbook-page head stays on intro/finish pages. */
+function wbQHead(id){const L=WB_LESSONS[id];return'<h1 class="wb-qhead"><span>Lesson '+wbEscape(id)+'</span>'+(L&&L.title?'<span class="wb-qh-sep" aria-hidden="true">·</span><span class="wb-qh-t">'+wbEscape(L.title)+'</span>':'')+'</h1>';}
+/* Sticky bottom bar: quiet ◀ Back · primary Check · small Skip ▶ link (same ids + functions as the old top buttons). */
+function lzqBarHTML(primary){
+  const f=!!(WB&&WB.flex),fix=f&&WB.phase==="fix";
+  return'<div class="lzq-bar'+(f?' flex':'')+'">'+(f?'<button type="button" class="lzq-back" id="lztPrev" onclick="lztPrev()"'+(WB.index>0?'':' disabled')+'>◀ Back</button>':'')
+   +'<div class="lzq-main">'+(primary||'')+'</div>'
+   +(f?'<button type="button" class="lzq-skip" id="lztSkip" onclick="lztSkip()">'+(fix?'Next one ▶':'Skip ▶')+'</button>':'')+'</div>';
+}
+function wbCheckBtnHTML(){return'<button id="wbSubmit" class="wb-submit lzq-check" onclick="wbSubmit()" '+(wbCanSubmit()?'':'disabled')+'>Check<span class="lzq-mw"> my work</span> ✓</button>';}
+function wbBarAnswered(){const b=document.getElementById("wbSubmit");if(b&&b.closest&&b.closest(".lzq-bar"))b.hidden=true;}
+/* Keep the bar + the box he is typing in above an on-screen keyboard (iOS / Telegram leave the layout viewport under it). */
+function lzqKbFit(){try{const v=window.visualViewport,b=document.querySelector(".lzq-bar");if(!v||!b)return;const kb=Math.max(0,Math.round(innerHeight-v.offsetTop-v.height));b.style.bottom=kb>60?kb+"px":"";}catch(e){}}
+function lzqFocusIn(e){const el=e&&e.target;if(!el||!el.classList||!el.classList.contains("wb-in"))return;
+  setTimeout(()=>{try{if(document.activeElement!==el)return;lzqKbFit();const v=window.visualViewport,r=el.getBoundingClientRect(),bar=document.querySelector(".lzq-bar"),bh=bar?bar.offsetHeight:0,top=(v?v.offsetTop:0)+76,bottom=(v?v.offsetTop+v.height:innerHeight)-bh-12;
+    if(r.bottom>bottom)window.scrollBy(0,Math.min(r.bottom-bottom,r.top-top));else if(r.top<top)window.scrollBy(0,r.top-top);}catch(x){}},320);}
+if(typeof window!=="undefined"&&!window.__lzqKb){window.__lzqKb=1;try{document.addEventListener("focusin",lzqFocusIn);if(window.visualViewport){visualViewport.addEventListener("resize",lzqKbFit);visualViewport.addEventListener("scroll",lzqKbFit);}}catch(e){}}
 function renderWorkbookPicker(){
   if(typeof clearTimers==="function")clearTimers();if(typeof closeOverlay==="function")closeOverlay();if(typeof defocus==="function")defocus();if(typeof showAnanseCorner==="function")showAnanseCorner(false);wbInstallStyle();
   const data=wbData(),rows=Object.keys(WB_LESSONS).map(id=>{const L=WB_LESSONS[id],best=data.best[id];return'<button class="wb-pick" onclick="renderWorkbookLesson(\''+id+'\')"><span><b>Lesson '+id+' · '+wbEscape(L.title)+'</b><small>8 fresh workbook-style problems</small></span><span class="wb-best">'+(best==null?'New':('Best '+best+'/8'))+'</span></button>';}).join("");
@@ -2705,19 +2724,20 @@ function wbFieldButton(k,label){const v=WB.fields[k],cl=v===""?" empty":"";retur
 function wbFillHTML(p){let used=false;return'<div class="wb-eq">'+p.parts.map(x=>{if(x==="□"&&!used){used=true;return wbFieldButton("ans","unknown number");}return'<span>'+wbEscape(x)+'</span>';}).join("")+'</div>';}
 function wbEquationHTML(p){let h='<div class="wb-eq">'+wbFieldButton("e0","first number")+'<span>'+wbEscape(p.eq.op)+'</span>'+wbFieldButton("e1","second number")+'<span>=</span>'+wbFieldButton("e2","answer in equation")+'</div>';if(p.extraEq)h+='<div class="wb-eq">'+wbFieldButton("x0","first number in related equation")+'<span>'+wbEscape(p.extraEq.op)+'</span>'+wbFieldButton("x1","second number in related equation")+'<span>=</span>'+wbFieldButton("x2","answer in related equation")+'</div>';return h;}
 function wbAnswerLine(p){let h='<div class="wb-answer-line">'+wbFieldButton("ans","answer")+' <span>'+wbEscape(p.unit)+'</span>';if(p.answer.remainder!=null)h+=' <span>and</span> '+wbFieldButton("rem","remainder")+' <span>'+wbEscape(p.remainderUnit)+'</span>';return h+'</div>';}
-function wbFormHTML(p){return'<div class="wb-form">'+p.rows.map(r=>'<div class="wb-formrow">'+String(r).split(/(\{[nt]:\w+\})/).map(part=>{const m=/^\{([nt]):(\w+)\}$/.exec(part);if(!m)return part?'<span>'+wbEscape(part)+'</span>':"";const k=m[2],num=m[1]==="n";return'<input class="wb-in '+(num?'num':(k==="r"?'wide':'text'))+'" data-k="'+k+'" aria-label="'+(num?'answer':(k==="r"?'because':'type here'))+'" '+(num?'inputmode="numeric" maxlength="4"':'maxlength="120"')+' autocomplete="off" autocapitalize="none" spellcheck="false" value="'+wbEscape(WB.fields[k]||"")+'" oninput="wbFormInput(this)">';}).join("")+'</div>').join("")+'</div>';}
-function wbFormInput(el){if(!WB||!WB.cur||WB.cur.type!=="form")return;WB.fields[el.getAttribute("data-k")]=el.value;wbRefreshSubmit();}
+function wbFormHTML(p){return'<div class="wb-form">'+p.rows.map(r=>'<div class="wb-formrow">'+String(r).split(/(\{[nt]:\w+\})/).map(part=>{const m=/^\{([nt]):(\w+)\}$/.exec(part);if(!m)return part?'<span>'+wbEscape(part)+'</span>':"";const k=m[2],num=m[1]==="n";if(k==="r")return'<textarea class="wb-in wide wb-because" data-k="r" aria-label="because" rows="2" maxlength="120" placeholder="I know that…" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="done" onkeydown="if(event.key===\'Enter\'){event.preventDefault();this.blur();}" oninput="wbFormInput(this)">'+wbEscape(WB.fields[k]||"")+'</textarea>';
+  return'<input class="wb-in '+(num?'num':'text')+'" data-k="'+k+'" aria-label="'+(num?'answer':'type here')+'" '+(num?'inputmode="numeric" pattern="[0-9]*" maxlength="4"':'maxlength="120"')+' autocomplete="off" autocapitalize="none" spellcheck="false" value="'+wbEscape(WB.fields[k]||"")+'" oninput="wbFormInput(this)">';}).join("")+'</div>').join("")+'</div>';}
+function wbFormInput(el){if(!WB||!WB.cur||WB.cur.type!=="form")return;if(el.tagName==="TEXTAREA"&&/[\r\n]/.test(el.value))el.value=el.value.replace(/\s*[\r\n]+\s*/g," ");WB.fields[el.getAttribute("data-k")]=el.value;wbRefreshSubmit();}
 function wbQuestionAnswerHTML(p){if(p.type==="form")return wbFormHTML(p);if(p.type==="fill")return wbFillHTML(p);if(p.type==="picture")return wbEquationHTML(p);if(p.type==="story")return wbEquationHTML(p)+wbAnswerLine(p);if(p.type==="multi")return wbMultiHTML(p);if(p.type==="who")return'<div class="wb-btnrow">'+p.people.map(n=>'<button class="wb-person'+(WB.person===n?' on':'')+'" onclick="wbPickPerson(\''+wbEscape(n)+'\')">'+wbEscape(n)+'</button>').join("")+'</div>'+(p.valueAnswer!=null?'<div class="wb-answer-line"><span>Product:</span>'+wbFieldButton("ans","product")+'</div>':'');if(p.type==="match")return wbMatchHTML(p);if(p.type==="pair")return wbPairAnswerHTML(p);return"";}
 function wbPairAnswerHTML(p){let h="";if(p.equations)h=wbEquationHTML({eq:{op:"×"},extraEq:{op:"×"}});h+='<div class="wb-answer-line"><span>Shared product:</span>'+wbFieldButton("ans","shared product")+'</div>';if(p.people)h+='<div class="wb-answer-line"><span>Who has more?</span></div><div class="wb-btnrow">'+p.people.map(n=>'<button class="wb-person'+(WB.person===n?' on':'')+'" onclick="wbPickPerson(\''+wbEscape(n)+'\')">'+wbEscape(n)+'</button>').join("")+'</div>';return h;}
 function wbMultiHTML(p){return'<div class="wb-choice-grid">'+p.options.map(o=>'<button class="wb-check'+(WB.selected.includes(o.id)?' on':'')+'" onclick="wbToggleMulti(\''+o.id+'\')"><span class="box">'+(WB.selected.includes(o.id)?'✓':'')+'</span><span><b>'+o.id+'.</b> '+wbEscape(o.text)+'</span></button>').join("")+'</div>';}
 function wbMatchHTML(p){const hint=p.rights?'<div class="wb-rights">'+p.rights.map((r,i)=>'<span class="wb-right"><b>'+(i+1)+'. </b>'+wbEscape(r)+'</span>').join("")+'</div>':'<p>Numbers: <b>'+p.numbers.map(wbEscape).join(" · ")+'</b></p>';return hint+p.pairs.map(x=>'<div class="wb-answer-line"><span>'+wbEscape(x.left)+'</span> '+wbFieldButton(x.id,"matching number")+'</div>').join("");}
 function wbNumberPad(){const keys=["1","2","3","4","5","6","7","8","9","⌫","0","✓"];return'<div class="wb-pad">'+keys.map(k=>'<button class="wb-key '+(k==="✓"?'go':(k==="⌫"?'action':''))+'" '+(k==="✓"&&!wbCanSubmit()?'disabled':'')+' onclick="'+(k==="✓"?'wbSubmit()':('wbKey(\''+k+'\')'))+'">'+k+'</button>').join("")+'</div>'+(wbNeedsWork(WB.cur)&&!wbWorkDone()?'<div class="wb-lock">'+(WB.cur.type==="pair"?'Build both models correctly to unlock ✓':'Show your work to unlock ✓')+'</div>':'');}
 function wbCanSubmit(){const p=WB&&WB.cur;if(!p||WB.answered||!wbWorkDone())return false;if(p.type==="form")return p.fields.every(f=>String(WB.fields[f.key]==null?"":WB.fields[f.key]).trim()!=="");if(p.type==="fill")return WB.fields.ans!=="";if(p.type==="picture")return["e0","e1","e2"].concat(p.extraEq?["x0","x1","x2"]:[]).every(k=>WB.fields[k]!=="");if(p.type==="story")return["e0","e1","e2","ans"].every(k=>WB.fields[k]!=="")&&(p.answer.remainder==null||WB.fields.rem!=="");if(p.type==="multi")return WB.selected.length>0;if(p.type==="who")return!!WB.person&&(p.valueAnswer==null||WB.fields.ans!=="");if(p.type==="match")return p.pairs.every(x=>WB.fields[x.id]!=="");if(p.type==="pair")return WB.fields.ans!==""&&(!p.equations||["e0","e1","e2","x0","x1","x2"].every(k=>WB.fields[k]!==""))&&(!p.people||!!WB.person);return false;}
-function wbSubmitButton(){return'<div class="wb-btnrow"><button id="wbSubmit" class="wb-submit" onclick="wbSubmit()" '+(wbCanSubmit()?'':'disabled')+'>Check my work ✓</button></div>'+(wbNeedsWork(WB.cur)&&!wbWorkDone()?'<div class="wb-lock">Build the model or make a few drawing strokes first.</div>':'');}
+function wbSubmitButton(){return''+(wbNeedsWork(WB.cur)&&!wbWorkDone()?'<div class="wb-lock">Build the model or make a few drawing strokes first.</div>':'');}
 function wbRenderProblem(silent){
   const p=WB.cur,L=WB_LESSONS[WB.lessonId],pct=Math.round(WB.index/(WB.size||8)*100),num=WB.index+1,work=wbNeedsWork(p),visual=p.visual?'<div class="wb-visual">'+wbVisual(p.visual)+'</div>':'';
   let controls=wbQuestionAnswerHTML(p),submit=(p.type==="fill"||p.type==="picture"||p.type==="story"||p.type==="pair"||p.type==="match"||(p.type==="who"&&p.valueAnswer!=null))?wbNumberPad():wbSubmitButton();
-  app.innerHTML='<div class="fadein wb-shell'+(WB.flex?' lzt-test':'')+'"><div class="wb-page">'+wbPageHead(WB.lessonId)+(WB.flex?lztStripHTML():'<div class="wb-progress"><i style="width:'+pct+'%"></i></div>')+'<div class="wb-problem"><div class="wb-questionarea"><div class="wb-qrow"><div class="wb-qnum">'+(WB.isTwin?'↻':num+'.')+'</div><div><div class="wb-qcopy">'+(WB.isTwin?'<span style="color:#207141">Try one like it:</span> ':'')+wbEscape(p.q)+'</div>'+(p.instruction&&p.instruction!==p.q?'<div class="wb-instruction">'+wbEscape(p.instruction)+'</div>':'')+'<button class="wb-read" onclick="say(WB.cur.spoken)">🔊 Read it</button></div></div>'+visual+(work?wbWorkHTML(p):'')+'</div><div class="wb-answerarea">'+controls+submit+'</div></div></div></div>';
+  app.innerHTML='<div class="fadein wb-shell lzq'+(WB.flex?' lzt-test':'')+'"><div class="wb-page">'+wbQHead(WB.lessonId)+(WB.flex?lztStripHTML():'<div class="lzt-strip wb-pstrip"><div class="lzt-count"><b>'+(WB.isTwin?'Problem '+num+' · one like it':'Problem '+num+' of '+(WB.size||8))+'</b></div><div class="wb-progress"><i style="width:'+pct+'%"></i></div></div>')+'<div class="wb-problem"><div class="wb-questionarea"><div class="wb-qrow"><div class="wb-qbody"><div class="wb-qcopy">'+(WB.isTwin?'<span style="color:#207141">Try one like it:</span> ':'')+wbEscape(p.q)+'</div>'+(p.instruction&&p.instruction!==p.q?'<div class="wb-instruction">'+wbEscape(p.instruction)+'</div>':'')+'</div><button type="button" class="wb-read" onclick="say(WB.cur.spoken)" aria-label="Read it to me"><span aria-hidden="true">🔊</span><span class="wb-read-t">Read it</span></button></div>'+visual+(work?wbWorkHTML(p):'')+'</div><div class="wb-answerarea">'+controls+submit+'</div></div>'+lzqBarHTML(wbCheckBtnHTML())+'</div></div>';
   if(WB.flex)lztAfterRender();
   if(work&&WB.workTab==="draw")setTimeout(wbInitCanvas,0);wbResumeSave();if(!silent&&typeof say==="function")say((WB.isTwin?"Try one like it. ":"")+p.spoken);
   if(!silent)wbWarmExplain();
@@ -2897,7 +2917,7 @@ function wbPickTap(i){
 function wbPickIntoView(){try{const b=document.getElementById("lzpBox");if(b&&b.scrollIntoView)b.scrollIntoView({block:"nearest",behavior:"smooth"});}catch(e){}}
 function wbSubmit(){
   if(!wbCanSubmit()){if(typeof toast==="function")toast(wbWorkDone()?"Finish every answer box first":"Show your work first");return;}
-  WB.answered=true;if(WB.workTab==="draw")wbRememberCanvas();const p=WB.cur,a=wbCollectAnswer(),ok=wbCheck(p,a);WB.lastAnswer=a;WB.lastOK=ok;WB.explainRec=wbSaveExplain(p,a,ok);const built=wbBuiltRecord(),rec={lesson:WB.lessonId,type:p.type,q:p.q,answer:wbCompactAnswer(a),correct:ok,built:built,drew:!!WB.drew,at:new Date().toISOString()};
+  WB.answered=true;wbBarAnswered();if(WB.workTab==="draw")wbRememberCanvas();const p=WB.cur,a=wbCollectAnswer(),ok=wbCheck(p,a);WB.lastAnswer=a;WB.lastOK=ok;WB.explainRec=wbSaveExplain(p,a,ok);const built=wbBuiltRecord(),rec={lesson:WB.lessonId,type:p.type,q:p.q,answer:wbCompactAnswer(a),correct:ok,built:built,drew:!!WB.drew,at:new Date().toISOString()};
   const data=wbData();data.log.push(rec);if(data.log.length>2000)data.log=data.log.slice(-2000);if(!WB.isTwin&&!WB.flex)WB.results.push(ok);if(typeof logQuestion==="function")logQuestion("workbook","math","reveal "+WB.lessonId+" workbook","workbook:"+WB.lessonId,p.q,ok,0,Date.now()-WB.startedAt,wbLogInfo(p,a));else if(typeof save==="function")save();wbSendDrawing(rec);if(typeof save==="function")save();if(typeof sfx==="function")sfx(ok?"correct":"wrong");if(WB.flex){lztAfterAnswer(ok,a);return;}wbRenderFeedback(ok,a);
 }
 function wbCorrectEquation(p){if(p.type==="fill"){let used=false;return p.parts.map(x=>{if(x==="□"&&!used){used=true;return p.answer;}return x;}).join(" ");}if(p.eq)return p.eq.values[0]+" "+p.eq.op+" "+p.eq.values[1]+" = "+p.eq.values[2];return"";}
@@ -2905,7 +2925,7 @@ function wbCorrectAnswerHTML(p){if(p.type==="form")return'<div class="wb-multi-r
 function wbRenderFeedback(ok,a){
   const p=WB.cur,model=p.model||p.visual,head=ok?(WB.isTwin?"You got the new one!":"Yes — nice work!"):"Let’s look at the model.",voice=ok?"Nice work. Your answer is correct.":"Good try. Look at the model and the equation.";
   const hasPick=!!wbPickSet(p),why=wbIsExplain(p)?wbExplainParts(p,(a&&a.f)||{}).reason:"",btns='<div class="wb-btnrow">'+(!ok&&!WB.isTwin?'<button class="wb-primary" onclick="wbTryTwin()">Try one like it ↻</button>':'')+'<button class="wb-secondary" onclick="wbContinue()">'+(WB.index===(WB.size||8)-1?'See my score':'Next problem')+' ▶</button></div>';
-  app.innerHTML='<div class="fadein wb-shell"><div class="wb-page">'+wbPageHead(WB.lessonId)+'<div class="wb-feedback '+(ok?'good':'try')+'"><h2>'+(ok?'✓ ':'')+wbEscape(head)+'</h2>'+(!ok&&model?'<div class="wb-visual">'+wbVisual(model)+'</div>':'')+wbCorrectAnswerHTML(p)+(hasPick?wbPickHTML(p,WB.explainRec,wbModelHTML(p,why)+btns):(wbIsExplain(p)?wbModelHTML(p,why):'<div class="wb-teach">'+wbEscape(p.explain||"Use the model to check each number in the equation.")+'</div>'))+'</div>'+(hasPick?'':btns)+'</div></div>';
+  app.innerHTML='<div class="fadein wb-shell lzq"><div class="wb-page">'+wbQHead(WB.lessonId)+'<div class="wb-feedback '+(ok?'good':'try')+'"><h2>'+(ok?'✓ ':'')+wbEscape(head)+'</h2>'+(!ok&&model?'<div class="wb-visual">'+wbVisual(model)+'</div>':'')+wbCorrectAnswerHTML(p)+(hasPick?wbPickHTML(p,WB.explainRec,wbModelHTML(p,why)+btns):(wbIsExplain(p)?wbModelHTML(p,why):'<div class="wb-teach">'+wbEscape(p.explain||"Use the model to check each number in the equation.")+'</div>'))+'</div>'+(hasPick?'':btns)+'</div></div>';
   wbResumeSave();if(hasPick)wbPickIntoView();if(typeof say==="function")say(hasPick?(ok?"Nice work. Your answer is correct. ":"Good try. Look at the model and the answer. ")+wbPickAsk(p):wbIsExplain(p)&&ok?wbExplainLine(p):voice+" "+(wbIsExplain(p)?wbModelSpoken(p):(p.explain||"")),{chunk:WB_EXPLAIN_CHUNK});
 }
 function wbTryTwin(){const original=WB.cur,type=original.type;let twin=null;for(let tries=0;tries<10&&!twin;tries++){const osig=wbSig(original),pool=wbGenerate(WB.lessonId,30).filter(x=>x.type===type&&(original.slot==null||x.slot===original.slot)&&wbSig(x)!==osig);if(pool.length)twin=wbPick(pool);}if(!twin){wbContinue();return;}wbLoadProblem(twin,true);}
@@ -2943,16 +2963,15 @@ function lztStatus(id){
 function lztDotsHTML(dots,live,cur){
   const name={right:"done",wrong:"to fix",skip:"skipped",todo:"not yet"};
   return'<div class="lzt-dots'+(live?' live':'')+'"'+(live?'':' role="img" aria-label="'+dots.filter(s=>s==="right").length+' of '+dots.length+' done"')+'>'+dots.map((s,i)=>{const inner=s==="right"?"✓":String(i+1);
-    return live?'<button type="button" class="lzt-dot '+s+(i===cur?' cur':'')+'" onclick="lztJump('+i+')" aria-label="Question '+(i+1)+', '+name[s]+'">'+inner+'</button>':'<span class="lzt-dot '+s+'">'+inner+'</span>';}).join("")+'</div>';
+    return live?'<button type="button" class="lzt-dot '+s+(i===cur?' cur':'')+'" onclick="lztJump('+i+')" aria-label="Question '+(i+1)+', '+name[s]+(i===cur?', now':'')+'"'+(i===cur?' aria-current="step"':'')+'><span class="lzt-dc">'+inner+'</span></button>':'<span class="lzt-dot '+s+'"><span class="lzt-dc">'+inner+'</span></span>';}).join("")+'</div>';
 }
 function lztStripHTML(){
   const st=WB.st||[],fix=WB.phase==="fix";
-  return'<div class="lzt-strip"><button type="button" class="lzt-nav" id="lztPrev" onclick="lztPrev()"'+(WB.index>0?'':' disabled')+'>◀ Back</button>'
+  return'<div class="lzt-strip"><div class="lzt-count"><b>Question '+(WB.index+1)+' of '+st.length+'</b>'+(fix?'<span class="lzt-fixchip">Fix round: '+lztKid(st.filter(x=>x.s!=="right").length)+' left</span>':'')+'</div>'
    +lztDotsHTML(st.map(x=>x.s),true,WB.index)
-   +'<button type="button" class="lzt-nav lzt-skipbtn" id="lztSkip" onclick="lztSkip()">'+(fix?'Next one ▶':'Skip ▶')+'</button></div>'
-   +'<div class="lzt-legend"><span><i class="right"></i>done</span><span><i class="wrong"></i>to fix</span><span><i class="skip"></i>skipped</span><span><i class="todo"></i>not yet</span>'+(fix?'<b>Fix round: '+lztKid(st.filter(x=>x.s!=="right").length)+' left</b>':'')+'</div>';
+   +'<div class="lzt-legend" aria-hidden="true"><span><i class="cur"></i>now</span><span><i class="right"></i>done</span><span><i class="wrong"></i>to fix</span><span><i class="skip"></i>skipped</span><span><i class="todo"></i>not yet</span></div></div>';
 }
-function lztRefreshStrip(){const old=document.querySelector(".lzt-strip"),leg=document.querySelector(".lzt-legend");if(!old)return;const tmp=document.createElement("div");tmp.innerHTML=lztStripHTML();old.replaceWith(tmp.firstElementChild);if(leg)leg.replaceWith(tmp.firstElementChild);}
+function lztRefreshStrip(){const old=document.querySelector(".lzt-strip");if(!old)return;const tmp=document.createElement("div");tmp.innerHTML=lztStripHTML();old.replaceWith(tmp.firstElementChild);}
 function lztSnapUI(){const o={};["fields","selected","match","person","groupDots","rows","cols","pairBuild"].forEach(k=>{if(WB[k]!==undefined)o[k]=WB[k];});return JSON.parse(JSON.stringify(o));}
 /* Bring his last answer back only where editing it makes sense (typed words, ticked choices); number boxes start empty. */
 function lztKeepUI(p){return p&&(p.type==="form"||p.type==="multi"||p.type==="who");}
@@ -2986,20 +3005,20 @@ function lztShow(){
 }
 function lztAfterRender(){
   const id=WB.lessonId;
-  if(typeof lzBack==="function")lzBack(lztExit,"Lesson "+id);
+  if(typeof lzBack==="function")lzBack(lztExit,"Exit lesson",{exit:true});
   const st=WB.st[WB.index];
   if(st&&st.s==="wrong"&&st.tip&&!WB.answered){const area=document.querySelector(".wb-answerarea");if(area)area.insertAdjacentHTML("afterbegin",'<div class="lzt-hint"><b>💡 Tip:</b> '+wbEscape(st.tip)+'</div>');}
 }
 function lztExit(){lztSave();_lztTok++;if(typeof renderRevealLesson==="function")renderRevealLesson(WB.lessonId,{fromTest:true});}
 function lztShowDone(i){
-  WB.answered=true;const area=document.querySelector(".wb-answerarea");
+  WB.answered=true;wbBarAnswered();const area=document.querySelector(".wb-answerarea");
   document.querySelectorAll(".wb-answerarea button,.wb-answerarea input,.wb-work button").forEach(b=>{if(!b.closest(".lzt-row"))b.disabled=true;});
   if(area)area.insertAdjacentHTML("beforeend",'<div class="lzt-praise lzt-static" role="status"><span class="lzt-star" aria-hidden="true">✓</span><b>You got this one right.</b></div>'+(wbIsExplain(WB.cur)?wbModelHTML(WB.cur,""):"")+'<div class="lzt-row"><button type="button" class="lzt-btn lzt-next" onclick="lztNext()">Next ▶</button></div>');
 }
 function lztDoneOnly(i){ // a question already right in his last test (rebuilt from the answer log): nothing to redo
   const id=WB.lessonId;
-  app.innerHTML='<div class="fadein wb-shell lzt-test"><div class="wb-page">'+wbPageHead(id)+lztStripHTML()+'<div class="lzt-card lzt-note"><p class="lzt-big">✓ You got question '+(i+1)+' right last time. Nothing to fix here!</p><div class="lzt-row"><button type="button" class="lzt-btn lzt-next" onclick="lztNext()">Next ▶</button></div></div></div></div>';
-  if(typeof lzBack==="function")lzBack(lztExit,"Lesson "+id);
+  app.innerHTML='<div class="fadein wb-shell lzq lzt-test"><div class="wb-page">'+wbQHead(id)+lztStripHTML()+'<div class="lzt-card lzt-note"><p class="lzt-big">✓ You got question '+(i+1)+' right last time. Nothing to fix here!</p><div class="lzt-row"><button type="button" class="lzt-btn lzt-next" onclick="lztNext()">Next ▶</button></div></div>'+lzqBarHTML("")+'</div></div>';
+  if(typeof lzBack==="function")lzBack(lztExit,"Exit lesson",{exit:true});
 }
 function lztAfterAnswer(ok,a){
   const i=WB.index,st=WB.st[i],p=WB.cur;let info=null;try{info=wbLogInfo(p,a);}catch(e){}
@@ -3067,18 +3086,18 @@ function lztFixIntro(afterTest){
   const msg='Now fix the '+lztKid(left)+' you missed. Each one comes with a tip first.'+unlock;
   app.innerHTML='<div class="fadein wb-shell lzt-test"><div class="wb-page">'+wbPageHead(id)+'<section class="lzt-card lzt-result"><div class="lzt-score"><b>'+right+'</b><span>/'+WB.st.length+'</span></div><h2 class="lzt-h">'+wbEscape(head)+' ⭐</h2><p class="lzt-big">'+wbEscape(msg)+'</p>'+lztDotsHTML(WB.st.map(x=>x.s),false)
     +'<p class="lzt-small">You only redo these. Everything you got right stays done.</p><div class="lzt-row"><button type="button" class="lzt-btn lzt-go" id="lztFixGo" onclick="lztShow()">Fix '+(left===1?'it':'them')+' now ▶</button></div></section></div></div>';
-  if(typeof lzBack==="function")lzBack(lztExit,"Lesson "+id);
+  if(typeof lzBack==="function")lzBack(lztExit,"Exit lesson",{exit:true});
   if(typeof say==="function")say((afterTest?"You got "+right+" right! ":"")+"Now let's fix the other "+left+". Each one comes with a tip.");
 }
 function lztFixTip(i){
   const id=WB.lessonId,st=WB.st[i],p=WB.problems[i];
   if(!st.tip){const t=lztTip(p,st.s==="skip"?null:lztParseGiven(p,st.given),st.given);st.tip=t.tip;st.why=t.why;}
   const why=st.s==="skip"?"You skipped this one.":st.like?"This one is like a question you missed last time.":(st.why||"");
-  app.innerHTML='<div class="fadein wb-shell lzt-test"><div class="wb-page">'+wbPageHead(id)+lztStripHTML()+'<section class="lzt-card lzt-fix"><div class="lzt-kicker">Let\'s fix question '+(i+1)+'</div><p class="lzt-q">'+wbEscape(p?p.q:"")+'</p>'
+  app.innerHTML='<div class="fadein wb-shell lzq lzt-test"><div class="wb-page">'+wbQHead(id)+lztStripHTML()+'<section class="lzt-card lzt-fix"><div class="lzt-kicker">Let\'s fix question '+(i+1)+'</div><p class="lzt-q">'+wbEscape(p?p.q:"")+'</p>'
     +(st.s==="wrong"&&st.given?'<p class="lzt-you">You answered: <b>'+wbEscape(st.given)+'</b></p>':'')
     +(why?'<p class="lzt-why">'+wbEscape(why)+'</p>':'')+'<p class="lzt-tipline"><b>💡 Tip:</b> '+wbEscape(st.tip)+'</p>'
-    +'<div class="lzt-row"><button type="button" class="lzt-btn lzt-go" id="lztReady" onclick="lztFixGo()">I\'m ready, let me try ▶</button></div></section></div></div>';
-  if(typeof lzBack==="function")lzBack(lztExit,"Lesson "+id);
+    +'<div class="lzt-row"><button type="button" class="lzt-btn lzt-go" id="lztReady" onclick="lztFixGo()">I\'m ready, let me try ▶</button></div></section>'+lzqBarHTML("")+'</div></div>';
+  if(typeof lzBack==="function")lzBack(lztExit,"Exit lesson",{exit:true});
   if(typeof say==="function")say("Let's fix this one. "+lztSpeakable((why?why+" ":"")+"Here is a tip. "+st.tip));
 }
 function lztFixGo(){const st=WB.st[WB.index];st.tipShown=true;lztSave();lztShow();}
@@ -3210,42 +3229,31 @@ function lztSeedFromLog(profile){
 }
 
 const LZT_CSS=`
-#topbar .tb-btn.lzb{min-width:84px;height:68px;padding:0 14px 0 10px;flex-direction:row;gap:8px;background:#fff;color:#1E293B;border:3px solid #1E293B;border-radius:18px;box-shadow:4px 5px 0 #1E293B;font-weight:900;backdrop-filter:none;-webkit-backdrop-filter:none;transition:transform .1s ease,box-shadow .1s ease}
+#topbar .tb-btn.lzb{min-width:84px;height:68px;padding:0 14px 0 10px;flex-direction:row;gap:8px;background:#fff;color:#1E293B;border:1.5px solid rgba(30,41,59,.16);border-radius:18px;box-shadow:0 2px 8px rgba(15,23,42,.08);font-weight:900;backdrop-filter:none;-webkit-backdrop-filter:none;transition:transform .1s ease,box-shadow .1s ease}
 #topbar .tb-btn.lzb .lzb-ar{font-size:34px;line-height:1}#topbar .tb-btn.lzb .lzb-to{font-size:18px;font-weight:900;white-space:nowrap;line-height:1.05;text-transform:none;letter-spacing:0;opacity:1}
 #topbar .tb-btn.lzb:active{transform:translate(4px,5px);box-shadow:0 0 0 #1E293B}#topbar .tb-btn.lzb[hidden]{display:none}
 body.lz-back #app{padding-top:98px!important}
 @media(max-width:520px){#topbar .tb-btn.lzb{min-width:72px;height:64px;padding:0 10px 0 8px;gap:4px}#topbar .tb-btn.lzb .lzb-ar{font-size:28px}#topbar .tb-btn.lzb .lzb-to{font-size:14px;max-width:62px;white-space:normal}
  body.lz-back #topbar .tb-group{gap:5px}body.lz-back #topbar .tb-btn:not(.lzb){min-width:46px;padding:4px 5px}body.lz-back #topbar .tb-btn:not(.lzb) .tb-lb{display:none}body.lz-back #app{padding-top:90px!important}}
-.lzt-strip{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;margin:12px 0 4px}
-.lzt-nav{min-height:56px;min-width:96px;padding:0 14px;border:3px solid #1E293B;border-radius:14px;background:#fff;color:#1E293B!important;font:inherit;font-size:18px;font-weight:900;box-shadow:3px 4px 0 #1E293B;cursor:pointer}
-.lzt-nav:active{transform:translate(3px,4px);box-shadow:0 0 0 #1E293B}.lzt-nav:disabled{opacity:.35;box-shadow:none;cursor:default}
-.lzt-nav.lzt-skipbtn{background:#2EC4B6;color:#fff!important}
-.lzt-dots{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:10px 0}.lzt-dots.live{margin:0}
-.lzt-dot{width:40px;height:40px;border-radius:50%;border:3px solid #1E293B;display:inline-flex;align-items:center;justify-content:center;font:inherit;font-size:16px;font-weight:900;padding:0;background:#e2e8f0;color:#1E293B!important;cursor:pointer;flex:0 0 auto}
-span.lzt-dot{cursor:default}
-.lzt-dot.right{background:#22c55e;color:#fff!important}.lzt-dot.wrong{background:#FF6B6B;color:#fff!important}.lzt-dot.skip{background:#FFD166}.lzt-dot.todo{background:#fff;border-style:dashed;color:#64748b!important}
-.lzt-dot.cur{outline:4px solid #FF9F1C;outline-offset:2px;transform:scale(1.08)}
-.lzt-legend{display:flex;flex-wrap:wrap;gap:4px 14px;justify-content:center;font-size:14px;font-weight:800;color:#475569;margin:2px 0 10px}.lzt-legend i{display:inline-block;width:13px;height:13px;border-radius:50%;border:2px solid #1E293B;margin-right:4px;vertical-align:-2px}
-.lzt-legend i.right{background:#22c55e}.lzt-legend i.wrong{background:#FF6B6B}.lzt-legend i.skip{background:#FFD166}.lzt-legend i.todo{background:#fff;border-style:dashed}.lzt-legend b{color:#c2410c}
-.lzt-praise{display:flex;align-items:center;justify-content:center;gap:14px;margin:12px 0;padding:16px 18px;background:#FFD166;border:3px solid #1E293B;border-radius:20px;box-shadow:4px 5px 0 #1E293B;animation:lztPop .45s cubic-bezier(.3,1.6,.5,1)}
+.lzt-praise{display:flex;align-items:center;justify-content:center;gap:14px;margin:12px 0;padding:16px 18px;background:#FFD166;border:1.5px solid rgba(30,41,59,.16);border-radius:20px;box-shadow:0 2px 8px rgba(15,23,42,.08);animation:lztPop .45s cubic-bezier(.3,1.6,.5,1)}
 .lzt-praise b{font-size:30px;line-height:1.1;color:#1E293B!important}.lzt-star{font-size:44px;line-height:1;animation:lztSpin .6s ease-out}
 .lzt-praise.lzt-static{background:#dcfce7;animation:none}.lzt-praise.lzt-static b{font-size:22px}.lzt-praise.lzt-static .lzt-star{color:#15803d!important;font-size:34px;animation:none}
-.lzt-tip{margin:12px 0;padding:14px 16px;background:#fff;border:3px solid #1E293B;border-left:12px solid #FF6B6B;border-radius:18px;box-shadow:4px 5px 0 #1E293B;animation:lztIn .3s ease-out}
+.lzt-tip{margin:12px 0;padding:14px 16px;background:#fff;border:1.5px solid rgba(30,41,59,.16);border-left:6px solid #FF6B6B;border-radius:18px;box-shadow:0 2px 8px rgba(15,23,42,.08);animation:lztIn .3s ease-out}
 .lzt-tip h3{font-size:24px!important;margin:0 0 6px;color:#1E293B!important}.lzt-why{font-size:19px;font-weight:700;line-height:1.4;margin:4px 0;color:#334155!important}.lzt-tipline{font-size:20px;font-weight:800;line-height:1.4;margin:6px 0;color:#1E293B!important}
-.lzt-model{margin:12px 0;padding:14px 16px;background:#EAF7EF;border:3px solid #1E293B;border-left:12px solid #47D18C;border-radius:18px;box-shadow:4px 5px 0 #1E293B;text-align:left;animation:lztIn .3s ease-out}
+.lzt-model{margin:12px 0;padding:14px 16px;background:#EAF7EF;border:1.5px solid rgba(30,41,59,.16);border-left:6px solid #47D18C;border-radius:18px;box-shadow:0 2px 8px rgba(15,23,42,.08);text-align:left;animation:lztIn .3s ease-out}
 .lzt-model-h{font-size:21px;font-weight:900;margin:0 0 6px;color:#1E293B!important}.lzt-model-t{font-size:20px;font-weight:700;line-height:1.45;margin:0;color:#1E293B!important}
 .lzt-you{font-size:17px;font-weight:600;margin:0 0 8px;color:#475569!important;overflow-wrap:anywhere}
 .wb-feedback .lzt-model{margin:14px 0 4px}
 .lzt-hint{margin:0 0 10px;padding:10px 12px;background:#fff7ed;border:2px solid #FF9F1C;border-radius:14px;font-size:18px;font-weight:700;color:#1E293B!important}
 .lzt-row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:12px}
-.lzt-btn{min-height:64px;padding:10px 24px;border:3px solid #1E293B;border-radius:18px;font:inherit;font-size:21px;font-weight:900;cursor:pointer;box-shadow:4px 5px 0 #1E293B;color:#fff!important;transition:transform .1s ease,box-shadow .1s ease}
-.lzt-btn:active{transform:translate(4px,5px);box-shadow:0 0 0 #1E293B}.lzt-try{background:#FF9F1C}.lzt-next{background:#2EC4B6}.lzt-go{background:#FF9F1C;font-size:23px;min-height:72px;padding:12px 30px}.lzt-plain{background:#fff;color:#1E293B!important}
+.lzt-btn{min-height:64px;padding:10px 24px;border:0;border-radius:16px;font:inherit;font-size:20px;font-weight:900;cursor:pointer;box-shadow:0 4px 0 rgba(15,23,42,.22);color:#fff!important;transition:transform .1s ease,box-shadow .1s ease}
+.lzt-btn:active{transform:translateY(4px);box-shadow:0 0 0 transparent}.lzt-try{background:#FF9F1C}.lzt-next{background:#2EC4B6}.lzt-go{background:#FF9F1C;font-size:23px;min-height:72px;padding:12px 30px}.lzt-plain{background:#fff;color:#1E293B!important;box-shadow:inset 0 0 0 1.5px #CBD5E1,0 4px 0 #CBD5E1}
 .lzt-small{font-size:15px;font-weight:700;color:#64748b!important;text-align:center;margin:8px 0 0}
-.lzt-card{background:#fff;color:#1E293B;border:3px solid #1E293B;border-radius:24px;box-shadow:6px 7px 0 #1E293B;padding:20px 22px;margin:16px auto;max-width:640px;text-align:center;animation:lztPop .4s cubic-bezier(.3,1.5,.6,1)}
+.lzt-card{background:#fff;color:#1E293B;border:1.5px solid rgba(30,41,59,.16);border-radius:24px;box-shadow:0 2px 8px rgba(15,23,42,.08);padding:20px 22px;margin:16px auto;max-width:640px;text-align:center;animation:lztPop .4s cubic-bezier(.3,1.5,.6,1)}
 .lzt-card *{color:inherit}.lzt-h{font-size:28px!important;line-height:1.15;margin:4px 0 8px;color:#1E293B!important}.lzt-big{font-size:21px;font-weight:800;line-height:1.4;margin:6px 0}
 .lzt-card.lzt-lock{border-style:solid;background:#fffaf0}.lzt-lockic{font-size:54px;line-height:1}
-.lzt-card.lzt-note{background:#f0fbfa;border-color:#1E293B;box-shadow:4px 5px 0 #1E293B;padding:14px 16px}.lzt-card.lzt-note .lzt-big{font-size:19px}
-.lzt-card.lzt-fix{text-align:left;border-left:12px solid #FF6B6B}.lzt-kicker{font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#c2410c!important}
+.lzt-card.lzt-note{background:#f0fbfa;border-color:rgba(30,41,59,.16);box-shadow:0 2px 8px rgba(15,23,42,.08);padding:14px 16px}.lzt-card.lzt-note .lzt-big{font-size:19px}
+.lzt-card.lzt-fix{text-align:left;border-left:6px solid #FF6B6B}.lzt-kicker{font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#c2410c!important}
 .lzt-q{font-size:21px;font-weight:800;line-height:1.35;margin:8px 0;padding:10px 12px;background:#f1f5f9;border-radius:12px}.lzt-you{font-size:19px;margin:8px 0}.lzt-you b{color:#b91c1c!important}
 .lzt-card.lzt-fix .lzt-row{justify-content:flex-start}
 .lzt-score{display:inline-flex;align-items:baseline;justify-content:center;width:104px;height:104px;border-radius:50%;background:#1E293B;padding-top:24px}.lzt-score b{font-size:44px;color:#fff!important}.lzt-score span{font-size:22px;color:#cbd5e1!important}
@@ -3254,30 +3262,111 @@ span.lzt-dot{cursor:default}
 @keyframes lztSpin{0%{transform:scale(0) rotate(-40deg)}60%{transform:scale(1.3) rotate(12deg)}100%{transform:none}}
 @keyframes lztIn{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
 @media (prefers-reduced-motion:reduce){.lzt-praise,.lzt-star,.lzt-card,.lzt-tip,.lzt-burst{animation:none}}
-@media(max-width:520px){.lzt-strip{grid-template-columns:1fr 1fr;gap:8px}.lzt-strip .lzt-dots{grid-column:1 / -1;grid-row:1}.lzt-nav{min-width:0;width:100%}
- .lzt-dot{width:30px;height:30px;font-size:13px;border-width:2px}.lzt-dots{gap:4px}.lzt-dots:not(.live){gap:3px;flex-wrap:nowrap}.lzt-dots:not(.live) .lzt-dot{width:26px;height:26px;font-size:12px}.lzt-tip h3{font-size:21px!important}.lzt-why{font-size:17px}.lzt-btn{flex:1 1 140px;font-size:19px;padding:10px 12px}.lzt-praise b{font-size:26px}.lzt-card{padding:16px 14px}.lzt-h{font-size:24px!important}.lzt-big{font-size:18px}.lzt-tipline{font-size:18px}.lzt-q{font-size:18px}}
+@media(max-width:520px){.lzt-tip h3{font-size:21px!important}.lzt-why{font-size:17px}.lzt-btn{flex:1 1 140px;font-size:19px;padding:10px 12px}.lzt-praise b{font-size:26px}.lzt-card{padding:16px 14px}.lzt-h{font-size:24px!important}.lzt-big{font-size:18px}.lzt-tipline{font-size:18px}.lzt-q{font-size:18px}}
 /* "Which reason is best?" pick card (design-inspo 20261105-100749: chunky white buttons, mint = best, soft coral = not quite) */
-.lzp{margin:12px 0;padding:12px 14px 14px;background:#EBF4F6;border:3px solid #1E293B;border-radius:20px;box-shadow:4px 5px 0 #1E293B;text-align:left;animation:lztIn .25s ease-out}
+.lzp{margin:12px 0;padding:12px 14px 14px;background:#EBF4F6;border:1.5px solid rgba(30,41,59,.16);border-radius:20px;box-shadow:0 2px 8px rgba(15,23,42,.08);text-align:left;animation:lztIn .25s ease-out}
 .lzp-h{font-size:24px!important;line-height:1.15;margin:0 0 10px!important;color:#1E293B!important;font-weight:900}
 .lzp-list{display:grid;gap:12px}
-.lzp-btn{display:flex;align-items:center;gap:12px;width:100%;min-height:68px;padding:8px 14px;background:#fff;color:#1E293B!important;border:3px solid #1E293B;border-radius:18px;box-shadow:0 5px 0 #1E293B;font:inherit;font-size:20px;font-weight:800;line-height:1.25;text-align:left;cursor:pointer;transition:transform .1s ease,box-shadow .1s ease,background .15s}
-.lzp-btn:active:not(:disabled){transform:translateY(5px);box-shadow:0 0 0 #1E293B}
-.lzp-k{flex:0 0 40px;height:40px;border-radius:50%;background:#FFD166;border:3px solid #1E293B;display:inline-flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#1E293B!important}
+.lzp-btn{display:flex;align-items:center;gap:12px;width:100%;min-height:68px;padding:8px 14px;background:#fff;color:#1E293B!important;border:1.5px solid #CBD5E1;border-radius:18px;box-shadow:0 4px 0 #CBD5E1;font:inherit;font-size:20px;font-weight:800;line-height:1.25;text-align:left;cursor:pointer;transition:transform .1s ease,box-shadow .1s ease,background .15s}
+.lzp-btn:active:not(:disabled){transform:translateY(4px);box-shadow:0 0 0 transparent}
+.lzp-k{flex:0 0 40px;height:40px;border-radius:50%;background:#FFD166;border:0;display:inline-flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#1E293B!important}
 .lzp-t{flex:1;min-width:0}
 .lzp-btn:disabled{cursor:default}
-.lzp-btn.best{background:#1CD0A1;color:#0b3d2e!important;box-shadow:0 5px 0 #1E293B}.lzp-btn.best .lzp-k{background:#fff}
+.lzp-btn.best{background:#1CD0A1;border-color:#12a982;color:#0b3d2e!important;box-shadow:0 4px 0 #12a982}.lzp-btn.best .lzp-k{background:#fff}
 .lzp-btn.best:not(.picked){animation:lzpGlow 1s ease-in-out 2;outline:4px solid #1CD0A1;outline-offset:3px}
 .lzp-btn.picked.wrong{background:#FF8A8A;color:#4a1010!important;animation:lzpWiggle .2s ease-in-out 2}
 .lzp-btn.picked.right{animation:lztPop .3s cubic-bezier(.3,1.6,.5,1)}
 .lzp-btn.dim{opacity:.5}
-.lzp-res{margin:12px 0 0;padding:12px 14px;border:3px solid #1E293B;border-radius:16px;box-shadow:3px 4px 0 #1E293B;animation:lztPop .25s cubic-bezier(.3,1.6,.5,1)}
+.lzp-res{margin:12px 0 0;padding:12px 14px;border:1.5px solid rgba(30,41,59,.16);border-radius:16px;box-shadow:0 2px 8px rgba(15,23,42,.08);animation:lztPop .25s cubic-bezier(.3,1.6,.5,1)}
 .lzp-res b{display:block;font-size:22px;line-height:1.2;color:#1E293B!important}.lzp-res span{display:block;font-size:19px;font-weight:700;line-height:1.35;margin-top:4px;color:#1E293B!important}
-.lzp-res.good{background:#FFD166}.lzp-res.try{background:#fff;border-left:12px solid #FF8A8A}
+.lzp-res.good{background:#FFD166}.lzp-res.try{background:#fff;border-left:6px solid #FF8A8A}
 .lzp #lzpOut .lzt-model{margin:12px 0 4px}.lzp #lzpOut .wb-btnrow{margin-top:12px}
 @keyframes lzpWiggle{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 @keyframes lzpGlow{0%,100%{outline-color:#1CD0A1}50%{outline-color:#FFD166}}
 @media (prefers-reduced-motion:reduce){.lzp,.lzp-btn,.lzp-res{animation:none!important}}
 @media(max-width:520px){.lzp{padding:10px 10px 12px}.lzp-h{font-size:21px!important;margin-bottom:8px!important}.lzp-list{gap:10px}.lzp-btn{min-height:64px;font-size:18px;padding:6px 10px;gap:9px}.lzp-k{flex-basis:34px;height:34px;font-size:16px}.lzp-res b{font-size:20px}.lzp-res span{font-size:17px}}
+/* ===== Question screen look (Eb 2026-11-05 "too clunky"; design-inspo 20261105-103740 + 60fps Duolingo lesson screen) =====
+   one system: 1.5px light lines, soft shadows, 0 4px 0 press shadow on buttons, radius 12/16/20, 8px spacing scale */
+#topbar .tb-btn.lzb.lzb-exit{min-width:0;height:44px;padding:0 14px 0 11px;gap:6px;background:rgba(5,25,48,.68);color:#fff;border:1.5px solid rgba(151,213,255,.38);border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.22);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+#topbar .tb-btn.lzb.lzb-exit .lzb-ar{font-size:17px;font-weight:900;color:#fff}#topbar .tb-btn.lzb.lzb-exit .lzb-to{font-size:15px;font-weight:800;max-width:none;white-space:nowrap;color:#fff}
+#topbar .tb-btn.lzb.lzb-exit:active{transform:scale(.96);box-shadow:none}
+body.lz-back.lz-exit #app{padding-top:72px!important}
+html:has(.lzq-bar){scroll-padding-top:72px;scroll-padding-bottom:96px}
+.wb-shell.lzq .wb-page{border:1px solid rgba(255,255,255,.6);border-radius:20px;box-shadow:0 10px 28px rgba(5,20,40,.22);padding:16px 24px 0}
+.wb-qhead{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;margin:0;font-size:16px!important;line-height:1.3;font-weight:800;color:#334155!important;letter-spacing:0}
+.wb-qhead .wb-qh-sep{color:#94A3B8!important}.wb-qhead .wb-qh-t{color:#174f7d!important;font-weight:900}
+.lzt-strip{margin:8px 0 0;padding:0 0 8px;border-bottom:1px solid #E2E8F0}
+.lzt-count{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:15px;font-weight:800;color:#475569}.lzt-count b{color:#1E293B!important;font-weight:900}
+.lzt-fixchip{background:#FFF1E6;color:#9A3412!important;border-radius:999px;padding:2px 10px;font-size:13px;font-weight:900}
+.wb-pstrip .wb-progress{margin:8px 0 0}
+.lzt-dots{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:8px 0}
+.lzt-dots.live{flex-wrap:nowrap;gap:0;justify-content:flex-start;margin:2px 0 0}
+.lzt-dot{display:inline-flex;align-items:center;justify-content:center;padding:0;margin:0;border:0;background:none;font:inherit;flex:0 0 auto;width:34px;height:34px;color:#1E293B!important}
+.lzt-dots.live .lzt-dot{flex:1 1 0;min-width:0;max-width:44px;height:44px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.lzt-dc{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;line-height:1;background:#F1F5F9;border:1.5px solid #CBD5E1;color:#475569!important;transition:transform .15s ease}
+.lzt-dot.right .lzt-dc{background:#22c55e;border-color:#16a34a;color:#fff!important}
+.lzt-dot.wrong .lzt-dc{background:#FF6B6B;border-color:#e04848;color:#fff!important}
+.lzt-dot.skip .lzt-dc{background:#FFD166;border-color:#e9b23c;color:#5b4300!important}
+.lzt-dot.todo .lzt-dc{background:#fff;border:1.5px dashed #94A3B8;color:#475569!important}
+.lzt-dot.cur .lzt-dc{background:#2563EB;border:1.5px solid #2563EB;color:#fff!important;box-shadow:0 0 0 3px #BFDBFE;transform:scale(1.12)}
+.lzt-dots.live .lzt-dot:active .lzt-dc{transform:scale(.92)}
+.lzt-legend{display:flex;flex-wrap:wrap;gap:2px 12px;justify-content:center;font-size:13px;line-height:1.3;font-weight:700;color:#475569;margin:2px 0 0}
+.lzt-legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:-1px;border:1.5px solid transparent}
+.lzt-legend i.cur{background:#2563EB}.lzt-legend i.right{background:#22c55e}.lzt-legend i.wrong{background:#FF6B6B}.lzt-legend i.skip{background:#FFD166}.lzt-legend i.todo{background:#fff;border:1.5px dashed #94A3B8}
+.lzt-result .lzt-dots .lzt-dc,.lzt-passed .lzt-dots .lzt-dc{width:30px;height:30px}
+.wb-shell.lzq .wb-problem{border-top:0;padding-top:16px}
+.wb-shell.lzq .wb-qrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start}
+.wb-shell.lzq .wb-qcopy{font-size:22px;line-height:1.35;font-weight:800;color:#1E293B}
+.wb-shell.lzq .wb-instruction{font-size:15px;color:#475569!important;font-weight:700;margin-top:4px}
+.wb-shell.lzq .wb-read{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;min-width:40px;padding:0 12px;margin:0;border:1.5px solid #BFDBFE;background:#EFF6FF;border-radius:999px;font:inherit;font-size:14px;font-weight:800;color:#1D4ED8!important;cursor:pointer;position:relative}
+.wb-shell.lzq .wb-read:after{content:"";position:absolute;inset:-4px}
+.wb-shell.lzq .wb-read:active{transform:scale(.95)}
+.wb-shell.lzq .wb-form{gap:16px;margin:16px 0 8px}.wb-shell.lzq .wb-formrow{font-size:21px;gap:8px 10px;color:#1E293B}
+.wb-shell.lzq .wb-in{height:52px;border:1.5px solid #94A3B8;border-radius:12px;font-size:24px;padding:0 12px;box-shadow:inset 0 2px 0 rgba(15,23,42,.05);transition:border-color .15s,box-shadow .15s}
+.wb-shell.lzq .wb-in:focus{outline:0;border-color:#2563EB;box-shadow:0 0 0 3px #BFDBFE}
+.wb-shell.lzq .wb-in.num{width:96px}.wb-shell.lzq .wb-in.text{width:min(100%,320px)}
+.wb-shell.lzq .wb-because{display:block;width:100%;height:auto;min-height:84px;padding:10px 12px;font-size:20px;font-weight:700;line-height:1.35;resize:none;font-family:inherit}
+.wb-shell.lzq .wb-because::placeholder,.wb-shell.lzq .wb-in::placeholder{color:#64748B;font-weight:600;opacity:1}
+.wb-shell.lzq .wb-key{border:1.5px solid #CBD5E1;box-shadow:0 3px 0 #CBD5E1;background:#fff}.wb-shell.lzq .wb-key:active{transform:translateY(3px);box-shadow:none}
+.wb-shell.lzq .wb-key.go{background:#16a34a;border-color:#15803d;box-shadow:0 3px 0 #15803d}.wb-shell.lzq .wb-key.action{background:#EFF6FF}
+.wb-shell.lzq .wb-check,.wb-shell.lzq .wb-person,.wb-shell.lzq .wb-matchitem{border:1.5px solid #CBD5E1;box-shadow:0 3px 0 #E2E8F0;background:#fff}
+.wb-shell.lzq .wb-check.on,.wb-shell.lzq .wb-person.on{border-color:#2563EB;background:#EFF6FF}
+.wb-shell.lzq .wb-num-box{border:1.5px solid #94A3B8;border-radius:12px}.wb-shell.lzq .wb-num-box.active{outline:0;border-color:#2563EB;box-shadow:0 0 0 3px #BFDBFE}
+.wb-shell.lzq .wb-work{border:1.5px solid #CBD5E1;border-radius:16px}.wb-shell.lzq .wb-tab,.wb-shell.lzq .wb-buildbtn,.wb-shell.lzq .wb-tool{border-width:1.5px}
+.wb-shell.lzq .wb-feedback{border-width:1.5px;border-radius:16px}.wb-shell.lzq .wb-primary,.wb-shell.lzq .wb-secondary{border-radius:16px}
+.wb-shell.lzq .wb-primary{background:#16a34a;box-shadow:0 4px 0 #15803d}.wb-shell.lzq .wb-secondary{border:1.5px solid #CBD5E1;background:#fff;box-shadow:0 4px 0 #CBD5E1}
+.wb-shell.lzq .wb-lock{margin-top:8px}
+.lzq-bar{position:sticky;bottom:0;z-index:30;display:flex;align-items:center;gap:8px;margin:16px -24px 0;padding:12px 24px calc(12px + env(safe-area-inset-bottom,0px));background:rgba(255,255,255,.97);border-top:1px solid #E2E8F0;border-radius:0 0 20px 20px;box-shadow:0 -6px 16px rgba(15,23,42,.06)}
+.lzq-main{flex:1 1 auto;min-width:0;display:flex;justify-content:center}
+.lzq-bar .lzq-check{width:100%;max-width:420px;min-height:52px;padding:8px 16px;border:0;border-radius:16px;background:#16a34a;color:#fff!important;font:inherit;font-size:20px;font-weight:900;box-shadow:0 4px 0 #15803d;cursor:pointer;transition:transform .1s ease,box-shadow .1s ease}
+.lzq-bar .lzq-check:active:not(:disabled){transform:translateY(4px);box-shadow:none}
+.lzq-bar .lzq-check:disabled{opacity:1;background:#E2E8F0;color:#64748B!important;box-shadow:0 4px 0 #CBD5E1;cursor:not-allowed}
+.lzq-bar .lzq-check[hidden]{display:none}
+.lzq-back{flex:0 0 auto;min-height:44px;padding:0 14px;border:1.5px solid #CBD5E1;border-radius:12px;background:#fff;color:#334155!important;font:inherit;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 2px 0 #E2E8F0}
+.lzq-back:active:not(:disabled){transform:translateY(2px);box-shadow:none}.lzq-back:disabled{opacity:.45;cursor:default;box-shadow:none}
+.lzq-skip{flex:0 0 auto;min-height:44px;padding:0 6px;border:0;background:none;color:#475569!important;font:inherit;font-size:16px;font-weight:800;text-decoration:underline;text-decoration-color:#CBD5E1;text-underline-offset:4px;cursor:pointer}
+.lzq-skip:active{color:#1E293B!important}
+.wb-shell.lzq .lzt-row{margin-top:16px}.wb-shell.lzq .lzt-btn{min-height:56px}
+.wb-shell.lzq .wb-answerarea .lzt-praise{margin:16px 0 8px}
+@media(min-width:700px){.wb-shell.lzq .wb-page{padding:20px 28px 0}.lzq-bar{margin:16px -28px 0;padding:12px 28px 12px;gap:16px}.lzq-back,.lzq-skip{font-size:17px}
+ .lzt-dots.live{justify-content:center}.lzt-dots.live .lzt-dot{flex:0 0 44px}.lzt-dc{width:32px;height:32px;font-size:14px}.lzt-strip{display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:16px}.lzt-strip .lzt-legend{grid-column:1 / -1}.wb-pstrip{display:block}}
+@media(max-width:699px){.wb-shell.lzq .wb-read-t{display:none}.wb-shell.lzq .wb-read{width:44px;height:44px;padding:0;font-size:18px}}
+@media(max-width:520px){.wb-shell.lzq .wb-page{padding:12px 16px 0;border-radius:18px}.lzq-bar{margin:16px -16px 0;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));border-radius:0 0 18px 18px;gap:6px}
+ .wb-shell.lzq .wb-qcopy{font-size:20px}.wb-shell.lzq .wb-formrow{font-size:19px}.lzq-bar .lzq-check{font-size:18px;padding:8px 10px}.lzq-back{padding:0 10px;font-size:15px}.lzq-skip{font-size:15px}
+ .wb-qhead{font-size:15px!important}.lzt-dc{width:26px;height:26px;font-size:12px}}
+@media(min-width:900px) and (max-height:850px){#app:has(.wb-shell.lzq){padding-top:72px}}
+.wb-qhead,.wb-qhead span{background:none!important;-webkit-text-fill-color:currentColor!important;text-shadow:none!important}
+.wb-qhead>span:first-child{color:#475569!important}
+.lzq-bar .lzq-check{white-space:nowrap}
+.wb-shell.lzq .lzt-praise{padding:12px 16px;gap:12px;border-radius:16px}.wb-shell.lzq .lzt-praise b{font-size:24px}.wb-shell.lzq .lzt-star{font-size:32px}
+.wb-shell.lzq .lzp{border-radius:16px}.wb-shell.lzq .lzt-tip,.wb-shell.lzq .lzt-model{border-radius:16px}
+.rvq .rvq-head{margin:-6px 0 16px;padding-bottom:12px;border-bottom:1px solid #E2E8F0;text-align:left}
+.rvq .rvq-head .lzt-count{margin-top:6px}.rvq .rvq-head .wb-progress{height:8px;background:#E2E8F0;border-radius:9px;margin:8px 0 0;overflow:hidden}.rvq .rvq-head .wb-progress i{display:block;height:100%;background:#2563EB;border-radius:9px}
+.rvq-lvl{background:#EFF6FF;color:#1D4ED8!important;border-radius:999px;padding:2px 10px;font-size:13px;font-weight:800}
+.rvq .rvq-head .focus-chip{font-size:13px}
+@media(min-width:700px){.wb-shell.lzq .wb-qcopy{font-size:24px}.wb-shell.lzq .wb-instruction{font-size:16px}}
+@media(max-width:380px){.lzq-mw{display:none}}
+@media(max-width:520px){.wb-shell.lzq .lzt-praise b{font-size:21px}.wb-shell.lzq .lzt-star{font-size:28px}}
 `;
 function lztInstallStyle(){if(typeof document==="undefined")return;let s=document.getElementById("lzt-style");if(!s){s=document.createElement("style");s.id="lzt-style";document.head.appendChild(s);}s.textContent=LZT_CSS;}
 lztInstallStyle();
@@ -7942,15 +8031,18 @@ function renderQuestion(){
   showAnanseCorner(false);
   const reviewChip=S.phase==="review"?'<span class="focus-chip">🔁 Warm-up review</span>':'';
   const qNum=Math.min(S.n+1,S.total),pct=Math.round((S.n/S.total)*100);
-  app.innerHTML='<div class="fadein focus-wrap">'
-   +'<div class="hud">'
+  const rvId=S.lesson&&S.lesson.indexOf("reveal:")===0?S.lesson.slice(7):null,rvL=rvId&&typeof revealLesson==="function"?revealLesson(rvId):null;
+  // Reveal lessons (Eb 2026-11-05 look fix): the same slim one-line head + "Question n of N" as the workbook lesson screens, inside the card
+  const rvHead=rvL?'<div class="rvq-head"><h1 class="wb-qhead"><span>Lesson '+esc(rvId)+'</span><span class="wb-qh-sep" aria-hidden="true">·</span><span class="wb-qh-t">'+esc(rvL.t)+'</span></h1><div class="lzt-count"><b>Question '+qNum+' of '+S.total+'</b><span class="rvq-lvl">LVL '+q.level+' · '+LEVEL_NAMES[q.level]+'</span>'+reviewChip+'</div><div class="wb-progress"><i style="width:'+pct+'%"></i></div></div>':'';
+  app.innerHTML='<div class="fadein focus-wrap'+(rvL?' rvq':'')+'">'
+   +(rvL?'':'<div class="hud">'
    +'<span class="pill">'+SUBJECTS[S.subject].icon+' <b>'+SUBJECTS[S.subject].name+'</b></span>'
    +'<span class="pill">📍 <b>'+qNum+'</b>&nbsp;of&nbsp;'+S.total+'</span>'
    +'<span class="lvl-badge">LVL '+q.level+' · '+LEVEL_NAMES[q.level]+'</span>'
    +reviewChip
    +'</div>'
-   +'<div class="bar session-bar"><i style="width:'+pct+'%"></i></div>'
-   +'<div class="card gold">'
+   +'<div class="bar session-bar"><i style="width:'+pct+'%"></i></div>')
+   +'<div class="card gold">'+rvHead
    +'<p class="qtext">'+esc(q.q)+'</p>'
    +(q.vis?'<div class="qvis">'+q.vis+'</div>':'')
    +'<div class="center" style="margin:-4px 0 10px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">'
@@ -7968,7 +8060,7 @@ function renderQuestion(){
   S.qStart=Date.now();S.qShownAt=S.qStart;S.qTries=0;S.typedGiven=null;
   S.tried=false;               // fresh mastery slate for this question
   sessSave();                  // auto-save: reopening resumes exactly here
-  if(S.lesson&&S.lesson.indexOf("reveal:")===0&&typeof lzBack==="function"){const _id=S.lesson.slice(7);lzBack(()=>{sessSave();renderRevealLesson(_id,{fromTest:true});},"Lesson "+_id);}
+  if(S.lesson&&S.lesson.indexOf("reveal:")===0&&typeof lzBack==="function"){const _id=S.lesson.slice(7);lzBack(()=>{sessSave();renderRevealLesson(_id,{fromTest:true});},"Exit lesson",{exit:true});}
   if(showScratch&&q.mirror&&/draw a representation/i.test(q.q))initScratch();
   const lead=S.leadIn||"";S.leadIn="";
   say(lead+q.q+(gate?". Use your scratchpad to work it out first, then show your choices.":"")+(typed?". Type your answer.":""));
