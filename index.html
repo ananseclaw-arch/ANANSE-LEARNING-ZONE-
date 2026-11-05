@@ -5034,7 +5034,7 @@ function syncProgress(reason){
     const profile=P,base=voiceBase();
     const payload={id:profile.id,name:profile.name,grade:profile.grade,levels:profile.levels,streak:profile.streak,
       bestStreak:profile.bestStreak,trophies:(profile.trophies||[]).length,xp:profile.xp,
-      sessions:(profile.sessions||[]).slice(-300),reveal:profile.reveal||{},lessons:profile.lessons||{},lab:profile.lab||{},
+      sessions:(profile.sessions||[]).slice(-300),reveal:profile.reveal||{},revealPass:profile.revealPass||{},lessons:profile.lessons||{},lab:profile.lab||{},
       wrongLog:(profile.wrongLog||[]).slice(-150),qlog:(profile.qlog||[]).slice(-400),sm2:profile.sm2||{},
       schoolFocus:Array.isArray(FOCUS.topics)?FOCUS.topics:[],appVersion};
     _progressSyncBusy=true;
