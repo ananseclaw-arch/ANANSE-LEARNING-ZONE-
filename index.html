@@ -2699,10 +2699,12 @@ function wbCheckBtnHTML(){return'<button id="wbSubmit" class="wb-submit lzq-chec
 function wbBarAnswered(){const b=document.getElementById("wbSubmit");if(b&&b.closest&&b.closest(".lzq-bar"))b.hidden=true;}
 /* Keep the bar + the box he is typing in above an on-screen keyboard (iOS / Telegram leave the layout viewport under it). */
 function lzqKbFit(){try{const v=window.visualViewport,b=document.querySelector(".lzq-bar");if(!v||!b)return;const kb=Math.max(0,Math.round(innerHeight-v.offsetTop-v.height));b.style.bottom=kb>60?kb+"px":"";}catch(e){}}
-function lzqFocusIn(e){const el=e&&e.target;if(!el||!el.classList||!el.classList.contains("wb-in"))return;
-  setTimeout(()=>{try{if(document.activeElement!==el)return;lzqKbFit();const v=window.visualViewport,r=el.getBoundingClientRect(),bar=document.querySelector(".lzq-bar"),bh=bar?bar.offsetHeight:0,top=(v?v.offsetTop:0)+76,bottom=(v?v.offsetTop+v.height:innerHeight)-bh-12;
-    if(r.bottom>bottom)window.scrollBy(0,Math.min(r.bottom-bottom,r.top-top));else if(r.top<top)window.scrollBy(0,r.top-top);}catch(x){}},320);}
-if(typeof window!=="undefined"&&!window.__lzqKb){window.__lzqKb=1;try{document.addEventListener("focusin",lzqFocusIn);if(window.visualViewport){visualViewport.addEventListener("resize",lzqKbFit);visualViewport.addEventListener("scroll",lzqKbFit);}}catch(e){}}
+function lzqKeep(){try{const el=document.activeElement;if(!el||!el.classList||!el.classList.contains("wb-in"))return;lzqKbFit();
+  const v=window.visualViewport,r=el.getBoundingClientRect(),bar=document.querySelector(".lzq-bar"),bh=bar?bar.offsetHeight:0,top=(v?v.offsetTop:0)+76,bottom=(v?v.offsetTop+v.height:innerHeight)-bh-12;
+  if(r.bottom>bottom)window.scrollBy(0,Math.min(r.bottom-bottom,r.top-top));else if(r.top<top)window.scrollBy(0,r.top-top);}catch(x){}}
+function lzqFocusIn(e){const el=e&&e.target;if(el&&el.classList&&el.classList.contains("wb-in"))setTimeout(lzqKeep,320);}
+function lzqResize(){lzqKbFit();setTimeout(lzqKeep,80);}
+if(typeof window!=="undefined"&&!window.__lzqKb){window.__lzqKb=1;try{document.addEventListener("focusin",lzqFocusIn);window.addEventListener("resize",lzqResize);if(window.visualViewport){visualViewport.addEventListener("resize",lzqResize);visualViewport.addEventListener("scroll",lzqKbFit);}}catch(e){}}
 function renderWorkbookPicker(){
   if(typeof clearTimers==="function")clearTimers();if(typeof closeOverlay==="function")closeOverlay();if(typeof defocus==="function")defocus();if(typeof showAnanseCorner==="function")showAnanseCorner(false);wbInstallStyle();
   const data=wbData(),rows=Object.keys(WB_LESSONS).map(id=>{const L=WB_LESSONS[id],best=data.best[id];return'<button class="wb-pick" onclick="renderWorkbookLesson(\''+id+'\')"><span><b>Lesson '+id+' · '+wbEscape(L.title)+'</b><small>8 fresh workbook-style problems</small></span><span class="wb-best">'+(best==null?'New':('Best '+best+'/8'))+'</span></button>';}).join("");
