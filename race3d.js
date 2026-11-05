@@ -2061,7 +2061,7 @@ function gpBuild(C){
   const pics=story?{}:(window._gpPics||{});   // the storybook look keeps the drawn 3D cars (the ink filter buries a photo)
   const glbs=story?{}:(window._gpGlb||{});   // real 3D models (GLB) win over the photo sprites when they loaded
   const pace=gpPaceMul();const karts=racers.map((r,i)=>{const m=(GP_GLB[r.car.id]&&glbs[r.car.id])?gpBuildGlbCar(T,r.car,glbs[r.car.id],gpGlbPaintFor(r.car,r.player),shared):(GP_PICS[r.car.id]&&pics[r.car.id])?gpBuildPicCar(T,r.car,pics[r.car.id],shared):gpBuildCar(T,r.car,r.css,shared);scene.add(m.g);const st=gpStats(r.car);st.max*=pace;st.accel*=0.75;if(r.player&&gpMode()==="race"){const U=gpUpState();st.max*=1+0.02*U.speed;st.accel*=1+0.06*U.launch;gpUpFit(T,m,true,shared);}
-    return{racer:r,player:r.player,...m,...st,t:0,x:0,px:0,speed:0,lap:0,spin:0,drift:0,off:0,hop:0,roll:0,pitch:0,steerVis:0,st1:0,steerIn:0,sv:0,dHold:0,wasBrake:false,lockT:0,gasT:0,wallT:0,knock:0,headA:0,headV:0,leanT:0,liftT:0,chatter:0,yaw:null,lastSpeed:0,wheelPhase:0,wheelRadius:m.S.radR,travel:0,skidD:0,ahead:true,started:false,pos:new T.Vector3(),draft:false,brakeOn:false,load:0,squeal:0,loss:null,lossA:0,lossCool:0,overT:0,air:false,airT:0,vy:null,y:0,ry:null,sq:0,sqV:0,hang:0,pS:null,aiSkill:(r.player?1:0.95+(i%3)*0.025+r.car.handle*0.006)*(r.player||gpPace()!=="gentle"?1:0.97)};});
+    return{racer:r,player:r.player,...m,...st,t:0,x:0,px:0,speed:0,lap:0,spin:0,drift:0,off:0,hop:0,roll:0,pitch:0,steerVis:0,st1:0,steerIn:0,sv:0,dHold:0,wasBrake:false,lockT:0,gasT:0,wallT:0,knock:0,headA:0,headV:0,wallRec:0,leanT:0,liftT:0,chatter:0,yaw:null,lastSpeed:0,wheelPhase:0,wheelRadius:m.S.radR,travel:0,skidD:0,ahead:true,started:false,pos:new T.Vector3(),draft:false,brakeOn:false,load:0,squeal:0,loss:null,lossA:0,lossCool:0,overT:0,air:false,airT:0,vy:null,y:0,ry:null,sq:0,sqV:0,hang:0,pS:null,aiSkill:(r.player?1:0.95+(i%3)*0.025+r.car.handle*0.006)*(r.player||gpPace()!=="gentle"?1:0.97)};});
   {const me0=karts.find(k=>k.player);karts.forEach(k=>{if(!k.player)k.max=Math.min(k.max,me0.max*(gpPace()==="gentle"?0.97:1.05));});}   // kid-fair: a rival's top speed never runs away from Prince's car (Easy: a touch under it)
   const rows=karts.length,pitch=8/(len/M);karts.forEach((k,i)=>{const row=k.player?rows-1:i-1;k.t=((M-5-row*pitch)/M)%1;k.x=(row%2?0.4:-0.4)*(rows>1?1:0);k.px=k.x;});
   const TR=(TH&&!story&&(gpTrafficOn()||!!(TW&&TW.parked&&TW.parked.length)))?gpTrafficBuild(T,scene,window._gpTraffic,C,karts,len,karts.find(k=>k.player),shared0,{moving:gpTrafficOn(),parked:(TW&&TW.parked)||[]}):null;   // traffic cars (street + coast courses, Options: traffic on)
@@ -2272,8 +2272,9 @@ function gpLapCross(kt,before,waiting){if(waiting||kt.traffic)return;const fwdX=
    r > 0.88  the tyres squeal and puff a little smoke (a warning, nothing else);
    r > 1     the front washes out: the car runs wide toward the outside and scrubs speed (lift or brake and it tucks back in);
    r > 1.32  for ~0.12 s (and not drifting): the rear steps out. Easy keeps it a slide (~25-37 deg) with a gentle assist;
-             Normal can swing into a half-spin (up to ~150 deg). Either way the car pivots back straight in ~1.1-1.7 s at about half
-             speed - never a dead stop, never a reset. Braking during the slide gathers it up faster.
+             Normal swings wider (~34-52 deg, it used to be a half-spin of up to ~150 deg, which read as "the car turns round at every wall").
+             Either way the car pivots back straight in ~1.1-1.7 s at about half speed - never a dead stop, never a reset, never backwards.
+             Braking during the slide gathers it up faster; touching a wall ends the slide (gpWallHit).
    The drift button is unchanged: a held drift has 1.6x grip, so a controlled slide stays below the limit. */
 function gpGrip(kt,kap,r,ex,spd,dt,brake){const easy=gpPace()==="gentle",sg=Math.sign(kap)||1;
   kt.squeal=kt.drift?0:Math.max(0,Math.min(1,(r-0.88)/0.2));
@@ -2283,10 +2284,31 @@ function gpGrip(kt,kap,r,ex,spd,dt,brake){const easy=gpPace()==="gentle",sg=Math
     kt.lossA=L.dir*L.peak*a;kt.speed+=(L.v0*(easy?0.62:0.5)-kt.speed)*Math.min(1,dt*(u<0.6?2.6:0.6));kt.x+=L.side*0.35*(1-u)*dt;
     if(u>=1){kt.loss=null;kt.lossA=0;kt.lossCool=1.2;}return;}
   if(!kt.drift&&r>(easy?1.45:1.32)&&kt.lossCool<=0&&spd>0.35){kt.overT+=dt;if(kt.overT>0.12){const sev=Math.min(1,(r-1.32)/0.6);
-      kt.loss={t:0,dur:easy?1.1+0.2*sev:1.2+0.5*sev,peak:easy?0.45+0.2*sev:0.9+1.7*sev,dir:-sg,side:sg,v0:kt.speed,r:+r.toFixed(2)};kt.overT=0;kt.drift=0;
+      kt.loss={t:0,dur:easy?1.1+0.2*sev:1.2+0.5*sev,peak:easy?0.45+0.2*sev:0.6+0.3*sev,dir:-sg,side:sg,v0:kt.speed,r:+r.toFixed(2)};kt.overT=0;kt.drift=0;
       const lg=R3.lossLog||(R3.lossLog=[]);lg.push({f:R3.frameN,t:+(R3.simT||0).toFixed(2),pace:easy?"easy":"normal",ratio:kt.loss.r,peakDeg:Math.round(kt.loss.peak*57.3),dur:+kt.loss.dur.toFixed(2),kmh:Math.round(kt.speed*3.6)});
-      GPA.play("spin");R3.sk.clean=0;gpChainBreak();gpMsg(easy?"Whoa, slide! Brake before the bend":"Spun out! Brake before the bend");}}
+      GPA.play("spin");R3.sk.clean=0;gpChainBreak();gpMsg("Whoa, slide! Brake before the bend");}}
   else kt.overT=0;}
+/* ---------- the wall (Prince's car): he always keeps racing the way the road goes ----------
+   hit angle = the steeper of "where the car is going" (sideways speed vs speed along the road) and "where its nose points".
+   Glancing (< 40 deg): a scrape - the sideways speed dies, the nose eases parallel to the wall, 2-6% speed loss, a stream of sparks.
+   Head-on (>= 40 deg): a soft bounce back a little, speed cut to about 60%, the nose straight along the road in < 1 s.
+   Either way any slide in progress ends here: the wall can never be what swings a car round. kt.wallRec = recovering (fast heading
+   spring + quick gas), kt.hitLog for the tests. Sparks are real only where a barrier is; on open sand it kicks up dust instead. */
+function gpWallHit(kt,sd,vOut,dt,inp){const XS=R3.W-1.2,V=R3.tmpV,vF=Math.max(0,kt.speed),vL=vOut*XS,nose=(kt.headA+(kt.lossA||0))*sd,ang=Math.max(Math.atan2(Math.max(0,vL),Math.max(1,vF)),nose,0),fresh=kt.wallT<=0&&vOut>0.08;
+  if(kt.sv*sd>0)kt.sv=0;
+  if(fresh){const head=ang>=0.7,deg=Math.round(ang*57.3),v0=kt.speed;kt.drift=0;kt.wallT=0.35;kt.knock=Math.min(1,0.35+vOut);
+    if(kt.loss){kt.loss=null;kt.lossCool=1.2;}kt.headA=kt.headA+(kt.lossA||0);kt.lossA=0;   // the slide stops at the wall; the spring below brings the nose back from where it is
+    kt.headA=Math.max(-0.5,Math.min(0.5,kt.headA));kt.headV=0;
+    if(head){kt.speed=Math.max(Math.min(kt.speed,5),kt.speed*0.6);kt.sv=-sd*Math.min(0.42,0.12+vOut*0.12);kt.wallRec=0.9;GPA.play("bump");R3.shake=Math.max(R3.shake,0.22);}
+    else{kt.speed*=1-Math.min(0.06,0.02+ang*0.1);kt.sv=-sd*Math.min(0.1,0.03+vOut*0.05);kt.wallRec=Math.max(kt.wallRec||0,0.45);if(vOut>0.3)GPA.play("bump");}
+    R3.hitT=R3.simT||0;R3.sk.clean=0;
+    const lg=R3.hitLog||(R3.hitLog=[]);lg.push({t:+(R3.simT||0).toFixed(2),deg,kind:head?"head-on":"scrape",v0:Math.round(v0*3.6),v1:Math.round(kt.speed*3.6)});
+    gpWallFx(kt,sd,head?16:9);}
+  else if(kt.speed>6&&(inp===sd||Math.abs(kt.steerIn)>0.3&&kt.steerIn*sd>0)){   // still leaning on it: scrape along, a light drag, sparks trail
+    kt.speed*=1-0.14*dt;kt.headA*=Math.exp(-5*dt);kt.scr=(kt.scr||0)+dt*26;if(kt.scr>=1){gpWallFx(kt,sd,Math.floor(kt.scr));kt.scr=0;}}}
+function gpWallFx(kt,sd,n){const V=R3.tmpV,R=R3,tn=R.curve.getTangentAt(kt.t),sandy=R.C.theme==="desert";kt.g.updateMatrixWorld(true);V.set(sd*-(kt.S.w/2),0.35,0.4);kt.g.localToWorld(V);
+  for(let q=0;q<n;q++){if(sandy)R.dust.emit(V.x,V.y,V.z,tn.x*kt.speed*0.3+(Math.random()-0.5)*3,0.8+Math.random()*1.6,tn.z*kt.speed*0.3+(Math.random()-0.5)*3,0.8,0.66,0.46,1.0);
+    else R.sparks.emit(V.x,V.y,V.z,tn.x*kt.speed*0.55+(Math.random()-0.5)*4,1+Math.random()*2.5,tn.z*kt.speed*0.55+(Math.random()-0.5)*4,1,0.75,0.3,0.35);}}
 /* ---------- vertical motion: the car follows the road over hills and dips, and flies off crests it takes too fast ----------
    On the ground the car rides the road. Each frame the ballistic step (current climb rate minus gravity) is compared with the road
    under the new spot: if the road falls away faster than gravity can follow, the car is airborne - wheels off the road, no grip, no
@@ -2436,7 +2458,7 @@ function gpUpdate(dt,waiting){
       if(waiting)kt.speed=0;
       else if(kt.air)kt.speed*=1-0.015*dt;   // flying: no grip for the pedals
       else if(brake){kt.speed=kt.speed>0.3?Math.max(0,kt.speed-(kt.drift?14:24)*dt):Math.max(-5,kt.speed-5*dt);}
-      else if(gas||kt.boostT>0||kt.speed<0){kt.gasT+=dt;const launch=kt.speed<maxNow*0.5?Math.min(1,0.62+kt.gasT*1.5):1;   // pull builds over the first ~0.25 s instead of jumping
+      else if(gas||kt.boostT>0||kt.speed<0){kt.gasT+=dt;const launch=(kt.speed<maxNow*0.5?Math.min(1,0.62+kt.gasT*1.5):1)*(kt.wallRec>0?2.2:1);   // pull builds over the first ~0.25 s instead of jumping
         kt.speed+=(maxNow-kt.speed)*Math.min(1,dt*(kt.speed<maxNow?kt.accel/10*launch*(kt.boostT>0?2.4:1):(offroad?1.1:2.2)));}
       else{kt.speed=Math.max(0,kt.speed-(2.5+0.06*kt.speed)*dt);if(kt.speed>maxNow)kt.speed+=(maxNow-kt.speed)*Math.min(1,dt*(offroad?1.1:2.2));}   // coasting
     }else{
@@ -2465,10 +2487,7 @@ function gpUpdate(dt,waiting){
     if(kt.player&&R3.mode==="race"&&!kt.drift&&!left&&!right&&Math.abs(kt.x)>0.95)kt.x-=Math.sign(kt.x)*dt*0.7;
     if(kt.player&&R3.mode==="free"&&!kt.drift&&!left&&!right&&Math.abs(kt.x)>0.7)kt.x-=Math.sign(kt.x)*dt*0.5;
     const lim=kt.player?(R3.mode==="free"?1.15:1.22):1.1;
-    if(Math.abs(kt.x)>lim){const sd=Math.sign(kt.x),vOut=(kt.x-kt.px)/Math.max(dt,0.001)*sd;kt.x=sd*lim;if(kt.player&&!waiting){
-        if(vOut>0.08&&kt.wallT<=0){kt.sv=-sd*Math.min(0.55,0.18+vOut*0.5);kt.speed*=1-Math.min(0.06,vOut*0.07);kt.drift=0;kt.wallT=0.35;kt.knock=Math.min(1,0.35+vOut);   // gentle bounce back toward the road, a small speed loss, never a dead stop
-          if(vOut>0.3){GPA.play("bump");}kt.g.updateMatrixWorld(true);V.set(sd*-(kt.S.w/2),0.35,0.4);kt.g.localToWorld(V);for(let q=0;q<10;q++)R3.sparks.emit(V.x,V.y,V.z,(Math.random()-0.5)*4,1+Math.random()*2.5,(Math.random()-0.5)*4,1,0.75,0.3,0.35);}
-        else if(kt.sv*sd>0)kt.sv*=0.5;}}
+    if(Math.abs(kt.x)>lim){const sd=Math.sign(kt.x),vOut=(kt.x-kt.px)/Math.max(dt,0.001)*sd;kt.x=sd*lim;if(kt.player&&!waiting)gpWallHit(kt,sd,vOut,dt,inp);}
     if(kt.wallT>0)kt.wallT-=dt;   // road edge is 1.19 (the car's outer wheels on the shoulder), the rail is 1.6
     if(kt.hop>0)kt.hop-=dt;
     const before=kt.t;kt.t=(kt.t+kt.speed*dt/len+1)%1;
@@ -2491,7 +2510,7 @@ function gpUpdate(dt,waiting){
       // spring gives the body weight - it swings into a slide, holds it, and settles back without snapping
       const inpN=(left?-1:0)+(right?1:0),opp=kt.drift&&inpN===-kt.drift,latMs=kt.sv*(R3.W-1.2);
       const latA=Math.max(-0.2,Math.min(0.2,0.8*Math.atan2(latMs,Math.max(6,Math.abs(kt.speed))))),headT=kt.drift?Math.max(-0.48,Math.min(0.48,latA*0.5+kt.drift*(opp?0.18:0.36))):latA;   // a held drift settles near 22-27 degrees
-      kt.headV+=((headT-kt.headA)*38-kt.headV*10.5)*dt;kt.headA+=kt.headV*dt;kt.g.rotateY(-(kt.headA+(kt.lossA||0)));
+      if(kt.wallRec>0)kt.wallRec-=dt;const hk=kt.wallRec>0?90:38,hc=kt.wallRec>0?17:10.5;kt.headV+=((headT-kt.headA)*hk-kt.headV*hc)*dt;kt.headA+=kt.headV*dt;kt.g.rotateY(-(kt.headA+(kt.lossA||0)));
       const ph=window.__gp&&window.__gp.phys;if(ph){ph.slipDeg=kt.headA*57.3;ph.steerIn=kt.steerIn;ph.sv=kt.sv;ph.drift=kt.drift;ph.x=kt.x;ph.speed=kt.speed;}
     }else{kt.yawRel=vx*0.05+(kt.drift?kt.drift*0.35:0);kt.g.rotateY(-kt.yawRel);}
     const heavy=kt.racer.car.type==="suv"||kt.racer.car.type==="truck",settle=heavy?4.5:6,rollMax=kt.pic?0:(heavy?0.105:0.09);
