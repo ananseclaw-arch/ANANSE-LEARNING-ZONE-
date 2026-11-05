@@ -175,17 +175,31 @@ function revealDefaultLesson(profile){
 function revealNextInUnit(id){const L=revealLesson(id);if(!L)return null;const ls=REVEAL_LESSONS.filter(l=>l.u===L.u);return ls[ls.indexOf(L)+1]||null;}
 /* ---------- Big Back button (Eb 2026-11-04): top-left, 64px+, on every lesson-flow screen ----------
    Call lzBack(fn,label) right AFTER a screen sets app.innerHTML. Any other screen replacing #app hides it again. */
-let _lzBackFn=null,_lzBackFor=null,_lzBackObs=null;
+let _lzBackFn=null,_lzBackFor=null,_lzBackObs=null,_lzBackConfirm=null;
 function lzBack(fn,label,opts){ // opts.exit (Eb 2026-11-05): inside a lesson test it is a slim "✕ Exit lesson" chip, so "Back" only means "previous question"
   if(typeof document==="undefined")return;const b=document.getElementById("lzBackBtn"),a=document.getElementById("app");if(!b||!a)return;
-  _lzBackFn=fn;_lzBackFor=a.firstElementChild;b.hidden=false;const lb=b.querySelector(".lzb-to");if(lb)lb.textContent=label||"";
+  _lzBackFn=fn;_lzBackFor=a.firstElementChild;b.hidden=false;_lzBackConfirm=opts&&opts.exit?(opts.confirm||{title:"Leave the lesson?",body:"Your progress is saved."}):null;const lb=b.querySelector(".lzb-to");if(lb)lb.textContent=label||"";
   const ex=!!(opts&&opts.exit),ar=b.querySelector(".lzb-ar");if(ar)ar.textContent=ex?"✕":"←";if(b.classList)b.classList.toggle("lzb-exit",ex);
   b.setAttribute("aria-label",ex?"Exit lesson. Your answers are saved.":"Back");b.title=ex?"Exit lesson (your answers are saved)":"Back";
   document.body.classList.add("lz-back");document.body.classList.toggle("lz-exit",ex);
   if(!_lzBackObs&&typeof MutationObserver!=="undefined"){_lzBackObs=new MutationObserver(()=>{if(a.firstElementChild!==_lzBackFor)lzBackHide();});_lzBackObs.observe(a,{childList:true});}
 }
-function lzBackHide(){const b=typeof document!=="undefined"&&document.getElementById("lzBackBtn");if(b)b.hidden=true;_lzBackFn=null;_lzBackFor=null;if(typeof document!=="undefined")document.body.classList.remove("lz-back","lz-exit");}
-function lzBackGo(){const f=_lzBackFn;if(typeof f==="function"){try{if(typeof stopRecorded==="function")stopRecorded();}catch(e){}f();}else if(typeof renderHome==="function")renderHome();}
+function lzBackHide(){const b=typeof document!=="undefined"&&document.getElementById("lzBackBtn");if(b)b.hidden=true;_lzBackFn=null;_lzBackFor=null;_lzBackConfirm=null;if(typeof document!=="undefined")document.body.classList.remove("lz-back","lz-exit");}
+function lzBackLeave(f){if(typeof f==="function"){try{if(typeof stopRecorded==="function")stopRecorded();}catch(e){}f();}else if(typeof renderHome==="function")renderHome();}
+/* ✕ Exit lesson asks first (Eb 2026-11-05): "Leave the lesson? Your progress is saved" - Stay / Leave */
+function lzBackGo(){const f=_lzBackFn,c=_lzBackConfirm;if(c&&typeof lzDialog==="function"){lzDialog({title:c.title,body:'<p>'+esc(c.body)+'</p>',buttons:[{label:"Leave",cls:"ghost",id:"lzdLeave",fn:()=>lzBackLeave(f)},{label:"Stay",cls:"go",id:"lzdStay",focus:true}]});return;}lzBackLeave(f);}
+/* Small kid-friendly dialog (exit confirm, look back at the last answer). buttons: {label,cls:"go"|"ghost",id,fn,keep,focus} */
+function lzDialog(o){
+  if(typeof document==="undefined")return;lzDialogClose();
+  const d=document.createElement("div");d.id="lzDlg";d.className="lzd-wrap";d.setAttribute("role","presentation");
+  d.innerHTML='<div class="lzd" role="dialog" aria-modal="true" aria-labelledby="lzdT"><h2 class="lzd-t" id="lzdT">'+esc(o.title||"")+'</h2><div class="lzd-b">'+(o.body||"")+'</div><div class="lzd-btns">'
+    +(o.buttons||[]).map((b,i)=>'<button type="button" class="lzd-btn '+(b.cls||"ghost")+'" id="'+(b.id||("lzdB"+i))+'" data-i="'+i+'">'+esc(b.label)+'</button>').join("")+'</div></div>';
+  d.addEventListener("click",e=>{if(e.target===d){lzDialogClose();return;}const t=e.target.closest&&e.target.closest(".lzd-btn");if(!t)return;const b=o.buttons[+t.getAttribute("data-i")];if(!b||!b.keep)lzDialogClose();if(b&&typeof b.fn==="function")b.fn();});
+  d.addEventListener("keydown",e=>{if(e.key==="Escape")lzDialogClose();});
+  document.body.appendChild(d);document.body.classList.add("lzd-open");
+  const f=d.querySelector(".lzd-btn.go")||d.querySelector(".lzd-btn");try{if(f)f.focus({preventScroll:true});}catch(e){}
+}
+function lzDialogClose(){if(typeof document==="undefined")return;const d=document.getElementById("lzDlg");if(d)d.remove();if(document.body)document.body.classList.remove("lzd-open");}
 const revealProgressionPublic={unit4Ids:REVEAL_UNIT4_IDS.slice(),flex:REVEAL_FLEX.slice(),isPrince:revealProfileIsPrince,recordPassed:revealRecordPassed,profilePassed:revealProfilePassed,migrate:revealPassMigrate,init:revealProgressInit,gate:revealUnit4Gate,nextId:revealUnit4NextId};
 if(typeof window!=="undefined")window.__revealProgression=revealProgressionPublic;else if(typeof globalThis!=="undefined")globalThis.__revealProgression=revealProgressionPublic;
 /* Review cards — the book's "Review" box, in Ananse's words */

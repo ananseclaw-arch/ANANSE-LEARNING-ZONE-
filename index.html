@@ -1747,17 +1747,31 @@ function revealDefaultLesson(profile){
 function revealNextInUnit(id){const L=revealLesson(id);if(!L)return null;const ls=REVEAL_LESSONS.filter(l=>l.u===L.u);return ls[ls.indexOf(L)+1]||null;}
 /* ---------- Big Back button (Eb 2026-11-04): top-left, 64px+, on every lesson-flow screen ----------
    Call lzBack(fn,label) right AFTER a screen sets app.innerHTML. Any other screen replacing #app hides it again. */
-let _lzBackFn=null,_lzBackFor=null,_lzBackObs=null;
+let _lzBackFn=null,_lzBackFor=null,_lzBackObs=null,_lzBackConfirm=null;
 function lzBack(fn,label,opts){ // opts.exit (Eb 2026-11-05): inside a lesson test it is a slim "✕ Exit lesson" chip, so "Back" only means "previous question"
   if(typeof document==="undefined")return;const b=document.getElementById("lzBackBtn"),a=document.getElementById("app");if(!b||!a)return;
-  _lzBackFn=fn;_lzBackFor=a.firstElementChild;b.hidden=false;const lb=b.querySelector(".lzb-to");if(lb)lb.textContent=label||"";
+  _lzBackFn=fn;_lzBackFor=a.firstElementChild;b.hidden=false;_lzBackConfirm=opts&&opts.exit?(opts.confirm||{title:"Leave the lesson?",body:"Your progress is saved."}):null;const lb=b.querySelector(".lzb-to");if(lb)lb.textContent=label||"";
   const ex=!!(opts&&opts.exit),ar=b.querySelector(".lzb-ar");if(ar)ar.textContent=ex?"✕":"←";if(b.classList)b.classList.toggle("lzb-exit",ex);
   b.setAttribute("aria-label",ex?"Exit lesson. Your answers are saved.":"Back");b.title=ex?"Exit lesson (your answers are saved)":"Back";
   document.body.classList.add("lz-back");document.body.classList.toggle("lz-exit",ex);
   if(!_lzBackObs&&typeof MutationObserver!=="undefined"){_lzBackObs=new MutationObserver(()=>{if(a.firstElementChild!==_lzBackFor)lzBackHide();});_lzBackObs.observe(a,{childList:true});}
 }
-function lzBackHide(){const b=typeof document!=="undefined"&&document.getElementById("lzBackBtn");if(b)b.hidden=true;_lzBackFn=null;_lzBackFor=null;if(typeof document!=="undefined")document.body.classList.remove("lz-back","lz-exit");}
-function lzBackGo(){const f=_lzBackFn;if(typeof f==="function"){try{if(typeof stopRecorded==="function")stopRecorded();}catch(e){}f();}else if(typeof renderHome==="function")renderHome();}
+function lzBackHide(){const b=typeof document!=="undefined"&&document.getElementById("lzBackBtn");if(b)b.hidden=true;_lzBackFn=null;_lzBackFor=null;_lzBackConfirm=null;if(typeof document!=="undefined")document.body.classList.remove("lz-back","lz-exit");}
+function lzBackLeave(f){if(typeof f==="function"){try{if(typeof stopRecorded==="function")stopRecorded();}catch(e){}f();}else if(typeof renderHome==="function")renderHome();}
+/* ✕ Exit lesson asks first (Eb 2026-11-05): "Leave the lesson? Your progress is saved" - Stay / Leave */
+function lzBackGo(){const f=_lzBackFn,c=_lzBackConfirm;if(c&&typeof lzDialog==="function"){lzDialog({title:c.title,body:'<p>'+esc(c.body)+'</p>',buttons:[{label:"Leave",cls:"ghost",id:"lzdLeave",fn:()=>lzBackLeave(f)},{label:"Stay",cls:"go",id:"lzdStay",focus:true}]});return;}lzBackLeave(f);}
+/* Small kid-friendly dialog (exit confirm, look back at the last answer). buttons: {label,cls:"go"|"ghost",id,fn,keep,focus} */
+function lzDialog(o){
+  if(typeof document==="undefined")return;lzDialogClose();
+  const d=document.createElement("div");d.id="lzDlg";d.className="lzd-wrap";d.setAttribute("role","presentation");
+  d.innerHTML='<div class="lzd" role="dialog" aria-modal="true" aria-labelledby="lzdT"><h2 class="lzd-t" id="lzdT">'+esc(o.title||"")+'</h2><div class="lzd-b">'+(o.body||"")+'</div><div class="lzd-btns">'
+    +(o.buttons||[]).map((b,i)=>'<button type="button" class="lzd-btn '+(b.cls||"ghost")+'" id="'+(b.id||("lzdB"+i))+'" data-i="'+i+'">'+esc(b.label)+'</button>').join("")+'</div></div>';
+  d.addEventListener("click",e=>{if(e.target===d){lzDialogClose();return;}const t=e.target.closest&&e.target.closest(".lzd-btn");if(!t)return;const b=o.buttons[+t.getAttribute("data-i")];if(!b||!b.keep)lzDialogClose();if(b&&typeof b.fn==="function")b.fn();});
+  d.addEventListener("keydown",e=>{if(e.key==="Escape")lzDialogClose();});
+  document.body.appendChild(d);document.body.classList.add("lzd-open");
+  const f=d.querySelector(".lzd-btn.go")||d.querySelector(".lzd-btn");try{if(f)f.focus({preventScroll:true});}catch(e){}
+}
+function lzDialogClose(){if(typeof document==="undefined")return;const d=document.getElementById("lzDlg");if(d)d.remove();if(document.body)document.body.classList.remove("lzd-open");}
 const revealProgressionPublic={unit4Ids:REVEAL_UNIT4_IDS.slice(),flex:REVEAL_FLEX.slice(),isPrince:revealProfileIsPrince,recordPassed:revealRecordPassed,profilePassed:revealProfilePassed,migrate:revealPassMigrate,init:revealProgressInit,gate:revealUnit4Gate,nextId:revealUnit4NextId};
 if(typeof window!=="undefined")window.__revealProgression=revealProgressionPublic;else if(typeof globalThis!=="undefined")globalThis.__revealProgression=revealProgressionPublic;
 /* Review cards — the book's "Review" box, in Ananse's words */
@@ -2688,23 +2702,63 @@ function wbVisual(model){
 function wbPageHead(id){const L=WB_LESSONS[id];return'<div class="wb-head"><div><div class="wb-kicker">Lesson '+wbEscape(id)+'</div><h1 class="wb-title">Additional Practice</h1></div><div class="wb-name">Name&nbsp; '+wbEscape((P&&P.name)||"")+'</div></div><div style="font-size:16px;font-weight:800;margin-top:5px">'+wbEscape(L.title)+'</div>';}
 /* Question screens: ONE slim line "Lesson 4-2 · Multiply by 5" (Eb 2026-11-05 look fix); the workbook-page head stays on intro/finish pages. */
 function wbQHead(id){const L=WB_LESSONS[id];return'<h1 class="wb-qhead"><span>Lesson '+wbEscape(id)+'</span>'+(L&&L.title?'<span class="wb-qh-sep" aria-hidden="true">·</span><span class="wb-qh-t">'+wbEscape(L.title)+'</span>':'')+'</h1>';}
-/* Sticky bottom bar: quiet ◀ Back · primary Check · small Skip ▶ link (same ids + functions as the old top buttons). */
+/* Sticky bottom bar, the SAME on every question screen (Eb 2026-11-05 correction pass):
+   [◀ Back] (44pt ghost) · ONE primary (Check, then Next / Try again / I'm ready) · [Skip ▶] (44pt ghost).
+   Lesson test: Back = previous question, Skip = next open one. Practice: Back = look at the last answer, Skip = do this one later. */
+function lzqBackBtn(id,fn,dis){return'<button type="button" class="lzq-back lzq-ghost" id="'+id+'" onclick="'+fn+'"'+(dis?' disabled':'')+'><span class="lzq-ic" aria-hidden="true">◀</span><span>Back</span></button>';}
+function lzqSkipBtn(id,fn,dis,label){return'<button type="button" class="lzq-skip lzq-ghost" id="'+id+'" onclick="'+fn+'"'+(dis?' disabled':'')+'><span>'+(label||'Skip')+'</span><span class="lzq-ic" aria-hidden="true">▶</span></button>';}
 function lzqBarHTML(primary){
-  const f=!!(WB&&WB.flex),fix=f&&WB.phase==="fix";
-  return'<div class="lzq-bar'+(f?' flex':'')+'">'+(f?'<button type="button" class="lzq-back" id="lztPrev" onclick="lztPrev()"'+(WB.index>0?'':' disabled')+'>◀ Back</button>':'')
-   +'<div class="lzq-main">'+(primary||'')+'</div>'
-   +(f?'<button type="button" class="lzq-skip" id="lztSkip" onclick="lztSkip()">'+(fix?'Next one ▶':'Skip ▶')+'</button>':'')+'</div>';
+  const f=!!(WB&&WB.flex);let back,skip;
+  if(f){back=lzqBackBtn("lztPrev","lztPrev()",!(WB.index>0));skip=lzqSkipBtn("lztSkip","lztSkip()",false);}
+  else{back=lzqBackBtn("wbPrev","wbLookBack()",!wbHist().length);skip=lzqSkipBtn("wbSkip","wbPracticeSkip()",!wbCanSkip());}
+  return'<div class="lzq-bar'+(f?' flex':' prac')+'"><div class="lzq-grp">'+back+'<div class="lzq-main">'+(primary||'')+'</div>'+skip+'</div></div>';
 }
-function wbCheckBtnHTML(){return'<button id="wbSubmit" class="wb-submit lzq-check" onclick="wbSubmit()" '+(wbCanSubmit()?'':'disabled')+'>Check<span class="lzq-mw"> my work</span> ✓</button>';}
+/* one primary button for the bar's middle slot; `wait` = solid muted "waiting" look with a readable label */
+function lzqPrimary(id,label,fn,wait,cls){return'<button type="button" id="'+id+'" class="lzq-check'+(cls?' '+cls:'')+(wait?' wait':'')+'" onclick="'+fn+'"'+(wait?' disabled':'')+'>'+label+'</button>';}
+function lzqSetMain(html){try{const m=document.querySelector&&document.querySelector(".lzq-bar .lzq-main");if(!m)return false;m.innerHTML=html;return true;}catch(e){return false;}}
+function wbWaitLabel(){const p=WB&&WB.cur;if(!p)return"Type your answer";if(!wbWorkDone())return"Show your work";if(p.type==="multi"||(p.type==="who"&&p.valueAnswer==null))return"Pick an answer";if(p.type==="match")return"Match them all";return"Type your answer";}
+function wbCheckLabel(){return wbCanSubmit()?'Check<span class="lzq-mw"> my work</span> ✓':wbWaitLabel();}
+function wbCheckBtnHTML(){const ok=wbCanSubmit();return'<button id="wbSubmit" class="wb-submit lzq-check'+(ok?'':' wait')+'" onclick="wbSubmit()" '+(ok?'':'disabled')+'>'+wbCheckLabel()+'</button>';}
 function wbBarAnswered(){const b=document.getElementById("wbSubmit");if(b&&b.closest&&b.closest(".lzq-bar"))b.hidden=true;}
-/* Keep the bar + the box he is typing in above an on-screen keyboard (iOS / Telegram leave the layout viewport under it). */
-function lzqKbFit(){try{const v=window.visualViewport,b=document.querySelector(".lzq-bar");if(!v||!b)return;const kb=Math.max(0,Math.round(innerHeight-v.offsetTop-v.height));b.style.bottom=kb>60?kb+"px":"";}catch(e){}}
+/* after he picks a reason, the waiting Next in the bar wakes up */
+function lzqWake(){const b=document.getElementById("lztNextBtn")||document.getElementById("wbNextBtn");if(b&&b.disabled){b.disabled=false;b.classList.remove("wait");b.innerHTML=b.getAttribute("data-go")||"Next ▶";}}
+/* ---- practice (not the lesson test): history for Back, "do it later" for Skip. Marking is unchanged. ---- */
+function wbHist(){return(WB&&Array.isArray(WB.hist))?WB.hist:[];}
+function wbCanSkip(){if(!WB||WB.flex)return false;if(WB.answered||WB.isTwin)return true;return WB.index<(WB.size||8)-1;}
+function wbPracticeSkip(){
+  if(!WB||WB.flex)return;if(typeof stopRecorded==="function")stopRecorded();
+  if(WB.answered||WB.isTwin)return wbContinue();
+  const n=WB.size||8;if(WB.index>=n-1)return;
+  const p=WB.problems.splice(WB.index,1)[0];p._later=true;WB.problems.splice(n-1,0,p);wbLoadProblem(WB.problems[WB.index],false);
+}
+function wbPracticeDots(){const n=WB.size||8,out=[];for(let i=0;i<n;i++){if(i<WB.index||(i===WB.index&&WB.answered&&WB.results.length>i))out.push(WB.results[i]?"right":"wrong");else out.push(WB.problems[i]&&WB.problems[i]._later?"skip":"todo");}return out;}
+function wbPracticeStripHTML(){
+  const n=WB.size||8,num=Math.min(n,WB.index+1);
+  return'<div class="lzt-strip wb-pstrip"><div class="lzt-count"><b>'+(WB.isTwin?'Question '+num+' · one like it':'Question '+num+' of '+n)+'</b>'+lztInfoBtn()+'</div>'+lztDotsHTML(wbPracticeDots(),false,WB.index)+lztLegendHTML()+'</div>';
+}
+function wbLookBack(){
+  const h=wbHist();if(!h.length||typeof lzDialog!=="function")return;
+  let k=h.length-1;const show=()=>{const e=h[k];
+    lzDialog({title:"Question "+e.n,body:'<p class="lzd-q">'+wbEscape(e.q)+'</p><p class="lzd-a">Your answer: <b>'+wbEscape(e.given||"—")+'</b></p><p class="lzd-r '+(e.ok?'ok':'no')+'">'+(e.ok?'✓ You got this one right.':'✗ Not right that time.')+'</p>',
+      buttons:(k>0?[{label:"◀ Earlier",cls:"ghost",id:"lzdEarlier",keep:true,fn:()=>{k--;show();}}]:[]).concat([{label:"Back to question "+Math.min(WB.size||8,WB.index+1)+" ▶",cls:"go",id:"lzdBackTo"}])});};
+  show();
+}
+function wbPracticeExit(){const id=WB&&WB.lessonId;if(typeof stopRecorded==="function")stopRecorded();if(WB&&WB.reveal&&typeof window!=="undefined"&&typeof window.wbRevealExit==="function")return window.wbRevealExit(id);renderWorkbookLesson(id);}
+function wbPracticeChrome(){if(WB&&!WB.flex&&typeof lzBack==="function")lzBack(wbPracticeExit,"Exit lesson",{exit:true,confirm:{title:"Leave the lesson?",body:"Your answers so far are saved."}});}
+/* Keep the bar + the box he is typing in above an on-screen keyboard (iOS / Telegram leave the layout viewport under it).
+   Keyboard open (Eb 2026-11-05): body.lzq-kb collapses the top header to a slim strip; font sizes and the bar never change. */
+const _lzqMaxH={};
+function lzqKbState(){try{const v=window.visualViewport,h=Math.round(v?v.height:innerHeight),w=String(innerWidth);_lzqMaxH[w]=Math.max(_lzqMaxH[w]||0,h,innerHeight);
+  const el=document.activeElement,typing=!!(el&&el.classList&&el.classList.contains("wb-in")&&document.querySelector(".lzq-bar"));
+  const kb=typing&&h<_lzqMaxH[w]-120;if(document.body.classList.contains("lzq-kb")!==kb)document.body.classList.toggle("lzq-kb",kb);}catch(e){}}
+function lzqKbFit(){try{lzqKbState();const v=window.visualViewport,b=document.querySelector(".lzq-bar");if(!v||!b)return;const kb=Math.max(0,Math.round(innerHeight-v.offsetTop-v.height));b.style.bottom=kb>60?kb+"px":"";}catch(e){}}
 function lzqKeep(){try{const el=document.activeElement;if(!el||!el.classList||!el.classList.contains("wb-in"))return;lzqKbFit();
-  const v=window.visualViewport,r=el.getBoundingClientRect(),bar=document.querySelector(".lzq-bar"),bh=bar?bar.offsetHeight:0,top=(v?v.offsetTop:0)+76,bottom=(v?v.offsetTop+v.height:innerHeight)-bh-12;
+  const v=window.visualViewport,r=el.getBoundingClientRect(),bar=document.querySelector(".lzq-bar"),tb=document.getElementById("topbar"),bh=bar?bar.offsetHeight:0,top=(v?v.offsetTop:0)+(tb?tb.getBoundingClientRect().bottom:60)+12,bottom=(v?v.offsetTop+v.height:innerHeight)-bh-12;
   if(r.bottom>bottom)window.scrollBy(0,Math.min(r.bottom-bottom,r.top-top));else if(r.top<top)window.scrollBy(0,r.top-top);}catch(x){}}
-function lzqFocusIn(e){const el=e&&e.target;if(el&&el.classList&&el.classList.contains("wb-in"))setTimeout(lzqKeep,320);}
+function lzqFocusIn(e){const el=e&&e.target;lzqKbState();if(el&&el.classList&&el.classList.contains("wb-in"))setTimeout(lzqKeep,320);}
+function lzqFocusOut(){setTimeout(lzqKbState,60);}
 function lzqResize(){lzqKbFit();setTimeout(lzqKeep,80);}
-if(typeof window!=="undefined"&&!window.__lzqKb){window.__lzqKb=1;try{document.addEventListener("focusin",lzqFocusIn);window.addEventListener("resize",lzqResize);if(window.visualViewport){visualViewport.addEventListener("resize",lzqResize);visualViewport.addEventListener("scroll",lzqKbFit);}}catch(e){}}
+if(typeof window!=="undefined"&&!window.__lzqKb){window.__lzqKb=1;try{document.addEventListener("focusin",lzqFocusIn);document.addEventListener("focusout",lzqFocusOut);window.addEventListener("resize",lzqResize);if(window.visualViewport){visualViewport.addEventListener("resize",lzqResize);visualViewport.addEventListener("scroll",lzqKbFit);}}catch(e){}}
 function renderWorkbookPicker(){
   if(typeof clearTimers==="function")clearTimers();if(typeof closeOverlay==="function")closeOverlay();if(typeof defocus==="function")defocus();if(typeof showAnanseCorner==="function")showAnanseCorner(false);wbInstallStyle();
   const data=wbData(),rows=Object.keys(WB_LESSONS).map(id=>{const L=WB_LESSONS[id],best=data.best[id];return'<button class="wb-pick" onclick="renderWorkbookLesson(\''+id+'\')"><span><b>Lesson '+id+' · '+wbEscape(L.title)+'</b><small>8 fresh workbook-style problems</small></span><span class="wb-best">'+(best==null?'New':('Best '+best+'/8'))+'</span></button>';}).join("");
@@ -2739,8 +2793,8 @@ function wbSubmitButton(){return''+(wbNeedsWork(WB.cur)&&!wbWorkDone()?'<div cla
 function wbRenderProblem(silent){
   const p=WB.cur,L=WB_LESSONS[WB.lessonId],pct=Math.round(WB.index/(WB.size||8)*100),num=WB.index+1,work=wbNeedsWork(p),visual=p.visual?'<div class="wb-visual">'+wbVisual(p.visual)+'</div>':'';
   let controls=wbQuestionAnswerHTML(p),submit=(p.type==="fill"||p.type==="picture"||p.type==="story"||p.type==="pair"||p.type==="match"||(p.type==="who"&&p.valueAnswer!=null))?wbNumberPad():wbSubmitButton();
-  app.innerHTML='<div class="fadein wb-shell lzq'+(WB.flex?' lzt-test':'')+'"><div class="wb-page">'+wbQHead(WB.lessonId)+(WB.flex?lztStripHTML():'<div class="lzt-strip wb-pstrip"><div class="lzt-count"><b>'+(WB.isTwin?'Problem '+num+' · one like it':'Problem '+num+' of '+(WB.size||8))+'</b></div><div class="wb-progress"><i style="width:'+pct+'%"></i></div></div>')+'<div class="wb-problem"><div class="wb-questionarea"><div class="wb-qrow"><div class="wb-qbody"><div class="wb-qcopy">'+(WB.isTwin?'<span style="color:#207141">Try one like it:</span> ':'')+wbEscape(p.q)+'</div>'+(p.instruction&&p.instruction!==p.q?'<div class="wb-instruction">'+wbEscape(p.instruction)+'</div>':'')+'</div><button type="button" class="wb-read" onclick="say(WB.cur.spoken)" aria-label="Read it to me"><span aria-hidden="true">🔊</span><span class="wb-read-t">Read it</span></button></div>'+visual+(work?wbWorkHTML(p):'')+'</div><div class="wb-answerarea">'+controls+submit+'</div></div>'+lzqBarHTML(wbCheckBtnHTML())+'</div></div>';
-  if(WB.flex)lztAfterRender();
+  app.innerHTML='<div class="fadein wb-shell lzq'+(WB.flex?' lzt-test':' wb-prac')+'"><div class="wb-page">'+wbQHead(WB.lessonId)+(WB.flex?lztStripHTML():wbPracticeStripHTML())+'<div class="wb-problem"><div class="wb-questionarea"><div class="wb-qrow"><div class="wb-qbody"><div class="wb-qcopy">'+(WB.isTwin?'<span style="color:#207141">Try one like it:</span> ':'')+wbEscape(p.q)+'</div>'+(p.instruction&&p.instruction!==p.q?'<div class="wb-instruction">'+wbEscape(p.instruction)+'</div>':'')+'</div><button type="button" class="wb-read" onclick="say(WB.cur.spoken)" aria-label="Read it to me"><span aria-hidden="true">🔈</span><span class="wb-read-t">Read it</span></button></div>'+visual+(work?wbWorkHTML(p):'')+'</div><div class="wb-answerarea">'+controls+submit+'</div></div>'+lzqBarHTML(wbCheckBtnHTML())+'</div></div>';
+  if(WB.flex)lztAfterRender();else wbPracticeChrome();
   if(work&&WB.workTab==="draw")setTimeout(wbInitCanvas,0);wbResumeSave();if(!silent&&typeof say==="function")say((WB.isTwin?"Try one like it. ":"")+p.spoken);
   if(!silent)wbWarmExplain();
 }
@@ -2779,7 +2833,7 @@ function wbSendDrawing(meta){if(!WB.drew)return;let data=WB.canvasData;if(WB.can
 function wbActivate(k){WB.active=k;wbUpdateFieldButtons();}
 function wbKey(k){if(!WB.active||!(WB.active in WB.fields))return;let v=WB.fields[WB.active];if(k==="⌫")v=v.slice(0,-1);else if(v.length<3)v=(v==="0"?k:v+k);WB.fields[WB.active]=v;wbUpdateFieldButtons();}
 function wbUpdateFieldButtons(){document.querySelectorAll(".wb-num-box").forEach(b=>{const m=(b.getAttribute("onclick")||"").match(/wbActivate\('([^']+)'\)/);if(!m)return;const v=WB.fields[m[1]];b.textContent=v;b.classList.toggle("empty",v==="");b.classList.toggle("active",WB.active===m[1]);});wbRefreshSubmit();}
-function wbRefreshSubmit(){const b=document.getElementById("wbSubmit");if(b)b.disabled=!wbCanSubmit();document.querySelectorAll(".wb-key.go").forEach(k=>k.disabled=!wbCanSubmit());wbResumeSave();}
+function wbRefreshSubmit(){const b=document.getElementById("wbSubmit");if(b){const ok=wbCanSubmit();b.disabled=!ok;if(b.classList&&b.classList.contains("lzq-check")){b.classList.toggle("wait",!ok);b.innerHTML=wbCheckLabel();}}document.querySelectorAll(".wb-key.go").forEach(k=>k.disabled=!wbCanSubmit());wbResumeSave();}
 function wbToggleMulti(id){const i=WB.selected.indexOf(id);if(i>=0)WB.selected.splice(i,1);else WB.selected.push(id);wbRenderProblem(true);}
 function wbPickPerson(n){if(WB.workTab==="draw")wbRememberCanvas();WB.person=n;wbRenderProblem(true);}
 function wbMatchTap(side,id){if(side==="left"){WB.matchLeft=id;}else if(WB.matchLeft){Object.keys(WB.match).forEach(k=>{if(WB.match[k]===id)delete WB.match[k];});WB.match[WB.matchLeft]=id;WB.matchLeft=null;}wbRenderProblem(true);}
@@ -2913,21 +2967,25 @@ function wbPickTap(i){
   const out=document.getElementById("lzpOut");
   if(out)out.innerHTML=(ok?'<div class="lzp-res good" role="status"><b>⭐ Yes! That’s the best reason.</b></div>'
     :'<div class="lzp-res try" role="status"><b>Not quite. The best reason is the green one.</b><span>'+wbEscape(k.set.why)+'</span></div>')+k.tail;
-  try{const n=document.getElementById("lztNextBtn")||document.querySelector("#lzpOut .wb-btnrow button:last-child");if(n&&n.scrollIntoView)n.scrollIntoView({block:"nearest",behavior:"smooth"});}catch(e){}
+  lzqWake();try{const n=document.getElementById("lzpOut");if(n&&n.scrollIntoView)n.scrollIntoView({block:"nearest",behavior:"smooth"});}catch(e){}
   if(typeof say==="function")say(ok?wbPickRightLine(p):wbPickWrongLine(p),{chunk:WB_EXPLAIN_CHUNK});
 }
 function wbPickIntoView(){try{const b=document.getElementById("lzpBox");if(b&&b.scrollIntoView)b.scrollIntoView({block:"nearest",behavior:"smooth"});}catch(e){}}
 function wbSubmit(){
   if(!wbCanSubmit()){if(typeof toast==="function")toast(wbWorkDone()?"Finish every answer box first":"Show your work first");return;}
   WB.answered=true;wbBarAnswered();if(WB.workTab==="draw")wbRememberCanvas();const p=WB.cur,a=wbCollectAnswer(),ok=wbCheck(p,a);WB.lastAnswer=a;WB.lastOK=ok;WB.explainRec=wbSaveExplain(p,a,ok);const built=wbBuiltRecord(),rec={lesson:WB.lessonId,type:p.type,q:p.q,answer:wbCompactAnswer(a),correct:ok,built:built,drew:!!WB.drew,at:new Date().toISOString()};
-  const data=wbData();data.log.push(rec);if(data.log.length>2000)data.log=data.log.slice(-2000);if(!WB.isTwin&&!WB.flex)WB.results.push(ok);if(typeof logQuestion==="function")logQuestion("workbook","math","reveal "+WB.lessonId+" workbook","workbook:"+WB.lessonId,p.q,ok,0,Date.now()-WB.startedAt,wbLogInfo(p,a));else if(typeof save==="function")save();wbSendDrawing(rec);if(typeof save==="function")save();if(typeof sfx==="function")sfx(ok?"correct":"wrong");if(WB.flex){lztAfterAnswer(ok,a);return;}wbRenderFeedback(ok,a);
+  const data=wbData();data.log.push(rec);if(data.log.length>2000)data.log=data.log.slice(-2000);if(!WB.isTwin&&!WB.flex){WB.results.push(ok);let g="";try{const li=wbLogInfo(p,a);g=li&&li.given!=null?(Array.isArray(li.given)?li.given.join(", "):String(li.given)):"";}catch(e){}WB.hist=wbHist().concat([{n:WB.index+1,q:p.q,given:g,ok:ok}]).slice(-12);}if(typeof logQuestion==="function")logQuestion("workbook","math","reveal "+WB.lessonId+" workbook","workbook:"+WB.lessonId,p.q,ok,0,Date.now()-WB.startedAt,wbLogInfo(p,a));else if(typeof save==="function")save();wbSendDrawing(rec);if(typeof save==="function")save();if(typeof sfx==="function")sfx(ok?"correct":"wrong");if(WB.flex){lztAfterAnswer(ok,a);return;}wbRenderFeedback(ok,a);
 }
 function wbCorrectEquation(p){if(p.type==="fill"){let used=false;return p.parts.map(x=>{if(x==="□"&&!used){used=true;return p.answer;}return x;}).join(" ");}if(p.eq)return p.eq.values[0]+" "+p.eq.op+" "+p.eq.values[1]+" = "+p.eq.values[2];return"";}
 function wbCorrectAnswerHTML(p){if(p.type==="form")return'<div class="wb-multi-review">'+(p.answerLines||[]).map(l=>'<div class="wb-multi-line"><b>'+wbEscape(l)+'</b></div>').join("")+'</div>';if(p.type==="multi")return'<div class="wb-multi-review">'+p.options.map(o=>'<div class="wb-multi-line"><b>'+(o.true?'✓':'✗')+' '+o.id+'. '+wbEscape(o.text)+'</b><br>'+wbEscape(o.why)+'</div>').join("")+'</div>';if(p.type==="match")return'<div class="wb-multi-review">'+p.pairs.map(x=>'<div class="wb-multi-line">'+wbEscape(x.left)+' ↔ '+wbEscape(x.right)+'</div>').join("")+'</div>';if(p.type==="pair"){let h=(p.equations||[]).map(e=>'<div class="wb-review-eq">'+e[0]+' × '+e[1]+' = '+e[2]+'</div>').join("");h+='<div class="wb-review-eq">Shared product: '+p.answer.product+'</div>';if(p.answer.compare)h+='<div class="wb-review-eq">Who has more? '+wbEscape(p.answer.compare)+'</div>';return h;}if(p.type==="who"){const who=p.answer&&p.answer.person!=null?p.answer.person:p.answer;return'<p><b>'+wbEscape(who)+(who==="Yes"?' — the shared product is '+p.valueAnswer:' is right.')+'</b></p>';}let h=wbCorrectEquation(p)?'<div class="wb-review-eq">'+wbEscape(wbCorrectEquation(p))+'</div>':'';if(p.extraEq)h+='<div class="wb-review-eq">'+wbEscape(p.extraEq.values[0]+" "+p.extraEq.op+" "+p.extraEq.values[1]+" = "+p.extraEq.values[2])+'</div>';if(p.type==="story")h+='<div class="wb-review-eq">Answer: '+p.answer.value+' '+wbEscape(p.unit)+(p.answer.remainder!=null?' and '+p.answer.remainder+' '+wbEscape(p.remainderUnit):'')+'</div>';return h;}
 function wbRenderFeedback(ok,a){
   const p=WB.cur,model=p.model||p.visual,head=ok?(WB.isTwin?"You got the new one!":"Yes — nice work!"):"Let’s look at the model.",voice=ok?"Nice work. Your answer is correct.":"Good try. Look at the model and the equation.";
-  const hasPick=!!wbPickSet(p),why=wbIsExplain(p)?wbExplainParts(p,(a&&a.f)||{}).reason:"",btns='<div class="wb-btnrow">'+(!ok&&!WB.isTwin?'<button class="wb-primary" onclick="wbTryTwin()">Try one like it ↻</button>':'')+'<button class="wb-secondary" onclick="wbContinue()">'+(WB.index===(WB.size||8)-1?'See my score':'Next problem')+' ▶</button></div>';
-  app.innerHTML='<div class="fadein wb-shell lzq"><div class="wb-page">'+wbQHead(WB.lessonId)+'<div class="wb-feedback '+(ok?'good':'try')+'"><h2>'+(ok?'✓ ':'')+wbEscape(head)+'</h2>'+(!ok&&model?'<div class="wb-visual">'+wbVisual(model)+'</div>':'')+wbCorrectAnswerHTML(p)+(hasPick?wbPickHTML(p,WB.explainRec,wbModelHTML(p,why)+btns):(wbIsExplain(p)?wbModelHTML(p,why):'<div class="wb-teach">'+wbEscape(p.explain||"Use the model to check each number in the equation.")+'</div>'))+'</div>'+(hasPick?'':btns)+'</div></div>';
+  const hasPick=!!wbPickSet(p),why=wbIsExplain(p)?wbExplainParts(p,(a&&a.f)||{}).reason:"",twin=!ok&&!WB.isTwin,last=WB.index===(WB.size||8)-1;
+  // ONE primary in the bar (Eb 2026-11-05): Try one like it (missed) or Next / See my score; a reason pick keeps it waiting until he picks
+  const go=twin?'Try one like it ↻':(last?'See my score ▶':'Next ▶'),fn=twin?'wbTryTwin()':'wbContinue()';
+  const prim=hasPick?'<button type="button" id="wbNextBtn" class="lzq-check wait" onclick="'+fn+'" data-go="'+go+'" disabled>Pick a reason</button>':lzqPrimary("wbNextBtn",go,fn,false,twin?"try":"");
+  app.innerHTML='<div class="fadein wb-shell lzq wb-prac"><div class="wb-page">'+wbQHead(WB.lessonId)+wbPracticeStripHTML()+'<div class="wb-feedback '+(ok?'good':'try')+'"><h2>'+(ok?'✓ ':'')+wbEscape(head)+'</h2>'+(!ok&&model?'<div class="wb-visual">'+wbVisual(model)+'</div>':'')+wbCorrectAnswerHTML(p)+(hasPick?wbPickHTML(p,WB.explainRec,wbModelHTML(p,why)):(wbIsExplain(p)?wbModelHTML(p,why):'<div class="wb-teach">'+wbEscape(p.explain||"Use the model to check each number in the equation.")+'</div>'))+'</div>'+lzqBarHTML(prim)+'</div></div>';
+  wbPracticeChrome();
   wbResumeSave();if(hasPick)wbPickIntoView();if(typeof say==="function")say(hasPick?(ok?"Nice work. Your answer is correct. ":"Good try. Look at the model and the answer. ")+wbPickAsk(p):wbIsExplain(p)&&ok?wbExplainLine(p):voice+" "+(wbIsExplain(p)?wbModelSpoken(p):(p.explain||"")),{chunk:WB_EXPLAIN_CHUNK});
 }
 function wbTryTwin(){const original=WB.cur,type=original.type;let twin=null;for(let tries=0;tries<10&&!twin;tries++){const osig=wbSig(original),pool=wbGenerate(WB.lessonId,30).filter(x=>x.type===type&&(original.slot==null||x.slot===original.slot)&&wbSig(x)!==osig);if(pool.length)twin=wbPick(pool);}if(!twin){wbContinue();return;}wbLoadProblem(twin,true);}
@@ -2963,15 +3021,19 @@ function lztStatus(id){
   return{phase:t.phase,left:left,total:t.st.length,at:Math.min(t.st.length,(t.index||0)+1),dots:t.st.map(x=>x.s)};
 }
 function lztDotsHTML(dots,live,cur){
-  const name={right:"done",wrong:"to fix",skip:"skipped",todo:"not yet"};
-  return'<div class="lzt-dots'+(live?' live':'')+'"'+(live?'':' role="img" aria-label="'+dots.filter(s=>s==="right").length+' of '+dots.length+' done"')+'>'+dots.map((s,i)=>{const inner=s==="right"?"✓":String(i+1);
-    return live?'<button type="button" class="lzt-dot '+s+(i===cur?' cur':'')+'" onclick="lztJump('+i+')" aria-label="Question '+(i+1)+', '+name[s]+(i===cur?', now':'')+'"'+(i===cur?' aria-current="step"':'')+'><span class="lzt-dc">'+inner+'</span></button>':'<span class="lzt-dot '+s+'"><span class="lzt-dc">'+inner+'</span></span>';}).join("")+'</div>';
+  // colour + icon carry the meaning (no text legend for kids): ✓ done, ! to fix, » skipped, number = not yet, filled blue = now
+  const name={right:"done",wrong:"to fix",skip:"skipped",todo:"not yet"},ic={right:"✓",wrong:"!",skip:"»"};
+  return'<div class="lzt-dots'+(live?' live':'')+'"'+(live?'':' role="img" aria-label="'+dots.filter(s=>s==="right").length+' of '+dots.length+' done"')+'>'+dots.map((s,i)=>{const now=cur!=null&&i===cur,inner=now?String(i+1):(ic[s]||String(i+1));
+    return live?'<button type="button" class="lzt-dot '+s+(now?' cur':'')+'" onclick="lztJump('+i+')" aria-label="Question '+(i+1)+', '+name[s]+(now?', now':'')+'"'+(now?' aria-current="step"':'')+'><span class="lzt-dc">'+inner+'</span></button>':'<span class="lzt-dot '+s+(now?' cur':'')+'"><span class="lzt-dc">'+inner+'</span></span>';}).join("")+'</div>';
 }
+/* the colour key lives behind a small ⓘ (Eb 2026-11-05: no text legend for kids) */
+function lztInfoBtn(){return'<button type="button" class="lzt-info" onclick="lztLegendToggle(this)" aria-expanded="false" aria-label="What the colours mean"><span aria-hidden="true">ⓘ</span></button>';}
+function lztLegendHTML(){return'<div class="lzt-legend" hidden><span><i class="cur"></i>now</span><span><i class="right">✓</i>done</span><span><i class="wrong">!</i>to fix</span><span><i class="skip">»</i>skipped</span><span><i class="todo"></i>not yet</span></div>';}
+function lztLegendToggle(b){const st=b&&b.closest&&b.closest(".lzt-strip"),l=st&&st.querySelector(".lzt-legend");if(!l)return;l.hidden=!l.hidden;b.setAttribute("aria-expanded",String(!l.hidden));}
 function lztStripHTML(){
   const st=WB.st||[],fix=WB.phase==="fix";
-  return'<div class="lzt-strip"><div class="lzt-count"><b>Question '+(WB.index+1)+' of '+st.length+'</b>'+(fix?'<span class="lzt-fixchip">Fix round: '+lztKid(st.filter(x=>x.s!=="right").length)+' left</span>':'')+'</div>'
-   +lztDotsHTML(st.map(x=>x.s),true,WB.index)
-   +'<div class="lzt-legend" aria-hidden="true"><span><i class="cur"></i>now</span><span><i class="right"></i>done</span><span><i class="wrong"></i>to fix</span><span><i class="skip"></i>skipped</span><span><i class="todo"></i>not yet</span></div></div>';
+  return'<div class="lzt-strip"><div class="lzt-count"><b>Question '+(WB.index+1)+' of '+st.length+'</b>'+(fix?'<span class="lzt-fixchip">Fix round: '+st.filter(x=>x.s!=="right").length+' left</span>':'')+lztInfoBtn()+'</div>'
+   +lztDotsHTML(st.map(x=>x.s),true,WB.index)+lztLegendHTML()+'</div>';
 }
 function lztRefreshStrip(){const old=document.querySelector(".lzt-strip");if(!old)return;const tmp=document.createElement("div");tmp.innerHTML=lztStripHTML();old.replaceWith(tmp.firstElementChild);}
 function lztSnapUI(){const o={};["fields","selected","match","person","groupDots","rows","cols","pairBuild"].forEach(k=>{if(WB[k]!==undefined)o[k]=WB[k];});return JSON.parse(JSON.stringify(o));}
@@ -3012,14 +3074,18 @@ function lztAfterRender(){
   if(st&&st.s==="wrong"&&st.tip&&!WB.answered){const area=document.querySelector(".wb-answerarea");if(area)area.insertAdjacentHTML("afterbegin",'<div class="lzt-hint"><b>💡 Tip:</b> '+wbEscape(st.tip)+'</div>');}
 }
 function lztExit(){lztSave();_lztTok++;if(typeof renderRevealLesson==="function")renderRevealLesson(WB.lessonId,{fromTest:true});}
+/* the one primary after answering goes in the bar (inline row only if a screen has no bar) */
+function lztNextHTML(){return lzqPrimary("lztNextBtn","Next ▶","lztNext()",false,"next");}
+function lztPlaceMain(html,area){if(!lzqSetMain(html)&&area)area.insertAdjacentHTML("beforeend",'<div class="lzt-row">'+html.replace('class="lzq-check','class="lzt-btn lzt-next')+'</div>');}
 function lztShowDone(i){
-  WB.answered=true;wbBarAnswered();const area=document.querySelector(".wb-answerarea");
+  WB.answered=true;const area=document.querySelector(".wb-answerarea");
   document.querySelectorAll(".wb-answerarea button,.wb-answerarea input,.wb-work button").forEach(b=>{if(!b.closest(".lzt-row"))b.disabled=true;});
-  if(area)area.insertAdjacentHTML("beforeend",'<div class="lzt-praise lzt-static" role="status"><span class="lzt-star" aria-hidden="true">✓</span><b>You got this one right.</b></div>'+(wbIsExplain(WB.cur)?wbModelHTML(WB.cur,""):"")+'<div class="lzt-row"><button type="button" class="lzt-btn lzt-next" onclick="lztNext()">Next ▶</button></div>');
+  if(area)area.insertAdjacentHTML("beforeend",'<div class="lzt-praise lzt-static" role="status"><span class="lzt-star" aria-hidden="true">✓</span><b>You got this one right.</b></div>'+(wbIsExplain(WB.cur)?wbModelHTML(WB.cur,""):""));
+  lztPlaceMain(lztNextHTML(),area);
 }
 function lztDoneOnly(i){ // a question already right in his last test (rebuilt from the answer log): nothing to redo
   const id=WB.lessonId;
-  app.innerHTML='<div class="fadein wb-shell lzq lzt-test"><div class="wb-page">'+wbQHead(id)+lztStripHTML()+'<div class="lzt-card lzt-note"><p class="lzt-big">✓ You got question '+(i+1)+' right last time. Nothing to fix here!</p><div class="lzt-row"><button type="button" class="lzt-btn lzt-next" onclick="lztNext()">Next ▶</button></div></div>'+lzqBarHTML("")+'</div></div>';
+  app.innerHTML='<div class="fadein wb-shell lzq lzt-test"><div class="wb-page">'+wbQHead(id)+lztStripHTML()+'<div class="lzt-card lzt-note"><p class="lzt-big">✓ You got question '+(i+1)+' right last time. Nothing to fix here!</p></div>'+lzqBarHTML(lztNextHTML())+'</div></div>';
   if(typeof lzBack==="function")lzBack(lztExit,"Exit lesson",{exit:true});
 }
 function lztAfterAnswer(ok,a){
@@ -3030,7 +3096,8 @@ function lztAfterAnswer(ok,a){
 }
 function lztPraise(){
   const line=lztPraiseLine(),tok=++_lztTok,area=document.querySelector(".wb-answerarea");lztRefreshStrip();
-  if(area)area.innerHTML='<div class="lzt-praise" role="status"><span class="lzt-star" aria-hidden="true">⭐</span><b>'+wbEscape(line)+'</b></div><div class="lzt-row"><button type="button" class="lzt-btn lzt-next" id="lztNextBtn" onclick="lztNext()">Next ▶</button></div>';
+  if(area)area.innerHTML='<div class="lzt-praise" role="status"><span class="lzt-star" aria-hidden="true">⭐</span><b>'+wbEscape(line)+'</b></div>';
+  lztPlaceMain(lztNextHTML(),area);
   const t0=Date.now(),go=()=>setTimeout(()=>{if(tok===_lztTok&&document.getElementById("lztNextBtn"))lztNext();},Math.max(0,1300-(Date.now()-t0)));
   lztIntoView("lztNextBtn");
   if(typeof sayAndThen==="function")sayAndThen(line,go,2600);else{if(typeof say==="function")say(line);go();}
@@ -3038,18 +3105,20 @@ function lztPraise(){
 function lztExplainPraise(p,a){ // answer right on an Explain question: no score for the reason, just the model explanation (spoken); Next when ready
   _lztTok++;const area=document.querySelector(".wb-answerarea");lztRefreshStrip();
   const why=wbExplainParts(p,(a&&a.f)||{}).reason;
-  const tail=wbModelHTML(p,why)+'<div class="lzt-row"><button type="button" class="lzt-btn lzt-next" id="lztNextBtn" onclick="lztNext()">Next ▶</button></div>',hasPick=!!wbPickSet(p);
+  const tail=wbModelHTML(p,why),hasPick=!!wbPickSet(p);
   if(area)area.innerHTML='<div class="lzt-praise lzt-praise-explain" role="status"><span class="lzt-star" aria-hidden="true">⭐</span><b>Your answer is right!</b></div>'+(hasPick?wbPickHTML(p,WB.explainRec,tail):tail);
+  // reason pick: Next waits in the bar ("Pick a reason") until he picks
+  lztPlaceMain(hasPick?'<button type="button" id="lztNextBtn" class="lzq-check next wait" onclick="lztNext()" data-go="Next ▶" disabled>Pick a reason</button>':lztNextHTML(),area);
   if(hasPick)wbPickIntoView();else lztIntoView("lztNextBtn");
   if(typeof say==="function")say(hasPick?"Your answer is right! "+wbPickAsk(p):wbExplainLine(p),{chunk:WB_EXPLAIN_CHUNK});
 }
 function lztWrong(t,tries){
   _lztTok++;const area=document.querySelector(".wb-answerarea"),p=WB.cur,shown=tries>=3;lztRefreshStrip();
   const body=shown?'<p class="lzt-why">Here is how this one works:</p>'+wbCorrectAnswerHTML(p)+'<p class="lzt-tipline">'+wbEscape(p.explain||"")+'</p>':(t.why?'<p class="lzt-why">'+wbEscape(t.why)+'</p>':'')+'<p class="lzt-tipline"><b>💡 Tip:</b> '+wbEscape(t.tip)+'</p>';
-  if(area)area.innerHTML='<div class="lzt-tip" role="alert"><h3>Not quite right. That\'s OK!</h3>'+body+'</div><div class="lzt-row">'
-    +(shown?'<button type="button" class="lzt-btn lzt-try" id="lztTryBtn" onclick="lztFresh()">↻ Try a new one like it</button>':'<button type="button" class="lzt-btn lzt-try" id="lztTryBtn" onclick="lztRetry()">↻ Try again</button>')
-    +'<button type="button" class="lzt-btn lzt-next" id="lztNextBtn" onclick="lztNext()">Next ▶</button></div>'+(WB.phase==="test"?'<p class="lzt-small">If you move on, this one comes back at the end with its tip.</p>':'');
-  lztIntoView("lztNextBtn");
+  if(area)area.innerHTML='<div class="lzt-tip" role="alert"><h3>Not quite right. That\'s OK!</h3>'+body+'</div>'+(WB.phase==="test"?'<p class="lzt-small">Tap Skip to move on. This one comes back at the end with its tip.</p>':'');
+  // one primary: Try again (Skip ▶ in the bar moves on)
+  lztPlaceMain(shown?lzqPrimary("lztTryBtn","↻ Try a new one","lztFresh()",false,"try"):lzqPrimary("lztTryBtn","↻ Try again","lztRetry()",false,"try"),area);
+  lztIntoView("lztTryBtn");
   if(typeof say==="function")say(shown?"That's not quite right. Here is how this one works. Then try a new one like it.":"That's not quite right. "+lztSpeakable(t.tip));
 }
 function lztIntoView(id){try{const e=document.getElementById(id);if(e&&e.scrollIntoView)e.scrollIntoView({block:"nearest",behavior:"smooth"});}catch(x){}}
@@ -3098,7 +3167,7 @@ function lztFixTip(i){
   app.innerHTML='<div class="fadein wb-shell lzq lzt-test"><div class="wb-page">'+wbQHead(id)+lztStripHTML()+'<section class="lzt-card lzt-fix"><div class="lzt-kicker">Let\'s fix question '+(i+1)+'</div><p class="lzt-q">'+wbEscape(p?p.q:"")+'</p>'
     +(st.s==="wrong"&&st.given?'<p class="lzt-you">You answered: <b>'+wbEscape(st.given)+'</b></p>':'')
     +(why?'<p class="lzt-why">'+wbEscape(why)+'</p>':'')+'<p class="lzt-tipline"><b>💡 Tip:</b> '+wbEscape(st.tip)+'</p>'
-    +'<div class="lzt-row"><button type="button" class="lzt-btn lzt-go" id="lztReady" onclick="lztFixGo()">I\'m ready, let me try ▶</button></div></section>'+lzqBarHTML("")+'</div></div>';
+    +'</section>'+lzqBarHTML(lzqPrimary("lztReady","I\'m ready ▶","lztFixGo()",false,"go"))+'</div></div>';
   if(typeof lzBack==="function")lzBack(lztExit,"Exit lesson",{exit:true});
   if(typeof say==="function")say("Let's fix this one. "+lztSpeakable((why?why+" ":"")+"Here is a tip. "+st.tip));
 }
@@ -3346,13 +3415,10 @@ html:has(.lzq-bar){scroll-padding-top:72px;scroll-padding-bottom:96px}
 .lzq-bar .lzq-check[hidden]{display:none}
 .lzq-back{flex:0 0 auto;min-height:44px;padding:0 14px;border:1.5px solid #CBD5E1;border-radius:12px;background:#fff;color:#334155!important;font:inherit;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 2px 0 #E2E8F0}
 .lzq-back:active:not(:disabled){transform:translateY(2px);box-shadow:none}.lzq-back:disabled{opacity:.45;cursor:default;box-shadow:none}
-.lzq-skip{flex:0 0 auto;min-height:44px;padding:0 6px;border:0;background:none;color:#475569!important;font:inherit;font-size:16px;font-weight:800;text-decoration:underline;text-decoration-color:#CBD5E1;text-underline-offset:4px;cursor:pointer}
-.lzq-skip:active{color:#1E293B!important}
 .wb-shell.lzq .lzt-row{margin-top:16px}.wb-shell.lzq .lzt-btn{min-height:56px}
 .wb-shell.lzq .wb-answerarea .lzt-praise{margin:16px 0 8px}
 @media(min-width:700px){.wb-shell.lzq .wb-page{padding:20px 28px 0}.lzq-bar{margin:16px -28px 0;padding:12px 28px 12px;gap:16px}.lzq-back,.lzq-skip{font-size:17px}
  .lzt-dots.live{justify-content:center}.lzt-dots.live .lzt-dot{flex:0 0 44px}.lzt-dc{width:32px;height:32px;font-size:14px}.lzt-strip{display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:16px}.lzt-strip .lzt-legend{grid-column:1 / -1}.wb-pstrip{display:block}}
-@media(max-width:699px){.wb-shell.lzq .wb-read-t{display:none}.wb-shell.lzq .wb-read{width:44px;height:44px;padding:0;font-size:18px}}
 @media(max-width:520px){.wb-shell.lzq .wb-page{padding:12px 16px 0;border-radius:18px}.lzq-bar{margin:16px -16px 0;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));border-radius:0 0 18px 18px;gap:6px}
  .wb-shell.lzq .wb-qcopy{font-size:20px}.wb-shell.lzq .wb-formrow{font-size:19px}.lzq-bar .lzq-check{font-size:18px;padding:8px 10px}.lzq-back{padding:0 10px;font-size:15px}.lzq-skip{font-size:15px}
  .wb-qhead{font-size:15px!important}.lzt-dc{width:26px;height:26px;font-size:12px}}
@@ -3369,6 +3435,111 @@ html:has(.lzq-bar){scroll-padding-top:72px;scroll-padding-bottom:96px}
 @media(min-width:700px){.wb-shell.lzq .wb-qcopy{font-size:24px}.wb-shell.lzq .wb-instruction{font-size:16px}}
 @media(max-width:380px){.lzq-mw{display:none}}
 @media(max-width:520px){.wb-shell.lzq .lzt-praise b{font-size:21px}.wb-shell.lzq .lzt-star{font-size:28px}}
+/* ===== Correction pass (Eb 2026-11-05 review: phone 6/10, iPad 5/10). design-inspo 20261105-111639 + 60fps Brilliant/Duolingo =====
+   one exit, 44pt ghost Back/Skip around ONE primary, readable meta, icon dots, labelled Read it, slim header while typing, tablet layout */
+body.lz-exit #homeBtn{display:none!important}
+@media(max-width:520px){body.lz-back.lz-exit #topbar .tb-btn:not(.lzb){min-width:54px;padding:4px 6px}body.lz-back.lz-exit #topbar .tb-btn:not(.lzb) .tb-lb{display:block}}
+.lzq-bar{display:block;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:#fff}
+.lzq-grp{display:flex;align-items:center;gap:12px}
+.lzq-main{flex:1 1 auto;min-width:0;display:flex;justify-content:center}
+.lzq-ghost{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:48px;min-width:48px;padding:0 14px;margin:0;border:2px solid #94A3B8;border-radius:14px;background:#fff;color:#1E293B!important;font:inherit;font-size:16px;font-weight:800;line-height:1;text-decoration:none;box-shadow:none;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .1s ease,background .15s}
+.lzq-ghost .lzq-ic{font-size:12px;color:#475569!important}
+.lzq-ghost:active:not(:disabled){transform:translateY(2px);background:#F1F5F9}
+.lzq-ghost:disabled{opacity:1;background:#F1F5F9;border-color:#CBD5E1;color:#475569!important;cursor:default}
+.lzq-ghost:disabled .lzq-ic{color:#64748B!important}
+.lzq-bar .lzq-check{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:100%;max-width:420px;min-height:52px;padding:6px 12px;border:0;border-radius:16px;background:#15803d;color:#fff!important;font:inherit;font-size:19px;font-weight:900;line-height:1.1;box-shadow:0 4px 0 #166534;white-space:nowrap;overflow:hidden;cursor:pointer}
+.lzq-bar .lzq-check.try{background:#C2410C;box-shadow:0 4px 0 #9A3412}
+.lzq-bar .lzq-check.wait,.lzq-bar .lzq-check:disabled{background:#E2E8F0;color:#334155!important;box-shadow:inset 0 0 0 2px #CBD5E1;font-size:17px;font-weight:800;cursor:default;transform:none}
+.lzq-bar .lzq-check:active:not(:disabled){transform:translateY(4px);box-shadow:none}
+.lzt-strip .lzt-count{font-size:16px;gap:6px 10px;color:#334155}.lzt-strip .lzt-count b{font-size:16px}
+.lzt-fixchip{display:inline-flex;align-items:center;min-height:28px;padding:2px 12px;border-radius:999px;background:#FFEDD5;border:1.5px solid #FDBA74;color:#9A3412!important;font-size:15px;font-weight:900}
+.lzt-info{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;margin:-10px -10px -10px auto;padding:0;border:0;background:none;color:#475569!important;font:inherit;font-size:20px;line-height:1;cursor:pointer}
+.lzt-info[aria-expanded=true]{color:#1D4ED8!important}
+.lzt-legend[hidden]{display:none!important}
+.lzt-legend{font-size:14px;margin:6px 0 0;padding:6px 8px;background:#F8FAFC;border-radius:10px;color:#334155}
+.lzt-legend i{width:18px;height:18px;font-style:normal;font-size:11px;font-weight:900;line-height:15px;text-align:center;color:#fff;vertical-align:-4px}
+.lzt-legend i.skip{color:#5b4300}
+.lzt-dot.wrong .lzt-dc,.lzt-dot.skip .lzt-dc{font-size:16px}
+.lzt-dc{width:30px;height:30px;font-size:14px}
+.lzt-dots.live{margin:4px 0 0}
+.wb-shell.lzq .wb-read{min-height:44px;min-width:0;padding:0 14px;font-size:15px;gap:6px;white-space:nowrap}
+.wb-shell.lzq .wb-read-t{display:inline!important}
+.wb-shell.lzq .wb-qhead{font-size:15px!important}
+.wb-shell.lzq .lzt-small{font-size:15px;color:#475569!important}
+.lzp-btn{min-height:68px;font-size:19px}
+.lzp-k{flex:0 0 44px;height:44px;font-size:20px}
+@media(max-width:520px){.lzp-btn{min-height:68px;font-size:19px;padding:8px 12px;gap:12px}.lzp-k{flex-basis:44px;height:44px;font-size:20px}.lzp-h{font-size:22px!important}
+ .lzq-bar{padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px))}.lzq-grp{gap:12px}.lzq-ghost{padding:0 11px;font-size:16px}.lzq-bar .lzq-check{font-size:18px;padding:6px 8px}.lzq-bar .lzq-check.wait,.lzq-bar .lzq-check:disabled{font-size:16px}
+ .lzt-dc{width:30px;height:30px;font-size:14px}}
+/* keyboard open: the header collapses to a slim strip; nothing else changes size */
+body.lzq-kb #topbar{padding:4px 12px;background:rgba(11,27,61,.96);box-shadow:0 2px 10px rgba(0,0,0,.25);pointer-events:auto}
+body.lzq-kb #topbar .tb-btn:not(.lzb){display:none!important}
+body.lzq-kb.lz-back #app{padding-top:60px!important}
+body.lzq-kb .wb-shell.lzq .wb-qhead,body.lzq-kb .wb-shell.lzq .lzt-strip{display:none!important}
+body.lzq-kb .wb-shell.lzq .wb-problem{padding-top:4px}
+@media(max-width:520px){.lzq-bar .lzq-mw{display:none}}
+html:has(body.lzq-kb){scroll-padding-top:60px}
+/* Reveal quiz screen (general quiz shell, Reveal lessons only) */
+.rvq.focus-wrap{max-width:640px}
+.rvq .card.gold{padding:14px 16px 0;border:1px solid rgba(255,255,255,.6);border-radius:20px;box-shadow:0 10px 28px rgba(5,20,40,.22)}
+.rvq .rvq-head{margin:0 0 12px;padding-bottom:8px}
+.rvq .rvq-head .lzt-count{font-size:16px;margin-top:4px}
+.rvq-qrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:start}
+.rvq .qtext{margin:0;font-size:21px;line-height:1.35;font-weight:800;color:#1E293B}
+.rvq-read{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border:1.5px solid #BFDBFE;background:#EFF6FF;border-radius:999px;font:inherit;font-size:15px;font-weight:800;color:#1D4ED8!important;white-space:nowrap;cursor:pointer}
+.rvq .rvq-tools{margin:10px 0 0!important;justify-content:flex-start!important}
+.rvq .readbtn{min-height:44px;font-size:16px;padding:6px 14px}
+.rvq .scratch{margin:10px 0 4px;padding:6px 10px}
+.rvq .opts{margin-top:12px;gap:10px}
+.rvq .opt{min-height:60px;padding:10px 12px;font-size:18px;line-height:1.3;border:2px solid #CBD5E1;border-radius:16px;background:#fff;box-shadow:0 3px 0 #E2E8F0;gap:10px}
+.rvq .opt .letter{min-width:36px;height:36px;border-radius:50%;font-size:18px}
+.rvq .opts.g2{grid-template-columns:1fr 1fr}
+.rvq .opts.g2 .opt{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:6px}
+.rvq .opt.sel{border-color:#2563EB;background:#EFF6FF;box-shadow:0 0 0 3px #BFDBFE}
+.rvq .lzq-bar{margin:14px -16px 0;border-radius:0 0 20px 20px}
+.rvq #nextbar .hero-chip,.rvq #trybar .speech{font-size:16px}
+@media(min-width:700px){.wb-shell.lzq .wb-qhead{font-size:17px!important}.lzt-strip .lzt-count,.lzt-strip .lzt-count b,.rvq .rvq-head .lzt-count{font-size:18px}.lzq-ghost{font-size:17px}
+ .lzt-strip{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:16px}.lzt-strip .lzt-legend{grid-column:1 / -1}
+ .lzt-strip .lzt-info{margin:-10px 0 -10px 0}.lzt-dc{width:36px;height:36px;font-size:16px}.lzt-dots.live .lzt-dot{flex:0 0 44px;max-width:44px;height:44px}.lzt-dots.live{justify-content:flex-start;gap:2px}.lzt-strip .lzt-dots{justify-content:flex-start;margin:0}.rvq .wb-qhead{font-size:17px!important}}
+/* iPad / tablet (1180x820): a real tablet layout, not a scaled phone */
+@media(min-width:900px){
+ .wb-shell.lzq{max-width:900px}
+ .wb-shell.lzq .wb-page{padding:22px 40px 0}
+ .wb-shell.lzq .lzq-bar{margin:20px -40px 0;padding:12px 40px}
+ .lzq-grp{justify-content:center;gap:16px;max-width:680px;margin:0 auto}
+ .lzq-main{flex:0 1 400px}
+ .lzq-ghost{min-height:56px;padding:0 22px;font-size:18px;border-radius:16px}
+ .lzq-bar .lzq-check{min-height:56px;font-size:21px}.lzq-bar .lzq-check.wait,.lzq-bar .lzq-check:disabled{font-size:19px}
+ .wb-shell.lzq .wb-problem{display:block}
+ .wb-shell.lzq .wb-qcopy{font-size:28px}
+ .wb-shell.lzq .wb-instruction{font-size:22px}
+ .wb-shell.lzq .wb-answerarea{margin-top:12px}
+ .wb-shell.lzq .wb-form{margin:12px 0 4px}
+ .wb-shell.lzq .wb-formrow{font-size:24px}
+ .wb-shell.lzq .wb-in{height:60px;font-size:28px}.wb-shell.lzq .wb-in.num{width:120px}
+ .wb-shell.lzq .wb-because{font-size:22px;min-height:96px;max-width:none}
+ .wb-shell.lzq .wb-eq{justify-content:center;font-size:32px}
+ .wb-shell.lzq .wb-pad{grid-template-columns:repeat(3,112px);gap:12px;margin:14px auto 0}
+ .wb-shell.lzq .wb-key{min-height:64px;font-size:30px}
+ .wb-shell.lzq .wb-read{font-size:17px;min-height:48px;padding:0 18px}
+ .wb-shell.lzq .lzt-why,.wb-shell.lzq .lzt-tipline,.wb-shell.lzq .lzt-model-t,.wb-shell.lzq .lzt-hint{font-size:22px}
+ .wb-shell.lzq .lzt-small{font-size:18px}
+ .wb-shell.lzq .lzp-btn{font-size:22px;min-height:72px}.wb-shell.lzq .lzp-k{flex-basis:48px;height:48px;font-size:22px}
+ .wb-shell.lzq .wb-feedback h2{font-size:28px}.wb-shell.lzq .wb-teach{font-size:22px}
+ .rvq.focus-wrap{max-width:900px}.rvq .card.gold{padding:22px 40px 0}.rvq .lzq-bar{margin:20px -40px 0;padding:12px 40px}
+ .rvq .qtext{font-size:28px}.rvq .opt{font-size:22px;min-height:72px;padding:12px 16px}.rvq .opt .letter{min-width:42px;height:42px;font-size:20px}.rvq-read{font-size:17px;min-height:48px}
+}
+/* dialog: exit confirm + look back */
+.lzd-wrap{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(11,27,61,.6);animation:lztIn .15s ease-out}
+.lzd{width:100%;max-width:440px;background:#fff;color:#1E293B;border-radius:20px;padding:22px 20px 18px;box-shadow:0 20px 50px rgba(0,0,0,.35);text-align:left}
+.lzd *{color:inherit}.lzd-t{margin:0 0 6px!important;font-size:24px!important;line-height:1.2;font-weight:900;color:#1E293B!important;background:none!important;-webkit-text-fill-color:currentColor!important}
+.lzd-b p{margin:6px 0;font-size:18px;line-height:1.4;font-weight:700;color:#334155!important}.lzd-b .lzd-q{font-size:19px;color:#1E293B!important;background:#F1F5F9;border-radius:12px;padding:10px 12px}
+.lzd-b .lzd-r.ok{color:#15803d!important;font-weight:900}.lzd-b .lzd-r.no{color:#B91C1C!important;font-weight:900}
+.lzd-btns{display:flex;gap:12px;margin-top:16px}
+.lzd-btn{flex:1 1 0;min-height:52px;padding:6px 12px;border-radius:16px;font:inherit;font-size:19px;font-weight:900;cursor:pointer}
+.lzd-btn.go{background:#15803d;color:#fff!important;border:0;box-shadow:0 4px 0 #166534}
+.lzd-btn.ghost{background:#fff;color:#1E293B!important;border:2px solid #94A3B8}
+.lzd-btn:active{transform:translateY(2px)}
 `;
 function lztInstallStyle(){if(typeof document==="undefined")return;let s=document.getElementById("lzt-style");if(!s){s=document.createElement("style");s.id="lzt-style";document.head.appendChild(s);}s.textContent=LZT_CSS;}
 lztInstallStyle();
@@ -8035,7 +8206,9 @@ function renderQuestion(){
   const qNum=Math.min(S.n+1,S.total),pct=Math.round((S.n/S.total)*100);
   const rvId=S.lesson&&S.lesson.indexOf("reveal:")===0?S.lesson.slice(7):null,rvL=rvId&&typeof revealLesson==="function"?revealLesson(rvId):null;
   // Reveal lessons (Eb 2026-11-05 look fix): the same slim one-line head + "Question n of N" as the workbook lesson screens, inside the card
-  const rvHead=rvL?'<div class="rvq-head"><h1 class="wb-qhead"><span>Lesson '+esc(rvId)+'</span><span class="wb-qh-sep" aria-hidden="true">·</span><span class="wb-qh-t">'+esc(rvL.t)+'</span></h1><div class="lzt-count"><b>Question '+qNum+' of '+S.total+'</b><span class="rvq-lvl">LVL '+q.level+' · '+LEVEL_NAMES[q.level]+'</span>'+reviewChip+'</div><div class="wb-progress"><i style="width:'+pct+'%"></i></div></div>':'';
+  // Eb 2026-11-05 correction: no jargon title / "LVL 3 · Conceptual" chip in the kid view; same Back / Check / Skip bar as the workbook screens
+  const rvHead=rvL?'<div class="rvq-head"><h1 class="wb-qhead"><span>Lesson '+esc(rvId)+'</span></h1><div class="lzt-count"><b>Question '+qNum+' of '+S.total+'</b>'+reviewChip+'</div><div class="wb-progress"><i style="width:'+pct+'%"></i></div></div>':'';
+  const rvG2=rvL&&!typed&&!q.mirror&&q.opts.length===4&&q.opts.every(o=>String(o).length<=40);
   app.innerHTML='<div class="fadein focus-wrap'+(rvL?' rvq':'')+'">'
    +(rvL?'':'<div class="hud">'
    +'<span class="pill">'+SUBJECTS[S.subject].icon+' <b>'+SUBJECTS[S.subject].name+'</b></span>'
@@ -8045,20 +8218,21 @@ function renderQuestion(){
    +'</div>'
    +'<div class="bar session-bar"><i style="width:'+pct+'%"></i></div>')
    +'<div class="card gold">'+rvHead
-   +'<p class="qtext">'+esc(q.q)+'</p>'
+   +(rvL?'<div class="rvq-qrow"><p class="qtext">'+esc(q.q)+'</p><button type="button" class="rvq-read" onclick="say(S.cur.q)" aria-label="Read it to me"><span aria-hidden="true">🔈</span>Read it</button></div>':'<p class="qtext">'+esc(q.q)+'</p>')
    +(q.vis?'<div class="qvis">'+q.vis+'</div>':'')
-   +'<div class="center" style="margin:-4px 0 10px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">'
-   +((wp||S.subject==="comprehension")?'<button class="readbtn" onclick="say(S.cur.q)">🔊 Read it again</button>':'')
+   +'<div class="center'+(rvL?' rvq-tools':'')+'" style="margin:-4px 0 10px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">'
+   +((wp||S.subject==="comprehension")&&!rvL?'<button class="readbtn" onclick="say(S.cur.q)">🔊 Read it again</button>':'')
    +(S.story?'<button class="readbtn" onclick="showStoryAgain()">📖 Read the story again</button>':'')
    +'<button class="readbtn helpbtn" onclick="askHelp()">🦁 Ananse, help me</button>'
    +'</div>'
    +(q.manip?manipHTML(q):'')
    +(q.mirror&&/draw a representation/i.test(q.q)?scratchHTML(true):'')
    +(q.mirror?'<div id="mirrorArea">'+mirrorHTML(q)+'</div>'+(showScratch&&!/draw a representation/i.test(q.q)?scratchHTML():''):(typed?'<div class="ty-row">'+(showScratch?scratchHTML():'')+typePadHTML()+'</div>':(showScratch?scratchHTML():'')))
-   +'<div class="opts" id="optwrap" style="'+((gate||typed||q.mirror)?'display:none':'')+'">'+order.map((oi,pos)=>'<button class="opt" id="opt'+pos+'" onclick="answer('+pos+')"><span class="letter">'+letters[pos]+'</span><span>'+esc(q.opts[oi])+'</span></button>').join("")+'</div>'
+   +'<div class="opts'+(rvG2?' g2':'')+'" id="optwrap" style="'+((gate||typed||q.mirror)?'display:none':'')+'">'+order.map((oi,pos)=>'<button class="opt" id="opt'+pos+'" onclick="'+(rvL&&!q.mirror?'rvqPick':'answer')+'('+pos+')"><span class="letter">'+letters[pos]+'</span><span>'+esc(q.opts[oi])+'</span></button>').join("")+'</div>'
    +(gate?'<div class="center" id="revealwrap"><div class="spacer"></div><button class="btn big" onclick="revealOptions()">I worked it out — show my choices ▶</button></div>':'')
-   +'<div class="center" id="skipbar" style="margin-top:14px"><button class="readbtn" onclick="skipQuestion()">Skip this one →</button></div>'
+   +(rvL?rvqBarHTML(q,typed):'<div class="center" id="skipbar" style="margin-top:14px"><button class="readbtn" onclick="skipQuestion()">Skip this one →</button></div>')
    +'</div></div>';
+  S.rvSel=null;
   S.qStart=Date.now();S.qShownAt=S.qStart;S.qTries=0;S.typedGiven=null;
   S.tried=false;               // fresh mastery slate for this question
   sessSave();                  // auto-save: reopening resumes exactly here
@@ -8084,7 +8258,38 @@ function typePadHTML(){
    +'<button class="btn ty-key ty-go" onclick="typeCheck()">✓</button>'
    +'</div></div>';
 }
-function typeShow(){const b=$("typebox");if(b)b.innerHTML=S.typed?esc(Number(S.typed).toLocaleString("en-US")):'<span class="ty-ph">Type your answer</span>';}
+function typeShow(){const b=$("typebox");if(b)b.innerHTML=S.typed?esc(Number(S.typed).toLocaleString("en-US")):'<span class="ty-ph">Type your answer</span>';rvqRefresh();}
+/* ---------- Reveal lesson quiz bar (Eb 2026-11-05 correction pass): ◀ Back · ONE primary (Check, then Next / Show me how) · Skip ▶ ----------
+   Tap a choice to select it, Check marks it with the same answer() as before. Back = look at the last answer (answers stay locked). */
+function rvqOn(){return !!(typeof document!=="undefined"&&document.querySelector(".rvq .lzq-bar"));}
+function rvqBarHTML(q,typed){
+  const hist=(S.rvHist||[]).length,check=q.mirror?'':'<button type="button" id="rvqCheck" class="lzq-check wait" onclick="rvqCheck()" disabled>'+(typed?'Type your answer':'Pick an answer')+'</button>';
+  return'<div class="lzq-bar rvq-bar"><div class="lzq-grp">'+lzqBackBtn("rvqBack","rvqBack()",!hist)+'<div class="lzq-main">'+check+'</div>'+lzqSkipBtn("rvqSkip","rvqSkip()",false)+'</div></div>';
+}
+function rvqRefresh(){const b=$("rvqCheck");if(!b||!S||!S.cur)return;const typed=!!$("typewrap"),ok=typed?!!S.typed:S.rvSel!=null;b.disabled=!ok;b.classList.toggle("wait",!ok);b.innerHTML=ok?'Check<span class="lzq-mw"> my work</span> ✓':(typed?'Type your answer':'Pick an answer');}
+function rvqPick(pos){const b=$("opt"+pos);if(!b||!b.onclick)return;S.rvSel=pos;document.querySelectorAll("#optwrap .opt").forEach((o,i)=>{o.classList.toggle("sel",i===pos);o.setAttribute("aria-pressed",String(i===pos));});if(typeof sfx==="function")sfx("tick");rvqRefresh();}
+function rvqRemember(e){S.rvHist=(S.rvHist||[]).concat([e]).slice(-10);}
+function rvqCheck(){
+  const q=S&&S.cur;if(!q)return;const typed=!!$("typewrap"),n=Math.min(S.n+1,S.total);
+  if(typed){if(!S.typed)return;const t=S.typed;typeCheck();rvqRemember({n:n,q:q.q,given:Number(t).toLocaleString("en-US"),ok:_tyNum(q.opts[q.a])===Number(t)});}
+  else{const pos=S.rvSel;if(pos==null)return;const oi=S.order[pos];answer(pos);if(S.cur===q&&S.tried)rvqRemember({n:n,q:q.q,given:q.opts[oi],ok:oi===q.a});}
+  rvqSync(q);
+}
+/* after answer(): the inline Next / Show me how button moves into the bar as the one primary; Skip is done */
+function rvqSync(q){
+  if(!S||S.cur!==q||!rvqOn())return;
+  const b=document.querySelector("#nextbar .btn, #trybar .btn"),m=document.querySelector(".rvq .lzq-bar .lzq-main"),sk=$("rvqSkip"),bk=$("rvqBack");
+  if(sk)sk.disabled=true;if(bk)bk.disabled=!(S.rvHist||[]).length;
+  if(b&&m){m.innerHTML='<button type="button" id="rvqNext" class="lzq-check" onclick="'+esc(b.getAttribute("onclick")||"nextQuestion()")+'">'+b.innerHTML+'</button>';b.remove();}
+  else if(m&&$("rvqCheck"))m.innerHTML='';
+}
+function rvqSkip(){const q=S&&S.cur;if(!q||S.tried)return;rvqRemember({n:Math.min(S.n+1,S.total),q:q.q,given:"",ok:false,skip:true});skipQuestion();}
+function rvqBack(){
+  const h=S&&S.rvHist||[];if(!h.length||typeof lzDialog!=="function")return;let k=h.length-1;
+  const show=()=>{const e=h[k];lzDialog({title:"Question "+e.n,body:'<p class="lzd-q">'+esc(e.q)+'</p>'+(e.skip?'<p class="lzd-a">You skipped this one.</p>':'<p class="lzd-a">Your answer: <b>'+esc(e.given)+'</b></p><p class="lzd-r '+(e.ok?'ok':'no')+'">'+(e.ok?'✓ You got this one right.':'✗ Not right that time.')+'</p>'),
+    buttons:(k>0?[{label:"◀ Earlier",cls:"ghost",id:"lzdEarlier",keep:true,fn:()=>{k--;show();}}]:[]).concat([{label:"Back to my question ▶",cls:"go",id:"lzdBackTo"}])});};
+  show();
+}
 function typeKey(d){if(!S||!S.cur)return;S.typed=((S.typed||"")+d).replace(/^0+(?=\d)/,"").slice(0,7);typeShow();if(typeof sfx==="function")sfx("tick");}
 function typeDel(){if(!S)return;S.typed=(S.typed||"").slice(0,-1);typeShow();}
 function typeCheck(){
