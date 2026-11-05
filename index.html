@@ -3142,50 +3142,72 @@ const GP_DRIVERS=["Kofi","Ama","Esi","Kwame","Abena"];
    Every circuit has a long main straight (grid, gantry, pit wall, grandstands), a tight hairpin, a chicane, flowing esses,
    a fast sweeper and medium 90-degree corners; `elev` is an up-and-down profile along the lap in metres. */
 const GP_CIRCUITS=[
- {id:"kawaguchi",name:"Lake Kawaguchi Circuit",laps:2,stars:1,blurb:"Cherry blossom and Mount Fuji by the lake",tree:"cherry",hills:2.4,grass:0x7fa65a,lake:{x:30,z:-520,rx:420,rz:230},town:1,city:0.35,fuji:[40,-1180],elev:[3,1.5,0.4],
+ {id:"kawaguchi",name:"Lake Kawaguchi Circuit",laps:2,stars:1,blurb:"Cherry blossom and Mount Fuji by the lake",tree:"cherry",hills:2.4,grass:0x7fa65a,lake:{x:30,z:-520,rx:420,rz:230},town:1,city:0.35,fuji:[40,-1180],
   look:{top:"#4f86cf",mid:"#a3c6e6",hor:"#f3d7ad",glow:"#ffe3b0",sun:"#ffd7a6",sunI:1.25,hemi:0.72,dir:[0.62,0.34,-0.58],haze:"#d9dcea",hill:"#5d6f98",time:"Golden hour by the lake",night:0,tint:[1,1,1]},
   story:{paper:"#f7f0e1",ink:"#2b2735",hill:"#a7c7a0",top:"#a9d8ee",hor:"#fbf3e2"},
-  segs:[["S",95],["R",30,90],["S",40],["R",28,90],["L",50,45],["R",50,90],["L",50,45],["S",45],["R",22,55],["L",22,55],["S",55],["L",26,90],["S",85],["R",17,180],["S",100.2],["R",90,90],["S",150.5]]},
- {id:"hakone",name:"Hakone Mountain Circuit",laps:2,stars:2,blurb:"Cedar forest and mountain bends",tree:"cedar",hills:5.5,grass:0x5f8a46,lake:null,town:0,city:0,fuji:[-120,-1150],mtn:[{x:330,z:-60,r:260,h:30},{x:-330,z:120,r:220,h:28}],elev:[5,2.5,1.2],
+  segs:[["S",120],["R",30,90],["S",97.32],["L",50,45],["R",50,90],["L",50,45],["S",48.6,{"h":4}],["R",22,55],["L",22,55],["S",75.96],["R",70,30],["L",70,30],["S",116.81,{"h":6}],["R",28,90],["S",105.63],["R",17,180],["S",62.38],["L",17,180],["S",72.54,{"j":1.8,"h":2}],["R",30,40],["L",30,40],["L",25,50],["R",25,50],["S",90.04],["R",40,90],["S",48.15],["L",24,90],["S",40.0,{"h":5}],["R",24,90],["S",77.72],["R",45,45],["L",45,90],["R",45,45],["S",40.0],["R",60,35],["L",60,35],["S",40.0,{"h":3}],["R",90,90],["S",214.52]]},
+ {id:"hakone",name:"Hakone Mountain Circuit",laps:2,stars:2,blurb:"Cedar forest and mountain bends",tree:"cedar",hills:5.5,grass:0x5f8a46,lake:null,town:0,city:0,fuji:[-120,-1150],mtn:[{x:330,z:-60,r:260,h:30},{x:-330,z:120,r:220,h:28}],
   look:{top:"#5b92d6",mid:"#b2d0ea",hor:"#eadfc8",glow:"#fff0c8",sun:"#fff0d2",sunI:1.2,hemi:0.78,dir:[-0.5,0.5,-0.55],haze:"#cfd8e3",hill:"#4b6a8f",time:"Misty mountain morning",night:0,tint:[0.9,0.97,1.06]},
   story:{paper:"#f7f0e1",ink:"#2d2632",hill:"#c3b68c",top:"#8fb8e6",hor:"#fde3bf"},
-  segs:[["S",90],["L",28,90],["S",45],["L",30,90],["S",30],["R",45,50],["L",45,100],["R",45,50],["S",35],["L",20,60],["R",20,60],["S",45],["R",26,90],["S",80],["L",17,180],["S",109],["L",80,90],["S",174.5]]},
- {id:"tokyo",name:"Tokyo Bay Street Circuit",laps:2,stars:2,blurb:"Sunset over the bay and the city",tree:"mixed",sky:"dusk",hills:1.6,grass:0x7f9a5c,lake:{x:560,z:0,rx:300,rz:700,sea:1},town:0,city:1,fuji:[-200,-1200],elev:[2.5,1.2,2.2],
+  segs:[["S",110],["L",28,90],["S",150.0,{"h":4}],["L",40,45],["R",40,90],["L",40,45],["S",113.77,{"h":6}],["R",20,60],["L",20,60],["S",180.45,{"h":10}],["L",30,90],["S",100.0,{"h":14}],["L",20,180],["S",46.6,{"h":20}],["R",20,180],["S",69.26,{"h":26}],["R",45,50],["L",45,100],["R",45,50],["S",140.0,{"h":30,"j":2.6}],["L",26,90],["S",84.53,{"h":22}],["L",20,60],["R",20,60],["S",68.88,{"h":14,"j":2.4,"jat":0.35}],["L",50,45],["R",50,90],["L",50,45],["S",86.04,{"h":6}],["L",40,90],["S",95.13,{"h":3}],["R",24,90],["S",40.48],["L",24,90],["S",95.41,{"h":0}]]},
+ {id:"tokyo",name:"Tokyo Bay Street Circuit",laps:2,stars:2,blurb:"Sunset over the bay and the city",tree:"mixed",sky:"dusk",hills:1.6,grass:0x7f9a5c,lake:{x:600,z:0,rx:300,rz:700,sea:1},town:0,city:1,fuji:[-200,-1200],
   look:{top:"#3c5f9e",mid:"#9ab2d6",hor:"#f7b98a",glow:"#ffc48a",sun:"#ffc07a",sunI:1.15,hemi:0.62,dir:[-0.75,0.28,-0.45],haze:"#d8c8c8",hill:"#5a5f86",time:"Sunset over the bay",night:0.5,tint:[1.1,0.9,0.8]},
   story:{paper:"#e8d3c6",ink:"#241c30",hill:"#7a7aa6",top:"#3b3f78",hor:"#f2a88e"},
-  segs:[["S",105],["R",32,90],["S",30],["R",24,60],["L",24,60],["S",35],["R",30,90],["S",45],["L",48,45],["R",48,90],["L",48,45],["S",30],["L",24,90],["S",95],["R",17,180],["S",187.6],["R",100,90],["S",85.8]]},
+  segs:[["S",130],["R",32,90],["S",114.1],["R",24,60],["L",24,60],["S",159.98,{"h":5}],["R",20,90],["S",43.59,{"h":7}],["L",20,90],["S",65.49,{"h":1}],["R",30,90],["S",225.98],["L",48,45],["R",48,90],["L",48,45],["S",80.48,{"j":1.8}],["R",17,180],["S",72.86],["L",17,180],["S",40.0,{"h":6}],["R",22,90],["S",40.0,{"h":8}],["L",26,45],["R",26,45],["S",63.61],["L",22,90],["S",40.0,{"h":2}],["R",22,90],["S",94.71],["R",100,90],["S",147.77],["L",30,40],["R",30,40],["S",219.85]]},
  /* ---- street + themed courses (theme: city / accra / coast) - built by gpThemeWorld; zones are lap fractions ---- */
- {id:"city",name:"City Circuit",theme:"city",laps:2,stars:3,tree:"none",hills:0.35,grass:0x8b9178,lake:null,town:0,city:0,fuji:null,ridges:0,elev:[1.2,0.5,0.3],downtown:[0.8,0.28],
+ {id:"city",name:"City Circuit",theme:"city",laps:2,stars:3,tree:"none",hills:0.35,grass:0x8b9178,lake:null,town:0,city:0,fuji:null,ridges:0,downtown:[0.8,0.28],
   traffic:[["sedan",4],["hatch",3],["taxi",3],["van",2],["bus",2]],blurb:"Downtown streets, traffic, a tunnel and a canal bridge",
-  zones:{tunnel:[[0.294,0.371]],bridge:[[0.584,0.613]],avenue:[[0.69,0.915]]},
+  
   look:{top:"#3f7fd6",mid:"#a9c8ea",hor:"#f0e2c8",glow:"#fff0c8",sun:"#fff1d6",sunI:1.5,hemi:0.55,dir:[0.55,0.6,-0.45],haze:"#cfd9e6",hill:"#5a6a88",time:"Sunny afternoon downtown",night:0,tint:[1,1,1]},
   story:{paper:"#f4efe6",ink:"#262a33",hill:"#a9b4c4",top:"#a9d0ee",hor:"#fbf3e2"},
-  segs:[["S",150],["R",24,90],["S",80],["L",20,90],["S",50],["R",20,90],["S",193.14],["R",40,90],["S",100],["R",26,45],["L",26,45],["S",175.34],["R",22,90],["S",320],["R",20,90],["S",90]]},
- {id:"accra",name:"Accra Streets",theme:"accra",laps:2,stars:2,tree:"palm",hills:0.8,grass:0x9a9a5c,town:0,city:0,fuji:null,ridges:0,elev:[1.2,0.6,0.5],seaSide:-1,parkSide:1,seaZone:[0.26,0.4],
+  segs:[["S",150],["R",22,90],["S",58.81],["L",20,90],["S",90.05,{"h":4}],["R",20,90],["S",38.81],["R",28,45],["L",28,45],["S",170,{"z":"tunnel","h":4}],["S",38.81],["L",26,40],["R",26,40],["S",38.81],["R",40,90],["S",106.57,{"h":10}],["L",22,90],["S",38.81,{"h":14}],["R",18,90],["S",188.63,{"z":"bridge","j":3.0,"h":2}],["L",35,60],["R",35,60],["S",87.84],["R",40,30],["L",40,30],["S",84.71,{"h":1}],["R",20,90],["S",121.24],["L",18,90],["S",49.97],["R",18,90],["S",101.24],["R",16,180],["S",38.81],["L",16,180],["S",381.24,{"z":"avenue"}],["R",20,90],["S",100.05],["R",30,45],["L",30,45],["S",230.05]]},
+ {id:"accra",name:"Accra Streets",theme:"accra",laps:2,stars:2,tree:"palm",hills:0.8,grass:0x9a9a5c,town:0,city:0,fuji:null,ridges:0,seaSide:-1,parkSide:1,
   traffic:[["ghtaxi",5],["trotro",4],["sedan",3],["hatch",2]],blurb:"Black Star Gate, the Labadi beach road, Osu shops",special:"gh",
-  zones:{square:[[0.93,0.097]],beach:[[0.15,0.41]],shops:[[0.45,0.78]],park:[[0.875,0.93]]},
+  
   look:{top:"#2f86e0",mid:"#9cc9ef",hor:"#f3e3c3",glow:"#fff4d6",sun:"#fff4dc",sunI:1.6,hemi:0.6,dir:[0.35,0.8,-0.35],haze:"#e6dccb",hill:"#7d8a6a",time:"Hot sunny afternoon in Accra",night:0,tint:[1,1,1]},
   story:{paper:"#f8eedc",ink:"#2b2420",hill:"#c9b27a",top:"#8ec8f0",hor:"#fde9c4"},
-  segs:[["S",140],["R",30,90],["S",60],["R",140,25],["L",140,25],["S",215.83],["R",25,90],["S",120],["R",18,90],["S",200],["L",18,90],["S",90],["R",18,90],["S",150],["R",45,90],["S",100.27]]},
- {id:"coast",name:"Coast Road",theme:"coast",laps:2,stars:1,tree:"none",hills:3.2,grass:0x7ea456,town:0,city:0,fuji:null,ridges:14,elev:[3.5,1.6,0.9],seaSide:-1,seaZone:[0.43,0.6],
+  segs:[["S",140,{"z":"square"}],["R",30,90],["S",160.0,{"h":6}],["L",40,45],["R",40,45],["S",200.0,{"h":14}],["R",60,30,{"h":16}],["S",200.0,{"h":3,"j":2.6,"jat":0.3}],["R",25,60,{"z":["beach","sea"]}],["S",107.57,{"z":["beach","sea"],"h":1}],["L",60,40,{"z":["beach","sea"]}],["R",60,80,{"z":["beach","sea"]}],["L",60,40,{"z":["beach","sea"]}],["S",91.32,{"z":["beach","sea"]}],["R",30,40,{"z":["beach","sea"]}],["L",30,40,{"z":["beach","sea"]}],["S",88.56,{"z":["beach","sea"]}],["R",22,90],["S",100.22,{"z":"shops"}],["L",18,90,{"z":"shops"}],["S",57.45,{"z":"shops"}],["R",18,90,{"z":"shops"}],["S",222.55,{"z":"shops"}],["R",17,180,{"z":"shops"}],["S",80.0,{"z":"shops"}],["L",18,180,{"z":"shops"}],["S",81.37],["R",26,45],["L",26,45],["S",95.64],["R",18,90],["S",100.0,{"z":"park"}],["L",18,90],["S",77.68],["R",20,90],["S",290.77,{"z":"square"}]]},
+ {id:"coast",name:"Coast Road",theme:"coast",laps:2,stars:1,tree:"none",hills:3.2,grass:0x7ea456,town:0,city:0,fuji:null,ridges:14,seaSide:-1,
   traffic:[["sedan",3],["hatch",2],["van",2],["trotro",1]],blurb:"Dirt lot, water splash, country lanes, highway bridge, forest",
-  zones:{dirt:[[0.955,0.125]],ford:[[0.156,0.168]],country:[[0.13,0.38]],highway:[[0.38,0.876]],bridge:[[0.45,0.52]],forest:[[0.876,0.99]]},
+  
   look:{top:"#4a83d0",mid:"#a8c7e8",hor:"#f6d3a3",glow:"#ffe0b0",sun:"#ffd9a8",sunI:1.45,hemi:0.6,dir:[-0.6,0.45,-0.5],haze:"#dbd7d0",hill:"#4f6a7f",time:"Golden evening on the coast",night:0,tint:[1.04,1,0.95]},
   story:{paper:"#f7f0e1",ink:"#2d2632",hill:"#a7c7a0",top:"#a9d8ee",hor:"#fbf3e2"},
-  segs:[["S",120],["R",25,90],["S",150],["L",32,60],["R",32,60],["L",32,40],["R",32,40],["S",40],["R",35,90],["S",206.32],["R",80,90],["S",220.46],["R",30,90],["L",28,45],["R",28,45],["S",60]]}
+  segs:[["S",120,{"z":"dirt"}],["R",25,90,{"z":"dirt"}],["S",60,{"z":"country"}],["S",40,{"z":["country","ford"],"h":-2}],["S",114.95,{"z":"country","j":2.6}],["L",32,60,{"z":"country"}],["R",32,120,{"z":"country"}],["L",32,60,{"z":"country"}],["S",86.82,{"z":"country","h":8}],["R",32,40,{"z":"country"}],["L",32,40,{"z":"country"}],["S",86.83,{"z":"country"}],["R",18,180,{"z":"country"}],["S",75.39,{"z":"country","h":12}],["L",18,180,{"z":"country"}],["S",67.9,{"z":"country"}],["R",35,90,{"z":"country"}],["S",223.28,{"z":["highway","sea"]}],["L",80,30,{"z":["highway","sea"]}],["R",80,30,{"z":["highway","sea"]}],["S",144.03,{"z":["highway","bridge","sea"],"j":3,"jat":0.85}],["R",80,90,{"z":["highway","sea"]}],["S",258.19,{"z":"highway","j":3.2}],["L",40,30,{"z":"highway"}],["R",40,30,{"z":"highway"}],["S",71.94,{"z":"highway"}],["R",24,50,{"z":"highway"}],["L",24,50,{"z":"highway"}],["S",97.63,{"z":"highway"}],["R",30,90,{"z":"forest"}],["L",28,45,{"z":"forest"}],["R",28,90,{"z":"forest"}],["L",28,45,{"z":"forest"}],["S",98.45,{"z":"forest"}],["S",290.21,{"z":"dirt"}]]}
 ];
-/* walk the segment list: a point every ~9 m on straights and every ~6 m (or 15 degrees) round arcs; the last point is the start again, so it is dropped */
+/* walk the segment list: a point every ~4 m on straights (jump crests need the detail) and every ~4 m (or 15 degrees) round arcs;
+   the last point is the start again, so it is dropped. Segments may carry an options object (after the numbers):
+   z = zone name(s) for the themed scenery, h = road height (m) at the END of the segment, j = jump crest height (m) on a straight
+   (jat = where along it, 0..1, default 0.5). Zones, the sea and the elevation profile are all worked out from these tags. */
 function gpTrackPts(segs){const pts=[];let x=0,z=0,h=0,since=99;const push=()=>{pts.push([+x.toFixed(2),+z.toFixed(2)]);since=0;};push();
-  segs.forEach(sg=>{const arc=sg[0]!=="S",R=sg[1],L=arc?R*sg[2]*Math.PI/180:sg[1],sgn=sg[0]==="R"?1:-1,every=arc?Math.min(6,R*0.26):Math.min(9,L/Math.max(1,Math.round(L/9)));let d=0;
-    while(d<L-0.01){const st=Math.min(arc?0.5:1,L-d);x+=Math.sin(h)*st;z-=Math.cos(h)*st;if(arc)h+=sgn*st/R;d+=st;since+=st;if(since>=every-0.001&&L-d>(arc?2:3))push();}push();});
+  segs.forEach(sg=>{const arc=sg[0]!=="S",R=sg[1],L=arc?R*sg[2]*Math.PI/180:sg[1],sgn=sg[0]==="R"?1:-1,every=arc?Math.min(4,R*0.26):Math.min(4,L/Math.max(1,Math.round(L/4)));let d=0;
+    while(d<L-0.01){const st=Math.min(0.5,L-d);x+=Math.sin(h)*st;z-=Math.cos(h)*st;if(arc)h+=sgn*st/R;d+=st;since+=st;if(since>=every-0.001&&L-d>2)push();}push();});
   pts.pop();return pts;}
+function gpSegOpt(sg){const o=sg[0]==="S"?sg[2]:sg[3];return(o&&typeof o==="object")?o:{};}
+function gpSegLen(sg){return sg[0]==="S"?sg[1]:sg[1]*sg[2]*Math.PI/180;}
+/* road height profile along the lap (metres, before the terrain under it): smooth (cosine) between the tagged heights, plus a
+   kicker for every jump crest - a long ramp up (zero slope at the top) and a short steep drop, so a fast car flies off the top */
+function gpElevAt(C,d){const K=C.ekeys,L=C.lapM;d=((d%L)+L)%L;let y=0;
+  for(let k=1;k<K.length;k++){if(d<=K[k][0]){const a=K[k-1],b=K[k],t=(d-a[0])/Math.max(1e-6,b[0]-a[0]);y=a[1]+(b[1]-a[1])*(0.5-0.5*Math.cos(Math.PI*t));break;}}
+  for(const J of C.jumps){let u=d-J[0];if(u>L/2)u-=L;else if(u<-L/2)u+=L;const ra=26+4*J[1],fb=10+1.5*J[1];if(u>-ra&&u<fb){const q=u<0?u/ra:u/fb,w=1-q*q;y+=J[1]*w*w;}}
+  return y;}
 GP_CIRCUITS.forEach(c=>{c.pts=gpTrackPts(c.segs);c.mainS=[c.segs[c.segs.length-1][1],c.segs[0][1]];
-  c.km=c.segs.reduce((d,q)=>d+(q[0]==="S"?q[1]:q[1]*q[2]*Math.PI/180),0)/1000;
-  if(c.seaZone&&c.seaSide){   // the sea: a huge ellipse just beyond the beach / highway side, shore ~40 m from the road
+  c.lapM=c.segs.reduce((d,q)=>d+gpSegLen(q),0);c.km=c.lapM/1000;
+  // distance along the lap of every point, scaled so the last point closes the loop at lapM
+  {let d=0;const D=[0];for(let i=1;i<c.pts.length;i++){d+=Math.hypot(c.pts[i][0]-c.pts[i-1][0],c.pts[i][1]-c.pts[i-1][1]);D.push(d);}
+    const close=d+Math.hypot(c.pts[0][0]-c.pts[c.pts.length-1][0],c.pts[0][1]-c.pts[c.pts.length-1][1]),f=c.lapM/close;c.ptsD=D.map(v=>v*f);}
+  // zones (lap fractions) and elevation keys from the segment tags
+  const Z={},keys=[[0,0]],jumps=[];let d=0;
+  c.segs.forEach(sg=>{const L=gpSegLen(sg),o=gpSegOpt(sg);[].concat(o.z||[]).forEach(n=>{const r=Z[n]||(Z[n]=[]),last=r[r.length-1],a=d/c.lapM,b=(d+L)/c.lapM;if(last&&Math.abs(last[1]-a)<1e-6)last[1]=b;else r.push([a,b]);});
+    if(typeof o.h==="number")keys.push([d+L,o.h]);if(typeof o.j==="number"&&sg[0]==="S")jumps.push([d+L*(typeof o.jat==="number"?o.jat:0.5),o.j]);d+=L;});
+  keys.push([c.lapM,0]);c.ekeys=keys;c.jumps=jumps;
+  Object.keys(Z).forEach(n=>{const r=Z[n];if(r.length>1&&r[0][0]<1e-6&&r[r.length-1][1]>1-1e-6){r[0][0]=r.pop()[0];}});   // a zone across the start line wraps (a > b)
+  if(Object.keys(Z).length){c.zones=Z;if(Z.sea)c.seaZone=Z.sea[0].slice();}
+  if(c.seaZone&&c.seaSide){   // the sea: a huge ellipse beyond the beach / highway side; its shore sits ~60 m out from the road's outermost bulge
     const P=c.pts,n=P.length,i0=Math.floor(c.seaZone[0]*n),i1=Math.floor(c.seaZone[1]*n),im=(i0+i1)>>1;let mx=0,mz=0;for(let i=i0;i<=i1;i++){mx+=P[i][0];mz+=P[i][1];}mx/=(i1-i0+1);mz/=(i1-i0+1);
-    const a=P[(im-2+n)%n],b=P[(im+2)%n],tx=b[0]-a[0],tz=b[1]-a[1],tl=Math.hypot(tx,tz)||1,nx=-tz/tl*c.seaSide,nz=tx/tl*c.seaSide;
-    let cx=0,cz=0;P.forEach(p=>{cx+=p[0];cz+=p[1];});cx/=n;cz/=n;const R=520,along=1400,ew=Math.abs(nx)>Math.abs(nz);
-    c.lake={x:mx+nx*(14+0.92*R)-cx,z:mz+nz*(14+0.92*R)-cz,rx:ew?R:along,rz:ew?along:R,sea:1};}});
+    const a=P[i0],b=P[i1],tx=b[0]-a[0],tz=b[1]-a[1],tl=Math.hypot(tx,tz)||1,nx=-tz/tl*c.seaSide,nz=tx/tl*c.seaSide;   // the zone's overall direction (esses must not tilt the coast)
+    let out=0;for(let i=i0;i<=i1;i++)out=Math.max(out,(P[i][0]-mx)*nx+(P[i][1]-mz)*nz);
+    let cx=0,cz=0;P.forEach(p=>{cx+=p[0];cz+=p[1];});cx/=n;cz/=n;const R=520,along=1400,ew=Math.abs(nx)>Math.abs(nz),off=out+0.98*R;
+    c.lake={x:mx+nx*off-cx,z:mz+nz*off-cz,rx:ew?R:along,rz:ew?along:R,sea:1};}});
 const GP_GRIP=24;                        // tyre grip (lateral g in game units): corner speed = sqrt(GRIP * radius)
 const GP_MPH=3.4;                        // game speed → mph on the dial
 const GP_GEARS=[0,28,52,78,104,132];     // mph where each gear starts
@@ -4562,12 +4584,18 @@ function gpBuild(C){
   let cx=0,cz=0;C.pts.forEach(p=>{cx+=p[0];cz+=p[1];});cx/=C.pts.length;cz/=C.pts.length;
   const HA=C.hills||3,ph=C.id.length*1.7,LK=C.lake;
   const lakeF=(x,z)=>{if(!LK)return 0;const dx=(x-cx-LK.x)/LK.rx,dz=(z-cz-LK.z)/LK.rz;const d=Math.sqrt(dx*dx+dz*dz);const t=Math.max(0,Math.min(1,(d-0.72)/0.4));return 1-t*t*(3-2*t);};
-  const hgt=(x,z)=>{let h=5+HA*(Math.sin(x*0.011+ph)*Math.cos(z*0.013-ph*0.7)+0.55*Math.sin((x+z)*0.019+ph*1.3)+0.25*Math.cos((x-z)*0.031));
-    if(C.mtn)C.mtn.forEach(m=>{const dx=x-cx-m.x,dz=z-cz-m.z;h+=m.h*Math.exp(-(dx*dx+dz*dz)/(m.r*m.r));});
-    const lf=lakeF(x,z);return h*(1-lf)+(-7)*lf;};
-  const EV=C.elev||[0,0,0],NP=C.pts.length,elevAt=k=>EV[0]*Math.sin(k/NP*6.2832+EV[2])+EV[1]*Math.sin(k/NP*12.566+EV[2]*1.7);   // crests and dips along the lap (the main straight stays near level)
-  const curve=new T.CatmullRomCurve3(C.pts.map((p,k)=>new T.Vector3(p[0],hgt(p[0],p[1])+elevAt(k),p[1])),true,"centripetal",0.6);curve.arcLengthDivisions=Math.max(2000,Math.round(C.pts.length*24));   // a fine arc-length table: t*len is then true metres along the road (the default 200 steps was ~10 cm off between cars)
-  const M=960,W=7.6;const len=curve.getLength();
+  const hBase=(x,z)=>{let h=5+HA*(Math.sin(x*0.011+ph)*Math.cos(z*0.013-ph*0.7)+0.55*Math.sin((x+z)*0.019+ph*1.3)+0.25*Math.cos((x-z)*0.031));
+    if(C.mtn)C.mtn.forEach(m=>{const dx=x-cx-m.x,dz=z-cz-m.z;h+=m.h*Math.exp(-(dx*dx+dz*dz)/(m.r*m.r));});return h;};
+  // the road's own hills, valleys and jump crests (gpElevAt, from the route tags) ride on the rolling ground. The land round the road
+  // follows them too: a coarse field F spreads the road's lift over ~100 m, so hills look like hills (not a dyke) and valleys open out.
+  const RE=C.pts.map((p,k)=>gpElevAt(C,C.ptsD[k])),FG=25,FN=Math.ceil(1800/FG)+1,F0x=cx-900,F0z=cz-900,FF=new Float32Array(FN*FN);
+  {const sp=[];for(let k=0;k<C.pts.length;k+=3)sp.push(k);const s2=2*95*95,w0=Math.exp(-260*260/s2);
+    for(let a=0;a<FN;a++)for(let b=0;b<FN;b++){const x=F0x+a*FG,z=F0z+b*FG;let sw=w0,se=0;for(const k of sp){const dx=C.pts[k][0]-x,dz=C.pts[k][1]-z,d2=dx*dx+dz*dz;if(d2>90000)continue;const w=Math.exp(-d2/s2);sw+=w;se+=w*RE[k];}FF[a*FN+b]=se/sw;}}
+  const Fat=(x,z)=>{const fx=Math.max(0,Math.min(FN-1.001,(x-F0x)/FG)),fz=Math.max(0,Math.min(FN-1.001,(z-F0z)/FG)),a=Math.floor(fx),b=Math.floor(fz),u=fx-a,v=fz-b;
+    return (FF[a*FN+b]*(1-u)+FF[(a+1)*FN+b]*u)*(1-v)+(FF[a*FN+b+1]*(1-u)+FF[(a+1)*FN+b+1]*u)*v;};
+  const hgt=(x,z)=>{const h=hBase(x,z)+Fat(x,z),lf=lakeF(x,z);return h*(1-lf)+(-7)*lf;};   // the lake / sea floor never pulls the road down (the road uses hBase)
+  const curve=new T.CatmullRomCurve3(C.pts.map((p,k)=>new T.Vector3(p[0],hBase(p[0],p[1])+RE[k],p[1])),true,"centripetal",0.5);curve.arcLengthDivisions=Math.max(2000,Math.round(C.pts.length*24));   // a fine arc-length table: t*len is then true metres along the road (the default 200 steps was ~10 cm off between cars)
+  const len=curve.getLength(),M=Math.max(960,Math.round(len/1.4)),W=7.6;   // ~1.4 m between road samples (jump crests and hairpins stay smooth)
   const samples=[];for(let i=0;i<=M;i++){const t=(i/M)%1;const pos=curve.getPointAt(t);const tan=curve.getTangentAt(t).normalize();const nor=new T.Vector3(-tan.z,0,tan.x).normalize();samples.push({pos,tan,nor});}
   const CELL=24,hash=new Map();for(let i=0;i<M;i++){const p=samples[i].pos;const k=Math.floor(p.x/CELL)+","+Math.floor(p.z/CELL);let l=hash.get(k);if(!l){l=[];hash.set(k,l);}l.push(i);}
   const nearest=(x,z)=>{const cx0=Math.floor(x/CELL),cz0=Math.floor(z/CELL);let bd=1e12,bi=-1;for(let a=-2;a<=2;a++)for(let b=-2;b<=2;b++){const l=hash.get((cx0+a)+","+(cz0+b));if(!l)continue;for(const i of l){const p=samples[i].pos;const d=(p.x-x)*(p.x-x)+(p.z-z)*(p.z-z);if(d<bd){bd=d;bi=i;}}}return[bi,Math.sqrt(bd)];};
