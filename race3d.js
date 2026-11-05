@@ -461,7 +461,7 @@ function gpCss(){if(document.getElementById("gpV4Css"))return;const s=document.c
 .gp3-wrap.v3 .fz-boost.fill .rg{stroke:#00F0FF;stroke-width:13;transition:stroke-dashoffset .06s linear}
 .gp3-wrap.v3 .fz-boost.fill .core{opacity:1;animation:fzFill .3s ease-in-out infinite alternate}
 @keyframes fzFill{from{box-shadow:0 5px 0 #2F4F4F,0 0 8px rgba(0,240,255,.5);transform:scale(1)}to{box-shadow:0 5px 0 #2F4F4F,0 0 34px rgba(0,240,255,1);transform:scale(1.09)}}
-@media (max-height:520px),(orientation:portrait) and (max-width:600px){.gp3-wrap.v3 .fz-cam{top:calc(8px + env(safe-area-inset-top));right:calc(56px + env(safe-area-inset-right));width:68px;height:68px}.gp3-wrap.v3 .fz-boost{--bst:76px;right:calc(10px + var(--tach) + 10px)}.gp3-wrap.v3 .fz-trick{width:92px;height:92px;margin-left:-46px;bottom:calc(var(--ped) + 26px + env(safe-area-inset-bottom))}.gp3-wrap.v3 .fz-trick i{font-size:30px}.gp3-wrap.v3 .fz-trick b{font-size:17px}}
+@media (max-height:520px),(orientation:portrait) and (max-width:600px){.gp3-wrap.v3 .fz-cam{top:calc(8px + env(safe-area-inset-top));right:calc(56px + env(safe-area-inset-right));width:68px;height:68px}.gp3-wrap.v3 .fz-boost{--bst:76px;right:calc(10px + var(--tach) + 10px)}.gp3-wrap.v3 .fz-trick{width:92px;height:92px;margin-left:-46px;left:34%;bottom:calc(var(--ped) + 26px + env(safe-area-inset-bottom))}.gp3-wrap.v3 .fz-trick i{font-size:30px}.gp3-wrap.v3 .fz-trick b{font-size:17px}}
 .fz-route{display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:16px;border:2px solid rgba(255,255,255,.14);background:linear-gradient(160deg,#1c2238,#0b0f1e);color:#fff;font-family:inherit;cursor:pointer;text-align:left}
 .fz-route:hover{border-color:#ff2d87}
 .fz-route canvas{width:100%;height:auto;border-radius:10px}
@@ -2454,7 +2454,7 @@ function gpLand(kt,imp){const big=kt.airT>0.22||imp>2.5;if(!big)return;
   if(kt.player){R3.shake=Math.min(0.55,0.05+imp*0.055);GPA.play("land");
     const lg=R3.jumpLog||(R3.jumpLog=[]);lg.push({f:R3.frameN,t:+(R3.simT||0).toFixed(2),air:+kt.airT.toFixed(2),peak:+kt.airPeak.toFixed(2),impact:+imp.toFixed(1),takeoffKmh:kt.takeoff?kt.takeoff.v:null});
     if(kt.airT>0.4&&R3.mode==="race"){gpSkill("Big air",Math.round(kt.airT*700),true);gpAirBurst(kt.airT);}}}
-function gpAirBurst(t){const e=$("gp3Air");if(!e)return;e.innerHTML='<b>BIG AIR!</b><small>'+t.toFixed(1)+' s</small>';e.classList.remove("on");void e.offsetWidth;e.classList.add("on");}
+function gpAirBurst(t){const e=$("gp3Air");if(!e)return;const ms=$("gp3Msg");if(ms)ms.classList.remove("show");e.innerHTML='<b>BIG AIR!</b><small>'+t.toFixed(1)+' s</small>';e.classList.remove("on");void e.offsetWidth;e.classList.add("on");}
 /* "TOO FAST!" banner with an arrow for the bend: shown when a tight corner is coming up and Prince is still too fast to make it
    by braking normally from here (his speed vs the corner's safe speed and the distance left); it goes away as soon as he brakes */
 function gpWarn(me,waiting){const R=R3,M=R.M,ds=R.len/M,i=Math.floor(me.t*M)%M,v=me.speed,ce=$("gp3Cue");if(!ce)return;let on=false,dir=0;
@@ -2761,7 +2761,7 @@ function gpRender(dt){
     if(cmode==="bumper"){const by=Math.max(0.62,(GD.ride||0.1)+0.48);R3.camPos.copy(me.g.localToWorld(R3.tmpV3.set(0,by,Math.max(2.5,nz+0.1))));look=me.g.localToWorld(new T.Vector3(0,by-0.12,30));}
     else if(cmode==="hood"){const hy=Math.max(E[1]+0.3,rY+0.12);R3.camPos.copy(me.g.localToWorld(R3.tmpV3.set(0,hy,E[2]+0.2)));look=me.g.localToWorld(new T.Vector3(0,hy-0.55,30));}
     else{R3.camPos.copy(me.g.localToWorld(R3.tmpV3.set(0,E[1],E[2])));look=me.g.localToWorld(new T.Vector3(0,E[1]-0.22,30));}}
-  {const showMe=cmode==="chase"||cmode==="hood"||!!window.__gpCam;if(me.g.visible!==showMe)me.g.visible=showMe;}
+  {const showMe=cmode==="chase"||(cmode==="hood"&&!me.trick&&!me.tkRe)||!!window.__gpCam;if(me.g.visible!==showMe)me.g.visible=showMe;}
   const dc=window.__gpCam;if(dc&&R3.countdown<=0.5){   // test hook only: replay angle on the player car, set in the road's frame (a TV camera), so the car's
     // own heading (straight along the road, or the drift angle) is what you see; {car:true} restores the old lens glued to the car
     if(dc.car){me.g.updateMatrixWorld(true);R3.camPos.copy(me.g.localToWorld(R3.tmpV3.set(dc.side||0,dc.h||1.2,-(dc.back||5))));look=me.g.localToWorld(new T.Vector3(0,dc.look||0.5,dc.ahead||0));}
@@ -2770,6 +2770,7 @@ function gpRender(dt){
   if(R3.shake>0){R3.shake=Math.max(0,R3.shake-dt*1.7);const a=R3.shake*R3.shake*0.6,tt=performance.now()/1000;R3.camera.position.y+=Math.sin(tt*57)*a;R3.camera.position.x+=Math.sin(tt*43+1.3)*a*0.6;R3.camera.position.z+=Math.cos(tt*39)*a*0.6;}   // short landing shake only
   R3.karts.forEach(k=>{if(k.player)return;const fwd=(k.pos.x-R3.camPos.x)*flat.x+(k.pos.z-R3.camPos.z)*flat.z;const vis=fwd>2.4;if(k.g.visible!==vis)k.g.visible=vis;});   // a solid car until it passes the camera (an opacity fade made rivals see-through)
   R3.camera.lookAt(look);
+  if(cmode!=="chase"&&me.trick&&me.trick.k==="roll"&&!window.__gpCam)R3.camera.rotateZ(gpTrickAngle(me).a);   // from inside the car a barrel roll turns the whole world
   R3.fovK=(R3.fovK||0)+(Math.max(0,Math.min(1,(spd-0.45)/0.55))-(R3.fovK||0))*Math.min(1,dt*1.6);R3.bk=(R3.bk||0)+((me.boostT>0?1:0)-(R3.bk||0))*Math.min(1,dt*(me.boostT>0?7:2.2));const fovT=(tall?78:(cmode==="chase"?60:66))+R3.fovK*(tall?6:(cmode==="chase"?9:7))+R3.bk*(tall?7:11);R3.fov=fovT;if(Math.abs(R3.camera.fov-fovT)>0.01){R3.camera.fov=fovT;R3.camera.updateProjectionMatrix();}   // eases wider with speed (no jumps)
   R3.sky.position.copy(R3.camera.position);if(R3.band)R3.band.position.set(R3.camera.position.x,R3.band.userData.y,R3.camera.position.z);R3.glare.position.copy(R3.camera.position).addScaledVector(R3.sunDir,1500);
   R3.sun.position.copy(me.pos).add(R3.sunOff);R3.sun.target.position.copy(me.pos);R3.sun.target.updateMatrixWorld();
