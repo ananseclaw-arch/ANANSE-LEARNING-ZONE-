@@ -375,6 +375,7 @@ function wbRenderProblem(silent){
   app.innerHTML='<div class="fadein wb-shell'+(WB.flex?' lzt-test':'')+'"><div class="wb-page">'+wbPageHead(WB.lessonId)+(WB.flex?lztStripHTML():'<div class="wb-progress"><i style="width:'+pct+'%"></i></div>')+'<div class="wb-problem"><div class="wb-questionarea"><div class="wb-qrow"><div class="wb-qnum">'+(WB.isTwin?'↻':num+'.')+'</div><div><div class="wb-qcopy">'+(WB.isTwin?'<span style="color:#207141">Try one like it:</span> ':'')+wbEscape(p.q)+'</div>'+(p.instruction&&p.instruction!==p.q?'<div class="wb-instruction">'+wbEscape(p.instruction)+'</div>':'')+'<button class="wb-read" onclick="say(WB.cur.spoken)">🔊 Read it</button></div></div>'+visual+(work?wbWorkHTML(p):'')+'</div><div class="wb-answerarea">'+controls+submit+'</div></div></div></div>';
   if(WB.flex)lztAfterRender();
   if(work&&WB.workTab==="draw")setTimeout(wbInitCanvas,0);wbResumeSave();if(!silent&&typeof say==="function")say((WB.isTwin?"Try one like it. ":"")+p.spoken);
+  if(!silent)wbWarmExplain();
 }
 
 function wbWorkHTML(p){return'<section class="wb-work"><div class="wb-worktop"><b>✏️ SHOW YOUR WORK</b><div class="wb-tabs"><button class="wb-tab '+(WB.workTab==="build"?'on':'')+'" onclick="wbWorkTab(\'build\')">Build it</button><button class="wb-tab '+(WB.workTab==="draw"?'on':'')+'" onclick="wbWorkTab(\'draw\')">Draw it</button></div></div><div class="wb-workbody" id="wbWorkBody">'+(WB.workTab==="build"?wbBuildHTML(p):wbDrawHTML())+'</div></section>';}
@@ -468,6 +469,15 @@ function wbModelHTML(p,reason){
   return'<div class="lzt-model" role="status">'+(reason?'<p class="lzt-you">You wrote: <i>because '+wbEscape(String(reason).trim().replace(/^because\s+/i,""))+'</i></p>':'')
    +'<p class="lzt-model-h">💬 Nice thinking! Here’s another way to say it:</p><p class="lzt-model-t">'+wbEscape(p.explain||"")+'</p></div>';
 }
+/* While he types an Explain answer, quietly pre-render the model line in the teacher voice so it plays at once. */
+/* Spoken in sentence-sized pieces: the fixed opening is rendered once and cached for good; each new sentence is short
+   enough for the teacher voice to make quickly. */
+const WB_EXPLAIN_CHUNK=90;
+function wbExplainLine(p){return(WB&&WB.flex?"Your answer is right! ":"Nice work. Your answer is correct. ")+wbModelSpoken(p);}
+function wbWarmExplain(){
+  const p=WB&&WB.cur;if(!wbIsExplain(p)||typeof warmTeacherLine!=="function")return;
+  setTimeout(()=>{if(WB&&WB.cur===p&&!WB.answered)warmTeacherLine(wbExplainLine(p),WB_EXPLAIN_CHUNK);},4000); // after the question read-out
+}
 function wbModelSpoken(p){return"Nice thinking! Here's another way to say it. "+lztSpeakable(p.explain||"");}
 function wbSubmit(){
   if(!wbCanSubmit()){if(typeof toast==="function")toast(wbWorkDone()?"Finish every answer box first":"Show your work first");return;}
@@ -479,7 +489,7 @@ function wbCorrectAnswerHTML(p){if(p.type==="form")return'<div class="wb-multi-r
 function wbRenderFeedback(ok,a){
   const p=WB.cur,model=p.model||p.visual,head=ok?(WB.isTwin?"You got the new one!":"Yes — nice work!"):"Let’s look at the model.",voice=ok?"Nice work. Your answer is correct.":"Good try. Look at the model and the equation.";
   app.innerHTML='<div class="fadein wb-shell"><div class="wb-page">'+wbPageHead(WB.lessonId)+'<div class="wb-feedback '+(ok?'good':'try')+'"><h2>'+(ok?'✓ ':'')+wbEscape(head)+'</h2>'+(!ok&&model?'<div class="wb-visual">'+wbVisual(model)+'</div>':'')+wbCorrectAnswerHTML(p)+(wbIsExplain(p)?wbModelHTML(p,wbExplainParts(p,(a&&a.f)||{}).reason):'<div class="wb-teach">'+wbEscape(p.explain||"Use the model to check each number in the equation.")+'</div>')+'</div><div class="wb-btnrow">'+(!ok&&!WB.isTwin?'<button class="wb-primary" onclick="wbTryTwin()">Try one like it ↻</button>':'')+'<button class="wb-secondary" onclick="wbContinue()">'+(WB.index===(WB.size||8)-1?'See my score':'Next problem')+' ▶</button></div></div></div>';
-  wbResumeSave();if(typeof say==="function")say(voice+" "+(wbIsExplain(p)?wbModelSpoken(p):(p.explain||"")));
+  wbResumeSave();if(typeof say==="function")say(wbIsExplain(p)&&ok?wbExplainLine(p):voice+" "+(wbIsExplain(p)?wbModelSpoken(p):(p.explain||"")),{chunk:WB_EXPLAIN_CHUNK});
 }
 function wbTryTwin(){const original=WB.cur,type=original.type;let twin=null;for(let tries=0;tries<10&&!twin;tries++){const osig=wbSig(original),pool=wbGenerate(WB.lessonId,30).filter(x=>x.type===type&&(original.slot==null||x.slot===original.slot)&&wbSig(x)!==osig);if(pool.length)twin=wbPick(pool);}if(!twin){wbContinue();return;}wbLoadProblem(twin,true);}
 function wbContinue(){WB.index++;if(WB.index>=(WB.size||8))return wbFinish();wbLoadProblem(WB.problems[WB.index],false);}
@@ -593,7 +603,7 @@ function lztExplainPraise(p,a){ // answer right on an Explain question: no score
   if(area)area.innerHTML='<div class="lzt-praise lzt-praise-explain" role="status"><span class="lzt-star" aria-hidden="true">⭐</span><b>Your answer is right!</b></div>'+wbModelHTML(p,why)
     +'<div class="lzt-row"><button type="button" class="lzt-btn lzt-next" id="lztNextBtn" onclick="lztNext()">Next ▶</button></div>';
   lztIntoView("lztNextBtn");
-  if(typeof say==="function")say("Your answer is right! "+wbModelSpoken(p));
+  if(typeof say==="function")say(wbExplainLine(p),{chunk:WB_EXPLAIN_CHUNK});
 }
 function lztWrong(t,tries){
   _lztTok++;const area=document.querySelector(".wb-answerarea"),p=WB.cur,shown=tries>=3;lztRefreshStrip();
