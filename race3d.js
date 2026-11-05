@@ -406,6 +406,48 @@ function gpCss(){if(document.getElementById("gpV4Css"))return;const s=document.c
 .gp3-wrap.v3.story .fz-fin-t{background:none;color:#2b2735;-webkit-text-fill-color:#2b2735;font-style:normal;text-shadow:3px 3px 0 #f2c14e}
 .gp3-wrap.v3.story .fz-res div{border-bottom:1px dashed rgba(43,39,53,.3)}.gp3-wrap.v3.story .fz-res div.me{background:#f2c14e}
 .gp3-wrap.v3.story .fz-fin-s{color:#5b4f66}
+/* pick-an-upgrade (direction: lz-gp-3dcar-shots SOURCES.md): navy cards, thick border, hard bottom shadow, spring pop-in, idle hum */
+.fz-up{position:absolute;inset:0;z-index:12;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(8px,2.2vh,18px);padding:clamp(10px,3vh,26px) clamp(10px,3vw,30px);background:radial-gradient(120% 90% at 50% 20%,rgba(27,38,59,.985),rgba(13,27,42,.995));color:#FDF0D5;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;transition:opacity .28s}
+.fz-up.out{opacity:0}
+.fz-up-h{text-align:center;animation:fzUpIn .45s cubic-bezier(.34,1.56,.64,1) both}
+.fz-up-h b{display:block;font-style:italic;font-weight:900;font-size:clamp(26px,5vw,48px);letter-spacing:.5px;color:#F4A261;text-shadow:0 3px 0 #0D1B2A}
+.fz-up-h span{font-weight:600;font-size:clamp(13px,1.8vw,17px);opacity:.85}
+.fz-up-cards{display:flex;gap:clamp(10px,2vw,22px);width:100%;max-width:900px;justify-content:center;align-items:stretch}
+.fz-upc{--c:#2A9D8F;position:relative;flex:1 1 0;min-width:0;max-width:280px;min-height:clamp(150px,42vh,300px);display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:8px;padding:clamp(12px,2.4vh,22px) 12px;border:4px solid #0a1422;border-top:8px solid var(--c);border-radius:20px;background:linear-gradient(135deg,#132238 0%,#1B263B 100%);color:#FDF0D5;box-shadow:0 8px 0 #050b14,0 14px 26px rgba(0,0,0,.45);cursor:pointer;font:inherit;text-align:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+  animation:fzUpIn .5s cubic-bezier(.34,1.56,.64,1) both,fzHum 3s ease-in-out infinite;animation-delay:var(--d),calc(var(--d) + .6s);transition:transform .2s,box-shadow .2s,border-color .2s,opacity .25s}
+.fz-upc:hover,.fz-upc:focus-visible{transform:translateY(-4px);border-color:var(--c);box-shadow:0 12px 0 var(--c),0 18px 30px rgba(0,0,0,.45);outline:none}
+.fz-upc:active{transform:scale(.95)}
+.fz-upi{display:grid;place-items:center;width:clamp(56px,11vh,96px);height:clamp(56px,11vh,96px);border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.22),rgba(255,255,255,.04));border:3px solid var(--c);font-style:normal;font-size:clamp(30px,6vh,52px);line-height:1}
+.fz-upi.sw{background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.55),rgba(255,255,255,0) 45%),var(--p);border-color:#FDF0D5}
+.fz-upt{display:flex;flex-direction:column;align-items:center;gap:4px}
+.fz-upt b{font-style:italic;font-weight:900;font-size:clamp(17px,2.6vw,24px);text-transform:uppercase;line-height:1.05}
+.fz-upt small{font-weight:600;font-size:clamp(12px,1.6vw,15px);opacity:.88;line-height:1.25}
+.fz-pips{display:inline-flex;gap:6px;margin-top:4px}.fz-pips em{width:16px;height:16px;border-radius:50%;border:2px solid rgba(253,240,213,.55);background:transparent}
+.fz-pips em.on{background:#F4A261;border-color:#F4A261}.fz-pips em.new{border-color:var(--c);border-style:dashed;animation:fzPip 1s ease-in-out infinite}
+.fz-pips em.new.on{background:var(--c);border-style:solid;animation:fzBump .45s cubic-bezier(.34,1.56,.64,1)}
+.fz-upgo{display:block;width:100%;max-width:200px;padding:10px 0;border-radius:12px;background:var(--c);color:#0D1B2A;font-weight:900;font-style:italic;font-size:clamp(15px,2vw,19px);letter-spacing:1px;box-shadow:inset 0 -5px 0 rgba(0,0,0,.25)}
+.fz-up.chosen .fz-upc:not(.picked){opacity:0;transform:translateY(24px) scale(.9);pointer-events:none;animation:none}
+.fz-upc.picked{animation:fzPick .55s cubic-bezier(.34,1.56,.64,1) forwards;border-color:var(--c);box-shadow:0 0 0 4px var(--c),0 0 40px var(--c),0 10px 0 #050b14}
+.fz-up-fit{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) rotate(-8deg);padding:6px 16px;border-radius:10px;background:#2A9D8F;color:#fff;font-weight:900;font-style:italic;font-size:clamp(20px,3vw,30px);border:3px solid #FDF0D5;box-shadow:0 5px 0 #0D1B2A;animation:fzStamp .35s cubic-bezier(.34,1.56,.64,1) both}
+.fz-spark{position:absolute;width:12px;height:12px;border-radius:50%;background:var(--c);pointer-events:none;z-index:3;animation:fzSpark .8s cubic-bezier(.2,.7,.3,1) forwards}
+.fz-fin-up{display:none;margin-top:6px;padding:4px 14px;border-radius:999px;background:rgba(42,157,143,.25);border:2px solid #2A9D8F;font-weight:800;font-size:clamp(13px,1.6vw,16px)}.fz-fin-up.on{display:inline-block}
+@keyframes fzUpIn{0%{opacity:0;transform:translateY(30px) scale(.6)}100%{opacity:1;transform:none}}
+@keyframes fzHum{0%,100%{translate:0 0}50%{translate:0 -4px}}
+@keyframes fzPick{0%{transform:scale(1)}40%{transform:scale(1.1)}100%{transform:scale(1.05)}}
+@keyframes fzStamp{0%{opacity:0;transform:translate(-50%,-50%) rotate(-8deg) scale(2)}100%{opacity:1;transform:translate(-50%,-50%) rotate(-8deg) scale(1)}}
+@keyframes fzSpark{0%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y))) scale(.2);opacity:0}}
+@keyframes fzPip{50%{transform:scale(1.25)}}@keyframes fzBump{0%{transform:scale(.4)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.fz-upc,.fz-up-h,.fz-upc.picked,.fz-pips em.new{animation:none!important}}
+@media (max-height:520px){.fz-up{gap:6px;padding:8px 14px}.fz-up-h b{font-size:24px}.fz-up-h span{font-size:12px}.fz-upc{min-height:0;padding:8px 8px 10px;border-top-width:6px;gap:5px}.fz-upi{width:48px;height:48px;font-size:28px}.fz-upt b{font-size:16px}.fz-upt small{font-size:11.5px}.fz-upgo{padding:7px 0;font-size:14px}}
+@media (orientation:portrait) and (max-width:600px){.fz-up-cards{flex-direction:column;max-width:420px}.fz-upc{flex:0 0 auto;max-width:none;min-height:84px;flex-direction:row;justify-content:flex-start;text-align:left;padding:12px 14px;gap:12px}.fz-upt{align-items:flex-start;flex:1}.fz-upi{width:64px;height:64px;font-size:36px;flex:none}.fz-upgo{width:auto;padding:12px 14px;flex:none}.fz-up-fit{top:50%}}
+.fz-garage{margin:14px auto 0;max-width:760px;padding:12px 14px;border-radius:18px;background:linear-gradient(135deg,#132238,#1B263B);border:3px solid #0a1422;box-shadow:0 6px 0 #050b14;color:#FDF0D5}
+.fz-garage.empty{text-align:center;font-weight:700;font-size:15px}
+.fz-gt{font-weight:900;font-style:italic;font-size:18px;margin-bottom:6px}.fz-gt small{font-weight:600;font-style:normal;font-size:12px;opacity:.75}
+.fz-glvs{display:flex;flex-wrap:wrap;gap:8px 18px}.fz-glv{display:inline-flex;align-items:center;gap:8px;font-size:14px}.fz-glv .fz-pips{margin:0}
+.fz-gchips{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px}.fz-gchips i{font-style:normal;font-weight:800;font-size:13px;opacity:.8;min-width:56px}
+.fz-gp,.fz-gs{width:44px;height:44px;border-radius:50%;border:3px solid rgba(253,240,213,.35);cursor:pointer;display:grid;place-items:center;font-size:22px;background:#0D1B2A;color:#FDF0D5}
+.fz-gp{background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.5),rgba(255,255,255,0) 45%),var(--p)}
+.fz-gp.on,.fz-gs.on{border-color:#F4A261;box-shadow:0 0 0 3px rgba(244,162,97,.45)}
 `;document.head.appendChild(s);if(gpStory()&&!document.getElementById("gpFont")){const l=document.createElement("link");l.id="gpFont";l.rel="stylesheet";l.href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap";document.head.appendChild(l);}}
 
 /* ---------- menus: car select → route select → race ---------- */
@@ -446,7 +488,7 @@ function renderRace(){
   app.innerHTML='<div class="'+gpShellClass()+(GP_PICS[sel]?" pic":"")+'" id="fzShell" style="max-width:980px;margin:0 auto;padding:0 8px">'
    +gpHead("Japan · choose your car",GP_WORLD.title,"center 44%")
    +'<div class="fz-cars">'+cards+'</div>'
-   +'<div class="fz-paints">'+sw+'</div><div class="fz-paint-note">📸 This car comes in its own colour.</div>'
+   +'<div class="fz-paints">'+sw+'</div><div class="fz-paint-note">🎨 New paint colours come from race upgrades.</div>'+gpGarageHtml()
    +'<div class="center" style="margin-top:14px"><button class="btn big" onclick="renderCircuits()">Next: choose a route ▶</button></div>'
    +'<div class="btn-row" style="margin-top:12px"><button class="btn secondary" onclick="'+(P?'renderHome()':'renderProfiles()')+'">⟵ Back</button><button class="btn secondary" style="font-size:14px" onclick="renderRace2D()">Classic 2D racer</button></div><div class="spacer"></div></div>';
   gpDrawPreviews();
@@ -647,18 +689,18 @@ function gpUp(){const u=P&&P.gpUp;return(u&&typeof u==="object")?u:(window._gpUp
 function gpGlbPaint(paint){const m=new THREE.MeshPhysicalMaterial({color:gpLin(paint).multiplyScalar(0.8),metalness:0.05,roughness:0.38,clearcoat:1,clearcoatRoughness:0.08,envMapIntensity:0.6});m.userData.lin=1;return m;}
 function gpBuildGlbCar(T,car,src,paint,shared){
   const S=GP_SHAPE[car.type],D=GP_GLB[car.id],SM=gpGlbShared(T,shared),g=new T.Group(),root=src.clone(true);g.add(root);
-  const paintM=gpGlbPaint(paint),stripe=SM.stripe;
+  const paintM=gpGlbPaint(paint);let stripe=SM.stripe;if(gpUpLight(paint)){stripe=SM.stripe.clone();stripe.color.copy(gpLin("#d1121c"));stripe.userData.lin=1;}
   const tail=new T.MeshStandardMaterial({color:gpLin("#5a0004"),emissive:gpLin("#ff0d06"),emissiveIntensity:0.55,roughness:0.3});tail.userData.lin=1;tail.toneMapped=false;   // stays RED when lit (tone mapping turned it orange)
   let body=null;const hubs={},wh={};
   root.traverse(o=>{if(o.name==="body")body=o;else if(/^hub_/.test(o.name))hubs[o.name.slice(4)]=o;else if(/^wheel_/.test(o.name))wh[o.name.slice(6)]=o;
     if(!o.isMesh)return;const nm=o.material&&o.material.name;
     if(nm==="decal"){if(!SM.decal){const d=o.material;d.alphaTest=0.5;d.transparent=false;d.polygonOffset=true;d.polygonOffsetFactor=-2;d.polygonOffsetUnits=-2;d.roughness=0.35;d.metalness=0;d.userData.lin=1;SM.decal=d;}o.material=SM.decal;o.castShadow=false;return;}
-    o.material=nm==="paint"?paintM:nm==="tail"?tail:(SM[nm]||o.material);if(!o.material.userData.lin)o.material.userData.lin=1;
+    o.material=nm==="paint"?paintM:nm==="tail"?tail:nm==="stripe"?stripe:(SM[nm]||o.material);if(!o.material.userData.lin)o.material.userData.lin=1;
     o.castShadow=nm!=="glass"&&!/^(wheel|caliper|hub)_/.test(o.parent&&o.parent.name||o.name);o.receiveShadow=false;});   // wheels skip the shadow pass (draw calls); the body shadow + soft footprint ground them
   if(!body)body=root;
   const wheels=[],steers=[],blurs=[];if(!SM.blurGeo)SM.blurGeo=new T.CircleGeometry(1,28);
   ["FL","FR","RL","RR"].forEach(k=>{const w=wh[k];if(!w)return;const rad=k[0]==="F"?S.rad:S.radR,tw=k[0]==="F"?0.3:0.38,sd=hubs[k]&&hubs[k].position.x<0?-1:1;w.userData.rad=rad;wheels.push(w);if(k[0]==="F"&&hubs[k])steers.push(hubs[k]);
-    const bm=new T.MeshBasicMaterial({map:SM.blurTex,transparent:true,opacity:0,depthWrite:false});bm.userData.lin=1;const b=new T.Mesh(SM.blurGeo,bm);b.scale.setScalar(rad*0.72);b.position.x=sd*(tw/2+0.012);b.rotation.y=sd*Math.PI/2;b.visible=false;b.renderOrder=2;w.add(b);blurs.push(b);});
+    const bm=new T.MeshBasicMaterial({map:SM.blurTex,transparent:true,opacity:0,depthWrite:false});bm.userData.lin=1;const b=new T.Mesh(SM.blurGeo,bm);b.scale.setScalar(rad*0.72);b.position.x=sd*(tw/2+0.012);b.rotation.y=sd*Math.PI/2;b.visible=false;b.renderOrder=2;w.add(b);w.userData.blur=b;blurs.push(b);});
   // brake lights: soft additive glows over the LED clusters and the rain light, faded in on the brake (plus the emissive lamp material)
   const glows=(D.glows||[]).map(q=>{const m=new T.SpriteMaterial({map:SM.glowTex,color:0xff1606,transparent:true,opacity:0,depthWrite:false,blending:T.AdditiveBlending});m.toneMapped=false;m.userData.lin=1;
     const s=new T.Sprite(m);s.position.set(q[0],q[1],D.tail-0.08);s.scale.set(q[2],q[3],1);s.visible=false;body.add(s);return s;});
@@ -668,6 +710,70 @@ function gpBuildGlbCar(T,car,src,paint,shared){
 function gpGlbUpdate(kt,dt){const G=kt.glb;G.glow+=((kt.brakeOn?1:0)-G.glow)*Math.min(1,dt*(kt.brakeOn?18:7));
   const om=Math.abs(kt.speed)/Math.max(0.1,kt.S.radR),bo=Math.max(0,Math.min(0.88,(om-18)/34));G.blurs.forEach(b=>{const v=bo>0.02;if(b.visible!==v)b.visible=v;if(v)b.material.opacity=bo;});
   kt.tailMat.emissiveIntensity=0.5+G.glow*1.9;G.glows.forEach(s=>{const v=G.glow>0.02;if(s.visible!==v)s.visible=v;if(v)s.material.opacity=G.glow*0.7;});}
+/* ---------- pick-an-upgrade after each race ----------
+   Finishing a race (any place) offers 3 big cards; one tap fits that upgrade, saved on the profile (P.gpUp, same save() pattern).
+   Everything is earned by racing: no shop, no coins, nothing to buy. Steps are small so races stay fair and finishable:
+   tyres +4% grip, speed +2% top speed, launch +6% pick-up per level (3 levels each); paint and stickers are looks only and
+   show on the 3D Rosso Falcon. Upgrades help in every car. */
+const GP_UP_MAX=3;
+const GP_UP_PERF={
+  tyres:{n:"Grippier tyres",icon:"🛞",c:"#2A9D8F",line:"Stickier in the corners",step:"+4% grip"},
+  speed:{n:"Faster top speed",icon:"⚡",c:"#E63946",line:"A bit more speed on the straights",step:"+2% top speed"},
+  launch:{n:"Quicker launch",icon:"🚀",c:"#F4A261",line:"Zoom off the start line",step:"+6% launch"}};
+const GP_UP_PAINTS=[["#1d5fd1","Ocean blue"],["#f7c600","Sunny yellow"],["#2e9e57","Racing green"],["#8e3bd6","Galaxy purple"],["#ff7a00","Tiger orange"],["#ff5fa2","Bubblegum pink"],["#15171c","Midnight black"],["#eef0f2","Snow white"],["#18b8a8","Turbo teal"]];
+const GP_UP_STICKERS=[["star","⭐","Gold star"],["bolt","⚡","Lightning bolt"],["flame","🔥","Hot flames"],["crown","👑","Champion crown"],["lion","🦁","Brave lion"],["rocket","🚀","Rocket"],["heart","💜","Purple heart"],["dragon","🐉","Dragon"]];
+const GP_TYRE_RING=["","#ffd21f","#2fd3c3","#ff3d8b"];   // sidewall stripe colour per tyre level
+function gpUpState(){const u=gpUp(),lv=k=>Math.max(0,Math.min(GP_UP_MAX,u[k]|0));
+  return{tyres:lv("tyres"),speed:lv("speed"),launch:lv("launch"),paints:Array.isArray(u.paints)?u.paints.filter(h=>GP_UP_PAINTS.some(p=>p[0]===h)):[],stickers:Array.isArray(u.stickers)?u.stickers.filter(s=>GP_UP_STICKERS.some(x=>x[0]===s)):[],
+    paint:typeof u.paint==="string"?u.paint:null,sticker:typeof u.sticker==="string"?u.sticker:null,picks:u.picks|0};}
+function gpUpSave(u){if(P){P.gpUp=u;save();}else window._gpUp=u;}
+function gpUpShuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+/* three different cards: performance upgrades that still have a level to go, one new paint, one new sticker */
+function gpUpOffer(){const u=gpUpState(),perf=Object.keys(GP_UP_PERF).filter(k=>u[k]<GP_UP_MAX).map(k=>({k}));
+  const pn=GP_UP_PAINTS.filter(p=>!u.paints.includes(p[0])),sn=GP_UP_STICKERS.filter(s=>!u.stickers.includes(s[0]));
+  const looks=[];if(pn.length){const p=pn[Math.floor(Math.random()*pn.length)];looks.push({k:"paint",v:p[0],name:p[1]});}if(sn.length){const s=sn[Math.floor(Math.random()*sn.length)];looks.push({k:"sticker",v:s[0],e:s[1],name:s[2]});}
+  let pick=gpUpShuffle(perf).slice(0,2).concat(gpUpShuffle(looks).slice(0,1));   // usually 2 go-faster cards + 1 look card
+  const rest=gpUpShuffle(perf.concat(looks).filter(c=>!pick.includes(c)));while(pick.length<3&&rest.length)pick.push(rest.shift());
+  return gpUpShuffle(pick);}
+function gpUpCard(c,i){const u=gpUpState();let icon,title,line,pips="",col;
+  if(GP_UP_PERF[c.k]){const D=GP_UP_PERF[c.k],lv=u[c.k];icon='<i class="fz-upi">'+D.icon+'</i>';title=D.n;line=D.line+' · '+D.step;col=D.c;
+    pips='<span class="fz-pips" aria-label="Level '+(lv+1)+' of '+GP_UP_MAX+'">'+Array.from({length:GP_UP_MAX},(_,q)=>'<em class="'+(q<lv?"on":(q===lv?"new":""))+'"></em>').join("")+'</span>';}
+  else if(c.k==="paint"){icon='<i class="fz-upi sw" style="--p:'+c.v+'"></i>';title="New paint";line=c.name+' for your car';col=c.v;}
+  else{icon='<i class="fz-upi">'+c.e+'</i>';title="Sticker";line=c.name+' on your rear wing';col="#FFB7B2";}
+  return'<button class="fz-upc" style="--c:'+col+';--d:'+(i*110)+'ms" data-i="'+i+'">'+icon+'<span class="fz-upt"><b>'+esc(title)+'</b><small>'+esc(line)+'</small>'+pips+'</span><span class="fz-upgo">PICK</span></button>';}
+/* shows the picker over the finish panel; resolves after the pick animation (or at once when there is nothing left to offer) */
+function gpUpPicker(host,done){const offer=gpUpOffer();if(!host||!offer.length){done&&done(null);return;}
+  const ov=document.createElement("div");ov.className="fz-up";ov.setAttribute("role","dialog");ov.setAttribute("aria-label","Pick an upgrade");
+  ov.innerHTML='<div class="fz-up-h"><b>PICK AN UPGRADE!</b><span>Choose one for your car</span></div><div class="fz-up-cards">'+offer.map(gpUpCard).join("")+'</div>';
+  host.appendChild(ov);let picked=false;
+  ov.querySelectorAll(".fz-upc").forEach(b=>b.addEventListener("click",ev=>{ev.preventDefault();ev.stopPropagation();if(picked)return;picked=true;const c=offer[+b.dataset.i];
+    const u=gpUpState();let msg;
+    if(GP_UP_PERF[c.k]){u[c.k]=Math.min(GP_UP_MAX,u[c.k]+1);msg=GP_UP_PERF[c.k].icon+" "+GP_UP_PERF[c.k].n+" · level "+u[c.k];}
+    else if(c.k==="paint"){if(!u.paints.includes(c.v))u.paints.push(c.v);u.paint=c.v;msg="🎨 "+c.name+" paint";}
+    else{if(!u.stickers.includes(c.v))u.stickers.push(c.v);u.sticker=c.v;msg=c.e+" "+c.name+" sticker";}
+    u.picks=(u.picks|0)+1;gpUpSave(u);sfx("tick");
+    b.classList.add("picked");ov.classList.add("chosen");const pe=b.querySelector(".fz-pips em.new");if(pe)pe.classList.add("on");
+    if(!(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches)){const r=b.getBoundingClientRect(),hr=ov.getBoundingClientRect();
+      for(let q=0;q<14;q++){const s=document.createElement("i");s.className="fz-spark";const a=q/14*6.283+Math.random()*0.4,d=70+Math.random()*60;s.style.cssText="left:"+(r.left-hr.left+r.width/2)+"px;top:"+(r.top-hr.top+r.height*0.35)+"px;--x:"+(Math.cos(a)*d).toFixed(0)+"px;--y:"+(Math.sin(a)*d-30).toFixed(0)+"px;--c:"+(q%2?"#fff3c4":getComputedStyle(b).getPropertyValue("--c"));ov.appendChild(s);}}
+    const fit=document.createElement("div");fit.className="fz-up-fit";fit.textContent="FITTED! ✓";b.appendChild(fit);
+    setTimeout(()=>{ov.classList.add("out");setTimeout(()=>ov.remove(),300);done&&done(msg);},1250);}));}
+/* 3D bits that show the upgrades on a model car: tyre sidewall stripes and the stickers on the rear wing */
+function gpUpFit(T,m,player,shared){if(!player||!m.glb)return;const u=gpUpState(),SM=shared.glb;
+  if(u.tyres>0){const rm=new T.MeshStandardMaterial({color:gpLin(GP_TYRE_RING[u.tyres]),roughness:0.5,side:T.DoubleSide});rm.userData.lin=1;
+    m.wheels.forEach((w,i)=>{const front=i<2,rad=front?m.S.rad:m.S.radR,tw=front?0.3:0.38,b=w.userData.blur,sd=b?Math.sign(b.position.x):1;const ring=new T.Mesh(new T.RingGeometry(rad*0.8,rad*0.87,32),rm);ring.position.x=sd*(tw/2+0.009);ring.rotation.y=sd*Math.PI/2;w.add(ring);});}
+  const st=GP_UP_STICKERS.find(s=>s[0]===u.sticker);
+  if(st){const tex=gpCanvasTex(256,256,(x,w,h)=>{x.clearRect(0,0,w,h);x.fillStyle="#fff";x.beginPath();x.arc(128,128,118,0,7);x.fill();x.lineWidth=10;x.strokeStyle="#15161a";x.stroke();x.font="150px system-ui,'Apple Color Emoji','Segoe UI Emoji'";x.textAlign="center";x.textBaseline="middle";x.fillText(st[1],128,142);});
+    const sm=new T.MeshStandardMaterial({map:tex,transparent:true,alphaTest:0.4,roughness:0.4,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});sm.userData.lin=1;
+    [-1,1].forEach(sd=>{const q=new T.Mesh(new T.PlaneGeometry(0.36,0.36),sm);q.position.set(sd*0.6,1.272,-2.02);q.rotation.set(-Math.PI/2-0.1,0,Math.PI);m.body.add(q);});}}
+function gpUpLight(h){const c=new THREE.Color(h);return c.r*0.3+c.g*0.59+c.b*0.11>0.7;}
+/* car screen: the upgrades already fitted, with paint and sticker chips to switch between */
+function gpGarageHtml(){const u=gpUpState();if(!u.picks)return'<div class="fz-garage empty">🏁 Finish a race to pick your first upgrade!</div>';
+  const lv=k=>'<span class="fz-glv"><b>'+GP_UP_PERF[k].icon+' '+GP_UP_PERF[k].n+'</b><span class="fz-pips">'+Array.from({length:GP_UP_MAX},(_,q)=>'<em class="'+(q<u[k]?"on":"")+'"></em>').join("")+'</span></span>';
+  const paints=[["","Rosso red"]].concat(GP_UP_PAINTS.filter(p=>u.paints.includes(p[0])));
+  const ps=u.paints.length?'<div class="fz-gchips"><i>Paint</i>'+paints.map(p=>'<button class="fz-gp'+((u.paint||"")===p[0]?" on":"")+'" style="--p:'+(p[0]||"#d1121c")+'" aria-label="'+esc(p[1])+'" onclick="gpGarageSet(\'paint\',\''+p[0]+'\')"></button>').join("")+'</div>':"";
+  const ss=u.stickers.length?'<div class="fz-gchips"><i>Sticker</i><button class="fz-gs'+(!u.sticker?" on":"")+'" onclick="gpGarageSet(\'sticker\',\'\')" aria-label="No sticker">✕</button>'+GP_UP_STICKERS.filter(s=>u.stickers.includes(s[0])).map(s=>'<button class="fz-gs'+(u.sticker===s[0]?" on":"")+'" aria-label="'+esc(s[2])+'" onclick="gpGarageSet(\'sticker\',\''+s[0]+'\')">'+s[1]+'</button>').join("")+'</div>':"";
+  return'<div class="fz-garage"><div class="fz-gt">🔧 My upgrades <small>(paint and stickers show on the Rosso Falcon)</small></div><div class="fz-glvs">'+["tyres","speed","launch"].map(lv).join("")+'</div>'+ps+ss+'</div>';}
+function gpGarageSet(k,v){const u=gpUpState();u[k]=v||null;gpUpSave(u);sfx("tick");const g=document.querySelector(".fz-garage");if(g)g.outerHTML=gpGarageHtml();}
 /* ---------- real car pictures ---------- */
 /* Loads only the sheets used by this grid, so the SUV race texture stays lazy until the SUV is selected. Resolves with a map id → texture
    or null when a picture failed; a null means that car keeps its 3D model. */
@@ -1235,7 +1341,7 @@ function gpBuild(C){
   const racers=[{n:pname,car:myCar,css:myPaint,player:true}].concat(gpMode()==="race"?others.slice(0,4).map((c,i)=>({n:GP_DRIVERS[i%GP_DRIVERS.length],car:c,css:c.paint,player:false})):[]);
   const pics=story?{}:(window._gpPics||{});   // the storybook look keeps the drawn 3D cars (the ink filter buries a photo)
   const glbs=story?{}:(window._gpGlb||{});   // real 3D models (GLB) win over the photo sprites when they loaded
-  const pace=gpPaceMul();const karts=racers.map((r,i)=>{const m=(GP_GLB[r.car.id]&&glbs[r.car.id])?gpBuildGlbCar(T,r.car,glbs[r.car.id],gpGlbPaintFor(r.car,r.player),shared):(GP_PICS[r.car.id]&&pics[r.car.id])?gpBuildPicCar(T,r.car,pics[r.car.id],shared):gpBuildCar(T,r.car,r.css,shared);scene.add(m.g);const st=gpStats(r.car);st.max*=pace;st.accel*=0.75;
+  const pace=gpPaceMul();const karts=racers.map((r,i)=>{const m=(GP_GLB[r.car.id]&&glbs[r.car.id])?gpBuildGlbCar(T,r.car,glbs[r.car.id],gpGlbPaintFor(r.car,r.player),shared):(GP_PICS[r.car.id]&&pics[r.car.id])?gpBuildPicCar(T,r.car,pics[r.car.id],shared):gpBuildCar(T,r.car,r.css,shared);scene.add(m.g);const st=gpStats(r.car);st.max*=pace;st.accel*=0.75;if(r.player&&gpMode()==="race"){const U=gpUpState();st.max*=1+0.02*U.speed;st.accel*=1+0.06*U.launch;gpUpFit(T,m,true,shared);}
     return{racer:r,player:r.player,...m,...st,t:0,x:0,px:0,speed:0,lap:0,spin:0,drift:0,off:0,hop:0,roll:0,pitch:0,steerVis:0,st1:0,steerIn:0,sv:0,dHold:0,wasBrake:false,lockT:0,gasT:0,wallT:0,knock:0,headA:0,headV:0,leanT:0,liftT:0,chatter:0,yaw:null,lastSpeed:0,wheelPhase:0,wheelRadius:m.S.radR,travel:0,skidD:0,ahead:true,started:false,pos:new T.Vector3(),draft:false,brakeOn:false,aiSkill:r.player?1:0.95+(i%3)*0.025+r.car.handle*0.006};});
   const rows=karts.length,pitch=8/(len/M);karts.forEach((k,i)=>{const row=k.player?rows-1:i-1;k.t=((M-5-row*pitch)/M)%1;k.x=(row%2?0.4:-0.4)*(rows>1?1:0);k.px=k.x;});
   if(gpMode()==="race"){const boxTex=gpCanvasTex(128,256,(x,w,h)=>{x.clearRect(0,0,w,h);x.strokeStyle="rgba(255,255,255,.9)";x.lineWidth=10;x.strokeRect(6,6,w-12,h-12);});
@@ -1261,7 +1367,7 @@ function gpBuild(C){
     if(m.color&&!(o.isInstancedMesh&&o.instanceColor)&&!m.map)m.color.convertSRGBToLinear();if(m.emissive&&!m.emissiveMap)m.emissive.convertSRGBToLinear();});});
   R3={T,C,renderer,scene,camera,curve,samples,M,W,len,karts,me:karts.find(k=>k.player),keys:{},touchDir:0,brake:false,gas:false,drift:false,autoGas:gpAuto(),kap,vProf,lineX,corners,big,grip:GRIP,t0:performance.now(),time:0,countdown:3.8,lastN:null,done:false,raf:null,last:performance.now(),camPos:new T.Vector3(),msgT:0,place:5,board:[],
     sun,sky,band,glare,sunDir,sunOff:sunDir.clone().multiplyScalar(170),envRT,smoke,dust,sparks,petals,skids,skidLife,skidFade,skN:0,dummy,setLights,setScreen,screenTxt:"",fov:60,pr:pr0,fpsT:0,fpsN:0,fps:0,lowT:0,shadowsOn:true,tmpV:new T.Vector3(),tmpV2:new T.Vector3(),tmpV3:new T.Vector3(),tmpV4:new T.Vector3(),camYaw:null,teleV:new T.Vector3(),teleShadow:new T.Vector3(),teleSprite:new T.Vector3(),UP,story,
-    gates,trapT:trapI/M,trapBest:0,gear:1,tachT:0,post,mode:gpMode(),notes,notesGot:0,notesTotal:notes.length*C.laps,song:[],lastDeg:4,songDirty:1,water,waterTex,fx:$("gp3Fx"),fxW:16,fxH:9,sk:{chain:0,mult:1,total:0,idle:0,list:[],dirty:1,clean:0,cool:0},bumpT:9};
+    gates,trapT:trapI/M,trapBest:0,gear:1,tachT:0,post,mode:gpMode(),notes,notesGot:0,notesTotal:notes.length*C.laps,song:[],lastDeg:4,songDirty:1,water,waterTex,fx:$("gp3Fx"),fxW:16,fxH:9,sk:{chain:0,mult:1,total:0,idle:0,list:[],dirty:1,clean:0,cool:0},bumpT:9,upGrip:gpMode()==="race"?1+0.04*gpUpState().tyres:1};
   window.__gp={fps:0,pr:pr0,shadows:true,playerWheelPhase:0,wheelPhase:0,playerSpeed:0,speed:0,wheelRadius:R3.me.wheelRadius,cameraFov:60,cameraOffsetFromCar:0,cameraOffset:0,cameraOffsetVector:{x:0,y:0,z:0},playerShadowWorldY:0,shadowY:0,bodyRoll:0,spriteBottomY:R3.me.pos.y,smokeCount:0,rendererCalls:0,renderCalls:0,wheelPatchDrawCalls:0,wheelPatchState:R3.me.pic?"sharp":"3d",wheelPatchVisible:false,wheelPatchFrame:R3.me.pic?R3.me.pic.frame:null,wheelPatchKind:R3.me.pic&&R3.me.pic.wheelPatch?R3.me.pic.wheelPatch.kind:"3d",phys:{slipDeg:0,steerIn:0,sv:0,drift:0,x:0,speed:0},cam:{}};
   // keyboard
   R3.kd=e=>{if(!R3)return;const k=e.key.toLowerCase();GPA.init();if(k==="escape"){renderCircuits();return;}if(k==="m"){gpToggleMute();return;}R3.keys[k]=true;if(["arrowleft","arrowright","arrowdown","arrowup","shift"," "].includes(k))e.preventDefault();};
@@ -1382,7 +1488,7 @@ function gpUpdate(dt,waiting){
     }
     // tyres: lateral load v²/R beyond the grip limit pushes the car to the outside of the bend and scrubs speed
     const spd=Math.abs(kt.speed)/kt.max;kt.px=kt.x;
-    const aLat=kt.speed*kt.speed*Math.abs(kap),grip=R3.grip*(offroad?0.5:1)*(kt.drift?1.6:1)*(kt.player?1:1.06);
+    const aLat=kt.speed*kt.speed*Math.abs(kap),grip=R3.grip*(offroad?0.5:1)*(kt.drift?1.6:1)*(kt.player?R3.upGrip:1.06);
     const ex=Math.min(2.5,Math.max(0,aLat/grip-1));kt.slip=ex;
     kt.x+=Math.sign(kap)*(ex*1.7+0.12*spd*Math.min(1,aLat/grip))*dt;
     if(ex>0&&!waiting)kt.speed=Math.max(0,kt.speed-ex*9*dt);
@@ -1564,8 +1670,9 @@ function gpFinish(){
   const rows=R3.board.map((k,i)=>'<div class="'+(k.player?"me":"")+'"><i>'+gpOrd(i+1)+'</i><span>'+esc(k.racer.n)+'</span><span>'+esc(k.racer.car.n)+'</span></div>').join("");
   const board=R3.board.slice(),story=R3.story,cid=R3.C.id,timeS=gpFmt(R3.time),trap=R3.trapBest,podium=place<=3&&!story&&board.length>=3;
   const steps=GP_WORLD.podium.steps,stepHtml=podium?'<div class="fz-podium" style="--pod:url('+GP_WORLD.podium.src+')">'+[["p1",0],["p2",1],["p3",2]].map(([k,i])=>{const r=board[i];const st=steps[k];return'<div class="fz-step'+(r.player?" me":"")+'" style="left:'+(st[0]*100).toFixed(1)+'%;top:'+(st[1]*100).toFixed(1)+'%">'+gpThumb(r.racer.car.id)+'<b>'+esc(r.racer.n)+'</b></div>';}).join("")+'</div>':"";
-  const panel=()=>{if(!R3)return;const w=$("gp3");if(!w)return;w.insertAdjacentHTML("beforeend",'<div class="gp3-finish'+(podium?" pod":"")+'">'+(podium?'<video class="fz-podvid" muted loop playsinline webkit-playsinline preload="none" disablepictureinpicture aria-hidden="true"></video>':'')+'<div class="fz-fin-t">'+gpOrd(place).toUpperCase()+' PLACE'+(place===1?' 🏆':'')+'</div>'+stepHtml+'<div class="fz-res">'+rows+'</div><div class="fz-fin-s">'+timeS+' · Skill '+gpNum(skill)+(trap?' · Speed trap '+trap+' mph':'')+(earned?' · +'+earned+' XP':'')+'</div><div class="btn-row" style="margin-top:10px"><button class="btn big" onclick="startRace3D(\''+cid+'\')">Race again 🔁</button><button class="btn secondary big" onclick="renderCircuits()">Routes 🏁</button><button class="btn secondary big" onclick="renderRace()">Cars 🚗</button></div></div>');
+  const panel=()=>{if(!R3)return;const w=$("gp3");if(!w)return;w.insertAdjacentHTML("beforeend",'<div class="gp3-finish'+(podium?" pod":"")+'">'+(podium?'<video class="fz-podvid" muted loop playsinline webkit-playsinline preload="none" disablepictureinpicture aria-hidden="true"></video>':'')+'<div class="fz-fin-t">'+gpOrd(place).toUpperCase()+' PLACE'+(place===1?' 🏆':'')+'</div>'+stepHtml+'<div class="fz-res">'+rows+'</div><div class="fz-fin-s">'+timeS+' · Skill '+gpNum(skill)+(trap?' · Speed trap '+trap+' mph':'')+(earned?' · +'+earned+' XP':'')+'</div><div class="fz-fin-up" id="fzFinUp"></div><div class="btn-row" style="margin-top:10px"><button class="btn big" onclick="startRace3D(\''+cid+'\')">Race again 🔁</button><button class="btn secondary big" onclick="renderCircuits()">Routes 🏁</button><button class="btn secondary big" onclick="renderRace()">Cars 🚗</button></div></div>');
     const pv=w.querySelector(".fz-podvid");if(pv){setTimeout(()=>{if(!document.contains(pv))return;pv.src=GP_VIDEO.podium;const p=pv.play();if(p&&p.catch)p.catch(()=>{});},400);}
-    if(podium)gpConfetti(w.querySelector(".gp3-finish"));};
+    if(podium)gpConfetti(w.querySelector(".gp3-finish"));
+    if(!R3.upDone){R3.upDone=true;gpUpPicker(w,msg=>{const e=$("fzFinUp");if(e&&msg){e.textContent="New: "+msg;e.classList.add("on");}});}};
   setTimeout(()=>{if(!R3)return;GPA.stopEngine();if(place===1&&!story){gpVideo(GP_VIDEO.win,"HORIZON CHAMPION · "+R3.C.name.toUpperCase(),9000).then(panel);}else panel();},1300);
 }
