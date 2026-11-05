@@ -3232,7 +3232,7 @@ function gpCar(){const id=(P&&P.gpCar)||window._gpCar||"falcon";return GP_CARS.f
 function gpPaint(){const p=(P&&P.gpPaint)||window._gpPaint;return (p&&/^#[0-9a-f]{6}$/i.test(p))?p:gpCar().paint;}
 function gpLook(){return (P&&P.gpLook)||window._gpLook||"real";}
 function gpStory(){return gpLook()==="story";}
-function gpStats(car){const g=car.grip||car.handle;return{max:44+car.speed*3.6,accel:9+car.accel*2.2,steer:1.4+car.handle*0.28,offF:car.type==="rally"||car.type==="suv"?0.62:0.45,gripK:0.9+g*0.04,dirtK:car.type==="rally"||car.type==="suv"?1.25:1};}   // v4 (job 1104-2330): ~30% more top speed; grip differs per car
+function gpStats(car){const g=car.grip||car.handle;return{max:44+car.speed*3.6,accel:9+car.accel*2.2,steer:1.4+car.handle*0.28,offF:car.type==="truck"?0.74:(car.type==="rally"||car.type==="suv"?0.62:0.45),gripK:0.9+g*0.04,dirtK:car.type==="truck"?1.35:(car.type==="rally"||car.type==="suv"?1.25:1)};}   // v4 (job 1104-2330): ~30% more top speed; grip differs per car
 /* ---------- ink & wash post-process (one full-screen pass) ---------- */
 const GP_POST_FS=`
 uniform sampler2D tCol;uniform sampler2D tDep;uniform vec2 res;uniform float t;uniform float hasDep;uniform vec3 paper;uniform vec3 ink;uniform float cn;uniform float cf;uniform float night;
@@ -3312,6 +3312,7 @@ const GPA={ctx:null,master:null,eng:null,muted:false,
     case"trap":this.noise(0.05,0.25,4000);this.tone(1760,0.18,"sine",0.14,null,0.04);break;
     case"break":this.tone(300,0.3,"sawtooth",0.1,120);break;
     case"bump":this.tone(150,0.18,"square",0.16,80);this.noise(0.15,0.25,500);break;
+    case"boost":this.noise(0.55,0.32,1100);this.tone(180,0.55,"sawtooth",0.1,720);break;
     case"land":this.tone(95,0.22,"sine",0.26,48);this.noise(0.18,0.28,320);break;
     case"spin":this.noise(0.6,0.16,1500);this.tone(420,0.5,"sawtooth",0.05,180);break;
     case"bonk":this.tone(210,0.12,"triangle",0.13,130);this.noise(0.08,0.08,700);break;   // soft car-to-car bump
@@ -3427,7 +3428,29 @@ function gpCss(){if(document.getElementById("gpV4Css"))return;const s=document.c
 @media (max-width:600px),(max-height:520px){body:has(#gp3) #topbar{display:none}}   /* phones: the app bar would cover the race HUD; the race has its own quit + sound buttons */
 .fz-ck{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;display:none}
 .gp3-wrap.ck .fz-ck{display:block}.gp3-wrap.ck .fz-tach{display:none}
-.fz-btn.cam{top:110px}
+/* camera switch (job 1105-0558): big gold toy button with the current view written on it, above every overlay incl. the cockpit dash */
+.gp3-wrap.v3 .fz-cam{position:absolute;right:12px;top:110px;z-index:7;width:clamp(68px,7vw,84px);height:clamp(68px,7vw,84px);border-radius:18px;border:4px solid #2F4F4F;background:#FFD700;color:#1d2a2a;box-shadow:0 6px 0 #2F4F4F,0 8px 18px rgba(0,0,0,.45);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;font-family:inherit}
+.gp3-wrap.v3 .fz-cam i{font-style:normal;font-size:clamp(24px,2.6vw,30px);line-height:1}
+.gp3-wrap.v3 .fz-cam b{font-size:clamp(11px,1.1vw,13px);font-weight:900;letter-spacing:.04em;line-height:1}
+.gp3-wrap.v3 .fz-cam:active,.gp3-wrap.v3 .fz-cam.dn{transform:translateY(5px);box-shadow:0 1px 0 #2F4F4F,0 3px 8px rgba(0,0,0,.4)}
+.gp3-wrap.v3.ck .fz-cam{box-shadow:0 6px 0 #2F4F4F,0 0 0 3px rgba(255,255,255,.9),0 0 22px rgba(255,215,0,.85)}
+/* BOOST: round orange button for the right thumb, left of the dial and above BRAKE, with a charge ring round it */
+.gp3-wrap.v3 .fz-boost{position:absolute;z-index:6;right:calc(10px + var(--tach) + 14px);bottom:calc(var(--ped) + 30px);width:var(--bst);height:var(--bst);border-radius:50%;border:0;padding:0;background:none;cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;font-family:inherit;--bst:clamp(84px,8.4vw,104px)}
+.gp3-wrap.v3 .fz-boost svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.gp3-wrap.v3 .fz-boost .bg{fill:none;stroke:rgba(10,12,25,.6);stroke-width:9}
+.gp3-wrap.v3 .fz-boost .rg{fill:none;stroke:#FF4500;stroke-width:9;stroke-linecap:round;transition:stroke-dashoffset .15s linear}
+.gp3-wrap.v3 .fz-boost .core{position:absolute;inset:11%;border-radius:50%;background:radial-gradient(circle at 50% 35%,#ff9a3c,#FF4500 60%,#c2310a);border:4px solid #2F4F4F;box-shadow:0 5px 0 #2F4F4F;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;opacity:.55;transition:opacity .15s}
+.gp3-wrap.v3 .fz-boost b{font-size:clamp(13px,1.35vw,17px);font-weight:900;font-style:italic;letter-spacing:.03em;text-shadow:0 2px 0 #7a1c00}
+.gp3-wrap.v3 .fz-boost small{font-size:clamp(10px,1vw,12px);letter-spacing:2px;color:#ffe9a8;line-height:1}
+.gp3-wrap.v3 .fz-boost.ready .core{opacity:1;animation:fzBoostRdy 1s ease-in-out infinite alternate}
+.gp3-wrap.v3 .fz-boost.ready .rg{stroke:#FFD700}
+.gp3-wrap.v3 .fz-boost.on .core{opacity:1;background:radial-gradient(circle at 50% 35%,#bff0ff,#2fb6ff 55%,#1c5fd1);transform:scale(.94)}
+.gp3-wrap.v3 .fz-boost.on .rg{stroke:#7fd8ff}
+.gp3-wrap.v3 .fz-boost.no .core{animation:fzBoostNo .3s}
+@keyframes fzBoostRdy{from{box-shadow:0 5px 0 #2F4F4F,0 0 0 rgba(255,215,0,0)}to{box-shadow:0 5px 0 #2F4F4F,0 0 22px rgba(255,215,0,.9)}}
+@keyframes fzBoostNo{0%,100%{transform:translateX(0)}30%{transform:translateX(-5px)}70%{transform:translateX(5px)}}
+.gp3-wrap.v3.done .fz-boost,.gp3-wrap.v3.done .fz-cam{display:none}
+@media (max-height:520px),(orientation:portrait) and (max-width:600px){.gp3-wrap.v3 .fz-cam{top:calc(8px + env(safe-area-inset-top));right:calc(56px + env(safe-area-inset-right));width:68px;height:68px}.gp3-wrap.v3 .fz-boost{--bst:76px;right:calc(10px + var(--tach) + 10px)}}
 .fz-route{display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:16px;border:2px solid rgba(255,255,255,.14);background:linear-gradient(160deg,#1c2238,#0b0f1e);color:#fff;font-family:inherit;cursor:pointer;text-align:left}
 .fz-route:hover{border-color:#ff2d87}
 .fz-route canvas{width:100%;height:auto;border-radius:10px}
@@ -3675,7 +3698,8 @@ function gpPickLook(v){if(P){P.gpLook=v;save();}else window._gpLook=v;sfx("tick"
 /* ---------- options (saved on the profile, like the other racer choices) ---------- */
 function gpOpt(k,def){const v=P?P[k]:window["_"+k];return v==null?def:v;}
 function gpSetOpt(k,v){if(P){P[k]=v;save();}else window["_"+k]=v;}
-function gpCamMode(){const v=gpOpt("gpCam","chase");return ["chase","bumper","cockpit"].includes(v)?v:"chase";}
+const GP_VIEWS=["chase","far","hood","bumper","cockpit"],GP_VIEW_NAME={chase:"CHASE",far:"FAR",hood:"HOOD",bumper:"BUMPER",cockpit:"COCKPIT"};   // the 🎥 button cycles them in this order
+function gpCamMode(){const v=gpOpt("gpCam","chase");return GP_VIEWS.includes(v)?v:"chase";}
 function gpLaps(){const n=+gpOpt("gpLaps",2);return n>=1&&n<=3?n:2;}
 function gpPickOpt(k,v){if(k==="gpLook"){gpPickLook(v);return;}if(k==="gpTraffic")v=!!v;if(k==="gpLaps")v=+v;gpSetOpt(k,v);if(k==="gpPace")window._gpPace=v;
   document.querySelectorAll('.fz-opt[data-k="'+k+'"] button').forEach(b=>b.classList.toggle("on",b.dataset.v===String(v)));sfx("tick");}
@@ -3698,7 +3722,7 @@ function renderCircuits(tab){
    +'<div class="fz-tracks">'+GP_TRACK_ORDER().map(i=>gpTrackCard(GP_CIRCUITS[i],i,best)).join("")+'</div>'
    +'<div class="fz-hint">Tap a track to start · '+gpLaps()+' lap'+(gpLaps()>1?'s':'')+' · '+({chase:"chase cam",bumper:"bumper cam",cockpit:"cockpit cam"}[gpCamMode()])+' · traffic '+(gpTrafficOn()?'on':'off')+' <button class="fz-link" onclick="renderCircuits(\'opts\')">change ⚙️</button></div>';
   const opts='<div class="fz-opts">'
-   +gpOptRow("gpCam","🎥 Camera",[["chase","🚗 Chase"],["bumper","📷 Bumper"],["cockpit","🎛️ Cockpit"]],gpCamMode())
+   +gpOptRow("gpCam","🎥 Camera",[["chase","🚗 Chase"],["far","🔭 Far"],["hood","🏁 Hood"],["bumper","📷 Bumper"],["cockpit","🎛️ Cockpit"]],gpCamMode())
    +gpOptRow("gpTraffic","🚕 Traffic in town",[[true,"On"],[false,"Off"]],gpTrafficOn())
    +gpOptRow("gpLaps","🔁 Laps",[[1,"1"],[2,"2"],[3,"3"]],gpLaps())
    +gpOptRow("gpPace","⭐ Difficulty",[["gentle","🐢 Easy"],["normal","🚗 Normal"]],gpPace())
@@ -4679,12 +4703,13 @@ function gpBuild(C){
    +'<div class="fz-skill" id="gp3Skill"></div>'
    +'<canvas class="fz-tach" id="gp3Tach" width="320" height="320"></canvas>'
    +'<button class="fz-btn mute" id="gp3Mute" aria-label="Sound on or off">'+(GPA.muted?"🔇":"🔊")+'</button>'
-   +'<button class="fz-btn quit" id="gp3Quit" aria-label="Quit race" onclick="renderCircuits()">✕</button><button class="fz-btn cam" id="gp3Cam" aria-label="Change camera">🎥</button>'
+   +'<button class="fz-btn quit" id="gp3Quit" aria-label="Quit race" onclick="renderCircuits()">✕</button><button class="fz-cam" id="gp3Cam" aria-label="Change camera view"><i>🎥</i><b id="gp3CamL">CHASE</b></button>'
    +'<div class="gp3-msg" id="gp3Msg"></div>'
    +'<div class="gp3-card" id="gp3Card"><b>'+esc(C.name)+'</b><small>'+(gpMode()==="free"?"Free drive · ":"Race · ")+esc(L.time)+' · '+esc(myCar.n)+'</small></div>'
    +'<div class="gp3-count" id="gp3Count"></div>'
    +'<div class="fz-cue" id="gp3Cue"><b>TOO FAST!</b></div><div class="fz-air" id="gp3Air"></div>'
    +'<div class="gp3-pad l"><span class="race-btn" id="rcL" aria-hidden="true">◀</span><span class="race-btn" id="rcR" aria-hidden="true">▶</span></div>'
+   +'<button class="fz-boost" id="gp3Boost" aria-label="Boost"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="44"/><circle class="rg" id="gp3BoostRing" cx="50" cy="50" r="44" stroke-dasharray="276.5" stroke-dashoffset="138"/></svg><span class="core"><b>BOOST</b><small id="gp3BoostN">●</small></span></button>'
    +'<div class="gp3-pad r"><button class="fz-pedal brake" id="rcB" aria-label="Brake pedal"><i></i><b>BRAKE</b></button><button class="fz-pedal gas'+(gpAuto()?" auto":"")+'" id="rcG" aria-label="Gas pedal"><i></i><b>'+(gpAuto()?"AUTO":"GAS")+'</b></button></div>'
    +'</div>'
    +'<div class="center fz-quit-row"><button class="readbtn" onclick="renderCircuits()">⟵ Quit race</button></div>';
@@ -5078,7 +5103,7 @@ function gpBuild(C){
     gates,trapT:trapI/M,trapBest:0,gear:1,tachT:0,post,mode:gpMode(),notes,notesGot:0,notesTotal:notes.length*C.laps,song:[],lastDeg:4,songDirty:1,water,waterTex,fx:$("gp3Fx"),fxW:16,fxH:9,sk:{chain:0,mult:1,total:0,idle:0,list:[],dirty:1,clean:0,cool:0},bumpT:9,upGrip:gpMode()==="race"?1+0.04*gpUpState().tyres:1,cLog:null,sunTint:new T.Color(L.sun).lerp(new T.Color(1,1,1),0.35),skyTint:new T.Color(L.mid).lerp(new T.Color(L.hor),0.4),traffic:TR,tw:TW,splash:TH==="coast"?gpParticles(T,scene,140,0.9,false,0.55):null};R3.bodies=R3.karts.concat(TR?TR.cars:[]);
   window.__gp={fps:0,pr:pr0,shadows:true,playerWheelPhase:0,wheelPhase:0,playerSpeed:0,speed:0,wheelRadius:R3.me.wheelRadius,cameraFov:60,cameraOffsetFromCar:0,cameraOffset:0,cameraOffsetVector:{x:0,y:0,z:0},playerShadowWorldY:0,shadowY:0,bodyRoll:0,spriteBottomY:R3.me.pos.y,smokeCount:0,rendererCalls:0,renderCalls:0,wheelPatchDrawCalls:0,wheelPatchState:R3.me.pic?"sharp":"3d",wheelPatchVisible:false,wheelPatchFrame:R3.me.pic?R3.me.pic.frame:null,wheelPatchKind:R3.me.pic&&R3.me.pic.wheelPatch?R3.me.pic.wheelPatch.kind:"3d",phys:{slipDeg:0,steerIn:0,sv:0,drift:0,x:0,speed:0},cam:{}};
   // keyboard
-  R3.kd=e=>{if(!R3)return;const k=e.key.toLowerCase();GPA.init();if(k==="escape"){renderCircuits();return;}if(k==="m"){gpToggleMute();return;}if(k==="c"){gpCycleCam();return;}R3.keys[k]=true;if(["arrowleft","arrowright","arrowdown","arrowup","shift"," "].includes(k))e.preventDefault();};
+  R3.kd=e=>{if(!R3)return;const k=e.key.toLowerCase();GPA.init();if(k==="escape"){renderCircuits();return;}if(k==="m"){gpToggleMute();return;}if(k==="c"){gpCycleCam();return;}if((k==="b"||k==="shift")&&!e.repeat){gpBoost();e.preventDefault();return;}R3.keys[k]=true;if(["arrowleft","arrowright","arrowdown","arrowup","shift"," "].includes(k))e.preventDefault();};
   R3.ku=e=>{if(!R3)return;R3.keys[e.key.toLowerCase()]=false;};
   window.addEventListener("keydown",R3.kd);window.addEventListener("keyup",R3.ku);
   // touch: pointer events with capture so one thumb can steer while the other holds a pedal.
@@ -5096,7 +5121,15 @@ function gpBuild(C){
   ["pointerup","pointercancel","lostpointercapture"].forEach(t=>zoneL.addEventListener(t,ev=>{if(!ptr.steer.has(ev.pointerId))return;ptr.steer.delete(ev.pointerId);syncCtl();}));
   hold($("rcG"),ptr.gas);hold($("rcB"),ptr.brake);
   R3.ctl=ptr;
-  $("gp3Mute").addEventListener("click",ev=>{ev.preventDefault();gpToggleMute();});$("gp3Cam").addEventListener("click",ev=>{ev.preventDefault();gpCycleCam();});R3.camMode=gpCamMode();gpCamApply();
+  $("gp3Mute").addEventListener("click",ev=>{ev.preventDefault();gpToggleMute();});
+  // camera + boost react to their own pointer (pointerdown/up), not "click": iOS drops the click of a tap made while the other thumb holds GAS
+  const tapBtn=(el,fn,onDown)=>{if(!el)return;guard(el);let pid=null,lastT=0;const fire=()=>{const t=performance.now();if(t-lastT<250)return;lastT=t;fn();};
+    el.addEventListener("pointerdown",ev=>{ev.preventDefault();ev.stopPropagation();GPA.init();pid=ev.pointerId;el.classList.add("dn");try{el.setPointerCapture(ev.pointerId);}catch(e){}if(onDown)fire();});
+    el.addEventListener("pointerup",ev=>{if(ev.pointerId!==pid)return;pid=null;el.classList.remove("dn");if(!onDown)fire();});
+    ["pointercancel","lostpointercapture"].forEach(t=>el.addEventListener(t,ev=>{if(ev.pointerId===pid){pid=null;el.classList.remove("dn");}}));
+    el.addEventListener("click",ev=>{ev.preventDefault();if(ev.detail===0)fire();});};   // keyboard Enter/Space on the focused button
+  tapBtn($("gp3Cam"),gpCycleCam,false);tapBtn($("gp3Boost"),gpBoost,true);
+  R3.camMode=gpCamMode();gpCamApply();
   R3.blockTouch=ev=>{if(R3&&!R3.done&&ev.cancelable)ev.preventDefault();};
   document.addEventListener("touchmove",R3.blockTouch,{passive:false});document.addEventListener("gesturestart",R3.blockTouch,{passive:false});
   R3.onVis=()=>{if(!GPA.ctx)return;if(document.hidden)GPA.ctx.suspend();else GPA.ctx.resume();};document.addEventListener("visibilitychange",R3.onVis);
@@ -5115,8 +5148,43 @@ function gpBuild(C){
 /* safety net: if the reflection map ever blacks out the scene on some device, switch it off */
 function gpEnvCheck(){try{if(!R3||!R3.scene.environment)return;R3.renderer.render(R3.scene,R3.camera);const c=R3.renderer.domElement,o=document.createElement("canvas");o.width=64;o.height=36;const x=o.getContext("2d");x.drawImage(c,0,0,64,36);const d=x.getImageData(0,27,64,9).data;let sum=0;for(let i=0;i<d.length;i+=4)sum+=d[i]+d[i+1]+d[i+2];if(sum/(d.length/4)<25){R3.scene.environment=null;window.__gp.envOff=true;}}catch(e){}}
 /* ---------- camera views: chase (default) / bumper / cockpit with a digital dash; choice saved on the profile ---------- */
-function gpCamApply(){if(!R3)return;const w=$("gp3");if(w)w.classList.toggle("ck",R3.camMode==="cockpit");}
-function gpCycleCam(){if(!R3)return;const L=["chase","bumper","cockpit"];R3.camMode=L[(L.indexOf(R3.camMode)+1)%3];gpSetOpt("gpCam",R3.camMode);gpCamApply();gpMsg({chase:"Chase cam",bumper:"Bumper cam",cockpit:"Cockpit cam"}[R3.camMode]);sfx("tick");}
+function gpCamApply(){if(!R3)return;const w=$("gp3");if(w)w.classList.toggle("ck",R3.camMode==="cockpit");const l=$("gp3CamL");if(l)l.textContent=GP_VIEW_NAME[R3.camMode]||"CHASE";const b=$("gp3Cam");if(b)b.setAttribute("aria-label","Camera: "+(GP_VIEW_NAME[R3.camMode]||"CHASE").toLowerCase()+" view - tap to change");}
+/* ---------- BOOST (job 1105-0558) ----------
+   Tap BOOST (or B / Shift) for a 2.6 s burst: x2.4 pick-up and +22% top speed, blue + orange exhaust flames, a wider FOV, streaks and a
+   small camera pull. One burst costs a third of the meter; the race starts with half a meter; it refills slowly by itself and faster
+   from drifting, jumps (air time) and clean fast driving. Not during the countdown; 1.2 s cool-down between bursts. Grip is NOT
+   boosted, so boosting into a tight bend can still slide wide (the Easy slide assist still caps it). Rivals take an occasional
+   modest burst (+8%, Easy +5%) on long straights; on Easy a rival that is already ahead of Prince never boosts. */
+const GP_BOOST={burst:2.6,cost:0.34,cool:1.2,mul:1.22,start:0.5};
+function gpBoostInit(){const R=R3;R.boost={q:GP_BOOST.start,cool:0,easy:gpPace()==="gentle",uses:0,ring:$("gp3BoostRing"),btn:$("gp3Boost"),pips:$("gp3BoostN"),key:""};R.boostLog=[];
+  R.karts.forEach(k=>{k.boostT=0;k.boostMul=1;k.bNext=k.player?0:12+Math.random()*16;});}
+function gpBoost(){const R=R3;if(!R||!R.boost)return false;const B=R.boost,me=R.me;
+  if(R.done||R.phase!=="race"||R.countdown>0.5||me.boostT>0||B.cool>0||B.q<GP_BOOST.cost-1e-6){if(B.btn){B.btn.classList.remove("no");void B.btn.offsetWidth;B.btn.classList.add("no");}return false;}
+  B.q-=GP_BOOST.cost;B.uses++;me.boostT=GP_BOOST.burst;me.boostMul=GP_BOOST.mul;GPA.play("boost");gpMsg("BOOST!");R.boostLog.push({t:+(R.simT||0).toFixed(2),mph:Math.round(me.speed*GP_MPH)});return true;}
+function gpBoostTick(dt,waiting){const R=R3;if(!R.boost)gpBoostInit();const B=R.boost,me=R.me;
+  R.karts.forEach(k=>{if(k.boostT>0){k.boostT=Math.max(0,k.boostT-dt);if(k.boostT===0&&k.player)B.cool=GP_BOOST.cool;}gpFlameUpdate(k,dt);});
+  if(B.cool>0)B.cool=Math.max(0,B.cool-dt);
+  if(!waiting&&!R.done){const spd=me.speed/me.max,off=Math.abs(me.x)>1.05;let r=B.easy?0.03:0.018;   // on its own: a full meter in ~35-55 s
+    if(me.drift&&spd>0.35&&!off)r+=0.11;if(me.air)r+=0.3;if(!off&&spd>0.55&&R.bumpT>2&&!me.loss)r+=B.easy?0.03:0.02;
+    if(me.boostT<=0)B.q=Math.min(1,B.q+r*dt);
+    R.karts.forEach(k=>{if(k.player||k.boostT>0)return;k.bNext-=dt;if(k.bNext>0)return;const i=Math.floor(k.t*R.M)%R.M,clear=R.vProf[(i+Math.round(40/(R.len/R.M)))%R.M]>=k.max*0.98&&R.vProf[i]>=k.max*0.98;
+      if(!clear){k.bNext=0.7;return;}if(B.easy&&(k.lap+k.t)>(me.lap+me.t)){k.bNext=5;return;}k.boostT=1.8;k.boostMul=B.easy?1.05:1.08;k.bNext=(B.easy?28:18)+Math.random()*14;});}
+  const ready=!waiting&&!R.done&&R.phase==="race"&&B.q>=GP_BOOST.cost&&B.cool<=0&&me.boostT<=0,on=me.boostT>0,key=Math.round(B.q*100)+"|"+ready+"|"+on;
+  if(key!==B.key&&B.btn){B.key=key;B.ring.setAttribute("stroke-dashoffset",(276.5*(1-B.q)).toFixed(1));B.btn.classList.toggle("ready",ready);B.btn.classList.toggle("on",on);
+    const n=Math.floor(B.q/GP_BOOST.cost+1e-6);B.pips.textContent=n?"●".repeat(n):"○";B.btn.setAttribute("aria-label","Boost - "+n+" ready");}}
+/* exhaust flames: an orange outer cone + a blue core per exhaust tip (fleet.json `exh`; [x,y,z,1] = a stack pointing up), additive,
+   built the first time that car boosts, hung on the sprung body so they ride with it */
+function gpFlameBuild(kt){if(kt.flm!==undefined)return kt.flm;kt.flm=null;const D=GP_GLB[kt.racer.car.id];if(!kt.glb||!D)return null;const T=R3.T;
+  if(!R3.flameGeo){const g=new T.ConeGeometry(1,1,12,1,true);g.translate(0,0.5,0);g.rotateX(-Math.PI/2);R3.flameGeo=g;
+    const mk=c=>{const m=new T.MeshBasicMaterial({color:c,transparent:true,opacity:0.9,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide});m.toneMapped=false;m.userData.lin=1;return m;};
+    R3.flameMat=[mk(0xff6a10),mk(0x66c8ff)];R3.flameGlow=new T.SpriteMaterial({map:gpSoftDot(),color:0xff8a30,transparent:true,depthWrite:false,blending:T.AdditiveBlending});R3.flameGlow.toneMapped=false;}
+  const pts=D.exh&&D.exh.length?D.exh:[[0.36,0.42,(D.tail||-2.2)+0.04],[-0.36,0.42,(D.tail||-2.2)+0.04]];
+  const list=pts.map(q=>{const g=new T.Group();g.position.set(q[0],q[1],q[2]);if(q[3])g.rotation.x=Math.PI/2;
+    const o=new T.Mesh(R3.flameGeo,R3.flameMat[0]),c=new T.Mesh(R3.flameGeo,R3.flameMat[1]),s=new T.Sprite(R3.flameGlow);s.scale.set(0.9,0.9,1);g.add(o);g.add(c);g.add(s);g.visible=false;kt.body.add(g);return{g,o,c,s};});
+  kt.flm={list,a:0};return kt.flm;}
+function gpFlameUpdate(kt,dt){const want=kt.boostT>0?1:0;if(!want&&!kt.flm)return;const F=gpFlameBuild(kt);if(!F)return;F.a+=(want-F.a)*Math.min(1,dt*(want?14:6));const vis=F.a>0.03;
+  F.list.forEach(f=>{if(f.g.visible!==vis)f.g.visible=vis;if(!vis)return;const fl=0.75+Math.random()*0.5,L=(kt.player?1.25:0.9)*F.a*fl;f.o.scale.set(0.15*F.a,0.15*F.a,L);f.c.scale.set(0.085*F.a,0.085*F.a,L*0.62);f.s.material.opacity=0.8*F.a;});}
+function gpCycleCam(){if(!R3)return;const L=GP_VIEWS;R3.camMode=L[(L.indexOf(R3.camMode)+1)%L.length];R3.camLog=(R3.camLog||[]).concat([R3.camMode]);gpSetOpt("gpCam",R3.camMode);gpCamApply();gpMsg({chase:"Chase cam",far:"Far chase cam",hood:"Hood cam",bumper:"Bumper cam",cockpit:"Cockpit cam"}[R3.camMode]);sfx("tick");}
 /* the cockpit: roof edge + mirror, A-pillars, a carbon dash, a wheel that turns with the steering, and a digital display
    (big mph, gear, a shift-light bar, place + lap). Drawn on one 2D canvas under the touch controls. */
 function gpCockpit(){const cv=$("gp3Ck");if(!cv||!R3)return;const x=cv.getContext("2d"),W=cv.width,H=cv.height,me=R3.me;x.clearRect(0,0,W,H);
@@ -5249,7 +5317,8 @@ function gpVert(kt,pos,dt,waiting){const ry=pos.y;
   pos.y=kt.air?kt.y:kt.y+tilt;}   // on the ground the car rides on whichever tyre is lowest while its pitch catches up with the road
 function gpNearJump(kt){const C=R3.C,J=C.jumps;if(!J||!J.length)return false;const d=kt.t*C.lapM;for(const q of J){let u=d-q[0];if(u>C.lapM/2)u-=C.lapM;else if(u<-C.lapM/2)u+=C.lapM;if(u>-60&&u<40)return true;}return false;}
 function gpLand(kt,imp){const big=kt.airT>0.22||imp>2.5;if(!big)return;
-  kt.sqV=(kt.sqV||0)-Math.min(2.6,imp*0.22);   // springs squash, then a little bounce
+  const trk=kt.racer.car.type==="truck";kt.sqV=(kt.sqV||0)-Math.min(trk?4.2:2.6,imp*(trk?0.36:0.22));   // springs squash, then a little bounce (trucks: a big soft one)
+  if(trk&&kt.speed>8)kt.speed*=1.02;   // long-travel suspension: trucks keep their speed over the landing
   const near=kt.player||kt.pos.distanceToSquared(R3.me.pos)<3600;
   if(near){kt.g.updateMatrixWorld(true);const V=R3.tmpV;[-1,1].forEach(sd=>[kt.xr,-kt.xr].forEach(zz=>{V.set(sd*(kt.tyreX||kt.S.w/2-0.04),0.1,zz);kt.g.localToWorld(V);
       for(let q=0;q<(kt.player?4:2);q++)R3.dust.emit(V.x,V.y+0.15,V.z,(Math.random()-0.5)*4,0.8+Math.random()*1.6,(Math.random()-0.5)*4,0.66,0.6,0.5,0.9);}));
@@ -5354,7 +5423,8 @@ function gpCountTick(now){const R=R3;
   if(R.phase==="count")R.countdown=Math.max(0.001,3-e);}
 function gpUpdate(dt,waiting){
   const {karts,samples,M,len,T,me}=R3;
-  const k=R3.keys;const left=k["arrowleft"]||k["a"]||R3.touchDir<0,right=k["arrowright"]||k["d"]||R3.touchDir>0,brake=k["arrowdown"]||k["s"]||R3.brake,gas=R3.autoGas||k["arrowup"]||k["w"]||R3.gas,driftKey=k["shift"]||k[" "]||k["x"];
+  const k=R3.keys;const left=k["arrowleft"]||k["a"]||R3.touchDir<0,right=k["arrowright"]||k["d"]||R3.touchDir>0,brake=k["arrowdown"]||k["s"]||R3.brake,gas=R3.autoGas||k["arrowup"]||k["w"]||R3.gas,driftKey=k[" "]||k["x"];
+  gpBoostTick(dt,waiting);
   const V=R3.tmpV,sk=R3.sk;R3.bumpT+=dt;if(!waiting){R3.simT=(R3.simT||0)+dt;if(R3.relFrame==null)R3.relFrame=R3.frameN;}
   karts.forEach(kt=>{
     const i=Math.floor(kt.t*M)%M;const s=samples[i];
@@ -5362,7 +5432,7 @@ function gpUpdate(dt,waiting){
     const offroad=Math.abs(kt.x)>1.05;
     let draft=false;if(!waiting&&kt.speed/kt.max>0.55){draft=karts.some(o=>{if(o===kt)return false;const d=(o.t-kt.t+1)%1;return d>0.003&&d<0.028&&Math.abs(o.x-kt.x)<0.32;});}kt.draft=draft;
     let band=1;if(!kt.player&&!waiting){const gap=(kt.lap+kt.t)-(me.lap+me.t);band=gap>0.06?0.93:(gap<-0.06?1.07:1);}
-    const maxNow=waiting?0:kt.max*band*(draft?1.07:1)*(kt.spin>0?0.6:1)*(R3.tw&&R3.tw.zoneAt(i,"ford")?0.9:1)*(offroad?(kt.player?Math.max(0.62,kt.offF):kt.offF):1)*(kt.drift?0.94:1);
+    const maxNow=waiting?0:kt.max*band*(draft?1.07:1)*(kt.spin>0?0.6:1)*(R3.tw&&R3.tw.zoneAt(i,"ford")?0.9:1)*(offroad?(kt.player?Math.max(0.62,kt.offF):kt.offF):1)*(kt.drift?0.94:1)*(kt.boostT>0?kt.boostMul:1);
     const spd0=kt.speed/kt.max,inp=kt.player?(left?-1:0)+(right?1:0):0;
     if(kt.player){
       // steering input eases in and out (two cascaded smoothers = an S-curve over ~0.3 s): a tap never jerks the car
@@ -5378,14 +5448,14 @@ function gpUpdate(dt,waiting){
       if(waiting)kt.speed=0;
       else if(kt.air)kt.speed*=1-0.015*dt;   // flying: no grip for the pedals
       else if(brake){kt.speed=kt.speed>0.3?Math.max(0,kt.speed-(kt.drift?14:24)*dt):Math.max(-5,kt.speed-5*dt);}
-      else if(gas||kt.speed<0){kt.gasT+=dt;const launch=kt.speed<maxNow*0.5?Math.min(1,0.62+kt.gasT*1.5):1;   // pull builds over the first ~0.25 s instead of jumping
-        kt.speed+=(maxNow-kt.speed)*Math.min(1,dt*(kt.speed<maxNow?kt.accel/10*launch:(offroad?1.1:2.2)));}
+      else if(gas||kt.boostT>0||kt.speed<0){kt.gasT+=dt;const launch=kt.speed<maxNow*0.5?Math.min(1,0.62+kt.gasT*1.5):1;   // pull builds over the first ~0.25 s instead of jumping
+        kt.speed+=(maxNow-kt.speed)*Math.min(1,dt*(kt.speed<maxNow?kt.accel/10*launch*(kt.boostT>0?2.4:1):(offroad?1.1:2.2)));}
       else{kt.speed=Math.max(0,kt.speed-(2.5+0.06*kt.speed)*dt);if(kt.speed>maxNow)kt.speed+=(maxNow-kt.speed)*Math.min(1,dt*(offroad?1.1:2.2));}   // coasting
     }else{
       // rivals follow the speed profile (real braking points for every corner), with a little driver variety and the rubber band
-      const tgt=kt.testHold?kt.testHold.speed:Math.min(maxNow,R3.vProf[(i+3)%M]*kt.aiSkill*band,kt.capSpd!=null?kt.capSpd:1e9);
+      const tgt=kt.testHold?kt.testHold.speed:Math.min(maxNow,R3.vProf[(i+3)%M]*kt.aiSkill*band*(kt.boostT>0?kt.boostMul:1),kt.capSpd!=null?kt.capSpd:1e9);
       kt.brakeOn=!waiting&&kt.speed>tgt+0.8;
-      if(waiting)kt.speed=0;else if(kt.air)kt.speed*=1-0.015*dt;else if(kt.brakeOn)kt.speed=Math.max(tgt,kt.speed-26*dt);else kt.speed+=(tgt-kt.speed)*Math.min(1,dt*(kt.speed<tgt?kt.accel/10:2.2));
+      if(waiting)kt.speed=0;else if(kt.air)kt.speed*=1-0.015*dt;else if(kt.brakeOn)kt.speed=Math.max(tgt,kt.speed-26*dt);else kt.speed+=(tgt-kt.speed)*Math.min(1,dt*(kt.speed<tgt?kt.accel/10*(kt.boostT>0?1.8:1):2.2));
     }
     // tyres: lateral load v²/R beyond the grip limit pushes the car to the outside of the bend and scrubs speed
     const spd=Math.abs(kt.speed)/kt.max;kt.px=kt.x;
@@ -5551,17 +5621,19 @@ function gpRender(dt){
     R3.camYaw+=gpWrapAng(tgtYaw-R3.camYaw)*Math.min(1,dt*3.2);R3.camYaw=gpWrapAng(R3.camYaw);
     R3.camX+=(me.x-R3.camX)*Math.min(1,dt*4);R3.camBack+=(Math.max(0,spd)*0.95-R3.camBack)*Math.min(1,dt*1.5);
     const nor=R3.tmpV3.set(-flat.z,0,flat.x),foc=me.pos.clone().addScaledVector(nor,(R3.camX-me.x)*(R3.W-1.2)*0.45);
-    const dir=R3.tmpV4.set(Math.sin(R3.camYaw),0,Math.cos(R3.camYaw)),back=(tall?8.0:6.3)+R3.camBack;
-    target=foc.clone().addScaledVector(dir,-back).add(new T.Vector3(0,(tall?3.9:2.1)+R3.camBack*0.25,0));
-    target.y=Math.max(target.y,me.pos.y+(tall?3.4:1.4));
+    const vw0=R3.countdown<=0.5?R3.camMode:"chase",far=vw0==="far",cc=me.racer.car.cam||{},dir=R3.tmpV4.set(Math.sin(R3.camYaw),0,Math.cos(R3.camYaw)),back=(tall?8.0:6.3)+R3.camBack+(cc.back||0)+(far?(tall?5:4.5):0)+(R3.bk||0)*1.1;
+    target=foc.clone().addScaledVector(dir,-back).add(new T.Vector3(0,(tall?3.9:2.1)+R3.camBack*0.25+(cc.up||0)+(far?2.2:0)-(R3.bk||0)*0.25,0));
+    target.y=Math.max(target.y,me.pos.y+(tall?3.4:1.4)+(cc.up||0));
     {const gy=R3.groundAt?Math.max(R3.groundAt(target.x,target.z),R3.curve.getPointAt(((me.t-back/R3.len)%1+1)%1).y):-1e9,want=Math.max(target.y,gy+1.4);   // a lagging height: the car visibly rises off a crest, and the camera never dips into the hill behind
       if(R3.camYs==null)R3.camYs=want;R3.camYs+=(want-R3.camYs)*Math.min(1,dt*(me.air?3.2:8));target.y=Math.max(R3.camYs,gy+1.2);}
-    look=foc.clone().addScaledVector(tan,tall?9:10).add(new T.Vector3(0,tall?-0.6:0.95,0));
+    look=foc.clone().addScaledVector(tan,tall?9:10).add(new T.Vector3(0,(tall?-0.6:0.95)+(cc.up||0)*0.45,0));
     R3.camPos.copy(target);const cm=window.__gp.cam;cm.lagDeg=gpWrapAng(R3.camYaw-roadYaw)*57.3;cm.back=back;}
-  const cmode=R3.countdown<=0.5?R3.camMode:"chase";if(cmode!=="chase"){me.g.updateMatrixWorld(true);   // bumper: low on the nose; cockpit: driver's eye. Both ride the car's heading (not its body roll), FOV stays fixed
-    if(cmode==="bumper"){R3.camPos.copy(me.g.localToWorld(R3.tmpV3.set(0,0.62,2.5)));look=me.g.localToWorld(new T.Vector3(0,0.5,30));}
-    else{R3.camPos.copy(me.g.localToWorld(R3.tmpV3.set(0,1.04,-0.35)));look=me.g.localToWorld(new T.Vector3(0,0.82,30));}}
-  {const showMe=cmode==="chase"||!!window.__gpCam;if(me.g.visible!==showMe)me.g.visible=showMe;}
+  const vw=R3.countdown<=0.5?R3.camMode:"chase",cmode=vw==="far"?"chase":vw;if(cmode!=="chase"){me.g.updateMatrixWorld(true);   // bumper: low on the nose; hood: above the bonnet (car visible); cockpit: driver's eye. All ride the car's heading (not its body roll)
+    const GD=GP_GLB[me.racer.car.id]||{},E=GD.eye||[0,1.04,-0.35],nz=GD.nose||(me.S.len/2),rY=GD.roofY||1.1;
+    if(cmode==="bumper"){const by=Math.max(0.62,(GD.ride||0.1)+0.48);R3.camPos.copy(me.g.localToWorld(R3.tmpV3.set(0,by,Math.max(2.5,nz+0.1))));look=me.g.localToWorld(new T.Vector3(0,by-0.12,30));}
+    else if(cmode==="hood"){const hy=Math.max(E[1]+0.3,rY+0.12);R3.camPos.copy(me.g.localToWorld(R3.tmpV3.set(0,hy,E[2]+0.2)));look=me.g.localToWorld(new T.Vector3(0,hy-0.55,30));}
+    else{R3.camPos.copy(me.g.localToWorld(R3.tmpV3.set(0,E[1],E[2])));look=me.g.localToWorld(new T.Vector3(0,E[1]-0.22,30));}}
+  {const showMe=cmode==="chase"||cmode==="hood"||!!window.__gpCam;if(me.g.visible!==showMe)me.g.visible=showMe;}
   const dc=window.__gpCam;if(dc&&R3.countdown<=0.5){   // test hook only: replay angle on the player car, set in the road's frame (a TV camera), so the car's
     // own heading (straight along the road, or the drift angle) is what you see; {car:true} restores the old lens glued to the car
     if(dc.car){me.g.updateMatrixWorld(true);R3.camPos.copy(me.g.localToWorld(R3.tmpV3.set(dc.side||0,dc.h||1.2,-(dc.back||5))));look=me.g.localToWorld(new T.Vector3(0,dc.look||0.5,dc.ahead||0));}
@@ -5570,11 +5642,11 @@ function gpRender(dt){
   if(R3.shake>0){R3.shake=Math.max(0,R3.shake-dt*1.7);const a=R3.shake*R3.shake*0.6,tt=performance.now()/1000;R3.camera.position.y+=Math.sin(tt*57)*a;R3.camera.position.x+=Math.sin(tt*43+1.3)*a*0.6;R3.camera.position.z+=Math.cos(tt*39)*a*0.6;}   // short landing shake only
   R3.karts.forEach(k=>{if(k.player)return;const fwd=(k.pos.x-R3.camPos.x)*flat.x+(k.pos.z-R3.camPos.z)*flat.z;const vis=fwd>2.4;if(k.g.visible!==vis)k.g.visible=vis;});   // a solid car until it passes the camera (an opacity fade made rivals see-through)
   R3.camera.lookAt(look);
-  R3.fovK=(R3.fovK||0)+(Math.max(0,Math.min(1,(spd-0.45)/0.55))-(R3.fovK||0))*Math.min(1,dt*1.6);const fovT=(tall?78:(cmode==="chase"?60:66))+R3.fovK*(tall?6:(cmode==="chase"?9:7));R3.fov=fovT;if(Math.abs(R3.camera.fov-fovT)>0.01){R3.camera.fov=fovT;R3.camera.updateProjectionMatrix();}   // eases wider with speed (no jumps)
+  R3.fovK=(R3.fovK||0)+(Math.max(0,Math.min(1,(spd-0.45)/0.55))-(R3.fovK||0))*Math.min(1,dt*1.6);R3.bk=(R3.bk||0)+((me.boostT>0?1:0)-(R3.bk||0))*Math.min(1,dt*(me.boostT>0?7:2.2));const fovT=(tall?78:(cmode==="chase"?60:66))+R3.fovK*(tall?6:(cmode==="chase"?9:7))+R3.bk*(tall?7:11);R3.fov=fovT;if(Math.abs(R3.camera.fov-fovT)>0.01){R3.camera.fov=fovT;R3.camera.updateProjectionMatrix();}   // eases wider with speed (no jumps)
   R3.sky.position.copy(R3.camera.position);if(R3.band)R3.band.position.set(R3.camera.position.x,R3.band.userData.y,R3.camera.position.z);R3.glare.position.copy(R3.camera.position).addScaledVector(R3.sunDir,1500);
   R3.sun.position.copy(me.pos).add(R3.sunOff);R3.sun.target.position.copy(me.pos);R3.sun.target.updateMatrixWorld();
   R3.renderer.info.reset();if(cmode==="cockpit")gpCockpit();
-  const pp=R3.post;if(pp){pp.mat.uniforms.t.value=performance.now()/1000;R3.renderer.setRenderTarget(pp.rt);R3.renderer.render(R3.scene,R3.camera);R3.renderer.setRenderTarget(null);R3.renderer.render(pp.scene,pp.cam);}else{R3.renderer.render(R3.scene,R3.camera);if(cmode==="cockpit")gpMirror();gpSpeedFx(R3.countdown>0?0:spd,me.drift);}
+  const pp=R3.post;if(pp){pp.mat.uniforms.t.value=performance.now()/1000;R3.renderer.setRenderTarget(pp.rt);R3.renderer.render(R3.scene,R3.camera);R3.renderer.setRenderTarget(null);R3.renderer.render(pp.scene,pp.cam);}else{R3.renderer.render(R3.scene,R3.camera);if(cmode==="cockpit")gpMirror();gpSpeedFx(R3.countdown>0?0:spd+(R3.bk||0)*0.4,me.drift);}
   const tele=window.__gp,off=R3.teleV.copy(R3.camera.position).sub(me.pos),ov=tele.cameraOffsetVector;ov.x=off.x;ov.y=off.y;ov.z=off.z;
   tele.playerWheelPhase=tele.wheelPhase=me.wheelPhase;tele.playerSpeed=tele.speed=me.speed;tele.wheelRadius=me.wheelRadius;tele.cameraFov=R3.camera.fov;tele.cameraOffsetFromCar=tele.cameraOffset=off.length();
   if(me.shadows&&me.shadows[0]){me.shadows[0].getWorldPosition(R3.teleShadow);tele.playerShadowWorldY=tele.shadowY=R3.teleShadow.y;}
