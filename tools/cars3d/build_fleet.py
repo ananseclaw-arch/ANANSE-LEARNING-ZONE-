@@ -1,4 +1,4 @@
-# Grand Fable GP - the 3D FLEET (10 cars besides the Rosso Falcon), built headless in Blender 4.2 LTS and exported to GLB.
+# Grand Fable GP - the 3D FLEET (17 cars besides the Rosso Falcon: 10 road/race cars + 4 exotics + 3 trucks), built headless in Blender 4.2 LTS and exported to GLB.
 # Run:  Blender -b -P tools/cars3d/build_fleet.py -- [--out DIR] [--render DIR] [--json PATH] [ids...]
 #   ids default to every car; "falcon" only imports assets/cars3d/falcon.glb for renders + stats (never rebuilt here).
 # Same conventions as build_car.py: everything is modelled in GAME coordinates (x = car's left side, y up, z = nose, metres)
@@ -32,11 +32,14 @@ PI = math.pi
 def B(p): return Vector((p[0], -p[2], p[1]))
 def lerp(a, b, t): return a + (b - a) * t
 def clamp(x, a=0.0, b=1.0): return max(a, min(b, x))
+class Lin(list):
+    """key table interpolated linearly (crisp creases for wedge cars) instead of smoothstep"""
 def keys(K, z):
     if z <= K[0][0]: return K[0][1]
     for i in range(1, len(K)):
         if z <= K[i][0]:
-            t = (z - K[i-1][0]) / (K[i][0] - K[i-1][0]); t = t * t * (3 - 2 * t)
+            t = (z - K[i-1][0]) / (K[i][0] - K[i-1][0])
+            if not isinstance(K, Lin): t = t * t * (3 - 2 * t)
             return lerp(K[i-1][1], K[i][1], t)
     return K[-1][1]
 def srgb(h):
@@ -149,6 +152,7 @@ def new_scene(S):
         "decal": mat("decal", (1, 1, 1), 0.35, 0.0, tex=S.get("decal_png") or os.path.join(HERE, "num7.png"), alpha=True),
     }
     if S.get("livery"): M["livery"] = mat("livery", (1, 1, 1), 0.35, 0.05, tex=S["livery"])
+    for nm, (col, rough, metal) in S.get("mats", {}).items(): M[nm] = mat(nm, srgb(col), rough, metal)   # extra (game keeps them as-is)
     MAT_ORDER = list(M.keys())
 
 # ================================================================ mesh builder
@@ -267,7 +271,7 @@ TOPINNER = ["crown", "crownm", "winbase", "winbasem", "roofedge", "roofedgem"]
 
 class Car:
     def __init__(s, S):
-        s.S = S; s.glows = []; s.sticker = None
+        s.S = S; s.glows = []; s.sticker = None; s.exh = []
         s.WF = dict(S["WF"]); s.WR = dict(S["WR"])
         s.ZN, s.ZT, s.FLOOR = S["ZN"], S["ZT"], S["FLOOR"]
         s.WF["x"] = s.hw(s.WF["z"]) - S["f_inset"] - s.WF["w"] / 2
@@ -514,18 +518,21 @@ def diffuser(C, b, n=5, gap=0.22, h=0.1, mat="carbon"):
     for k in range(n):
         x = (k - (n - 1) / 2) * gap
         b.box((x, C.FLOOR + 0.11, C.ZT + 0.2), (0.025, h, 0.42), mat, rot_x=0.4)
-def exhaust(C, b, x, y, r=0.06, sym=True, length=0.16, tip="exhaust"):
+def exhaust(C, b, x, y, r=0.06, sym=True, length=0.16, tip="exhaust", seg=12, z=None):
+    """exhaust pipe(s) pointing back; the tip points go to C.exh (fleet.json `exh`, for boost flames)"""
+    z_ = z
     for sd in ((-1, 1) if sym and x != 0 else (1,)):
-        z = C.rear_z(sd * x, y) if C.inside(sd * x, y, C.ZT + 0.2) else C.ZT
-        b.cyl((sd * x, y, z - 0.03), r, length, tip, axis="z", seg=12)
-        b.cyl((sd * x, y, z - 0.03 - length / 2 - 0.004), r * 0.72, 0.012, "carbon", axis="z", seg=12)
+        z = z_ if z_ is not None else (C.rear_z(sd * x, y) if C.inside(sd * x, y, C.ZT + 0.2) else C.ZT)
+        b.cyl((sd * x, y, z - 0.03), r, length, tip, axis="z", seg=seg)
+        b.cyl((sd * x, y, z - 0.03 - length / 2 - 0.004), r * 0.72, 0.012, "carbon", axis="z", seg=seg)
+        C.exh.append([round(sd * x, 3), round(y, 3), round(z - 0.03 - length / 2 - 0.01, 3)])
 
 # ================================================================ wheels (styles)
 def wheel_mesh(S, W_, o):
     r, tw = W_["r"], W_["w"]; mb = MB(); seg = S["wseg"]; style = S["wheel_style"]; tread = S["tread"]
-    lug = {"knobbly": 0.038, "gravel": 0.016}.get(tread, 0.0)
+    lug = {"knobbly": 0.038, "gravel": 0.016, "monster": 0.075}.get(tread, 0.0)
     rt = r - lug; rr = r * S["rimfrac"]; hw_ = tw / 2
-    gfr = {"slick": [0.38], "ribbed": [0.2, 0.5], "gravel": [0.2, 0.52], "knobbly": []}[tread]
+    gfr = {"slick": [0.38], "ribbed": [0.2, 0.5], "gravel": [0.2, 0.52], "knobbly": [], "monster": []}[tread]
     gh = min(0.010, hw_ * 0.08)
     tread_pts = [(0.0, rt)]
     for f in gfr:
@@ -548,8 +555,9 @@ def wheel_mesh(S, W_, o):
             mb.face(q[::-1], m)
     # tread lugs
     if lug:
-        nl = seg if tread == "knobbly" else int(seg * 0.9)
+        nl = seg if tread == "knobbly" else (S.get("lugs", 18) if tread == "monster" else int(seg * 0.9))
         rows = ([(-hw_ + 0.04, 0.075, 0.0), (0.0, 0.08, 0.5), (hw_ - 0.04, 0.075, 0.0)] if tread == "knobbly"
+                else [(-hw_ * 0.47, hw_ * 0.98, 0.0), (hw_ * 0.47, hw_ * 0.98, 0.5)] if tread == "monster"     # big alternating paddles
                 else [(-hw_ * 0.5, 0.07, 0.0), (hw_ * 0.5, 0.07, 0.5)])
         pitch = 2 * PI * rt / nl
         for (rx, lx, ph) in rows:
@@ -619,6 +627,17 @@ def wheel_mesh(S, W_, o):
         for k in range(12):
             a = 2 * PI * k / 12; mb.box((x_lip + 0.016 * o, math.cos(a) * rr * 0.97, math.sin(a) * rr * 0.97), (0.012, 0.022, 0.022), "rimdark")
         mb.cyl((x_hub, 0, 0), rr * 0.3, 0.05, "rim", axis="x", seg=12)
+    elif style == "truck":                     # chrome dished truck wheel, hub cap + 10 lug nuts
+        ra, rb = (rr * 0.88, rr * 0.40) if o > 0 else (rr * 0.40, rr * 0.88)
+        mb.cyl(((x_face + x_hub) / 2, 0, 0), ra, abs(x_hub - x_face), "rim", axis="x", seg=seg, r2=rb, cap=False)
+        mb.cyl((x_hub, 0, 0), rr * 0.40, 0.03, "rim", axis="x", seg=seg)
+        mb.cyl((x_hub + 0.03 * o, 0, 0), rr * 0.22, 0.05, "rim", axis="x", seg=12, r2=rr * 0.16)
+        for k in range(10):
+            a = 2 * PI * k / 10; mb.box((x_hub + 0.018 * o, math.cos(a) * rr * 0.31, math.sin(a) * rr * 0.31), (0.03, 0.03, 0.03), "spoke")
+        for k in range(5):                     # dark hand holes in the dish
+            a = 2 * PI * (k + 0.5) / 5; ca, sa = math.cos(a), math.sin(a)
+            mb.obox(((x_face + x_hub) / 2 + 0.004 * o, ca * rr * 0.64, sa * rr * 0.64), (0.012, 0, 0), (0, ca * rr * 0.08, sa * rr * 0.08),
+                    (0, -sa * rr * 0.11, ca * rr * 0.11), "rimdark")
     return mb
 
 def caliper_mesh(W_, side, front, rimfrac):
@@ -627,16 +646,32 @@ def caliper_mesh(W_, side, front, rimfrac):
     mb.box((xo, math.sin(ang) * rr * 0.62, math.cos(ang) * rr * 0.62), (0.055, rr * 0.55, rr * 0.33), "caliper")
     return mb
 
+def merge(dst, src, fn=None):
+    """append MB src into MB dst, mapping every vertex through fn (game coords)"""
+    base = len(dst.v)
+    for p in src.v: dst.v.append(tuple(float(c) for c in (fn(p) if fn else p)))
+    for f, m_, uv in zip(src.f, src.fm, src.uv): dst.f.append([i + base for i in f]); dst.fm.append(m_); dst.uv.append(uv)
+
+def wheel_full(S, W_, side):
+    """one wheel node mesh; `dual` wheels (truck rear) are two tyres side by side in the same node"""
+    if not W_.get("dual"): return wheel_mesh(S, W_, side)
+    mb = MB(); hw = W_["w"] / 2; sub = dict(W_, w=hw - 0.012)
+    for off, st in ((hw / 2, S["wheel_style"]), (-hw / 2, "beadlock")):
+        merge(mb, wheel_mesh(dict(S, wheel_style=st), sub, side), lambda p, o=off: (p[0] + o * side, p[1], p[2]))
+    return mb
+
 def add_wheels(S, WF, WR):
     for name, W_, side in (("FL", WF, 1), ("FR", WF, -1), ("RL", WR, 1), ("RR", WR, -1)):
         hub = bpy.data.objects.new("hub_" + name, None); scene.collection.objects.link(hub)
         hub.location = B((side * W_["x"], W_["r"], W_["z"]))
-        wm = wheel_mesh(S, W_, side).to_obj("wheel_" + name, smooth_angle=35); wm.parent = hub
+        wm = wheel_full(S, W_, side).to_obj("wheel_" + name, smooth_angle=35); wm.parent = hub
         cm = caliper_mesh(W_, side, name[0] == "F", S["rimfrac"]).to_obj("caliper_" + name, smooth_angle=30); cm.parent = hub
 
 def wheel_checks(C):
     """print clearances: tyre top to arch lip, tyre outer face vs body side, tyre inner face vs inner well"""
     for nm, W_ in (("front", C.WF), ("rear", C.WR)):
+        if not (C.ZT < W_["z"] < C.ZN):
+            print("CHECK %s %s: wheel outside the loft body (chassis-mounted, see fender/frame)" % (C.S["id"], nm)); continue
         r = W_["r"]; gaps = []; out = []; inn = []
         for k in range(13):
             d = -r + 2 * r * k / 12; z = W_["z"] + d
@@ -1067,6 +1102,509 @@ def car_viper():
         mirrors(C, b, 0.55, 0.86, 0.96)
     return S, extras
 
+# ================================================================ helpers for the 2026-11 exotics + trucks
+def coil(b, p0, p1, r, m, turns=5, wire=0.014, per=6):
+    """helical spring from p0 to p1 (game coords)"""
+    P0, P1 = Vector(p0), Vector(p1); t = (P1 - P0); L = t.length; t = t.normalized()
+    up = Vector((0, 1, 0)) if abs(t.y) < 0.9 else Vector((1, 0, 0)); n = t.cross(up).normalized(); bn = t.cross(n).normalized()
+    N = turns * per
+    b.tube([tuple(P0 + t * (L * k / N) + (n * math.cos(2 * PI * k / per) + bn * math.sin(2 * PI * k / per)) * r) for k in range(N + 1)],
+           wire, m, seg=4)
+def shock(b, p0, p1, r=0.045, spring="caliper", turns=5):
+    """coil-over: chrome rod (p0 end), dark body (p1 end), coloured spring around it"""
+    P0, P1 = Vector(p0), Vector(p1); mid = P0.lerp(P1, 0.42)
+    b.tube([tuple(P0), tuple(mid)], r * 0.45, "rim", seg=6)
+    b.tube([tuple(P0.lerp(P1, 0.36)), tuple(P1)], r, "exhaust", seg=8)
+    coil(b, tuple(P0.lerp(P1, 0.1)), tuple(P0.lerp(P1, 0.86)), r * 1.55, spring, turns=turns, wire=r * 0.32)
+def prism(b, pts_zy, xh, m, xc=0.0, uv=None):
+    """flat plate: convex polygon in the (z, y) plane, thickness 2*xh about x = xc"""
+    L = [b.vert((xc - xh, y, z)) for (z, y) in pts_zy]; R = [b.vert((xc + xh, y, z)) for (z, y) in pts_zy]; n = len(pts_zy)
+    b.face(L, m, uv); b.face(list(reversed(R)), m, uv)
+    for i in range(n):
+        j = (i + 1) % n; b.face([L[j], L[i], R[i], R[j]], m, uv)
+def side_line(C, b, sd, pts_zy, r, m, off=0.004, sub=8, seg=5):
+    """tube following the body side through (z, y) points (door cut lines, creases)"""
+    P = []
+    for (z0, y0), (z1, y1) in zip(pts_zy, pts_zy[1:]):
+        for k in range(sub):
+            t = k / sub; z = lerp(z0, z1, t); y = lerp(y0, y1, t); P.append((sd * (C.side_x(z, y) + off), y, z))
+    z, y = pts_zy[-1]; P.append((sd * (C.side_x(z, y) + off), y, z))
+    b.tube(P, r, m, seg=seg)
+def arc_fender(b, x, cy, cz, R, width, m, a0=0.25, a1=PI - 0.25, th=0.035, n=12):
+    """curved fender shell over a wheel (angles from the rear, 0 = horizontal backwards)"""
+    rows = []
+    for k in range(n + 1):
+        a = lerp(a0, a1, k / n); c, s_ = -math.cos(a), math.sin(a)
+        rows.append([b.vert((x + dx, cy + s_ * rr, cz + c * rr)) for (dx, rr) in
+                     ((-width / 2, R), (width / 2, R), (width / 2, R + th), (-width / 2, R + th))])
+    for k in range(n):
+        for i in range(4):
+            j = (i + 1) % 4; b.face([rows[k][i], rows[k][j], rows[k + 1][j], rows[k + 1][i]], m)
+    b.face(list(reversed(rows[0])), m); b.face(rows[-1], m)
+def spare_tyre(S, b, c, r, w, tilt):
+    """a spare wheel as static body geometry: axle stood up, then tipped back by `tilt` so its face looks up-and-back"""
+    wm = wheel_mesh(dict(S, wseg=16), dict(r=r, w=w), 1); ct, st = math.cos(tilt), math.sin(tilt)
+    def g(p):
+        x, y, z = p[1], p[0], p[2]                       # axle (local x) -> up
+        return (c[0] + x, c[1] + y * ct + z * st, c[2] - y * st + z * ct)
+    merge(b, wm, g)
+
+def eye_y(C, z, drop=0.14): return round(keys(C.S["TOP"], z) - drop, 3)
+
+# ---------------------------------------------------------------- 12 Razor Wedge: very low sharp wedge hypercar (scissor doors)
+@car
+def car_razor():
+    S = dict(BASE, id="razor", n="Razor Wedge", paint="#8FD321", stripe="#15161a",
+        ZN=2.30, ZT=-2.22, FLOOR=0.08, crown_min=0.05, ARCH_GAP=0.08,
+        WF=dict(z=1.40, r=0.33, w=0.28), WR=dict(z=-1.42, r=0.37, w=0.40),
+        WID=[(-2.22, 0.93), (-2.12, 1.0), (-1.42, 1.04), (-0.9, 1.0), (-0.3, 0.93), (0.4, 0.92), (1.0, 0.96), (1.40, 0.98),
+             (1.85, 0.93), (2.1, 0.82), (2.30, 0.62)],
+        TOP=Lin([(-2.22, 0.86), (-2.12, 0.91), (-1.2, 0.96), (-0.6, 1.0), (-0.35, 1.05), (0.05, 1.06), (0.22, 1.03), (1.06, 0.80),
+                 (1.6, 0.68), (2.30, 0.28)]),
+        FPK=Lin([(-2.22, 0.84), (-1.42, 0.90), (-0.8, 0.83), (0.0, 0.78), (0.8, 0.76), (1.40, 0.80), (1.9, 0.62), (2.30, 0.29)]),
+        CAB=[(-0.78, 0.0), (-0.48, 1.0), (0.80, 1.0), (1.08, 0.0)],
+        ROOFW=[(-0.6, 0.50), (0, 0.53), (0.8, 0.60)],
+        windscreen=(0.20, 1.06), sideglass=(-0.48, 0.92),
+        sharp=1.0, sh_x=0.04, cr_x=0.12, ymf=0.55, tumble=0.3, sill_in=0.04, hood_x=0.46,
+        nose_len=0.50, nose_pinch=0.20, nose_mid=0.16, nose_sq=0.3, nose_lift=0.10,
+        tail_len=0.05, tail_pinch=0.01, tail_drop=0.0, tail_dropy=0.8, rear_open=0.62, diff=0.30, smooth=35,
+        bands=[dict(tags=["side2", "side2m", "side3"], mat="carbon", z0=-1.02, z1=-0.58),
+               dict(tags=["T0", "T1", "T2"], mat="glass", z0=-1.95, z1=-0.82)],
+        wheel_style="sport", spokes=7, pivotY=0.26, wing=False)
+    def extras(C, b):
+        ZT, ZN = C.ZT, C.ZN
+        diffuser(C, b, 7, 0.2, 0.15)
+        b.box((0, C.FLOOR + 0.16, ZT + 0.32), (1.62, 0.025, 0.66), "carbon", rot_x=0.42)          # big diffuser roof
+        skirts(C, b, -0.9, 0.95)
+        b.box((0, C.FLOOR - 0.005, 2.02), (1.86, 0.03, 0.55), "carbon")
+        # scissor-door cut line (hinged at the A-pillar front), hinge pod, raised crease running into the side intake
+        for sd in (-1, 1):
+            side_line(C, b, sd, [(0.88, 0.72), (0.82, 0.32), (0.66, 0.17), (-0.36, 0.17), (-0.48, 0.30), (-0.53, 0.76)], 0.010, "carbon")
+            b.box((sd * (C.side_x(0.9, 0.70) + 0.012), 0.70, 0.90), (0.03, 0.07, 0.09), "rim")
+            side_line(C, b, sd, [(0.70, 0.47), (0.0, 0.46), (-0.62, 0.50)], 0.022, "paint", off=0.0, sub=6)
+            zi = -0.60; b.box((sd * (C.hw(zi) - 0.02), 0.62, zi), (0.07, 0.36, 0.04), "paint")       # intake front blade
+        # louvres over the glass engine window
+        for k in range(6):
+            z = -0.95 - k * 0.17; b.box((0, C.surf_y(0, z) + 0.012, z), (0.62, 0.02, 0.05), "carbon")
+        # angular chevron tail lamps on a dark panel, hex exhausts
+        y = 0.70; zr = C.rear_z(0, y)
+        b.box((0, y, zr + 0.006), (1.84, 0.26, 0.02), "carbon")
+        for sd in (-1, 1):
+            zz = C.rear_z(sd * 0.62, y) - 0.008
+            for (yo, ) in ((0.09,), (-0.09,)):
+                p0 = (0.40, y); p1 = (0.84, y + yo); dx, dy = p1[0] - p0[0], p1[1] - p0[1]; L = math.hypot(dx, dy)
+                b.obox((sd * (p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2, zz), (sd * dx / 2, dy / 2, 0), (-sd * dy / L * 0.022, dx / L * 0.022, 0),
+                       (0, 0, 0.015), "tail")
+            C.glows.append([round(sd * 0.62, 3), y, 0.7, 0.42])
+        exhaust(C, b, 0.13, 0.50, 0.075, length=0.14, seg=6)
+        b.box((0, C.surf_y(0, ZT + 0.1) + 0.03, ZT + 0.06), (1.86, 0.03, 0.16), "paint", rot_x=-0.35)   # ducktail blade
+        # sharp nose: angular slit lamps + intakes
+        for sd in (-1, 1):
+            x = 0.60; yy = 0.30
+            b.box((sd * x, yy, C.front_z(sd * x, yy) - 0.07), (0.40, 0.025, 0.15), "lamp", rot_x=-0.22, rot_y=sd * 0.38)
+            b.box((sd * 0.52, 0.17, C.front_z(sd * 0.52, 0.17) - 0.02), (0.46, 0.06, 0.05), "carbon")
+        mirrors(C, b, 0.62, 0.86, 0.98)
+        deck_sticker(C, 0.55, -1.7)
+    S["eye"] = [0.36, 0.92, -0.05]
+    return S, extras
+
+# ---------------------------------------------------------------- 13 Aurora V12: long-nose front-engine grand tourer
+@car
+def car_aurora():
+    S = dict(BASE, id="aurora", nose_cap=0.8, nose_cap_d=0.015, n="Aurora V12", paint="#1E3D8F",
+        ZN=2.52, ZT=-2.28, FLOOR=0.12,
+        WF=dict(z=1.62, r=0.35, w=0.27), WR=dict(z=-1.30, r=0.37, w=0.35),
+        WID=[(-2.28, 0.84), (-2.18, 0.93), (-1.8, 0.98), (-1.30, 0.99), (-0.8, 0.94), (0, 0.92), (0.9, 0.93), (1.62, 0.96),
+             (2.15, 0.92), (2.40, 0.84), (2.52, 0.70)],
+        TOP=[(-2.28, 0.92), (-2.18, 0.97), (-1.95, 0.99), (-1.6, 1.04), (-1.0, 1.17), (-0.55, 1.25), (-0.2, 1.27), (0.05, 1.23),
+             (0.55, 0.92), (1.0, 0.88), (1.8, 0.84), (2.2, 0.77), (2.42, 0.66), (2.52, 0.52)],
+        FPK=[(-2.28, 0.90), (-1.9, 0.96), (-1.30, 0.99), (-0.7, 0.90), (0.3, 0.87), (1.0, 0.86), (1.62, 0.89), (2.1, 0.83), (2.52, 0.56)],
+        CAB=[(-1.8, 0.0), (-1.05, 1.0), (0.05, 1.0), (0.5, 0.0)],
+        ROOFW=[(-1.5, 0.50), (-0.6, 0.58), (0.0, 0.60), (0.45, 0.66)],
+        windscreen=(-0.05, 0.53), rearglass=(-1.55, -0.62), sideglass=(-1.02, 0.02),
+        sharp=0.2, ymf=0.45, tumble=0.8, hood_x=0.44,
+        nose_len=0.26, nose_pinch=0.12, nose_mid=0.42, nose_sq=0.7,
+        tail_len=0.12, tail_pinch=0.05, tail_drop=0.03, tail_dropy=0.85, rear_open=0.62, diff=0.12, smooth=58,
+        bands=[dict(tags=["side2", "side2m"], mat="carbon", z0=0.92, z1=1.12)],
+        wheel_style="sport", spokes=10, pivotY=0.32, wing=False)
+    def extras(C, b):
+        ZT, ZN = C.ZT, C.ZN
+        diffuser(C, b, 4, 0.24, 0.08)
+        b.box((0, C.FLOOR - 0.005, 2.2), (1.6, 0.03, 0.4), "carbon")
+        # V12 power bulge + twin bonnet vents, chrome side gills
+        b.box((0, C.surf_y(0, 1.3) + 0.022, 1.3), (0.6, 0.06, 1.3), "paint", taper=0.78, rot_x=0.07)
+        for sd in (-1, 1):
+            b.box((sd * 0.48, C.surf_y(0.48, 1.45) + 0.006, 1.45), (0.2, 0.02, 0.42), "carbon", rot_x=0.07)
+            b.box((sd * (C.side_x(1.02, 0.55) + 0.006), 0.58, 1.02), (0.02, 0.025, 0.2), "rim")
+        # wide oval grille with chrome surround, long swept lamps
+        zf = C.front_z(0, 0.36)
+        b.cyl((0, 0.36, zf - 0.005), 0.42, 0.05, "carbon", axis="z", seg=20, ry=0.12)
+        b.cyl((0, 0.36, zf - 0.025), 0.46, 0.05, "rim", axis="z", seg=20, ry=0.15)
+        for k in range(-3, 4): b.box((k * 0.11, 0.36, zf + 0.022), (0.015, 0.2, 0.012), "rim")
+        for sd in (-1, 1):
+            b.box((sd * 0.64, 0.58, C.front_z(sd * 0.64, 0.58) - 0.07), (0.38, 0.05, 0.18), "lamp", rot_x=-0.55, rot_y=sd * 0.25)
+        # tail: twin oval lamps each side, chrome bar, quad exhausts, small ducktail
+        y = 0.80
+        for sd in (-1, 1):
+            for x in (0.44, 0.68):
+                zz = C.rear_z(sd * x, y)
+                b.cyl((sd * x, y, zz - 0.004), 0.105, 0.05, "tail", axis="z", seg=16, ry=0.055)
+                b.cyl((sd * x, y, zz + 0.006), 0.125, 0.05, "rim", axis="z", seg=16, ry=0.072)
+                C.glows.append([round(sd * x, 3), y, 0.45, 0.3])
+        b.box((0, y, C.rear_z(0, y) - 0.004), (0.56, 0.03, 0.02), "rim")
+        exhaust(C, b, 0.34, 0.36, 0.048, tip="rim", length=0.12)
+        exhaust(C, b, 0.48, 0.36, 0.048, tip="rim", length=0.12)
+        b.box((0, C.surf_y(0, ZT + 0.07) + 0.015, ZT + 0.07), (1.4, 0.025, 0.1), "paint", rot_x=-0.3)
+        mirrors(C, b, 0.40, 0.98, 0.97)
+        deck_sticker(C, 0.55, -1.95)
+    S["eye"] = [0.36, 1.12, -0.42]
+    return S, extras
+
+# ---------------------------------------------------------------- 14 Comet LMP: Le Mans prototype (bubble cockpit, pods, shark fin)
+CANOPY_HW = [(-1.10, 0.18), (-0.75, 0.33), (-0.3, 0.38), (0.2, 0.37), (0.6, 0.30), (0.92, 0.12)]
+CANOPY_HC = [(-1.10, 0.66), (-0.75, 0.93), (-0.35, 1.02), (0.05, 1.01), (0.5, 0.86), (0.92, 0.60)]
+@car
+def car_comet():
+    S = dict(BASE, id="comet", n="Comet LMP", paint="#F4F4F2", stripe="#FF6F1A",
+        ZN=2.45, ZT=-2.40, FLOOR=0.07, crown_min=0.06, ARCH_GAP=0.07,
+        WF=dict(z=1.50, r=0.35, w=0.32), WR=dict(z=-1.45, r=0.36, w=0.38),
+        WID=[(-2.40, 0.95), (-2.25, 0.99), (-1.45, 1.0), (-0.8, 0.97), (0, 0.95), (0.8, 0.97), (1.50, 0.99), (2.0, 0.97),
+             (2.3, 0.92), (2.45, 0.84)],
+        TOP=[(-2.40, 0.68), (-1.9, 0.66), (-1.45, 0.65), (-1.0, 0.60), (0, 0.56), (1.0, 0.58), (1.5, 0.60), (1.95, 0.52),
+             (2.25, 0.38), (2.45, 0.28)],
+        FPK=[(-2.40, 0.84), (-2.1, 0.90), (-1.45, 0.93), (-0.95, 0.80), (-0.4, 0.68), (0.4, 0.68), (0.95, 0.80), (1.50, 0.91),
+             (2.0, 0.76), (2.3, 0.54), (2.45, 0.36)],
+        CAB=[(-9, 0.0), (9, 0.0)], ROOFW=[(-9, 0.4), (9, 0.4)], hood_x=0.36,
+        sharp=0.15, ymf=0.45, tumble=0.9, cr_x=0.24,
+        nose_len=0.32, nose_pinch=0.06, nose_mid=0.24, nose_sq=0.55, nose_lift=0.15,
+        tail_len=0.06, tail_pinch=0.01, tail_drop=0.0, tail_dropy=0.9, rear_open=0.58, diff=0.24, smooth=55,
+        topx=[(0.30, "paint"), (0.12, "stripe")],
+        bands=[dict(tags=["side2", "side2m"], mat="stripe", z0=-2.4, z1=2.3)],
+        wheel_style="sport", spokes=5, rimfrac=0.66, pivotY=0.26, wing=True)
+    def extras(C, b):
+        ZT, ZN = C.ZT, C.ZN
+        # bubble canopy (closed cockpit): glass front + sides, body-colour roof spine and rear
+        zs = [-1.10 + k * (2.02 / 18) for k in range(19)]; N = 13; yb = 0.50; e = 2 / 2.6; R = []
+        for z in zs:
+            hw = keys(CANOPY_HW, z); hc = keys(CANOPY_HC, z); ring = []
+            for k in range(N):
+                th = PI * k / (N - 1); c, s_ = math.cos(th), math.sin(th)
+                ring.append((hw * math.copysign(abs(c) ** e, c), yb + (hc - yb) * abs(s_) ** e, z))
+            R.append(ring)
+        idx = [[b.vert(p) for p in r] for r in R]
+        for a in range(len(zs) - 1):
+            zc = (zs[a] + zs[a + 1]) / 2
+            for i in range(N):
+                j = (i + 1) % N
+                if j == 0: m = "carbon"
+                else: m = "glass" if (-0.5 < zc < 0.86 and not (4 <= i <= 7 and zc < 0.3)) else "paint"
+                b.face([idx[a][i], idx[a][j], idx[a + 1][j], idx[a + 1][i]], m)
+        b.face(list(reversed(idx[0])), "paint"); b.face(idx[-1], "paint")
+        b.box((0, 1.03, -0.40), (0.14, 0.06, 0.26), "paint", taper=0.8)                      # roof intake
+        b.box((0, 1.045, -0.27), (0.1, 0.03, 0.01), "carbon")
+        # shark fin from the cockpit to the rear wing
+        prism(b, [(-0.62, 0.60), (-0.62, 0.99), (-2.06, 1.17), (-2.26, 1.15), (-2.26, 0.62)], 0.016, "stripe")
+        # wide rear wing with tall end plates (tail-lamp strips on their trailing edges)
+        wing(C, b, 1.08, -2.16, 1.92, 0.36, -0.10, 0.34, 0.30, gurney="stripe")
+        for sd in (-1, 1):
+            b.box((sd * 0.97, 1.0, -2.16 - 0.02 - 0.24 - 0.006), (0.034, 0.24, 0.016), "tail")
+            C.glows.append([round(sd * 0.97, 3), 1.0, 0.24, 0.44])
+        # pod tail lamps, rain light, diffuser, exhausts
+        tail_rect(C, b, 0.72, 0.72, 0.36, 0.05)
+        b.box((0, 0.40, ZT + 0.0), (0.12, 0.08, 0.03), "tail"); C.glows.append([0, 0.40, 0.36, 0.3])
+        diffuser(C, b, 5, 0.22, 0.2)
+        b.box((0, C.FLOOR + 0.13, ZT + 0.3), (1.2, 0.02, 0.6), "carbon", rot_x=0.4)
+        exhaust(C, b, 0.17, 0.50, 0.05, length=0.12)
+        # front: wide splitter, dive planes, stacked lamps in the pods
+        b.box((0, C.FLOOR - 0.01, 2.2), (1.94, 0.03, 0.5), "carbon")
+        for sd in (-1, 1):
+            b.box((sd * 0.86, 0.26, 2.32), (0.18, 0.015, 0.14), "carbon", rot_x=-0.3)
+            zl = C.front_z(sd * 0.70, 0.40)                                                       # chunky lamp pods
+            b.box((sd * 0.70, 0.44, zl - 0.02), (0.30, 0.18, 0.12), "carbon")
+            for yy in (0.40, 0.48):
+                b.box((sd * 0.70, yy, zl + 0.04), (0.25, 0.05, 0.012), "lamp")
+            b.box((sd * 0.86, 0.95, 0.75), (0.14, 0.07, 0.1), "paint")                        # mirror pods on the fenders
+            b.box((sd * 0.86, 0.95, 0.70), (0.12, 0.05, 0.01), "carbon")
+            b.box((sd * 0.80, 0.86, 0.78), (0.04, 0.12, 0.06), "carbon")
+    S["eye"] = [0.0, 0.88, 0.05]
+    return S, extras
+
+# ---------------------------------------------------------------- 15 Breeze Roadster: open two-seater with a visible driver
+@car
+def car_breeze():
+    S = dict(BASE, id="breeze", n="Breeze Roadster", paint="#F06BA8", stripe="#f4f4f2",
+        mats={"helmet": ("#FFD23F", 0.3, 0.1), "suit": ("#2B59C3", 0.7, 0.0)},
+        ZN=2.0, ZT=-1.98, FLOOR=0.12,
+        WF=dict(z=1.25, r=0.31, w=0.24), WR=dict(z=-1.22, r=0.32, w=0.27),
+        WID=[(-1.98, 0.74), (-1.9, 0.82), (-1.6, 0.86), (-1.22, 0.88), (-0.7, 0.84), (0, 0.83), (0.7, 0.84), (1.25, 0.87),
+             (1.7, 0.82), (1.9, 0.74), (2.0, 0.62)],
+        TOP=[(-1.98, 0.70), (-1.85, 0.77), (-1.4, 0.82), (-0.95, 0.84), (-0.76, 0.83), (-0.66, 0.60), (0.30, 0.60), (0.40, 0.79),
+             (0.9, 0.78), (1.5, 0.72), (1.85, 0.60), (2.0, 0.48)],
+        FPK=[(-1.98, 0.70), (-1.7, 0.82), (-1.22, 0.88), (-0.7, 0.83), (0, 0.81), (0.7, 0.82), (1.25, 0.86), (1.7, 0.76), (2.0, 0.50)],
+        CAB=[(-9, 0.0), (9, 0.0)], ROOFW=[(-9, 0.4), (9, 0.4)], hood_x=0.42,
+        sharp=0.25, ymf=0.42, tumble=1.0, sill_in=0.07,
+        nose_len=0.26, nose_pinch=0.16, nose_mid=0.40, nose_sq=0.6,
+        tail_len=0.14, tail_pinch=0.06, tail_drop=0.04, tail_dropy=0.6, rear_open=0.56, diff=0.08, smooth=58,
+        topx=[(0.30, "paint"), (0.13, "paint")], breaks=[-0.76, -0.66, 0.30, 0.40],
+        bands=[dict(tags=TOPINNER[2:] + ["T0", "T1", "C"], mat="carbon", z0=-0.68, z1=0.36),
+               dict(tags=["side2", "side2m"], mat="stripe", z0=-1.9, z1=1.9)],
+        wheel_style="sport", spokes=6, pivotY=0.3, wing=False, roofY=1.22)
+    def extras(C, b):
+        ZT, ZN = C.ZT, C.ZN
+        dx = 0.30                                                     # driver sits on the left (+x)
+        # seats
+        for sd in (-1, 1):
+            b.box((sd * dx, 0.80, -0.60), (0.44, 0.46, 0.08), "carbon", rot_x=-0.22)
+            b.box((sd * dx, 0.50, -0.38), (0.44, 0.08, 0.44), "carbon")
+        # driver: suit torso + shoulders, arms to the wheel, helmet with visor
+        b.ellipsoid((dx, 0.74, -0.46), 0.18, 0.24, 0.12, "suit", seg=12, rings=7)
+        b.ellipsoid((dx, 0.90, -0.46), 0.22, 0.07, 0.12, "suit", seg=12, rings=6)
+        b.cyl((dx, 0.97, -0.45), 0.05, 0.08, "suit", axis="y", seg=8)
+        b.ellipsoid((dx, 1.07, -0.44), 0.125, 0.13, 0.14, "helmet", seg=14, rings=9)
+        b.box((dx, 1.07, -0.315), (0.17, 0.06, 0.03), "glass", rot_x=0.15)
+        b.box((dx, 1.19, -0.46), (0.03, 0.02, 0.22), "stripe")
+        for s2 in (-1, 1):
+            b.tube([(dx + s2 * 0.19, 0.88, -0.44), (dx + s2 * 0.19, 0.76, -0.24), (dx + s2 * 0.12, 0.80, -0.02)], 0.042, "suit", seg=6)
+        sw = [(dx + math.cos(2 * PI * k / 12) * 0.15, 0.80 + math.sin(2 * PI * k / 12) * 0.14, 0.02 + math.sin(2 * PI * k / 12) * 0.05) for k in range(13)]
+        b.tube(sw, 0.014, "carbon", seg=5)
+        # two chrome roll hoops + braces
+        zh = -0.74
+        for sd in (-1, 1):
+            xc = sd * dx; yd = C.surf_y(xc, zh) - 0.02
+            b.tube([(xc - 0.2, yd, zh), (xc - 0.2, 1.06, zh), (xc - 0.15, 1.17, zh), (xc, 1.21, zh), (xc + 0.15, 1.17, zh), (xc + 0.2, 1.06, zh),
+                    (xc + 0.2, yd, zh)], 0.028, "rim", seg=8)
+            b.tube([(xc, 1.20, zh - 0.02), (xc, C.surf_y(xc, -1.2) - 0.01, -1.2)], 0.022, "rim", seg=6)
+        # small wrap windscreen with a chrome top rail
+        n = 9; bot = []; topp = []
+        for k in range(n):
+            t = -1 + 2 * k / (n - 1); x = 0.62 * t; z = 0.40 - 0.12 * t * t
+            yb = C.surf_y(x, z + 0.04) - 0.02; bot.append((x, yb, z)); topp.append((x * 0.97, 0.97 - 0.06 * t * t, z - 0.1))
+        RR = [[pb, pt, (pt[0], pt[1], pt[2] - 0.012), (pb[0], pb[1], pb[2] - 0.012)] for (pb, pt) in zip(bot, topp)]
+        idx = [[b.vert(p) for p in r] for r in RR]
+        for a in range(n - 1):
+            for i in range(4):
+                j = (i + 1) % 4; b.face([idx[a][i], idx[a][j], idx[a + 1][j], idx[a + 1][i]], "glass")
+        b.face(list(reversed(idx[0])), "glass"); b.face(idx[-1], "glass")
+        b.tube([(p[0], p[1] + 0.008, p[2] - 0.006) for p in topp], 0.012, "rim", seg=5)
+        # tail: oblong lamps in chrome-ish surrounds, twin pipes, small lip
+        tail_rect(C, b, 0.50, 0.60, 0.26, 0.08, surround=0.03)
+        exhaust(C, b, 0.16, 0.27, 0.045, tip="rim", length=0.12)
+        b.box((0, C.surf_y(0, ZT + 0.1) + 0.015, ZT + 0.09), (1.1, 0.025, 0.1), "paint", rot_x=-0.3)
+        b.box((0, 0.34, ZT + 0.02), (1.2, 0.08, 0.06), "carbon")
+        # front: round lamps, smiley grille
+        for sd in (-1, 1):
+            x = 0.55; y = 0.56; zz = C.front_z(sd * x, y)
+            b.cyl((sd * x, y, zz - 0.02), 0.1, 0.06, "rim", axis="z", seg=16)
+            b.cyl((sd * x, y, zz + 0.012), 0.085, 0.01, "lamp", axis="z", seg=16)
+        zf = C.front_z(0, 0.32); b.cyl((0, 0.32, zf - 0.01), 0.3, 0.05, "carbon", axis="z", seg=18, ry=0.08)
+        mirrors(C, b, 0.30, 0.86, 0.86)
+        deck_sticker(C, 0.4, -1.5)
+    S["eye"] = [0.30, 1.08, -0.33]
+    return S, extras
+
+# ---------------------------------------------------------------- 16 Big Bouncer: monster truck
+@car
+def car_monster():
+    S = dict(BASE, id="monster", nose_cap=0.85, nose_cap_d=0.012, n="Big Bouncer", paint="#FF8C1A",
+        ZN=2.30, ZT=-2.35, FLOOR=1.30, sill_h=0.05, ARCH_GAP=0.12,
+        WF=dict(z=1.50, r=0.80, w=0.60), WR=dict(z=-1.50, r=0.80, w=0.60),
+        WID=[(-2.35, 0.95), (-1.5, 0.98), (-0.5, 0.97), (0.5, 0.97), (1.5, 0.98), (2.1, 0.96), (2.30, 0.90)],
+        TOP=[(-2.35, 1.80), (-0.66, 1.80), (-0.56, 2.70), (-0.44, 2.76), (0.20, 2.76), (0.45, 2.64), (0.95, 2.24), (1.6, 2.18),
+             (2.1, 2.12), (2.25, 2.04), (2.30, 1.94)],
+        FPK=[(-2.35, 2.12), (-0.6, 2.12), (0.2, 2.12), (0.9, 2.10), (1.5, 2.08), (2.1, 2.04), (2.30, 1.96)],
+        CAB=[(-0.66, 0.0), (-0.56, 1.0), (0.92, 1.0), (1.06, 0.0)], BED=[(-0.68, 1.0), (-0.58, 0.0)],
+        ROOFW=[(-0.5, 0.72), (0.2, 0.74), (0.85, 0.80)],
+        windscreen=(0.30, 0.98), rearglass=(-0.59, -0.48), sideglass=(-0.50, 0.88),
+        sharp=0.8, sh_x=0.05, cr_x=0.10, ymf=0.5, tumble=0.4, sill_in=0.04, hood_x=0.50, roof_round=0.05,
+        nose_len=0.10, nose_pinch=0.04, nose_mid=1.95, nose_sq=0.85, nose_lift=0.0,
+        tail_len=0.03, tail_pinch=0.01, tail_drop=0.0, diff=0.0, smooth=45, f_inset=-0.43, r_inset=-0.43,
+        dense=[(-0.75, -0.45)], breaks=[-0.68, -0.64, -0.62, -0.60, -0.58, -0.56],
+        bands=[dict(tags=TOPINNER[1:] + ["T0", "T1", "T2"], mat="carbon", z0=-2.4, z1=-0.66),
+               dict(tags=["sill", "sillm", "side1"], mat="carbon", z0=-2.4, z1=2.4)],
+        step_d=0.065, step_s=0.11, wheel_style="beadlock", tread="monster", rimfrac=0.46, wseg=22, lugs=16, pivotY=1.3, wing=False, cam=1.5)
+    def extras(C, b):
+        ZT, ZN = C.ZT, C.ZN; WF, WR = C.WF, C.WR
+        # chassis: frame rails, solid axles with diff pumpkins, 4-link bars, two coil-overs per corner
+        for sd in (-1, 1): b.box((sd * 0.42, 1.14, 0.0), (0.12, 0.2, 4.4), "carbon")
+        for W_, toward in ((WF, -1), (WR, 1)):
+            z = W_["z"]
+            b.cyl((0, 0.80, z), 0.075, 2 * (W_["x"] - W_["w"] / 2 - 0.03), "rimdark", axis="x", seg=10)
+            b.ellipsoid((0.1, 0.80, z), 0.2, 0.2, 0.2, "rimdark", seg=10, rings=6)
+            for sd in (-1, 1):
+                for yy in (0.72, 0.90):
+                    b.tube([(sd * 0.55, yy, z), (sd * 0.40, yy + 0.30, z + toward * 0.95)], 0.032, "rim", seg=6)
+                for dz in (-0.22, 0.22):
+                    shock(b, (sd * 0.62, 0.86, z + dz), (sd * 0.68, 1.62, z + dz * 0.8), r=0.05, turns=4)
+        # roll cage over the bed, roof light bar
+        zb = -0.95
+        b.tube([(0.86, 2.08, zb), (0.86, 2.58, zb), (0.78, 2.70, zb), (-0.78, 2.70, zb), (-0.86, 2.58, zb), (-0.86, 2.08, zb)], 0.05, "rimdark", seg=8)
+        for sd in (-1, 1): b.tube([(sd * 0.83, 2.60, zb - 0.02), (sd * 0.86, 2.12, -2.20)], 0.04, "rimdark", seg=8)
+        b.tube([(-0.84, 2.36, -1.6), (0.84, 2.36, -1.6)], 0.035, "rimdark", seg=6)
+        b.box((0, 2.83, 0.12), (1.3, 0.09, 0.12), "carbon")
+        for x in (-0.48, -0.24, 0.0, 0.24, 0.48):
+            b.cyl((x, 2.83, 0.19), 0.055, 0.03, "lamp", axis="z", seg=12)
+        # front: grille with bars, square lamps, tube bumper
+        zg = C.front_z(0, 1.80)
+        b.box((0, 1.80, zg - 0.01), (1.2, 0.3, 0.05), "carbon")
+        for x in (-0.4, -0.2, 0.0, 0.2, 0.4): b.box((x, 1.80, zg + 0.017), (0.04, 0.26, 0.01), "rim")
+        for sd in (-1, 1): b.box((sd * 0.74, 1.84, C.front_z(sd * 0.74, 1.84) - 0.02), (0.26, 0.14, 0.05), "lamp")
+        zf = ZN + 0.10
+        b.tube([(0.78, 1.25, ZN - 0.1), (0.78, 1.25, zf), (0.6, 1.4, zf + 0.04), (-0.6, 1.4, zf + 0.04), (-0.78, 1.25, zf), (-0.78, 1.25, ZN - 0.1)], 0.05, "rim", seg=8)
+        # tail: tall lamps on the bed corners, tube bumper, twin pipes
+        tail_rect(C, b, 0.84, 1.86, 0.12, 0.34, z=ZT)
+        b.tube([(0.80, 1.22, ZT + 0.1), (0.80, 1.22, ZT - 0.12), (0.62, 1.10, ZT - 0.16), (-0.62, 1.10, ZT - 0.16), (-0.80, 1.22, ZT - 0.12), (-0.80, 1.22, ZT + 0.1)], 0.05, "rim", seg=8)
+        b.box((0, 2.06, ZT - 0.008), (0.3, 0.05, 0.02), "carbon")
+        for sd in (-1, 1):
+            b.tube([(sd * 0.25, 1.24, -1.0), (sd * 0.25, 1.24, ZT + 0.05)], 0.055, "exhaust", seg=10)
+        exhaust(C, b, 0.25, 1.24, 0.07, tip="rim", length=0.16, z=ZT + 0.02)
+        mirrors(C, b, 0.80, 2.40, 1.06)
+        deck_sticker(C, 0.38, -0.1)
+    S["eye"] = [0.38, 2.50, 0.05]
+    return S, extras
+
+# ---------------------------------------------------------------- 17 Dune Hawk: desert trophy truck
+@car
+def car_trophy():
+    S = dict(BASE, id="trophy", nose_cap=0.85, nose_cap_d=0.012, n="Dune Hawk", paint="#3BB273",
+        ZN=2.85, ZT=-2.80, FLOOR=0.75, sill_h=0.05, ARCH_GAP=0.30,
+        WF=dict(z=1.90, r=0.47, w=0.40), WR=dict(z=-1.65, r=0.47, w=0.40),
+        WID=[(-2.80, 0.98), (-2.4, 1.03), (-1.65, 1.13), (-0.95, 1.0), (-0.3, 0.96), (1.1, 0.97), (1.90, 1.13), (2.5, 1.03), (2.85, 0.92)],
+        TOP=[(-2.80, 1.30), (-0.72, 1.30), (-0.64, 1.98), (-0.52, 2.02), (0.15, 2.02), (0.40, 1.90), (0.95, 1.52), (1.6, 1.48),
+             (2.4, 1.42), (2.7, 1.32), (2.85, 1.18)],
+        FPK=[(-2.80, 1.56), (-0.7, 1.56), (0.2, 1.54), (0.9, 1.52), (1.9, 1.50), (2.5, 1.44), (2.85, 1.24)],
+        CAB=[(-0.74, 0.0), (-0.64, 1.0), (0.88, 1.0), (1.02, 0.0)], BED=[(-0.76, 1.0), (-0.66, 0.0)],
+        ROOFW=[(-0.6, 0.70), (0.15, 0.72), (0.85, 0.78)],
+        windscreen=(0.22, 0.95), rearglass=(-0.67, -0.56), sideglass=(-0.58, 0.86),
+        sharp=0.6, sh_x=0.05, cr_x=0.10, ymf=0.5, tumble=0.4, sill_in=0.04, hood_x=0.50, roof_round=0.05,
+        nose_len=0.25, nose_pinch=0.08, nose_mid=1.1, nose_sq=0.8, nose_lift=0.25,
+        tail_len=0.03, tail_pinch=0.01, tail_drop=0.0, diff=0.18, smooth=45, f_inset=-0.09, r_inset=-0.09,
+        dense=[(-0.8, -0.5)], breaks=[-0.76, -0.72, -0.70, -0.68, -0.66, -0.64],
+        bands=[dict(tags=TOPINNER[1:] + ["T0", "T1", "T2"], mat="carbon", z0=-2.9, z1=-0.74),
+               dict(tags=["sill", "sillm", "side1", "side1m"], mat="carbon", z0=1.3, z1=2.6),
+               dict(tags=["sill", "sillm", "side1", "side1m"], mat="carbon", z0=-2.3, z1=-1.05),
+               dict(tags=["sill", "sillm"], mat="carbon", z0=-2.9, z1=2.9)],
+        step_d=0.065, step_s=0.11, wheel_style="beadlock", tread="knobbly", rimfrac=0.55, wseg=18, pivotY=0.85, wing=False, cam=1.2)
+    def extras(C, b):
+        ZT, ZN = C.ZT, C.ZN; WF, WR = C.WF, C.WR
+        for sd in (-1, 1): b.box((sd * 0.38, 0.68, 0.0), (0.1, 0.1, 5.2), "carbon")
+        # long-travel front: upper + lower A-arms to the knuckle, two coil-overs a side
+        zf = WF["z"]
+        for sd in (-1, 1):
+            xo = WF["x"] - WF["w"] / 2 - 0.03
+            b.cyl((sd * xo, 0.47, zf), 0.07, 0.16, "rimdark", axis="y", seg=8)
+            for (yi, yo_) in ((0.84, 0.64), (0.56, 0.32)):
+                b.tube([(sd * 0.30, yi, zf + 0.30), (sd * xo, yo_, zf), (sd * 0.30, yi, zf - 0.30)], 0.03, "rim", seg=6)
+            for dz in (-0.14, 0.14):
+                shock(b, (sd * 0.62, 0.38, zf + dz), (sd * 0.42, 1.12, zf + dz * 1.3), r=0.045, turns=4)
+        # rear: trailing arms, solid axle + diff, coil-overs in the wells
+        zr = WR["z"]
+        b.cyl((0, 0.47, zr), 0.065, 2 * (WR["x"] - WR["w"] / 2 - 0.03), "rimdark", axis="x", seg=10)
+        b.ellipsoid((0.08, 0.47, zr), 0.17, 0.17, 0.17, "rimdark", seg=10, rings=6)
+        for sd in (-1, 1):
+            for yy in (0.42, 0.58):
+                b.tube([(sd * 0.36, yy + 0.18, -0.25), (sd * 0.62, yy, zr)], 0.035, "rim", seg=6)
+            for dz in (-0.32, 0.32):
+                shock(b, (sd * 0.66, 0.50, zr + dz), (sd * 0.62, 1.20, zr + dz * 0.8), r=0.045, turns=4)
+        # bed: spare wheel tipped back so the chase cam sees it, strap, rear cage + chase light bar
+        spare_tyre(C.S, b, (0.0, 1.70, -2.05), 0.45, 0.32, math.radians(55))
+        b.box((0, 1.74, -2.05), (0.06, 0.03, 1.0), "carbon", rot_x=-0.96)
+        zc = ZT + 0.12
+        b.tube([(0.86, 1.54, zc), (0.86, 2.0, zc), (0.74, 2.12, zc), (-0.74, 2.12, zc), (-0.86, 2.0, zc), (-0.86, 1.54, zc)], 0.04, "rimdark", seg=8)
+        for sd in (-1, 1): b.tube([(sd * 0.80, 2.10, zc + 0.02), (sd * 0.70, 2.0, -0.70)], 0.035, "rimdark", seg=8)
+        b.box((0, 2.12, zc - 0.03), (0.9, 0.08, 0.06), "carbon")
+        for x in (-0.3, 0.0, 0.3):
+            b.box((x, 2.12, zc - 0.065), (0.2, 0.05, 0.015), "tail"); C.glows.append([x, 2.12, 0.42, 0.22])
+        tail_rect(C, b, 0.86, 1.32, 0.12, 0.30, z=ZT)
+        b.box((0, 1.40, ZT - 0.008), (0.3, 0.05, 0.02), "carbon")
+        b.tube([(0.9, 0.86, ZT + 0.1), (0.9, 0.86, ZT - 0.1), (-0.9, 0.86, ZT - 0.1), (-0.9, 0.86, ZT + 0.1)], 0.04, "rimdark", seg=8)
+        exhaust(C, b, 0.50, 0.70, 0.055, length=0.16, z=ZT + 0.08)
+        # roof light bar (6 lamps), front skid plate + bumper tube, lamps, grille, mirrors
+        b.box((0, 2.09, 0.14), (1.5, 0.09, 0.12), "carbon")
+        for x in (-0.6, -0.36, -0.12, 0.12, 0.36, 0.6): b.box((x, 2.09, 0.205), (0.18, 0.06, 0.01), "lamp")
+        b.box((0, 0.80, ZN - 0.12), (1.3, 0.04, 0.5), "rimdark", rot_x=-0.35)
+        b.tube([(0.8, 0.95, ZN - 0.1), (0.8, 0.95, ZN + 0.08), (-0.8, 0.95, ZN + 0.08), (-0.8, 0.95, ZN - 0.1)], 0.045, "rimdark", seg=8)
+        zg = C.front_z(0, 1.12)
+        b.box((0, 1.12, zg - 0.01), (1.0, 0.2, 0.05), "carbon")
+        for sd in (-1, 1): b.box((sd * 0.70, 1.18, C.front_z(sd * 0.70, 1.18) - 0.02), (0.3, 0.1, 0.05), "lamp", rot_x=-0.3)
+        mirrors(C, b, 0.75, 1.64, 1.06)
+        deck_sticker(C, 0.38, -0.2)
+    S["eye"] = [0.38, 1.82, 0.0]
+    return S, extras
+
+# ---------------------------------------------------------------- 18 Thunder Hauler: racing semi-truck cab (no trailer)
+@car
+def car_semi():
+    S = dict(BASE, id="semi", n="Thunder Hauler", paint="#B5121B", nose_cap=0.95, nose_cap_d=0.03,
+        ZN=3.10, ZT=0.30, FLOOR=0.95, sill_h=0.05, ARCH_GAP=0.12,
+        WF=dict(z=2.15, r=0.54, w=0.32), WR=dict(z=-2.25, r=0.54, w=0.66, dual=True),
+        WID=[(0.30, 1.17), (0.42, 1.23), (2.95, 1.24), (3.10, 1.20)],
+        TOP=[(0.30, 3.50), (0.40, 3.56), (1.25, 3.56), (2.05, 3.06), (2.6, 3.0), (2.98, 2.98), (3.10, 2.92)],
+        FPK=[(0.30, 2.02), (3.10, 2.02)],
+        CAB=[(-9, 1.0), (9, 1.0)], ROOFW=[(0.3, 1.02), (1.25, 1.04), (2.05, 1.10), (3.1, 1.12)],
+        sideglass=(1.95, 2.85),
+        sharp=1.0, sh_x=0.02, sh_y=0.02, cr_x=0.06, ymf=0.5, tumble=0.2, sill_in=0.03, roof_round=0.06,
+        nose_len=0.10, nose_pinch=0.03, nose_mid=1.95, nose_sq=1.0, nose_lift=0.0,
+        tail_len=0.06, tail_pinch=0.02, tail_drop=0.0, tail_dropy=9.0, diff=0.0, smooth=40, f_inset=0.03, r_inset=-0.10,
+        bands=[dict(tags=["sill", "sillm"], mat="carbon", z0=0.0, z1=3.2)],
+        wheel_style="truck", tread="ribbed", rimfrac=0.58, wseg=24, pivotY=1.0, wing=False, cam=1.75, roofY=3.56)
+    def extras(C, b):
+        ZT, ZN = C.ZT, C.ZN; WF, WR = C.WF, C.WR
+        zfc = ZN + 0.03                                            # flat front face
+        # chassis: rails, fifth wheel, deck plate, rear crossmember with tail lamps, quarter fenders + mud flaps
+        for sd in (-1, 1): b.box((sd * 0.45, 0.84, -0.15), (0.13, 0.26, 6.0), "carbon")
+        b.box((0, 1.02, -1.95), (1.05, 0.07, 0.95), "rimdark")
+        b.box((0, 1.06, -2.28), (0.12, 0.02, 0.4), "carbon")
+        b.box((0, 1.01, -0.35), (1.3, 0.03, 1.2), "carbon")
+        zt = -3.12
+        b.box((0, 0.86, zt + 0.06), (2.0, 0.22, 0.12), "carbon")
+        for x in (0.58, 0.82):
+            tail_round(C, b, x, 0.86, 0.065, z=zt - 0.004)
+        b.box((0, 0.86, zt - 0.008), (0.5, 0.06, 0.02), "lamp")
+        for sd in (-1, 1):
+            arc_fender(b, sd * WR["x"], WR["r"], WR["z"], WR["r"] + 0.09, WR["w"] + 0.1, "paint", a0=0.3, a1=PI - 0.25)
+            b.box((sd * WR["x"], 0.50, WR["z"] - WR["r"] - 0.16), (WR["w"] + 0.04, 0.46, 0.02), "carbon")
+            b.box((sd * WR["x"], 0.29, WR["z"] - WR["r"] - 0.16), (WR["w"] + 0.04, 0.04, 0.03), "rim")
+            b.box((sd * 0.8, 0.98, WR["z"] - 0.1), (0.4, 0.06, 0.25), "carbon")               # fender bracket
+        # side skirts (fuel tanks behind them) with steps under the doors
+        for sd in (-1, 1):
+            b.box((sd * 1.17, 0.70, -0.08), (0.05, 0.52, 3.1), "paint")
+            b.box((sd * 1.17, 0.95, -0.08), (0.07, 0.03, 3.1), "rim")
+            for yy in (0.55, 0.78): b.box((sd * 1.19, yy, 1.30), (0.04, 0.03, 0.42), "rim")
+        # twin chrome exhaust stacks behind the cab with dark heat shields
+        zs_ = 0.12
+        for sd in (-1, 1):
+            x = sd * 1.02
+            b.cyl((x, 2.45, zs_), 0.085, 2.9, "rim", axis="y", seg=14)
+            b.cyl((x, 2.35, zs_), 0.105, 0.95, "exhaust", axis="y", seg=14)
+            b.cyl((x, 3.88, zs_), 0.07, 0.02, "carbon", axis="y", seg=14)
+            for yy in (1.5, 3.2): b.box((x * 0.95, yy, zs_ + 0.11), (0.05, 0.05, 0.2), "rim")
+            C.exh.append([round(x, 3), 3.9, zs_, 1])
+        # cab back: work lamps + chrome grab handles
+        for sd in (-1, 1):
+            b.box((sd * 0.55, 3.2, ZT - 0.012), (0.22, 0.08, 0.03), "lamp")
+            b.box((sd * 0.85, 1.9, ZT - 0.03), (0.03, 0.6, 0.03), "rim")
+        # front: windscreen panes, sun visor, big chrome grille with bars, lamps, chrome bumper, roof markers, mirrors
+        for sd in (-1, 1): b.box((sd * 0.56, 2.46, zfc + 0.008), (1.0, 0.72, 0.02), "glass")
+        b.box((0, 2.46, zfc + 0.006), (0.1, 0.76, 0.02), "paint")
+        b.box((0, 2.90, zfc + 0.07), (2.26, 0.05, 0.2), "paint", rot_x=-0.2)
+        b.box((0, 1.52, zfc + 0.012), (1.5, 0.96, 0.04), "rim")
+        b.box((0, 1.52, zfc + 0.026), (1.34, 0.80, 0.02), "rimdark")
+        for k in range(7): b.box((0, 1.19 + k * 0.11, zfc + 0.04), (1.34, 0.035, 0.02), "rim")
+        b.box((0, 1.52, zfc + 0.045), (0.06, 0.8, 0.02), "rim")
+        for sd in (-1, 1):
+            b.box((sd * 0.98, 1.22, zfc + 0.012), (0.36, 0.18, 0.03), "rim")
+            b.box((sd * 0.98, 1.22, zfc + 0.026), (0.30, 0.13, 0.02), "lamp")
+        b.box((0, 0.78, zfc + 0.06), (2.46, 0.32, 0.16), "rim")
+        b.box((0, 0.70, zfc + 0.14), (1.6, 0.06, 0.01), "carbon")
+        for x in (-0.6, -0.3, 0.0, 0.3, 0.6): b.box((x, 3.0, zfc - 0.03), (0.12, 0.04, 0.06), "lamp")
+        for sd in (-1, 1):
+            b.tube([(sd * 1.22, 2.55, 2.95), (sd * 1.42, 2.55, 3.02), (sd * 1.42, 2.0, 3.02), (sd * 1.22, 2.0, 2.95)], 0.018, "rim", seg=5)
+            b.box((sd * 1.45, 2.28, 3.02), (0.08, 0.48, 0.2), "carbon")
+            b.box((sd * 1.45, 2.28, 2.915), (0.06, 0.44, 0.01), "glass")
+        deck_sticker(C, 0.5, 0.75)
+    S["eye"] = [0.55, 2.30, 2.70]
+    return S, extras
+
 # ---------------------------------------------------------------- 7 Volta Formula: open-wheel single-seater (own builder)
 def formula_spec():
     return dict(BASE, id="formula", n="Volta Formula", paint="#7B2CBF", livery=YELLOW_PNG,
@@ -1085,7 +1623,7 @@ COCK = (-0.40, 0.48)
 class FCar:
     """minimal Car-like object for the formula car (stats + glows + sticker)"""
     def __init__(s, S):
-        s.S = S; s.WF = S["WF"]; s.WR = S["WR"]; s.ZN, s.ZT, s.FLOOR = S["ZN"], S["ZT"], S["FLOOR"]; s.glows = []; s.sticker = None
+        s.S = S; s.WF = S["WF"]; s.WR = S["WR"]; s.ZN, s.ZT, s.FLOOR = S["ZN"], S["ZT"], S["FLOOR"]; s.glows = []; s.sticker = None; s.exh = []
 
 def tub_half(z, n=11):
     hw = keys(TZ_HW, z); yb = keys(TZ_YB, z); yt = keys(TZ_YT, z); yc = (yb + yt) / 2; hh = (yt - yb) / 2; out = []
@@ -1189,18 +1727,43 @@ def finish_stats(C, body, out_path, tris):
     tailz = min(v[2] for v in body.tris_of("tail"))
     wb = max(max(abs(v[0]) for v in body.v), C.WF["x"] + C.WF["w"] / 2 + 0.013, C.WR["x"] + C.WR["w"] / 2 + 0.013)
     if S["id"] == "formula": roof = 1.0
+    elif S.get("roofY"): roof = S["roofY"]
     else: roof = max(p[1] for z in (S["ZT"] + 0.3, -0.5, 0.0, 0.3) for p in C.section(z))
     return dict(n=S["n"], bytes=os.path.getsize(out_path), tris=tris, len=round(max(zs) - min(zs), 3), w=round(2 * wb, 3),
                 ride=S["FLOOR"], rad=C.WF["r"], radR=C.WR["r"], twF=C.WF["w"], twR=C.WR["w"], tyreX=round(C.WR["x"], 3),
                 tyreXF=round(C.WF["x"], 3), xf=C.WF["z"], xr=C.WR["z"], tail=round(tailz, 3), nose=round(max(zs), 3),
-                pivotY=S["pivotY"], roofY=round(roof, 3), glows=C.glows, sticker=C.sticker, wing=S["wing"])
+                pivotY=S["pivotY"], roofY=round(roof, 3), glows=C.glows, sticker=C.sticker, wing=S["wing"], **meta_of(C))
+
+# driver's eye (cockpit camera) for the original 10 road cars: (x, z); y = centre-line roof height there - 0.14
+EYE_XZ = {"arrow": (0.34, -0.15), "shogun": (0.36, -0.2), "rally": (0.36, 0.0), "kumasi": (0.36, -0.25), "kei": (0.33, 0.1),
+          "ridge": (0.38, 0.0), "kente": (0.36, -0.3), "viper": (0.36, -0.1)}
+EYE_FIX = {"falcon": [0.36, 0.95, -0.25], "formula": [0.0, 0.86, -0.10], "retro": [0.28, 0.98, -0.15]}
+EXH_FIX = {"falcon": [[0.11, 0.4, -2.41], [-0.11, 0.4, -2.41]],          # build_car.py twin centre pipes
+           "formula": [[0.0, 0.42, -2.19]]}                              # above the rain light (no pipes modelled)
+def meta_of(C):
+    """eye + exh for fleet.json (exh falls back to the diffuser centre on cars without pipes, e.g. the electric arrow)"""
+    S = C.S; cid = S["id"]
+    if cid in EYE_FIX: eye = EYE_FIX[cid]
+    elif S.get("eye"): eye = S["eye"]
+    else: x, z = EYE_XZ[cid]; eye = [x, round(keys(S["TOP"], z) - 0.14, 3), z]
+    exh = EXH_FIX.get(cid) or C.exh or [[sd * 0.22, round(C.FLOOR + 0.12, 3), round(C.ZT, 3)] for sd in (1, -1)]
+    return dict(eye=eye, exh=exh)
+def meta(cid):
+    """eye/exh without building or exporting anything (pure-python body + extras)"""
+    if cid == "falcon": return dict(eye=EYE_FIX["falcon"], exh=EXH_FIX["falcon"])
+    if cid == "formula": C = FCar(formula_spec())
+    else:
+        S, extras = CARS[cid](); C = Car(S); b = build_loft_body(C); extras(C, b)
+    return meta_of(C)
 
 def build(cid):
+    global CAM
     if cid == "formula":
         S = formula_spec(); new_scene(S); C = FCar(S); body = build_formula(C)
     else:
         S, extras = CARS[cid](); new_scene(S); C = Car(S); wheel_checks(C)
         body = build_loft_body(C); extras(C, body)
+    CAM = S.get("cam", 1.0)
     body.to_obj("body", smooth_angle=S.get("smooth", 62))
     add_wheels(S, C.WF, C.WR)
     root = bpy.data.objects.new(cid, None); scene.collection.objects.link(root)
@@ -1208,7 +1771,9 @@ def build(cid):
         if ob is not root and ob.parent is None: ob.parent = root
     tris = 0
     for ob in scene.collection.objects:
-        if ob.type == "MESH": ob.data.calc_loop_triangles(); tris += len(ob.data.loop_triangles)
+        if ob.type == "MESH":
+            ob.data.calc_loop_triangles(); tris += len(ob.data.loop_triangles)
+            if os.environ.get("GP_DEBUG_VIEWS"): print("TRIS", cid, ob.name, len(ob.data.loop_triangles))
     out = os.path.join(OUTDIR, cid + ".glb")
     bpy.ops.export_scene.gltf(filepath=out, export_format="GLB", export_apply=True, export_yup=True,
                               export_texcoords=True, export_normals=True, export_materials="EXPORT",
@@ -1238,6 +1803,10 @@ VIEWS = {
     "side": (7.5, 0.9, 0.0, 0.0, 0.6, 0.0),
     "front": (1.2, 1.2, 5.6, 0.0, 0.5, 0.8),
 }
+if os.environ.get("GP_DEBUG_VIEWS"):          # extra close-ups for checking geometry (not part of the normal output)
+    VIEWS.update({"top": (0.0, 9.0, -0.6, 0.0, 0.0, 0.0), "rearclose": (1.6, 2.0, -4.0, 0.0, 0.7, -1.2),
+                  "under": (3.2, 0.25, -2.6, 0.0, 0.5, -0.6)})
+CAM = 1.0
 def render(cid):
     d = os.path.join(RENDER, cid); os.makedirs(d, exist_ok=True)
     world = bpy.data.worlds.new("w"); scene.world = world; world.use_nodes = True
@@ -1256,18 +1825,21 @@ def render(cid):
     cam = bpy.data.cameras.new("c"); cam.lens = 40
     co = bpy.data.objects.new("cam", cam); scene.collection.objects.link(co); scene.camera = co
     for nm, (x, y, z, tx, ty, tz) in VIEWS.items():
+        x, y, z, tx, ty, tz = (v * CAM for v in (x, y, z, tx, ty, tz))       # trucks: pull back + up
         co.location = B((x, y, z)); dv = B((tx, ty, tz)) - co.location
         co.rotation_euler = dv.to_track_quat("-Z", "Y").to_euler()
         scene.render.filepath = os.path.join(d, nm + ".png")
         bpy.ops.render.render(write_still=True)
 
 # ================================================================ main
-ORDER = ["falcon", "arrow", "shogun", "rally", "kumasi", "kei", "ridge", "formula", "retro", "kente", "viper"]
+ORDER = ["falcon", "arrow", "shogun", "rally", "kumasi", "kei", "ridge", "formula", "retro", "kente", "viper",
+         "razor", "aurora", "comet", "breeze", "monster", "trophy", "semi"]
 make_textures()
 want = IDS or ORDER
 stats = {}
 for cid in want:
-    st = falcon_import() if cid == "falcon" else build(cid)
+    if cid == "falcon": CAM = 1.0
+    st = dict(falcon_import(), **meta("falcon")) if cid == "falcon" else build(cid)
     stats[cid] = st
     if RENDER: render(cid)
 fleet = {}
@@ -1277,6 +1849,8 @@ if os.path.exists(JSON):
 if "falcon" not in fleet and "falcon" not in stats:
     p = os.path.join(OUTDIR, "falcon.glb"); fleet["falcon"] = dict(FALCON, bytes=os.path.getsize(p), tris=21600)
 fleet.update(stats)
+for cid in fleet:                                       # eye/exh for cars not rebuilt this run (no re-export)
+    if cid not in stats: fleet[cid].update(meta(cid))
 fleet = {k: fleet[k] for k in ORDER if k in fleet}
 with open(JSON, "w") as f:
     f.write("{\n" + ",\n".join('  "%s": %s' % (k, json.dumps(v, separators=(",", ":"))) for k, v in fleet.items()) + "\n}\n")
