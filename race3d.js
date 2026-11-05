@@ -132,7 +132,7 @@ const GP_CIRCUITS=[
   look:{top:"#2f86e0",mid:"#9cc9ef",hor:"#f3e3c3",glow:"#fff4d6",sun:"#fff4dc",sunI:1.6,hemi:0.6,dir:[0.35,0.8,-0.35],haze:"#e6dccb",hill:"#7d8a6a",time:"Hot sunny afternoon in Accra",night:0,tint:[1,1,1]},
   story:{paper:"#f8eedc",ink:"#2b2420",hill:"#c9b27a",top:"#8ec8f0",hor:"#fde9c4"},
   segs:[["S",140,{"z":"square"}],["R",30,90],["S",160.0,{"h":6}],["L",40,45],["R",40,45],["S",200.0,{"h":14}],["R",60,30,{"h":16}],["S",200.0,{"h":3,"j":2.6,"jat":0.3}],["R",25,60,{"z":["beach","sea"]}],["S",107.57,{"z":["beach","sea"],"h":1}],["L",60,40,{"z":["beach","sea"]}],["R",60,80,{"z":["beach","sea"]}],["L",60,40,{"z":["beach","sea"]}],["S",91.32,{"z":["beach","sea"]}],["R",30,40,{"z":["beach","sea"]}],["L",30,40,{"z":["beach","sea"]}],["S",88.56,{"z":["beach","sea"]}],["R",22,90],["S",100.22,{"z":"shops"}],["L",18,90,{"z":"shops"}],["S",57.45,{"z":"shops"}],["R",18,90,{"z":"shops"}],["S",222.55,{"z":"shops"}],["R",17,180,{"z":"shops"}],["S",80.0,{"z":"shops"}],["L",18,180,{"z":"shops"}],["S",81.37],["R",26,45],["L",26,45],["S",95.64],["R",18,90],["S",100.0,{"z":"park"}],["L",18,90],["S",77.68],["R",20,90],["S",290.77,{"z":"square"}]]},
- {id:"coast",name:"Coast Road",theme:"coast",laps:2,stars:1,tree:"none",hills:3.2,grass:0x7ea456,town:0,city:0,fuji:null,ridges:14,seaSide:-1,
+ {id:"coast",name:"Coast Road",theme:"coast",laps:2,stars:1,roadFloor:0.7,tree:"none",hills:3.2,grass:0x7ea456,town:0,city:0,fuji:null,ridges:14,seaSide:-1,
   traffic:[["sedan",3],["hatch",2],["van",2],["trotro",1]],blurb:"Dirt lot, water splash, country lanes, highway bridge, forest",
   
   look:{top:"#4a83d0",mid:"#a8c7e8",hor:"#f6d3a3",glow:"#ffe0b0",sun:"#ffd9a8",sunI:1.45,hemi:0.6,dir:[-0.6,0.45,-0.5],haze:"#dbd7d0",hill:"#4f6a7f",time:"Golden evening on the coast",night:0,tint:[1.04,1,0.95]},
@@ -1602,7 +1602,7 @@ function gpBuild(C){
   const Fat=(x,z)=>{const fx=Math.max(0,Math.min(FN-1.001,(x-F0x)/FG)),fz=Math.max(0,Math.min(FN-1.001,(z-F0z)/FG)),a=Math.floor(fx),b=Math.floor(fz),u=fx-a,v=fz-b;
     return (FF[a*FN+b]*(1-u)+FF[(a+1)*FN+b]*u)*(1-v)+(FF[a*FN+b+1]*(1-u)+FF[(a+1)*FN+b+1]*u)*v;};
   const hgt=(x,z)=>{const h=hBase(x,z)+Fat(x,z),lf=lakeF(x,z);return h*(1-lf)+(-7)*lf;};   // the lake / sea floor never pulls the road down (the road uses hBase)
-  const curve=new T.CatmullRomCurve3(C.pts.map((p,k)=>new T.Vector3(p[0],hBase(p[0],p[1])+RE[k],p[1])),true,"centripetal",0.5);curve.arcLengthDivisions=Math.max(2000,Math.round(C.pts.length*24));   // a fine arc-length table: t*len is then true metres along the road (the default 200 steps was ~10 cm off between cars)
+  const curve=new T.CatmullRomCurve3(C.pts.map((p,k)=>new T.Vector3(p[0],Math.max(C.roadFloor==null?-1e9:C.roadFloor,hBase(p[0],p[1])+RE[k]),p[1])),true,"centripetal",0.5);curve.arcLengthDivisions=Math.max(2000,Math.round(C.pts.length*24));   // a fine arc-length table: t*len is then true metres along the road (the default 200 steps was ~10 cm off between cars)
   const len=curve.getLength(),M=Math.max(960,Math.round(len/1.4)),W=7.6;   // ~1.4 m between road samples (jump crests and hairpins stay smooth)
   const samples=[];for(let i=0;i<=M;i++){const t=(i/M)%1;const pos=curve.getPointAt(t);const tan=curve.getTangentAt(t).normalize();const nor=new T.Vector3(-tan.z,0,tan.x).normalize();samples.push({pos,tan,nor});}
   const CELL=24,hash=new Map();for(let i=0;i<M;i++){const p=samples[i].pos;const k=Math.floor(p.x/CELL)+","+Math.floor(p.z/CELL);let l=hash.get(k);if(!l){l=[];hash.set(k,l);}l.push(i);}
