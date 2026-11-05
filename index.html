@@ -3858,8 +3858,11 @@ const GP_GLB={   // every car is a real 3D model (tools/cars3d/build_car.py + bu
  kente:{src:"assets/cars3d/kente.glb?v=1",tyreX:0.815,xr:-1.32,tail:-2.222,pivotY:0.32,twF:0.28,twR:0.36,S:{len:4.55,w:2.05,rad:0.35,radR:0.37,xf:1.42,xr:-1.32},sticker:[0.55, 1.016, -1.9, -1.5802],glows:[[-0.52, 0.86, 0.76, 0.27], [0.52, 0.86, 0.76, 0.27]]},
  viper:{src:"assets/cars3d/viper.glb?v=1",tyreX:0.845,xr:-1.4,tail:-2.272,pivotY:0.28,twF:0.27,twR:0.38,S:{len:4.6,w:2.1,rad:0.31,radR:0.38,xf:1.38,xr:-1.4},sticker:[0.5, 1.076, -2.06, -1.6308],glows:[[-0.62, 0.76, 0.74, 0.25], [0.62, 0.76, 0.74, 0.25], [0.0, 0.76, 0.76, 0.23]]}};
 const GP_GLTF_SRC="assets/vendor/GLTFLoader.r128.js";
-function gpGltfLoader(){if(window.THREE&&THREE.GLTFLoader)return Promise.resolve(true);if(window._gpGltfP)return window._gpGltfP;
-  window._gpGltfP=new Promise(res=>{const s=document.createElement("script");s.src=GP_GLTF_SRC;s.async=true;s.onload=()=>res(!!(window.THREE&&THREE.GLTFLoader));s.onerror=()=>{window._gpGltfP=null;res(false);};document.head.appendChild(s);});return window._gpGltfP;}
+/* the loader attaches itself to the THREE it finds. Two overlapping loadThree() calls (car previews + a quick route tap) can run
+   three.min.js twice, replacing window.THREE after the loader was attached - then every model fell back to the old drawn car.
+   So the promise is kept per THREE object and the script is run again for a new one. */
+function gpGltfLoader(){if(window.THREE&&THREE.GLTFLoader)return Promise.resolve(true);if(window._gpGltfP&&window._gpGltfFor===window.THREE)return window._gpGltfP;
+  window._gpGltfFor=window.THREE;window._gpGltfP=new Promise(res=>{const s=document.createElement("script");s.src=GP_GLTF_SRC;s.async=true;s.onload=()=>res(!!(window.THREE&&THREE.GLTFLoader));s.onerror=()=>{window._gpGltfP=null;res(false);};document.head.appendChild(s);});return window._gpGltfP;}
 function gpLoadGlb(ids){
   if(!window.THREE)return Promise.resolve({});window._gpGlb=window._gpGlb||{};
   const want=[...new Set(ids||Object.keys(GP_GLB))].filter(id=>GP_GLB[id]&&!window._gpGlb[id]);if(!want.length)return Promise.resolve(window._gpGlb);
