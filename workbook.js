@@ -356,7 +356,7 @@ function lzqBarHTML(primary){
 function lzqPrimary(id,label,fn,wait,cls){return'<button type="button" id="'+id+'" class="lzq-check'+(cls?' '+cls:'')+(wait?' wait':'')+'" onclick="'+fn+'"'+(wait?' disabled':'')+'>'+label+'</button>';}
 function lzqSetMain(html){try{const m=document.querySelector&&document.querySelector(".lzq-bar .lzq-main");if(!m)return false;m.innerHTML=html;return true;}catch(e){return false;}}
 function wbWaitLabel(){const p=WB&&WB.cur;if(!p)return"Type your answer";if(!wbWorkDone())return"Show your work";if(p.type==="multi"||(p.type==="who"&&p.valueAnswer==null))return"Pick an answer";if(p.type==="match")return"Match them all";return"Type your answer";}
-function wbCheckLabel(){return wbCanSubmit()?'Check<span class="lzq-mw"> my work</span> ✓':wbWaitLabel();}
+function wbCheckLabel(){return'Check ✓';}
 function wbCheckBtnHTML(){const ok=wbCanSubmit();return'<button id="wbSubmit" class="wb-submit lzq-check'+(ok?'':' wait')+'" onclick="wbSubmit()" '+(ok?'':'disabled')+'>'+wbCheckLabel()+'</button>';}
 function wbBarAnswered(){const b=document.getElementById("wbSubmit");if(b&&b.closest&&b.closest(".lzq-bar"))b.hidden=true;}
 /* after he picks a reason, the waiting Next in the bar wakes up */
@@ -426,7 +426,7 @@ function wbQuestionAnswerHTML(p){if(p.type==="form")return wbFormHTML(p);if(p.ty
 function wbPairAnswerHTML(p){let h="";if(p.equations)h=wbEquationHTML({eq:{op:"×"},extraEq:{op:"×"}});h+='<div class="wb-answer-line"><span>Shared product:</span>'+wbFieldButton("ans","shared product")+'</div>';if(p.people)h+='<div class="wb-answer-line"><span>Who has more?</span></div><div class="wb-btnrow">'+p.people.map(n=>'<button class="wb-person'+(WB.person===n?' on':'')+'" onclick="wbPickPerson(\''+wbEscape(n)+'\')">'+wbEscape(n)+'</button>').join("")+'</div>';return h;}
 function wbMultiHTML(p){return'<div class="wb-choice-grid">'+p.options.map(o=>'<button class="wb-check'+(WB.selected.includes(o.id)?' on':'')+'" onclick="wbToggleMulti(\''+o.id+'\')"><span class="box">'+(WB.selected.includes(o.id)?'✓':'')+'</span><span><b>'+o.id+'.</b> '+wbEscape(o.text)+'</span></button>').join("")+'</div>';}
 function wbMatchHTML(p){const hint=p.rights?'<div class="wb-rights">'+p.rights.map((r,i)=>'<span class="wb-right"><b>'+(i+1)+'. </b>'+wbEscape(r)+'</span>').join("")+'</div>':'<p>Numbers: <b>'+p.numbers.map(wbEscape).join(" · ")+'</b></p>';return hint+p.pairs.map(x=>'<div class="wb-answer-line"><span>'+wbEscape(x.left)+'</span> '+wbFieldButton(x.id,"matching number")+'</div>').join("");}
-function wbNumberPad(){const keys=["1","2","3","4","5","6","7","8","9","⌫","0","✓"];return'<div class="wb-pad">'+keys.map(k=>'<button class="wb-key '+(k==="✓"?'go':(k==="⌫"?'action':''))+'" '+(k==="✓"&&!wbCanSubmit()?'disabled':'')+' onclick="'+(k==="✓"?'wbSubmit()':('wbKey(\''+k+'\')'))+'">'+k+'</button>').join("")+'</div>'+(wbNeedsWork(WB.cur)&&!wbWorkDone()?'<div class="wb-lock">'+(WB.cur.type==="pair"?'Build both models correctly to unlock ✓':'Show your work to unlock ✓')+'</div>':'');}
+function wbNumberPad(){const keys=["1","2","3","4","5","6","7","8","9","0","⌫"];return'<div class="wb-pad lzq-pad">'+keys.map(k=>'<button type="button" class="wb-key '+(k==="⌫"?'action':(k==="0"?'zero':''))+'"'+(k==="⌫"?' aria-label="Delete"':'')+' onclick="wbKey(\''+k+'\')">'+k+'</button>').join("")+'</div>'+(wbNeedsWork(WB.cur)&&!wbWorkDone()?'<div class="wb-lock">'+(WB.cur.type==="pair"?'Build both models correctly to unlock ✓':'Show your work to unlock ✓')+'</div>':'');}
 function wbCanSubmit(){const p=WB&&WB.cur;if(!p||WB.answered||!wbWorkDone())return false;if(p.type==="form")return p.fields.every(f=>String(WB.fields[f.key]==null?"":WB.fields[f.key]).trim()!=="");if(p.type==="fill")return WB.fields.ans!=="";if(p.type==="picture")return["e0","e1","e2"].concat(p.extraEq?["x0","x1","x2"]:[]).every(k=>WB.fields[k]!=="");if(p.type==="story")return["e0","e1","e2","ans"].every(k=>WB.fields[k]!=="")&&(p.answer.remainder==null||WB.fields.rem!=="");if(p.type==="multi")return WB.selected.length>0;if(p.type==="who")return!!WB.person&&(p.valueAnswer==null||WB.fields.ans!=="");if(p.type==="match")return p.pairs.every(x=>WB.fields[x.id]!=="");if(p.type==="pair")return WB.fields.ans!==""&&(!p.equations||["e0","e1","e2","x0","x1","x2"].every(k=>WB.fields[k]!==""))&&(!p.people||!!WB.person);return false;}
 function wbSubmitButton(){return''+(wbNeedsWork(WB.cur)&&!wbWorkDone()?'<div class="wb-lock">Build the model or make a few drawing strokes first.</div>':'');}
 function wbRenderProblem(silent){
@@ -622,7 +622,7 @@ function wbRenderFeedback(ok,a){
   const hasPick=!!wbPickSet(p),why=wbIsExplain(p)?wbExplainParts(p,(a&&a.f)||{}).reason:"",twin=!ok&&!WB.isTwin,last=WB.index===(WB.size||8)-1;
   // ONE primary in the bar (Eb 2026-11-05): Try one like it (missed) or Next / See my score; a reason pick keeps it waiting until he picks
   const go=twin?'Try one like it ↻':(last?'See my score ▶':'Next ▶'),fn=twin?'wbTryTwin()':'wbContinue()';
-  const prim=hasPick?'<button type="button" id="wbNextBtn" class="lzq-check wait" onclick="'+fn+'" data-go="'+go+'" disabled>Pick a reason</button>':lzqPrimary("wbNextBtn",go,fn,false,twin?"try":"");
+  const prim=hasPick?'<button type="button" id="wbNextBtn" class="lzq-check wait" onclick="'+fn+'" data-go="'+go+'" disabled>'+go+'</button>':lzqPrimary("wbNextBtn",go,fn,false,twin?"try":"");
   app.innerHTML='<div class="fadein wb-shell lzq wb-prac"><div class="wb-page">'+wbQHead(WB.lessonId)+wbPracticeStripHTML()+'<div class="wb-feedback '+(ok?'good':'try')+'"><h2>'+(ok?'✓ ':'')+wbEscape(head)+'</h2>'+(!ok&&model?'<div class="wb-visual">'+wbVisual(model)+'</div>':'')+wbCorrectAnswerHTML(p)+(hasPick?wbPickHTML(p,WB.explainRec,wbModelHTML(p,why)):(wbIsExplain(p)?wbModelHTML(p,why):'<div class="wb-teach">'+wbEscape(p.explain||"Use the model to check each number in the equation.")+'</div>'))+'</div>'+lzqBarHTML(prim)+'</div></div>';
   wbPracticeChrome();
   wbResumeSave();if(hasPick)wbPickIntoView();if(typeof say==="function")say(hasPick?(ok?"Nice work. Your answer is correct. ":"Good try. Look at the model and the answer. ")+wbPickAsk(p):wbIsExplain(p)&&ok?wbExplainLine(p):voice+" "+(wbIsExplain(p)?wbModelSpoken(p):(p.explain||"")),{chunk:WB_EXPLAIN_CHUNK});
@@ -741,13 +741,18 @@ function lztPraise(){
   lztIntoView("lztNextBtn");
   if(typeof sayAndThen==="function")sayAndThen(line,go,2600);else{if(typeof say==="function")say(line);go();}
 }
+/* his own answer, e.g. "6 × 5 = 30 ✓", so the "Your answer is right!" banner refers to something (Eb 2026-11-05 polish) */
+function lztAnswerLineHTML(p,a){try{const f=(a&&a.f)||WB.fields||{},rows=(p.rows||[]).filter(r=>!/\{t:r\}/.test(String(r)));if(!rows.length)return"";
+  const out=rows.map(r=>String(r).split(/(\{[nt]:\w+\})/).map(x=>{const m=/^\{([nt]):(\w+)\}$/.exec(x);return m?'<b>'+wbEscape(String(f[m[2]]==null?"":f[m[2]]).trim())+'</b>':wbEscape(x);}).join("").trim()).filter(Boolean);
+  return out.length?'<div class="lzt-yours" role="status">'+out.map(t=>'<span>'+t+' <i aria-hidden="true">✓</i></span>').join("")+'</div>':"";}catch(e){return"";}}
 function lztExplainPraise(p,a){ // answer right on an Explain question: no score for the reason, just the model explanation (spoken); Next when ready
   _lztTok++;const area=document.querySelector(".wb-answerarea");lztRefreshStrip();
   const why=wbExplainParts(p,(a&&a.f)||{}).reason;
   const tail=wbModelHTML(p,why),hasPick=!!wbPickSet(p);
-  if(area)area.innerHTML='<div class="lzt-praise lzt-praise-explain" role="status"><span class="lzt-star" aria-hidden="true">⭐</span><b>Your answer is right!</b></div>'+(hasPick?wbPickHTML(p,WB.explainRec,tail):tail);
-  // reason pick: Next waits in the bar ("Pick a reason") until he picks
-  lztPlaceMain(hasPick?'<button type="button" id="lztNextBtn" class="lzq-check next wait" onclick="lztNext()" data-go="Next ▶" disabled>Pick a reason</button>':lztNextHTML(),area);
+  const ins=document.querySelector(".wb-questionarea .wb-instruction");if(ins)ins.remove();
+  if(area)area.innerHTML=lztAnswerLineHTML(p,a)+'<div class="lzt-praise lzt-praise-explain" role="status"><span class="lzt-star" aria-hidden="true">⭐</span><b>Your answer is right!</b></div>'+(hasPick?wbPickHTML(p,WB.explainRec,tail):tail);
+  // reason pick: Next waits (slate) in the bar until he picks
+  lztPlaceMain(hasPick?'<button type="button" id="lztNextBtn" class="lzq-check next wait" onclick="lztNext()" data-go="Next ▶" disabled>Next ▶</button>':lztNextHTML(),area);
   if(hasPick)wbPickIntoView();else lztIntoView("lztNextBtn");
   if(typeof say==="function")say(hasPick?"Your answer is right! "+wbPickAsk(p):wbExplainLine(p),{chunk:WB_EXPLAIN_CHUNK});
 }
@@ -1179,6 +1184,130 @@ html:has(body.lzq-kb){scroll-padding-top:60px}
 .lzd-btn.go{background:#15803d;color:#fff!important;border:0;box-shadow:0 4px 0 #166534}
 .lzd-btn.ghost{background:#fff;color:#1E293B!important;border:2px solid #94A3B8}
 .lzd-btn:active{transform:translateY(2px)}
+/* ===== Final polish (Eb 2026-11-05 review: phone 7/10, iPad 6/10; design-inspo v3 + 60fps Duolingo/Brilliant bottom sheet) =====
+   bar pinned to the viewport bottom on every question screen, one submit, "Check ✓" slate -> green, roomier tablet layout, bigger meta type */
+:root{--lzqBar:76px;--lzqTop:72px}
+@media(min-width:900px){:root{--lzqBar:88px;--lzqTop:76px}}
+.wb-shell.lzq.fadein,.rvq.fadein{animation:lzqFade .3s ease}
+@keyframes lzqFade{from{opacity:0}to{opacity:1}}
+#app:has(.lzq-bar){padding-bottom:calc(var(--lzqBar) + 16px + env(safe-area-inset-bottom,0px))!important}
+body.lz-exit #app:has(.lzq-bar){padding-top:var(--lzqTop)!important}
+html:has(.lzq-bar){scroll-padding-bottom:calc(var(--lzqBar) + 24px)}
+/* 1 the bar: fixed to the bottom of the viewport, same height everywhere */
+.lzq-bar,.wb-shell.lzq .lzq-bar,.rvq .lzq-bar{position:fixed!important;left:0;right:0;bottom:0;z-index:40;margin:0!important;height:calc(var(--lzqBar) + env(safe-area-inset-bottom,0px));padding:0 12px env(safe-area-inset-bottom,0px)!important;display:flex;align-items:center;background:#fff;border:0;border-top:1px solid #E2E8F0;border-radius:0!important;box-shadow:0 -8px 24px rgba(5,20,40,.16);transform:none}
+.lzq-bar .lzq-grp{width:100%;max-width:640px;margin:0 auto}
+.wb-shell.lzq .wb-page,.rvq .card.gold{display:flex;flex-direction:column;min-height:calc(100vh - var(--lzqTop) - var(--lzqBar) - 16px - env(safe-area-inset-bottom,0px));min-height:calc(100svh - var(--lzqTop) - var(--lzqBar) - 16px - env(safe-area-inset-bottom,0px));padding-bottom:16px}
+.wb-shell.lzq .wb-problem,.wb-shell.lzq .lzt-card{flex:1 0 auto}
+/* 7 main button: waiting = solid slate + white label, ready = bright green "Check ✓"; Back/Skip stay quiet outlines */
+.lzq-bar .lzq-check{background:#16A34A;box-shadow:0 4px 0 #166534;color:#fff!important;font-size:20px;font-weight:900}
+.lzq-bar .lzq-check.wait,.lzq-bar .lzq-check:disabled{background:#475569;color:#fff!important;box-shadow:0 4px 0 #334155;font-size:20px;font-weight:900;opacity:1}
+.lzq-bar .lzq-check.try{background:#C2410C;box-shadow:0 4px 0 #9A3412}
+.lzq-ghost{min-height:48px;font-size:16px;border-width:2px}
+/* 2 number pad without a ✓ key: 0 is wide, ⌫ on the right */
+.wb-shell.lzq .wb-pad.lzq-pad .wb-key.zero{grid-column:span 2}
+.ty-grid .ty-zero{grid-column:span 2}
+/* 3 his answer above the banner */
+.lzt-yours{display:flex;flex-wrap:wrap;gap:6px 18px;margin:4px 0 10px;font-size:24px;font-weight:900;color:#1E293B}
+.lzt-yours span{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:14px}
+.lzt-yours b{color:#14532D!important}.lzt-yours i{font-style:normal;color:#16A34A!important}
+/* 8 Read it chip on its own row (top-right), question gets the full width */
+.wb-shell.lzq .wb-qrow,.rvq-qrow{display:flex!important;flex-direction:column;align-items:stretch;gap:4px}
+.wb-shell.lzq .wb-qrow .wb-read,.rvq-qrow .rvq-read{order:-1;align-self:flex-end}
+/* 6 type: lesson line + "Question n of N" dark */
+.wb-shell.lzq .wb-qhead,.rvq .wb-qhead{color:#1E293B!important;font-size:16px!important}
+.wb-shell.lzq .wb-qhead>span:first-child,.rvq .wb-qhead>span:first-child{color:#1E293B!important}
+.lzt-strip .lzt-count,.lzt-strip .lzt-count b{color:#0F172A!important;font-size:17px}
+.wb-shell.lzq .wb-instruction{color:#334155!important;font-size:16px}
+.lzt-dot.seen .lzt-dc{background:#CBD5E1;border-color:#94A3B8;color:#1E293B!important}
+/* 9 Reveal quiz: same head as the lesson test; badges like the reason pick; long choices in one column; help + scratchpad one row */
+.rvq .rvq-head.lzt-strip{display:block;margin:0 0 12px;padding:0 0 8px}
+.rvq .rvq-head .lzt-dots{flex-wrap:nowrap;justify-content:flex-start;gap:0;margin:6px 0 0}
+.rvq .rvq-head .lzt-dot{flex:1 1 0;min-width:0;max-width:44px;height:36px}
+.rvq .opt .letter{background:#FFD166!important;color:#1E293B!important;border:0}
+.rvq .opts:not(.g2){grid-template-columns:1fr!important}
+.rvq .rvq-tools{display:flex!important;flex-wrap:wrap;align-items:center;gap:10px;margin:8px 0 4px!important}
+.rvq .rvq-tools .readbtn{margin:0;min-height:48px}
+.rvq .rvq-tools .scratch{flex:1 1 160px;margin:0;padding:0 12px;min-height:48px;display:flex;flex-direction:column;justify-content:center}
+.rvq .rvq-tools .scratch[open]{flex-basis:100%;padding:8px 10px;display:block}
+.rvq .rvq-tools .scratch summary{min-height:44px;display:flex;align-items:center;font-size:17px}
+/* 10 Exit pill: solid, dark text, 48pt; Learners moves to the right group so nothing sits next to Exit */
+#topbar .tb-btn.lzb.lzb-exit{height:48px;padding:0 18px 0 14px;background:#F8FAFC;color:#0F172A;border:2px solid #fff;box-shadow:0 6px 18px rgba(0,0,0,.3);-webkit-backdrop-filter:none;backdrop-filter:none}
+#topbar .tb-btn.lzb.lzb-exit .lzb-ar,#topbar .tb-btn.lzb.lzb-exit .lzb-to{color:#0F172A}
+#topbar .tb-btn.lzb.lzb-exit .lzb-to{font-size:16px;font-weight:900}
+body.lz-exit #topbar .tb-group:first-child{flex:1 1 auto}
+body.lz-exit #topbar #usersBtn{margin-left:auto}
+body.lz-exit #topbar .tb-group:first-child+.tb-group{margin-left:8px}
+@media(max-width:520px){body.lz-back.lz-exit #topbar .tb-btn:not(.lzb){min-width:52px;height:52px;padding:4px 5px;flex-direction:column;gap:2px}
+ body.lz-back.lz-exit #topbar .tb-btn:not(.lzb) .tb-ic{font-size:18px}
+ body.lz-back.lz-exit #topbar .tb-btn:not(.lzb) .tb-lb{display:block;font-size:13px;text-transform:none;letter-spacing:0;opacity:1}
+ #topbar .tb-btn.lzb.lzb-exit{padding:0 14px 0 12px}
+ body.lz-exit #topbar .tb-group{gap:6px}}
+/* iPad / tablet: a 1000px card that fills the screen, content balanced in it, two-column keypad screens */
+@media(min-width:900px){
+ .wb-shell.lzq{max-width:1000px}.rvq.focus-wrap{max-width:1000px}
+ .wb-shell.lzq .wb-page,.rvq .card.gold{padding:22px 44px 18px}
+ .lzq-bar .lzq-grp{max-width:1000px;padding:0 44px;justify-content:center;gap:20px}
+ .lzq-main{flex:0 1 440px}
+ .lzq-bar .lzq-check,.lzq-bar .lzq-check.wait,.lzq-bar .lzq-check:disabled{min-height:60px;font-size:23px}
+ .lzq-ghost{min-height:52px;padding:0 20px;font-size:18px}
+ .wb-shell.lzq .wb-qhead,.rvq .wb-qhead{font-size:20px!important}
+ .lzt-strip .lzt-count,.lzt-strip .lzt-count b,.rvq .rvq-head .lzt-count,.rvq .rvq-head .lzt-count b{font-size:21px}
+ .lzt-strip{grid-template-columns:auto minmax(0,1fr)}
+ .lzt-dots.live .lzt-dot,.rvq .rvq-head .lzt-dot{flex:0 0 52px;max-width:52px;height:52px}
+ .lzt-dc,.rvq .rvq-head .lzt-dc{width:42px;height:42px;font-size:18px}
+ .lzt-dot.wrong .lzt-dc,.lzt-dot.skip .lzt-dc{font-size:20px}
+ .rvq .rvq-head.lzt-strip{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:20px}
+ .rvq .rvq-head .wb-qhead{grid-column:1 / -1}
+ .rvq .rvq-head .lzt-dots{margin:0}
+ .wb-shell.lzq .wb-read,.rvq-read{font-size:18px;min-height:52px;padding:0 20px}
+ .rvq .rvq-tools .readbtn{font-size:18px;min-height:52px;padding:6px 18px}
+ .rvq .rvq-tools .scratch summary{font-size:18px;min-height:48px}
+ .wb-shell.lzq .wb-instruction{font-size:22px}
+ #topbar .tb-lb{font-size:16px!important}
+ #topbar .tb-btn.lzb.lzb-exit{height:52px}#topbar .tb-btn.lzb.lzb-exit .lzb-to{font-size:18px}
+ /* content balanced vertically in the card (no wall of blank under it) */
+ .wb-shell.lzq .wb-problem{display:flex!important;flex-direction:column;justify-content:center;padding-top:12px}
+ .wb-shell.lzq .lzt-card{display:flex;flex-direction:column;justify-content:center}
+ .rvq .card.gold>.opts{margin-top:16px}
+ /* Explain: bigger boxes and Because area */
+ .wb-shell.lzq .wb-formrow{font-size:28px}
+ .wb-shell.lzq .wb-in{height:72px;font-size:32px}.wb-shell.lzq .wb-in.num{width:150px}
+ .wb-shell.lzq .wb-because{font-size:26px;min-height:150px;padding:14px 16px}
+ .wb-shell.lzq .wb-form{gap:22px;margin:18px 0 6px}
+ .lzt-yours{font-size:28px}
+ .wb-shell.lzq .lzp-btn{min-height:80px;font-size:23px}
+ /* keypad questions: question + equation left, keypad right */
+ .wb-shell.lzq .wb-problem:has(.wb-answerarea>.wb-pad){display:grid!important;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto 1fr;column-gap:40px;align-content:center}
+ .wb-shell.lzq .wb-problem:has(.wb-answerarea>.wb-pad)>.wb-questionarea{grid-column:1;grid-row:1}
+ .wb-shell.lzq .wb-problem:has(.wb-answerarea>.wb-pad)>.wb-answerarea{display:contents}
+ .wb-shell.lzq .wb-problem:has(.wb-answerarea>.wb-pad) .wb-answerarea>*{grid-column:1}
+ .wb-shell.lzq .wb-problem:has(.wb-answerarea>.wb-pad) .wb-answerarea>.wb-pad{grid-column:2;grid-row:1 / span 6;align-self:center;margin:0}
+ .wb-shell.lzq .wb-problem:has(.wb-answerarea>.wb-pad) .wb-eq{justify-content:flex-start;align-self:center;font-size:44px;margin:12px 0}
+ .wb-shell.lzq .wb-problem:has(.wb-answerarea>.wb-pad) .wb-num-box{min-width:110px;height:84px;font-size:44px}
+ .wb-shell.lzq .wb-pad.lzq-pad{grid-template-columns:repeat(3,112px);gap:12px}
+ .wb-shell.lzq .wb-pad.lzq-pad .wb-key{min-height:96px;height:96px;font-size:36px}
+ .ty-grid .ty-key{min-height:96px;font-size:34px}
+}
+/* polish round 2: full-width content, iPad Read it sits beside the (full-width-enough) question, fix-round meta on one line */
+.wb-shell.lzq .wb-problem>.wb-questionarea,.wb-shell.lzq .wb-problem>.wb-answerarea{width:100%;max-width:none}
+.wb-shell.lzq .wb-because{width:100%!important;max-width:none!important}
+.wb-shell.lzq .wb-answerarea .lzp,.wb-shell.lzq .wb-answerarea .lzt-praise{max-width:none}
+@media(max-width:520px){.lzt-strip .lzt-count{flex-wrap:nowrap;white-space:nowrap}.lzt-strip .lzt-fixchip{font-size:14px;padding:2px 9px}}
+@media(min-width:900px){
+ .wb-shell.lzq .wb-qrow,.rvq-qrow{display:grid!important;grid-template-columns:minmax(0,1fr) auto;column-gap:24px;align-items:center}
+ .wb-shell.lzq .wb-qrow .wb-read,.rvq-qrow .rvq-read{order:0;align-self:start}
+ .wb-shell.lzq .wb-problem:has(.wb-answerarea>.wb-pad){grid-template-rows:auto auto auto auto 1fr;align-content:center}
+ .wb-shell.lzq .wb-problem:has(.wb-answerarea>.wb-pad) .wb-answerarea>.wb-pad{grid-row:1 / -1}
+ .wb-shell.lzq .wb-problem:has(.wb-answerarea>.wb-pad) .wb-qrow{display:flex!important;flex-direction:column;align-items:stretch}
+ .wb-shell.lzq .wb-problem:has(.wb-answerarea>.wb-pad) .wb-qrow .wb-read{order:-1;align-self:flex-start;margin-bottom:6px}
+ .lzt-yours{margin:0 0 10px}
+ .wb-shell.lzq .lzp{padding:12px 16px 14px}.wb-shell.lzq .lzp-list{gap:10px}.wb-shell.lzq .lzp-btn{min-height:72px}
+ .wb-shell.lzq .wb-answerarea:has(>.lzt-yours){display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:14px;align-items:stretch}
+ .wb-shell.lzq .wb-answerarea:has(>.lzt-yours)>*{grid-column:1 / -1}
+ .wb-shell.lzq .wb-answerarea:has(>.lzt-yours)>.lzt-yours{grid-column:1;margin:0}
+ .wb-shell.lzq .wb-answerarea:has(>.lzt-yours)>.lzt-praise{grid-column:2;margin:0}
+ .wb-shell.lzq .wb-answerarea:has(>.lzt-yours)>.lzp{margin-top:12px}
+}
 `;
 function lztInstallStyle(){if(typeof document==="undefined")return;let s=document.getElementById("lzt-style");if(!s){s=document.createElement("style");s.id="lzt-style";document.head.appendChild(s);}s.textContent=LZT_CSS;}
 lztInstallStyle();
