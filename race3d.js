@@ -2234,10 +2234,10 @@ const GP_BOOST={burst:2.6,cost:0.34,cool:1.2,mul:1.22,start:0.5};
 function gpBoostInit(){const R=R3;R.boost={q:GP_BOOST.start,cool:0,easy:gpPace()==="gentle",uses:0,ring:$("gp3BoostRing"),btn:$("gp3Boost"),pips:$("gp3BoostN"),key:""};R.boostLog=[];
   R.karts.forEach(k=>{k.boostT=0;k.boostMul=1;k.bNext=k.player?0:12+Math.random()*16;});}
 function gpBoost(){const R=R3;if(!R||!R.boost)return false;const B=R.boost,me=R.me;
-  if(R.done||R.phase!=="race"||R.countdown>0.5||me.boostT>0||B.cool>0||B.q<GP_BOOST.cost-1e-6){if(B.btn){B.btn.classList.remove("no");void B.btn.offsetWidth;B.btn.classList.add("no");}return false;}
+  if(R.done||R.phase!=="race"||R.countdown>0.5||(me.boostT>0&&!(me.jet&&me.boostMul<GP_BOOST.mul))||B.cool>0||B.q<GP_BOOST.cost-1e-6){if(B.btn){B.btn.classList.remove("no");void B.btn.offsetWidth;B.btn.classList.add("no");}return false;}
   B.q-=GP_BOOST.cost;B.uses++;me.boostT=GP_BOOST.burst;me.boostMul=GP_BOOST.mul;GPA.play("boost");gpMsg("BOOST!");R.boostLog.push({t:+(R.simT||0).toFixed(2),mph:Math.round(me.speed*GP_MPH)});return true;}
 function gpBoostTick(dt,waiting){const R=R3;if(!R.boost)gpBoostInit();const B=R.boost,me=R.me;
-  R.karts.forEach(k=>{if(k.boostT>0){k.boostT=Math.max(0,k.boostT-dt);if(k.boostT===0&&k.player)B.cool=GP_BOOST.cool;}gpFlameUpdate(k,dt);});
+  R.karts.forEach(k=>{if(k.boostT>0){k.boostT=Math.max(0,k.boostT-dt);if(k.boostT===0&&k.player&&!k.jet)B.cool=GP_BOOST.cool;}gpFlameUpdate(k,dt);});
   if(B.cool>0)B.cool=Math.max(0,B.cool-dt);
   if(!waiting&&!R.done){const spd=me.speed/me.max,off=Math.abs(me.x)>1.05&&!me.jet;let r=B.easy?0.03:0.018;   // on its own: a full meter in ~35-55 s
     if(me.drift&&spd>0.35&&!off)r+=0.11;if(me.air)r+=0.08;if(!off&&spd>0.55&&R.bumpT>2&&!me.loss)r+=B.easy?0.03:0.02;
@@ -2539,7 +2539,7 @@ function gpJetLowAhead(kt,dist){const R=R3,M=R.M,ds=R.len/M,i0=Math.floor(kt.t*M
 /* the wheels should touch down on a calm stretch, not halfway round a hairpin */
 function gpJetBendAt(kt,dist){const R=R3,M=R.M,ds=R.len/M,i0=Math.floor(kt.t*M)%M,a=Math.round((dist-25)/ds),b=Math.round((dist+95)/ds);for(let k=a;k<b;k+=3)if(Math.abs(R.kap[((i0+k)%M+M)%M])>1/60)return true;return false;}
 /* begin the glide, unless the road just ahead has a roof (tunnel, arch): then hold height until it's clear */
-function gpJetLand(kt){const J=kt.jet,R=R3;if(!J||J.ph!=="fly")return false;const y=gpJetF(kt.t)+J.h+J.yOff,road=R.curve.getPointAt(kt.t).y,H=Math.max(0,y-road),T1=Math.max(1.5,Math.min(3.6,H*1.5/15)),dist=Math.max(30,kt.speed)*T1;J.hold=(J.hold||0)+(J.fuel<=0||J.wantLand?(R.frameDt||1/60):0);if(gpJetLowAhead(kt,dist)||(J.hold<2.5&&!R.done&&gpJetBendAt(kt,dist))){if(!J.wantLand)J.fuel=0;return false;}
+function gpJetLand(kt){const J=kt.jet,R=R3;if(!J||J.ph!=="fly")return false;const y=gpJetF(kt.t)+J.h+J.yOff,road=R.curve.getPointAt(kt.t).y,H=Math.max(0,y-road),T1=Math.max(1.5,Math.min(3.6,H*1.5/15)),dist=Math.max(30,kt.speed)*T1;J.hold=(J.hold||0)+(J.fuel<=0||J.wantLand?(R.frameDt||1/60):0);if(gpJetLowAhead(kt,dist)||(J.hold<(J.wantLand?1:2.5)&&!R.done&&gpJetBendAt(kt,dist))){if(!J.wantLand)J.fuel=0;return false;}
   J.ph="land";J.lt=0;J.lT=T1;J.x0=kt.x;J.xT=Math.max(-0.6,Math.min(0.6,kt.x*0.25));J.safe=gpJetSafe(kt,dist);J.hdg0=J.hdg;if(kt.jg)kt.jg.want=0;GPA.play("jetfold");(R.jetLog=R.jetLog||[]).push({ev:"land",t:+(R.simT||0).toFixed(2),fuel:+J.fuel.toFixed(2),x:+kt.x.toFixed(2),T:+T1.toFixed(2),safe:Math.round(J.safe*3.6)});return true;}
 /* speed in the air: the car settles at its cruising speed; afterburner on top; on the way down, no faster than the next bends allow */
 function gpJetSpeed(kt,dt){R3.frameDt=dt;const J=kt.jet;if(J.ph==="hop"){const left=J.T-J.t;if(left<1.2&&kt.speed>J.safe)kt.speed=Math.max(J.safe,kt.speed-16*dt);else kt.speed*=1-0.015*dt;return;}
@@ -2555,7 +2555,7 @@ function gpJetMove(kt,inp,kap,dt,i){const J=kt.jet,R=R3,XS=R.W-1.2,M=R.M;if(J.ph
     J.hdg+=(hT-J.hdg)*Math.min(1,dt*3.4);J.vh+=(vhT-J.vh)*Math.min(1,dt*4.2);J.h+=J.vh*dt;
     if(J.h<2.4&&J.vh<0)J.vh*=Math.max(0,J.h/2.4);if(J.h<0){J.h=0;J.vh=Math.max(0,J.vh);}
     if(J.h>GP_JET.hMax-4&&J.vh>0)J.vh*=Math.max(0,(GP_JET.hMax-J.h)/4);if(J.h>GP_JET.hMax){J.h=GP_JET.hMax;J.vh=Math.min(0,J.vh);}
-    const bk=!!(R.brake||R.keys["s"]||R.keys[" "]);if(bk&&!J.brk&&!window.__jetNoLand)J.wantLand=1;J.brk=bk;
+    const bk=!!(R.brake||R.keys["s"]||R.keys[" "]);if(bk&&!J.brk&&!J.wantLand){J.wantLand=1;gpMsg("Landing...");}J.brk=bk;
     if(J.t>GP_JET.out)J.fuel=Math.max(0,J.fuel-dt);if(J.fuel<=0||J.wantLand||R.done)gpJetLand(kt);
     kt.x+=Math.sin(J.hdg)*v*dt/XS;}
   else{J.lt+=dt;const u=Math.min(1,J.lt/J.lT),e=Math.min(1,u/0.72),s=e*e*(3-2*e),xn=J.x0+(J.xT-J.x0)*s,vx=(xn-kt.x)*XS/Math.max(dt,0.001);kt.x=xn;const hT=Math.max(-0.42,Math.min(0.42,Math.atan2(vx,v)))*(1-u);J.hdg+=(hT-J.hdg)*Math.min(1,dt*7);J.vh=0;}
