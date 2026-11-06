@@ -3748,7 +3748,11 @@ const GPA={ctx:null,master:null,eng:null,muted:false,
   noise(dur,vol,freq,delay){if(!this.ctx||!this.noiseBuf)return;try{const c=this.ctx,t=c.currentTime+(delay||0);const s=c.createBufferSource();s.buffer=this.noiseBuf;const f=c.createBiquadFilter();f.type="bandpass";f.frequency.value=freq||1000;f.Q.value=1.2;const g=c.createGain();
     g.gain.setValueAtTime(vol||0.2,t);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);s.connect(f);f.connect(g);g.connect(this.master);s.start(t);s.stop(t+dur+0.05);}catch(e){}},
   box(f,delay){if(!this.ctx)return;try{const c=this.ctx,t=c.currentTime+(delay||0);[[1,0.2],[2.01,0.055],[3.98,0.022]].forEach(([m,v])=>{const o=c.createOscillator(),g=c.createGain();o.type="sine";o.frequency.value=f*m;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(v,t+0.005);g.gain.exponentialRampToValueAtTime(0.0001,t+1.3/m);o.connect(g);g.connect(this.master);o.start(t);o.stop(t+1.4);});}catch(e){}},
-  play(n){switch(n){
+  play(n,a){switch(n){
+    case"wings":this.noise(0.5,0.3,2400);this.tone(240,0.34,"sawtooth",0.1,1250);this.tone(1400,0.16,"triangle",0.1,2100,0.22);break;
+    case"ring":{const q=Math.min(9,(a||1)-1);this.tone(880*Math.pow(1.0595,q*2),0.14,"triangle",0.17);this.tone(1760*Math.pow(1.0595,q*2),0.18,"sine",0.08,null,0.05);break;}
+    case"jetfold":this.noise(0.42,0.2,1100);this.tone(760,0.42,"triangle",0.08,230);break;
+    case"fuel":this.tone(620,0.1,"square",0.08);this.tone(620,0.1,"square",0.08,null,0.17);break;
     case"beep":this.tone(660,0.2,"square",0.12);break;
     case"go":this.tone(1320,0.5,"square",0.14);break;
     case"shift":this.noise(0.07,0.1,2200);this.tone(190,0.09,"square",0.05,110);break;
@@ -3905,6 +3909,29 @@ function gpCss(){if(document.getElementById("gpV4Css"))return;const s=document.c
 @keyframes fzBoostNo{0%,100%{transform:translateX(0)}30%{transform:translateX(-5px)}70%{transform:translateX(5px)}}
 .gp3-wrap.v3.done .fz-boost,.gp3-wrap.v3.done .fz-cam,.gp3-wrap.v3.done .fz-trick,.gp3-wrap.v3.done .fz-nitro{display:none}
 .gp3-wrap.v3:not(.done){touch-action:none}
+/* JET MODE: fuel + rings top centre, the UP/DOWN rocker where GAS was, an arrow back to the course */
+.gp3-wrap.v3 .fz-jhud{position:absolute;z-index:7;left:50%;top:calc(10px + env(safe-area-inset-top));transform:translate(-50%,-140%);opacity:0;display:flex;align-items:center;gap:10px;padding:7px 14px;border-radius:15px;border:3px solid #00F0FF;background:rgba(13,17,39,.82);box-shadow:0 5px 0 rgba(13,17,39,.8),0 0 18px rgba(0,240,255,.5);transition:transform .22s cubic-bezier(.25,1.5,.5,1),opacity .15s;pointer-events:none;color:#fff;white-space:nowrap}
+.gp3-wrap.v3.jet .fz-jhud{transform:translate(-50%,0);opacity:1}
+.fz-jl{font-weight:900;font-style:italic;font-size:clamp(15px,1.9vw,21px);letter-spacing:.06em;color:#FF2A85;text-shadow:0 2px 0 #0D1127}
+.fz-fuel{display:block;position:relative;width:clamp(116px,21vw,270px);height:clamp(14px,1.9vw,20px);border-radius:9px;background:#23284a;overflow:hidden;box-shadow:inset 0 2px 4px rgba(0,0,0,.6)}
+.fz-fuel i{position:absolute;inset:0;transform-origin:0 50%;background:linear-gradient(90deg,#39FF14,#c8ff30);border-radius:9px}
+.gp3-wrap.v3.jetlow .fz-fuel i{background:linear-gradient(90deg,#FF2A85,#ff8a30);animation:fzFuel .3s ease-in-out infinite alternate}
+.gp3-wrap.v3.jetlow .fz-jhud{border-color:#FF2A85;box-shadow:0 5px 0 rgba(13,17,39,.8),0 0 22px rgba(255,42,133,.8)}
+@keyframes fzFuel{from{opacity:1}to{opacity:.45}}
+.fz-jr{display:inline-flex;align-items:center;gap:5px;font-weight:900;font-size:clamp(14px,1.8vw,20px)}.fz-jr em{font-style:normal;color:#FFDD00;font-size:1.15em;line-height:1}.fz-jr b{font-weight:900;font-variant-numeric:tabular-nums;display:inline-block}.fz-jr b.hit{animation:fzRingHit .28s ease-out}
+@keyframes fzRingHit{0%{transform:scale(1.55);color:#FFDD00}100%{transform:scale(1);color:#fff}}
+.gp3-wrap.v3 .fz-pitch{position:absolute;z-index:8;right:calc(14px + env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom));width:clamp(124px,13.5vw,164px);height:calc(var(--ped) + 34px);display:flex;flex-direction:column;gap:6px;opacity:0;pointer-events:none;transition:opacity .12s;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;cursor:pointer}
+.gp3-wrap.v3.jet .fz-pitch{opacity:1;pointer-events:auto}
+.fz-pitch span{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:15px;border:4px solid #00F0FF;background:rgba(13,17,39,.72);color:#fff;font-weight:900;font-style:italic;box-shadow:0 5px 0 rgba(13,17,39,.8),0 0 14px rgba(0,240,255,.45);transition:transform .06s,background .06s;pointer-events:none}
+.fz-pitch span i{font-style:normal;color:#00F0FF;font-size:clamp(20px,2.5vw,30px);line-height:1}.fz-pitch span b{font-size:clamp(14px,1.7vw,20px);letter-spacing:.05em}
+.fz-pitch.up .u,.fz-pitch.dn .d{background:#00F0FF;color:#0D1127;transform:translateY(3px);box-shadow:0 2px 0 rgba(13,17,39,.8),0 0 26px rgba(0,240,255,.95)}.fz-pitch.up .u i,.fz-pitch.dn .d i{color:#0D1127}
+.gp3-wrap.v3.jet .fz-pedal.gas{opacity:0;pointer-events:none}
+.gp3-wrap.v3.jet .fz-pedal.brake b{color:#FFDD00}
+.fz-jback{position:absolute;z-index:6;left:50%;top:clamp(62px,12vh,100px);transform:translate(-50%,0) scale(.7);opacity:0;display:flex;align-items:center;gap:10px;padding:6px 14px;border-radius:13px;background:#FFDD00;color:#0D1127;border:3px solid #0D1127;font-weight:900;font-style:italic;font-size:clamp(14px,1.9vw,21px);white-space:nowrap;pointer-events:none;transition:transform .14s cubic-bezier(.25,1.6,.5,1),opacity .12s}
+.fz-jback.on{opacity:1;transform:translate(-50%,0) scale(1)}.fz-jback i{font-style:normal;font-size:1.5em;line-height:1}.fz-jback.l i{animation:fzBackL .4s ease-in-out infinite alternate}.fz-jback.r i{animation:fzBackR .4s ease-in-out infinite alternate}
+@keyframes fzBackL{to{transform:translateX(-7px)}}@keyframes fzBackR{to{transform:translateX(7px)}}
+.gp3-wrap.v3.done .fz-jhud,.gp3-wrap.v3.done .fz-pitch,.gp3-wrap.v3.done .fz-jback{display:none}
+@media (max-height:520px),(orientation:portrait) and (max-width:600px){.gp3-wrap.v3 .fz-pitch{right:calc(10px + env(safe-area-inset-right));bottom:calc(10px + env(safe-area-inset-bottom));width:84px}.fz-fuel{width:clamp(92px,28vw,150px)}.gp3-wrap.v3 .fz-jhud{gap:7px;padding:5px 9px;border-width:2px;top:calc(62px + env(safe-area-inset-top))}}
 /* TRICK: only there while the car flies; big, chunky, pulsing */
 .gp3-wrap.v3 .fz-trick{position:absolute;z-index:8;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));width:clamp(112px,12vw,140px);height:clamp(112px,12vw,140px);margin-left:calc(clamp(112px,12vw,140px)/-2);border-radius:50%;border:5px solid #1A0B36;background:radial-gradient(circle at 50% 32%,#ff7ab5,#FF2A85 62%,#d40f63);color:#fff;box-shadow:0 8px 0 #1A0B36,0 0 34px rgba(255,42,133,.85);display:none;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:0;cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;font-family:inherit}
 .gp3-wrap.v3 .fz-trick.on{display:flex;animation:fzTrick .42s ease-in-out infinite}
@@ -5201,6 +5228,8 @@ function gpBuild(C){
    +'<div class="gp3-pad l"><span class="race-btn" id="rcL" aria-hidden="true">◀</span><span class="race-btn" id="rcR" aria-hidden="true">▶</span></div>'
    +'<button class="fz-boost" id="gp3Boost" aria-label="Boost"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="44"/><circle class="rg" id="gp3BoostRing" cx="50" cy="50" r="44" stroke-dasharray="276.5" stroke-dashoffset="138"/></svg><span class="core"><b>BOOST</b><small id="gp3BoostN">●</small></span></button>'
    +'<button class="fz-trick" id="gp3Trick" aria-label="Do a trick"><i>★</i><b>TRICK</b></button>'
+   +'<div class="fz-jhud" id="gp3Jet"><span class="fz-jl">JET</span><span class="fz-fuel"><i id="gp3FuelFill"></i></span><span class="fz-jr"><em>◯</em><b id="gp3JetRings">0 / 0</b></span></div><div class="fz-jback" id="gp3Back"></div>'
+   +'<div class="fz-pitch" id="gp3Pitch" role="group" aria-label="Fly up or down"><span class="u"><i>▲</i><b>UP</b></span><span class="d"><b>DOWN</b><i>▼</i></span></div>'
    +'<div class="gp3-pad r"><button class="fz-pedal brake" id="rcB" aria-label="Brake pedal"><i></i><b>BRAKE</b></button><button class="fz-pedal gas'+(gpAuto()?" auto":"")+'" id="rcG" aria-label="Gas pedal"><i></i><b>'+(gpAuto()?"AUTO":"GAS")+'</b></button></div>'
    +'</div>'
    +'<div class="center fz-quit-row"><button class="readbtn" onclick="renderCircuits()">⟵ Quit race</button></div>';
@@ -5607,8 +5636,8 @@ function gpBuild(C){
     gates,trapT:trapI/M,trapBest:0,gear:1,tachT:0,post,mode:gpMode(),notes,notesGot:0,notesTotal:notes.length*C.laps,song:[],lastDeg:4,songDirty:1,water,waterTex,fx:$("gp3Fx"),fxW:16,fxH:9,sk:{chain:0,mult:1,total:0,idle:0,list:[],dirty:1,clean:0,cool:0},bumpT:9,upGrip:gpMode()==="race"?1+0.04*gpUpState().tyres:1,cLog:null,sunTint:new T.Color(L.sun).lerp(new T.Color(1,1,1),0.35),skyTint:new T.Color(L.mid).lerp(new T.Color(L.hor),0.4),traffic:TR,tw:TW,megaTex,splash:TH==="coast"?gpParticles(T,scene,140,0.9,false,0.55):null};R3.bodies=R3.karts.concat(TR?TR.cars:[]);
   window.__gp={fps:0,pr:pr0,shadows:true,playerWheelPhase:0,wheelPhase:0,playerSpeed:0,speed:0,wheelRadius:R3.me.wheelRadius,cameraFov:60,cameraOffsetFromCar:0,cameraOffset:0,cameraOffsetVector:{x:0,y:0,z:0},playerShadowWorldY:0,shadowY:0,bodyRoll:0,spriteBottomY:R3.me.pos.y,smokeCount:0,rendererCalls:0,renderCalls:0,wheelPatchDrawCalls:0,wheelPatchState:R3.me.pic?"sharp":"3d",wheelPatchVisible:false,wheelPatchFrame:R3.me.pic?R3.me.pic.frame:null,wheelPatchKind:R3.me.pic&&R3.me.pic.wheelPatch?R3.me.pic.wheelPatch.kind:"3d",phys:{slipDeg:0,steerIn:0,sv:0,drift:0,x:0,speed:0},cam:{}};
   // keyboard
-  R3.kd=e=>{if(!R3)return;const k=e.key.toLowerCase();GPA.init();if(k==="escape"){renderCircuits();return;}if(k==="m"){gpToggleMute();return;}if(k==="c"){gpCycleCam();return;}if((k==="b"||k==="shift")&&!e.repeat){gpBoost();e.preventDefault();return;}if(k==="t"&&!e.repeat){gpTrick("spin",1);e.preventDefault();return;}
-    if(!e.repeat&&R3.me&&R3.me.air){if(k==="arrowleft")gpTrick("roll",-1);else if(k==="arrowright")gpTrick("roll",1);else if(k==="arrowup")gpTrick("flip",1);}R3.keys[k]=true;if(["arrowleft","arrowright","arrowdown","arrowup","shift"," "].includes(k))e.preventDefault();};
+  R3.kd=e=>{if(!R3)return;const k=e.key.toLowerCase();GPA.init();if(k==="escape"){renderCircuits();return;}if(k==="m"){gpToggleMute();return;}if(k==="c"){gpCycleCam();return;}if((k==="b"||k==="shift")&&!e.repeat){gpBoost();e.preventDefault();return;}if(k==="t"&&!e.repeat){gpTrick("spin",1);e.preventDefault();return;}if(k==="l"&&!e.repeat&&R3.me&&R3.me.jet){gpTrick("flip",1);e.preventDefault();return;}
+    if(!e.repeat&&R3.me&&R3.me.air&&!R3.me.jet){if(k==="arrowleft")gpTrick("roll",-1);else if(k==="arrowright")gpTrick("roll",1);else if(k==="arrowup")gpTrick("flip",1);}R3.keys[k]=true;if(["arrowleft","arrowright","arrowdown","arrowup","shift"," "].includes(k))e.preventDefault();};
   R3.ku=e=>{if(!R3)return;R3.keys[e.key.toLowerCase()]=false;};
   window.addEventListener("keydown",R3.kd);window.addEventListener("keyup",R3.ku);
   // touch: pointer events with capture so one thumb can steer while the other holds a pedal.
@@ -5625,6 +5654,11 @@ function gpBuild(C){
   zoneL.addEventListener("pointermove",ev=>{if(!R3||!ptr.steer.has(ev.pointerId))return;const d=steerDir(ev);if(ptr.steer.get(ev.pointerId)!==d){ptr.steer.set(ev.pointerId,d);syncCtl();}});
   ["pointerup","pointercancel","lostpointercapture"].forEach(t=>zoneL.addEventListener(t,ev=>{if(!ptr.steer.has(ev.pointerId))return;ptr.steer.delete(ev.pointerId);syncCtl();}));
   hold($("rcG"),ptr.gas);hold($("rcB"),ptr.brake);
+  // the jet's UP / DOWN rocker: press or drag, one thumb (above the middle = climb, below = dive). A thumb still on it at touchdown counts as GAS, so the car keeps its speed
+  ptr.pitch=new Map();{const pe=$("gp3Pitch");if(pe){guard(pe);const dirOf=ev=>{const r=pe.getBoundingClientRect(),d=ev.clientY-(r.top+r.height/2);return Math.abs(d)<6?0:(d<0?1:-1);},syncP=()=>{if(!R3)return;let d=0;for(const v of ptr.pitch.values())d=v;R3.pitchIn=d;pe.classList.toggle("up",d>0);pe.classList.toggle("dn",d<0);};
+    pe.addEventListener("pointerdown",ev=>{ev.preventDefault();ev.stopPropagation();GPA.init();if(!R3)return;try{pe.setPointerCapture(ev.pointerId);}catch(e){}ptr.pitch.set(ev.pointerId,dirOf(ev));syncP();});
+    pe.addEventListener("pointermove",ev=>{if(!R3||!ptr.pitch.has(ev.pointerId))return;const d=dirOf(ev);if(ptr.pitch.get(ev.pointerId)!==d){ptr.pitch.set(ev.pointerId,d);syncP();}});
+    ["pointerup","pointercancel","lostpointercapture"].forEach(t=>pe.addEventListener(t,ev=>{if(!ptr.pitch.has(ev.pointerId))return;ptr.pitch.delete(ev.pointerId);syncP();}));}}
   R3.ctl=ptr;
   $("gp3Mute").addEventListener("click",ev=>{ev.preventDefault();gpToggleMute();});
   // camera + boost react to their own pointer (pointerdown/up), not "click": iOS drops the click of a tap made while the other thumb holds GAS
@@ -5634,7 +5668,7 @@ function gpBuild(C){
     ["pointercancel","lostpointercapture"].forEach(t=>el.addEventListener(t,ev=>{if(ev.pointerId===pid){pid=null;el.classList.remove("dn");}}));
     el.addEventListener("click",ev=>{ev.preventDefault();if(ev.detail===0)fire();});};   // keyboard Enter/Space on the focused button
   tapBtn($("gp3Cam"),gpCycleCam,false);tapBtn($("gp3Boost"),gpBoost,true);tapBtn($("gp3Trick"),()=>gpTrick("spin",1),true);
-  R3.camMode=gpCamMode();gpCamApply();gpLipsBuild();gpTrickInit();
+  R3.camMode=gpCamMode();gpCamApply();gpLipsBuild();gpTrickInit();gpJetInit();
   R3.blockTouch=ev=>{if(R3&&!R3.done&&ev.cancelable)ev.preventDefault();};
   document.addEventListener("touchmove",R3.blockTouch,{passive:false});document.addEventListener("gesturestart",R3.blockTouch,{passive:false});
   R3.onVis=()=>{if(!GPA.ctx)return;if(document.hidden)GPA.ctx.suspend();else GPA.ctx.resume();};document.addEventListener("visibilitychange",R3.onVis);
@@ -5664,12 +5698,12 @@ const GP_BOOST={burst:2.6,cost:0.34,cool:1.2,mul:1.22,start:0.5};
 function gpBoostInit(){const R=R3;R.boost={q:GP_BOOST.start,cool:0,easy:gpPace()==="gentle",uses:0,ring:$("gp3BoostRing"),btn:$("gp3Boost"),pips:$("gp3BoostN"),key:""};R.boostLog=[];
   R.karts.forEach(k=>{k.boostT=0;k.boostMul=1;k.bNext=k.player?0:12+Math.random()*16;});}
 function gpBoost(){const R=R3;if(!R||!R.boost)return false;const B=R.boost,me=R.me;
-  if(R.done||R.phase!=="race"||R.countdown>0.5||me.boostT>0||B.cool>0||B.q<GP_BOOST.cost-1e-6){if(B.btn){B.btn.classList.remove("no");void B.btn.offsetWidth;B.btn.classList.add("no");}return false;}
+  if(R.done||R.phase!=="race"||R.countdown>0.5||(me.boostT>0&&!(me.jet&&me.boostMul<GP_BOOST.mul))||B.cool>0||B.q<GP_BOOST.cost-1e-6){if(B.btn){B.btn.classList.remove("no");void B.btn.offsetWidth;B.btn.classList.add("no");}return false;}
   B.q-=GP_BOOST.cost;B.uses++;me.boostT=GP_BOOST.burst;me.boostMul=GP_BOOST.mul;GPA.play("boost");gpMsg("BOOST!");R.boostLog.push({t:+(R.simT||0).toFixed(2),mph:Math.round(me.speed*GP_MPH)});return true;}
 function gpBoostTick(dt,waiting){const R=R3;if(!R.boost)gpBoostInit();const B=R.boost,me=R.me;
-  R.karts.forEach(k=>{if(k.boostT>0){k.boostT=Math.max(0,k.boostT-dt);if(k.boostT===0&&k.player)B.cool=GP_BOOST.cool;}gpFlameUpdate(k,dt);});
+  R.karts.forEach(k=>{if(k.boostT>0){k.boostT=Math.max(0,k.boostT-dt);if(k.boostT===0&&k.player&&!k.jet)B.cool=GP_BOOST.cool;}gpFlameUpdate(k,dt);});
   if(B.cool>0)B.cool=Math.max(0,B.cool-dt);
-  if(!waiting&&!R.done){const spd=me.speed/me.max,off=Math.abs(me.x)>1.05;let r=B.easy?0.03:0.018;   // on its own: a full meter in ~35-55 s
+  if(!waiting&&!R.done){const spd=me.speed/me.max,off=Math.abs(me.x)>1.05&&!me.jet;let r=B.easy?0.03:0.018;   // on its own: a full meter in ~35-55 s
     if(me.drift&&spd>0.35&&!off)r+=0.11;if(me.air)r+=0.08;if(!off&&spd>0.55&&R.bumpT>2&&!me.loss)r+=B.easy?0.03:0.02;
     if(me.boostT<=0)B.q=Math.min(1,B.q+r*dt);
     R.karts.forEach(k=>{if(k.player||k.boostT>0)return;k.bNext-=dt;if(k.bNext>0)return;const i=Math.floor(k.t*R.M)%R.M,clear=R.vProf[(i+Math.round(40/(R.len/R.M)))%R.M]>=k.max*0.98&&R.vProf[i]>=k.max*0.98;
@@ -5689,7 +5723,7 @@ function gpFlameBuild(kt){if(kt.flm!==undefined)return kt.flm;kt.flm=null;const 
   kt.flm={list,a:0};return kt.flm;}
 function gpFlameUpdate(kt,dt){const want=kt.boostT>0?1:0;if(!want&&!kt.flm)return;const F=gpFlameBuild(kt);if(!F)return;F.a+=(want-F.a)*Math.min(1,dt*(want?14:6));const vis=F.a>0.03;
   F.list.forEach(f=>{if(f.g.visible!==vis)f.g.visible=vis;if(!vis)return;const fl=0.75+Math.random()*0.5,L=(kt.player?1.25:0.9)*F.a*fl;f.o.scale.set(0.15*F.a,0.15*F.a,L);f.c.scale.set(0.085*F.a,0.085*F.a,L*0.62);f.s.material.opacity=0.8*F.a;});}
-function gpCycleCam(){if(!R3)return;const L=GP_VIEWS;R3.camMode=L[(L.indexOf(R3.camMode)+1)%L.length];R3.camLog=(R3.camLog||[]).concat([R3.camMode]);gpSetOpt("gpCam",R3.camMode);gpCamApply();gpMsg({chase:"Chase cam",far:"Far chase cam",hood:"Hood cam",bumper:"Bumper cam",cockpit:"Cockpit cam"}[R3.camMode]);sfx("tick");}
+function gpCycleCam(){if(!R3||R3.me.jet)return;const L=GP_VIEWS;R3.camMode=L[(L.indexOf(R3.camMode)+1)%L.length];R3.camLog=(R3.camLog||[]).concat([R3.camMode]);gpSetOpt("gpCam",R3.camMode);gpCamApply();gpMsg({chase:"Chase cam",far:"Far chase cam",hood:"Hood cam",bumper:"Bumper cam",cockpit:"Cockpit cam"}[R3.camMode]);sfx("tick");}
 /* the cockpit: roof edge + mirror, A-pillars, a carbon dash, a wheel that turns with the steering, and a digital display
    (big mph, gear, a shift-light bar, place + lap). Drawn on one 2D canvas under the touch controls. */
 function gpCockpit(){const cv=$("gp3Ck");if(!cv||!R3)return;const x=cv.getContext("2d"),W=cv.width,H=cv.height,me=R3.me;x.clearRect(0,0,W,H);
@@ -5775,7 +5809,7 @@ function gpFrame(now){
     window.__gp.pr=R3.pr;window.__gp.shadows=R3.shadowsOn;}
   R3.frameN=(R3.frameN||0)+1;
   gpCountTick(now);
-  if(R3.phase==="race"&&!R3.done)R3.time=now-R3.goAt;
+  if(R3.phase==="race"&&!R3.done)R3.time=now-R3.goAt-(R3.timeBonus||0);
   gpUpdate(dt,R3.countdown>0);gpRender(dt);
   R3.raf=requestAnimationFrame(gpFrame);
 }
@@ -5844,23 +5878,23 @@ function gpPack(dt,waiting){const R=R3,me=R.me;if(waiting||R.mode!=="race"||R.do
 const GP_TRICK={dur:0.6,name:{roll:"BARREL ROLL!",flip:"FLIP!",spin:"360 SPIN!"},nitro:[0,0.35,0.8,1],win:{normal:0.72,gentle:0.5}};
 function gpTrickInit(){const R=R3;R.tk={btn:$("gp3Trick"),pop:$("gp3Nitro"),on:false,fill:0,log:[],count:0,next:null,swipe:new Map()};
   const g=$("gp3");if(!g)return;   // swipes anywhere on the race view (pedals and buttons keep their own fingers); capture phase, because the steering zone captures its pointer
-  const isCtl=t=>t&&t.closest&&t.closest(".fz-pedal,.fz-boost,.fz-cam,.fz-trick,.fz-btn");
-  const dn=e=>{if(isCtl(e.target)||!R3||!R3.tk)return;R3.tk.swipe.set(e.pointerId,{x:e.clientX,y:e.clientY,t:performance.now()});};
-  const mv=e=>{const K=R3&&R3.tk;if(!K)return;const p=K.swipe.get(e.pointerId);if(!p)return;const now=performance.now(),dx=e.clientX-p.x,dy=e.clientY-p.y,fly=R3.me.air;
+  const isCtl=t=>t&&t.closest&&t.closest(".fz-pedal,.fz-boost,.fz-cam,.fz-trick,.fz-btn,.fz-pitch");
+  const dn=e=>{if(isCtl(e.target)||!R3||!R3.tk)return;R3.tk.swipe.set(e.pointerId,{x:e.clientX,y:e.clientY,t:performance.now(),st:!!(e.target&&e.target.id==="gp3L")});};
+  const mv=e=>{const K=R3&&R3.tk;if(!K)return;const p=K.swipe.get(e.pointerId);if(!p)return;const now=performance.now(),dx=e.clientX-p.x,dy=e.clientY-p.y,fly=R3.me.air&&!(R3.me.jet&&p.st);   /* in a jet the steering thumb slides a lot: only the other side of the screen swipes */
     if(!fly||now-p.t>420){p.x=e.clientX;p.y=e.clientY;p.t=now;return;}
     const ax=Math.abs(dx),ay=Math.abs(dy);if(Math.max(ax,ay)<26)return;let ok=false;if(ax>=ay)ok=gpTrick("roll",dx<0?-1:1);else if(dy<0)ok=gpTrick("flip",1);p.x=e.clientX;p.y=e.clientY;p.t=now;void ok;};
   const up=e=>{const K=R3&&R3.tk;if(K)K.swipe.delete(e.pointerId);};
   g.addEventListener("pointerdown",dn,true);g.addEventListener("pointermove",mv,true);["pointerup","pointercancel"].forEach(t=>g.addEventListener(t,up,true));}
-function gpAirLeft(kt){const h=Math.max(0,kt.y-(kt.ry||0)),v=kt.vy||0;return(v+Math.sqrt(v*v+2*GP_G*h))/GP_G;}   // flat-road estimate of the flight still to come
-function gpTrick(kind,dir){const R=R3;if(!R||!R.me||R.done||R.phase!=="race")return false;const me=R.me,K=R.tk;if(!K||!me.air)return false;
+function gpAirLeft(kt){if(kt.jet)return gpJetAirLeft(kt);const h=Math.max(0,kt.y-(kt.ry||0)),v=kt.vy||0;return(v+Math.sqrt(v*v+2*GP_G*h))/GP_G;}   // flat-road estimate of the flight still to come
+function gpTrick(kind,dir){const R=R3;if(!R||!R.me||R.done||R.phase!=="race")return false;const me=R.me,K=R.tk;if(!K||!me.air)return false;if(me.jet&&kind==="spin")kind="roll";
   if(me.trick){if(me.trick.t>me.trick.dur*0.55&&!K.next){K.next={kind,dir};return true;}return false;}
-  if(gpAirLeft(me)<0.14)return false;   // too late to even start one: ignore it, so a stray swipe just before the wheels touch does no harm
+  if(gpAirLeft(me)<(me.jet?GP_JET.trickDur[kind]+0.05:0.14))return false;   // too late to even start one: ignore it, so a stray swipe just before the wheels touch does no harm
   gpTrickStart(me,kind,dir);return true;}
-function gpTrickStart(kt,kind,dir){kt.trick={k:kind,d:dir||1,t:0,dur:GP_TRICK.dur};if(kt.player){const K=R3.tk;K.count=K.count||0;GPA.play("trick");K.btn&&K.btn.classList.add("spin");gpTrickPop("t",GP_TRICK.name[kind],"");K.log.push({t:+(R3.simT||0).toFixed(2),k:kind,air:+kt.airT.toFixed(2)});}}
+function gpTrickStart(kt,kind,dir){kt.trick={k:kind,d:dir||1,t:0,dur:kt.jet&&kt.player?GP_JET.trickDur[kind]:GP_TRICK.dur};if(kt.player){const K=R3.tk;K.count=K.count||0;GPA.play("trick");K.btn&&K.btn.classList.add("spin");gpTrickPop("t",kt.jet&&kind==="flip"?"LOOP!":GP_TRICK.name[kind],"");K.log.push({t:+(R3.simT||0).toFixed(2),k:kind,air:+kt.airT.toFixed(2)});}}
 function gpTrickPop(cls,big,small){const e=R3.tk&&R3.tk.pop;if(!e)return;e.className="fz-nitro "+cls;e.innerHTML='<b>'+big+'</b>'+(small?'<small>'+small+'</small>':'');void e.offsetWidth;e.classList.add("on");}
 /* each frame: run the trick clock, show the button only in the air, spin the body */
 function gpTrickTick(kt,dt){const T0=kt.trick;
-  if(T0){T0.t+=dt;if(T0.t>=T0.dur){kt.trick=null;kt.trickDone=(kt.trickDone||0)+1;if(kt.player){const K=R3.tk;K.btn&&K.btn.classList.remove("spin");if(K.next&&kt.air&&gpAirLeft(kt)>0.14){const n=K.next;K.next=null;gpTrickStart(kt,n.k,n.d);}else K.next=null;}}}
+  if(T0){T0.t+=dt;if(T0.t>=T0.dur){kt.trick=null;kt.trickDone=(kt.trickDone||0)+1;if(kt.player){const K=R3.tk;K.btn&&K.btn.classList.remove("spin");if(K.next&&kt.air&&gpAirLeft(kt)>(kt.jet?GP_JET.trickDur[K.next.k]+0.05:0.14)){const n=K.next;K.next=null;gpTrickStart(kt,n.k,n.d);}else K.next=null;}}}
   if(kt.tkRe){kt.tkRe.t+=dt;if(kt.tkRe.t>=kt.tkRe.dur)kt.tkRe=null;}
   if(kt.wobT>0){kt.wobT=Math.max(0,kt.wobT-dt);}}
 function gpTrickAngle(kt){let a=0,k=null;const Tr=kt.trick;if(Tr){const u=Math.min(1,Tr.t/Tr.dur),e=u<0.5?2*u*u:1-2*(1-u)*(1-u);a=e*Math.PI*2*Tr.d;k=Tr.k;}else if(kt.tkRe){const u=Math.min(1,kt.tkRe.t/kt.tkRe.dur),e=1-(1-u)*(1-u);a=kt.tkRe.a0+(kt.tkRe.a1-kt.tkRe.a0)*e;k=kt.tkRe.k;}return{a,k};}
@@ -5878,10 +5912,171 @@ function gpTrickLand(kt){const Tr=kt.trick,done=kt.trickDone||0;kt.trickDone=0;
   else{kt.wobT=1.05;kt.speed*=0.86;kt.lossCool=Math.max(kt.lossCool||0,1.4);kt.drift=0;GPA.play("wobble");gpTrickPop("m","WOBBLY!","Finish the trick first");lg.push({t:+(R.simT||0).toFixed(2),clean:false,n:done,u:+u.toFixed(2)});}}
 function gpRivalTrick(kt,vy){if(kt.player||vy<6.5||Math.random()>0.3)return;const flight=2*vy/GP_G;if(flight<0.85)return;gpTrickStart(kt,Math.random()<0.6?"roll":"spin",Math.random()<0.5?-1:1);}
 /* HUD part, once a frame: the button only in the air; nitro pours into the gauge over ~0.5 s */
-function gpTrickHud(dt){const R=R3,K=R.tk;if(!K)return;const me=R.me,show=!!me.air&&!R.done&&R.phase==="race"&&(me.trick||(me.airT>=0.03&&gpAirLeft(me)>=0.14));
+function gpTrickHud(dt){const R=R3,K=R.tk;if(!K)return;const me=R.me,show=!!me.air&&!R.done&&R.phase==="race"&&(me.trick||(me.airT>=0.03&&gpAirLeft(me)>=(me.jet?0.85:0.14)));
   if(show!==K.on){K.on=show;if(K.btn){K.btn.classList.toggle("on",show);if(!show)K.btn.classList.remove("spin","dn");}}
   if(K.fill>0&&R.boost){const B=R.boost,d=Math.min(K.fill,dt*1.5);K.fill-=d;B.q=Math.min(1,B.q+d);if(B.btn&&!B.btn.classList.contains("fill"))B.btn.classList.add("fill");if(K.fill<=1e-4||B.q>=1){K.fill=0;K._hold=0.35;}}
   else if(K._hold>0){K._hold-=dt;if(K._hold<=0&&R.boost&&R.boost.btn)R.boost.btn.classList.remove("fill");}}
+/* ---------- JET MODE (Eb 2026-11-05) ----------
+   A MEGA ramp at speed (or the rare golden WINGS pickup on a long straight) gives the car wings, tail fins and twin afterburners for one flight.
+   The flight lives in the ROAD'S frame: t (how far along the lap), x (how far across) and h (height above a "sky floor" worked out from the real scenery).
+   So a flight always follows the route, can never leave it for good, and a landing is simply x, h and the nose all easing back to the road.
+   Phases: fly (fuel counts down; steer = bank + yaw, UP/DOWN = pitch, BOOST = afterburner, TRICK/swipes = barrel roll + loop; hands off = level flight)
+   -> land (fuel out, or BRAKE: wings fold, a glide onto the road AHEAD: never off it, never into a wall, never backwards, speed kept down to what the next bends allow).
+   Rivals get short "hops" (a set arc, no steering). Easy: more fuel, bigger rings, autopilot towards the next ring, nothing can be hit in the air. */
+const GP_JET={out:0.3,fuel:{normal:7,gentle:9.5},h0:7,hMax:26,xArrow:24,xSoft:28,xHard:36,rings:{normal:10,gentle:12},ringR:{normal:5.8,gentle:8},ringGap:0.62,
+  climb:11,minSpeed:24,cruise:{normal:1.04,gentle:1.04},ringQ:0.06,ringMs:200,landQ:[0.2,0.5],hopT:[2.3,3.1],hopH:[7,12],trickDur:{roll:0.78,flip:1.15,spin:0.78}};
+/* the sky floor: the highest solid thing near the road at every sample, from the real scene (buildings, trees, hills, tunnels, gantries), so a flight clears all of it on every track */
+function gpJetFloor(){const R=R3,T=R.T,M=R.M,S=R.samples,ds=R.len/M,t0=performance.now(),CELL=8,key=(x,z)=>Math.floor(x/CELL)*200003+Math.floor(z/CELL),top=new Map(),corr=new Set(),st=Math.max(1,Math.round(5/ds));
+  for(let i=0;i<M;i+=st){const s=S[i];for(let d=-44;d<=44;d+=6)corr.add(key(s.pos.x+s.nor.x*d,s.pos.z+s.nor.z*d));}
+  const mark=(x,z,y)=>{const k=key(x,z);if(!corr.has(k))return;const o=top.get(k);if(o===undefined||y>o)top.set(k,y);};
+  const skip=new Set([R.sky,R.band,R.glare,R.water].filter(Boolean)),A=new T.Vector3(),B=new T.Vector3(),C=new T.Vector3(),m4=new T.Matrix4(),im=new T.Matrix4(),box=new T.Box3();R.scene.updateMatrixWorld(true);
+  const walk=o=>{if(skip.has(o)||R.karts.some(k=>k.g===o))return;if(o.isMesh&&o.visible!==false&&o.geometry&&o.geometry.attributes.position){const mat=Array.isArray(o.material)?o.material[0]:o.material;
+      if(!(mat&&((mat.transparent&&!mat.depthWrite)||mat.side===T.BackSide))){const g=o.geometry,P=g.attributes.position;
+        if(o.isInstancedMesh){if(!g.boundingBox)g.computeBoundingBox();const b=g.boundingBox;for(let n=0;n<o.count;n++){o.getMatrixAt(n,im);m4.multiplyMatrices(o.matrixWorld,im);box.copy(b).applyMatrix4(m4);if(box.max.y>box.min.y+900)continue;
+            const nx=Math.min(10,Math.ceil((box.max.x-box.min.x)/CELL)),nz=Math.min(10,Math.ceil((box.max.z-box.min.z)/CELL));for(let a=0;a<=nx;a++)for(let c=0;c<=nz;c++)mark(box.min.x+(box.max.x-box.min.x)*a/nx,box.min.z+(box.max.z-box.min.z)*c/nz,box.max.y);}}
+        else{const I=g.index,nT=I?I.count/3:P.count/3,e=o.matrixWorld;for(let n=0;n<nT;n++){const a=I?I.getX(n*3):n*3,b=I?I.getX(n*3+1):n*3+1,c=I?I.getX(n*3+2):n*3+2;A.fromBufferAttribute(P,a).applyMatrix4(e);B.fromBufferAttribute(P,b).applyMatrix4(e);C.fromBufferAttribute(P,c).applyMatrix4(e);
+            const y=Math.max(A.y,B.y,C.y);if(y>900)continue;const L=Math.max(Math.abs(A.x-B.x),Math.abs(A.z-B.z),Math.abs(A.x-C.x),Math.abs(A.z-C.z),Math.abs(B.x-C.x),Math.abs(B.z-C.z));
+            if(L<CELL){mark(A.x,A.z,y);continue;}const q=Math.min(14,Math.ceil(L/CELL));for(let u=0;u<=q;u++)for(let v=0;v<=q-u;v++){const w=q-u-v;mark((A.x*u+B.x*v+C.x*w)/q,(A.z*u+B.z*v+C.z*w)/q,y);}}}}}
+    if(o.children)o.children.forEach(walk);};walk(R.scene);
+  const at=(i,d)=>{const s=S[i],v=top.get(key(s.pos.x+s.nor.x*d,s.pos.z+s.nor.z*d));return v===undefined?-1e9:v;};
+  let F=new Float32Array(M),raw=new Float32Array(M);for(let i=0;i<M;i++){let v=S[i].pos.y+9;for(let d=-12;d<=12;d+=6){const q=at(i,d);if(q+5>v)v=q+5;}raw[i]=v;}
+  {const r=Math.max(1,Math.round(36/ds));const dq=[];const O=new Float32Array(M);for(let k=-r;k<M+r;k++){const i=((k%M)+M)%M;while(dq.length&&dq[dq.length-1][1]<=raw[i])dq.pop();dq.push([k,raw[i]]);while(dq[0][0]<k-2*r)dq.shift();if(k-r>=0&&k-r<M)O[k-r]=dq[0][1];}F=O;}
+  const dy=0.26*ds;for(let pass=0;pass<2;pass++){for(let i=1;i<M*2;i++){const a=i%M,b=(i-1)%M;if(F[a]<F[b]-dy)F[a]=F[b]-dy;}for(let i=M*2;i>0;i--){const a=i%M,b=(i+1)%M;if(F[a]<F[b]-dy)F[a]=F[b]-dy;}}
+  const lim=[new Float32Array(M),new Float32Array(M)];for(let i=0;i<M;i++)[-1,1].forEach((sd,q)=>{let L=GP_JET.xHard;for(let d=18;d<=42;d+=6){if(at(i,sd*d)>F[i]-1){L=Math.max(R.W*0.85,d-9);break;}}lim[q][i]=L;});
+  lim.forEach((a,q)=>{const r=Math.max(1,Math.round(70/ds)),O=new Float32Array(M);for(let i=0;i<M;i++)O[i]=a[i];for(let pass=0;pass<Math.ceil(r/12);pass++){const P0=O.slice();for(let i=0;i<M;i++)O[i]=Math.min(P0[i],P0[(i+12)%M],P0[(i-12+M)%M]);}lim[q]=O;});
+  const low=new Uint8Array(M);for(let i=0;i<M;i++){if(R.tw&&R.tw.zoneAt&&(R.tw.zoneAt(i,"tunnel")||R.tw.zoneAt(i,"arch")))low[i]=1;}
+  (R.C.zones?["tunnel","arch"]:[]).forEach(n=>(R.C.zones[n]||[]).forEach(([a,b])=>{const ia=Math.floor(a*M),ib=Math.ceil((b<a?b+1:b)*M);for(let i=ia;i<=ib;i++)low[i%M]=1;}));
+  R.jetF=F;R.jetLim=lim;R.jetLow=low;R.jetFloorMs=Math.round(performance.now()-t0);}
+function gpJetF(t){const R=R3,M=R.M,f=((t%1)+1)%1*M,i=Math.floor(f)%M,u=f-Math.floor(f);return R.jetF[i]+(R.jetF[(i+1)%M]-R.jetF[i])*u;}
+/* wings, tail fins and nozzles, sized from the car's own box so they fit a kei car and a semi alike; hung on the sprung body */
+function gpJetParts(T){const R=R3;if(R.jetGeo)return R.jetGeo;
+  const ext=(pts,dep)=>{const s=new T.Shape();pts.forEach((p,i)=>i?s.lineTo(p[0],p[1]):s.moveTo(p[0],p[1]));s.closePath();const g=new T.ExtrudeGeometry(s,{depth:dep,bevelEnabled:false,steps:1});g.translate(0,0,-dep/2);return g;};
+  // a stubby swept toy wing: span along +x, chord along z, thickness along y
+  const wing=ext([[0,0.55],[0.72,-0.02],[1,-0.2],[1,-0.58],[0.62,-0.42],[0,-0.62]],0.075);wing.rotateX(Math.PI/2);wing.computeVertexNormals();
+  const edge=ext([[0,0.62],[0.74,0.03],[1.03,-0.17],[1,-0.2],[0.72,-0.02],[0,0.55]],0.09);edge.rotateX(Math.PI/2);edge.computeVertexNormals();
+  const tip=ext([[-0.2,0],[-0.58,0],[-0.74,0.36],[-0.52,0.36]],0.05);tip.rotateY(-Math.PI/2);tip.translate(1,0,0);tip.computeVertexNormals();
+  const fin=ext([[-0.5,0],[-0.72,1],[-0.28,1],[0.42,0]],0.09);fin.rotateY(-Math.PI/2);fin.computeVertexNormals();
+  const noz=new T.CylinderGeometry(1,0.82,1,14,1,true).rotateX(Math.PI/2);const cap=new T.CircleGeometry(0.82,14).rotateY(Math.PI).translate(0,0,-0.5);
+  const flame=new T.ConeGeometry(1,1,10,1,true);flame.translate(0,0.5,0);flame.rotateX(-Math.PI/2);
+  const add=(c,o)=>{const m=new T.MeshBasicMaterial({color:c,transparent:true,opacity:o||0.92,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide});m.toneMapped=false;m.userData.lin=1;return m;};
+  const trim=new T.MeshBasicMaterial({color:0x00f0ff});trim.toneMapped=false;trim.userData.lin=1;const dark=new T.MeshStandardMaterial({color:0x20222a,metalness:0.6,roughness:0.45,side:T.DoubleSide});dark.userData.lin=1;const glow=new T.MeshBasicMaterial({color:0xff7a2a});glow.toneMapped=false;glow.userData.lin=1;
+  R.jetGeo={wing,edge,tip,fin,noz,cap,flame,trim,dark,glow,fo:add(0xff5a14),fc:add(0x7fe8ff),spr:new T.SpriteMaterial({map:gpSoftDot(),color:0xff8a30,transparent:true,depthWrite:false,blending:T.AdditiveBlending})};R.jetGeo.spr.toneMapped=false;R.jetGeo.spr.userData.lin=1;return R.jetGeo;}
+function gpJetBox(kt){const T=R3.T,b=new T.Box3(),q=new T.Box3(),inv=new T.Matrix4(),m=new T.Matrix4();kt.g.updateMatrixWorld(true);inv.copy(kt.g.matrixWorld).invert();const sh=kt.shadows||[];
+  kt.body.traverse(o=>{if(!o.isMesh||!o.geometry||o.isSprite||sh.includes(o))return;const mt=o.material;if(mt&&mt.transparent&&mt.depthWrite===false)return;if(!o.geometry.boundingBox)o.geometry.computeBoundingBox();m.multiplyMatrices(inv,o.matrixWorld);q.copy(o.geometry.boundingBox).applyMatrix4(m);b.union(q);});
+  if(b.isEmpty()){const S=kt.S;b.min.set(-S.w/2,0.1,-S.len/2);b.max.set(S.w/2,1.2,S.len/2);}return b;}
+function gpJetGear(kt){if(kt.jg)return kt.jg;const T=R3.T,G=gpJetParts(T),b=gpJetBox(kt),w=b.max.x-b.min.x,h=b.max.y-b.min.y,L=b.max.z-b.min.z,paint=(()=>{const c=kt.bodyMat&&kt.bodyMat.color;if(!c)return G.dark;const m=new T.MeshStandardMaterial({color:c.clone(),roughness:0.62,metalness:0.05});m.userData.lin=1;return m;})();
+  const span=Math.min(3.6,Math.max(1.9,w*1.2)),ch=Math.min(3.1,Math.max(1.9,L*0.42)),yW=b.min.y+h*Math.min(0.5,0.72/Math.max(0.6,h)+0.14),zW=b.min.z+L*0.46,g=new T.Group();
+  const side=sd=>{const p=new T.Group();p.position.set(sd*w*0.42,yW,zW);p.scale.set(sd*span,ch,ch);const a=new T.Mesh(G.wing,paint),e=new T.Mesh(G.edge,G.trim),tp=new T.Mesh(G.tip,paint);p.add(a);p.add(e);p.add(tp);const tipO=new T.Object3D();tipO.position.set(1.08,0.05,-0.3);p.add(tipO);g.add(p);p.userData.sd=sd;p.userData.tip=tipO;return p;};
+  const wl=side(1),wr=side(-1),fh=Math.min(1.5,Math.max(0.72,h*0.5)),fy=b.min.y+h*0.62,fz=b.min.z+L*0.17;
+  const fins=[1,-1].map(sd=>{const f=new T.Mesh(G.fin,paint);f.position.set(sd*w*0.3,fy,fz);f.rotation.z=-sd*0.42;f.scale.set(1,fh,Math.min(1.7,L*0.32));g.add(f);return f;});
+  const rn=Math.min(0.34,Math.max(0.2,w*0.125)),ny=b.min.y+Math.min(h*0.48,0.72),nz=b.min.z+0.1;
+  const noz=[1,-1].map(sd=>{const n=new T.Group();n.position.set(sd*w*0.25,ny,nz);const m=new T.Mesh(G.noz,G.dark);m.scale.set(rn,rn,0.62);const c=new T.Mesh(G.cap,G.glow);c.scale.set(rn,rn,0.62);n.add(m);n.add(c);
+    const o=new T.Mesh(G.flame,G.fo),i=new T.Mesh(G.flame,G.fc);o.position.z=-0.3;i.position.z=-0.3;n.add(o);n.add(i);let s=null;if(kt.player){s=new T.Sprite(G.spr);s.position.z=-0.45;s.scale.set(1.3,1.3,1);n.add(s);}g.add(n);return{n,o,i,s,rn};});
+  g.visible=false;kt.body.add(g);kt.jg={g,wl,wr,fins,noz,fh,a:0,want:0,span,ch,w};return kt.jg;}
+/* 0 = stowed, 1 = out; a quick pop with a little overshoot */
+function gpJetGearTick(kt,dt){const Q=kt.jg;if(!Q||(!Q.want&&Q.a<=0))return;const rate=1/GP_JET.out;Q.a=Q.want?Math.min(1,Q.a+dt*rate):Math.max(0,Q.a-dt*rate*0.62);const vis=Q.a>0.001;if(Q.g.visible!==vis)Q.g.visible=vis;if(!vis)return;
+  const u=Q.a,c1=2.2,e=1+(c1+1)*Math.pow(u-1,3)+c1*Math.pow(u-1,2);[Q.wl,Q.wr].forEach(p=>{const sd=p.userData.sd,s=0.3+0.7*e;p.scale.set(sd*Q.span*s,Q.ch*(0.55+0.45*e),Q.ch*(0.55+0.45*e));p.rotation.y=sd*1.32*(1-Math.min(1,e));p.rotation.z=sd*0.05*e;});
+  Q.fins.forEach(f=>{f.scale.y=Q.fh*Math.max(0.01,e);});
+  const J=kt.jet,boost=kt.boostT>0,pow=(J&&J.ph!=="land"?1:0.25)*Math.min(1,u*1.3),fl=(0.8+Math.random()*0.4)*(kt.player?(boost?3.4:1.9):1.5);Q.noz.forEach(q=>{const rr=q.rn*(boost?1.1:0.92)*pow;q.o.scale.set(rr,rr,fl*pow);q.i.scale.set(rr*0.55,rr*0.55,fl*pow*0.62);if(q.s)q.s.material.opacity=(boost?0.95:0.6)*pow;});}
+/* one flight's rings, laid out for this car's speed so the fuel always reaches the last one: a gentle slalom along the road direction, inside the safe lane */
+function gpJetRingsMake(kt,J){const R=R3,M=R.M,easy=gpPace()==="gentle",n=GP_JET.rings[easy?"gentle":"normal"],rad=GP_JET.ringR[easy?"gentle":"normal"],XS=R.W-1.2,v=Math.max(J.vc,kt.speed*0.95),gap=Math.max(GP_JET.ringGap,(J.fuel-0.7)/n),ph=R.rnd01()*6.28,ph2=R.rnd01()*6.28,list=[];
+  for(let k=0;k<n;k++){const tau=0.95+k*gap,t=(kt.t+v*tau/R.len)%1,i=Math.floor(t*M)%M;let a=Math.sin(ph+k*0.72)*(easy?0.7:1.05)*R.W;const kp=R.kap[i],inner=kp!==0?0.55/Math.abs(kp):1e9,lL=R.jetLim[0][i]*0.72,lR=R.jetLim[1][i]*0.72;a=Math.max(-lL,Math.min(lR,a));if(kp>0&&a<-inner)a=-inner;if(kp<0&&a>inner)a=inner;
+    const h=6+4.5*(1+Math.sin(ph2+k*0.6));list.push({k,t,x:a/XS,h,r:rad,y:gpJetF(t)+h,hit:0,miss:0,fx:0});}
+  return list;}
+function gpJetRingsShow(list){const R=R3,G=R.jr;G.list=list;G.t=0;G.fade=0;G.mesh.count=list.length;const D=R.jetD,V=R.tmpV;list.forEach(r=>{const p=R.curve.getPointAt(r.t),tn=R.curve.getTangentAt(r.t);const nor=V.set(-tn.z,0,tn.x).normalize();p.addScaledVector(nor,r.x*(R.W-1.2));p.y=r.y;r.p=p;r.tn=tn.clone();});G.mesh.visible=true;gpJetRingsDraw(0);}
+function gpJetRingsDraw(dt){const R=R3,G=R.jr;if(!G||!G.mesh.visible)return;G.t+=dt;if(G.fade>0){G.fade=Math.max(0,G.fade-dt/0.5);if(G.fade<=0){G.mesh.visible=false;G.list=[];return;}}const D=R.jetD,C=R.jetC,me=R.me,J=me.jet,next=G.list.find(r=>!r.hit&&!r.miss);
+  G.list.forEach((r,i)=>{const pop=Math.min(1,Math.max(0,(G.t-i*0.05)/0.28)),e=pop*pop*(3-2*pop);let s=r.r*Math.max(0.001,e)*(G.fade>0?G.fade:1);let col=0x00f0ff;
+    if(r.hit){r.fx+=dt;s=r.fx<0.2?r.r*(1+r.fx*1.2):0.001;col=0xffffff;}else if(r.miss){col=0x2a7f96;}else if(r===next){col=0xffdd00;s*=1+0.06*Math.sin(G.t*9);}
+    D.position.copy(r.p);D.up.set(0,1,0);D.lookAt(r.p.x+r.tn.x,r.p.y+r.tn.y*0,r.p.z+r.tn.z);D.scale.setScalar(s);D.updateMatrix();G.mesh.setMatrixAt(i,D.matrix);C.set(col);G.mesh.setColorAt(i,C);});
+  G.mesh.instanceMatrix.needsUpdate=true;if(G.mesh.instanceColor)G.mesh.instanceColor.needsUpdate=true;}
+/* lift-off */
+function gpJetStart(kt,ry,how){const R=R3,easy=gpPace()==="gentle";if(kt.jet)return;const Q=gpJetGear(kt);Q.want=1;kt.air=true;kt.airT=0;kt.airPeak=0;kt.y=ry;kt.ry=ry;kt.loss=null;kt.lossA=0;kt.drift=0;kt.wobT=0;kt.takeoff={v:Math.round(kt.speed*3.6),vy:0,f:R.frameN,kind:how};
+  if(!kt.player){const r=Math.random();kt.jet={ph:"hop",t:0,T:GP_JET.hopT[0]+r*(GP_JET.hopT[1]-GP_JET.hopT[0]),H:GP_JET.hopH[0]+r*(GP_JET.hopH[1]-GP_JET.hopH[0]),hdg:0,roll:0,pitch:0,safe:gpJetSafe(kt,kt.speed*2.7)};kt.vy=6;if(Math.random()<0.3)gpTrickStart(kt,Math.random()<0.6?"roll":"spin",Math.random()<0.5?-1:1);(R.jetHops=R.jetHops||[]).push({car:kt.racer.car.id,t:+(R.simT||0).toFixed(2)});return;}
+  const vc=Math.max(GP_JET.minSpeed*1.8,kt.max*GP_JET.cruise[easy?"gentle":"normal"]),fuel=GP_JET.fuel[easy?"gentle":"normal"];
+  const J=kt.jet={ph:"fly",t:0,fuel,fuel0:fuel,h:GP_JET.h0,vh:0,hdg:0,roll:0,pitch:0,yOff:0,vc,how,hit:0,lt:0,lT:1.6,brk:!!(R.brake||R.keys["s"]||R.keys[" "]),speed0:kt.speed,streak:0};J.yOff=ry-(gpJetF(kt.t)+J.h);
+  J.rings=gpJetRingsMake(kt,J);gpJetRingsShow(J.rings);kt.sv=0;kt.headV=0;R.jetBrakeLock=true;R.jetCount=(R.jetCount||0)+1;kt.boostT=Math.max(kt.boostT||0,0.9);kt.boostMul=Math.max(kt.boostMul||1,1.12);
+  if(R.camMode==="hood"||R.camMode==="bumper"||R.camMode==="cockpit"){R.camSave=R.camMode;R.camMode="chase";gpCamApply();}
+  GPA.play("wings");gpTrickPop("t",how==="pick"?"WINGS!":"JET MODE!","");(R.jetLog=R.jetLog||[]).push({ev:"start",how,t:+(R.simT||0).toFixed(2),f:R.frameN,kmh:Math.round(kt.speed*3.6),fuel});}
+/* the lowest safe speed over the next stretch of road: a landing never hands Prince a bend he can't make */
+function gpJetSafe(kt,dist){const R=R3,M=R.M,ds=R.len/M,i0=Math.floor(kt.t*M)%M,a=Math.round(dist/ds),b=a+Math.round(25/ds),g=kt.player?Math.sqrt((kt.gripK||1)*(R.upGrip||1)):kt.aiSkill||1;let v=1e9;for(let k=a;k<b;k+=2){const q=R.vProf[(i0+k)%M]*g;if(q<v)v=q;}return v;}   // the speed profile already has the braking room for what comes next
+function gpJetLowAhead(kt,dist){const R=R3,M=R.M,ds=R.len/M,i0=Math.floor(kt.t*M)%M,n=Math.round((dist+45)/ds);for(let k=-8;k<n;k+=3)if(R.jetLow[((i0+k)%M+M)%M])return true;return false;}
+/* the wheels should touch down on a calm stretch, not halfway round a hairpin */
+function gpJetBendAt(kt,dist){const R=R3,M=R.M,ds=R.len/M,i0=Math.floor(kt.t*M)%M,a=Math.round((dist-25)/ds),b=Math.round((dist+95)/ds);for(let k=a;k<b;k+=3)if(Math.abs(R.kap[((i0+k)%M+M)%M])>1/60)return true;return false;}
+/* begin the glide, unless the road just ahead has a roof (tunnel, arch): then hold height until it's clear */
+function gpJetLand(kt){const J=kt.jet,R=R3;if(!J||J.ph!=="fly")return false;const y=gpJetF(kt.t)+J.h+J.yOff,road=R.curve.getPointAt(kt.t).y,H=Math.max(0,y-road),T1=Math.max(1.5,Math.min(3.6,H*1.5/15)),dist=Math.max(30,kt.speed)*T1;J.hold=(J.hold||0)+(J.fuel<=0||J.wantLand?(R.frameDt||1/60):0);if(gpJetLowAhead(kt,dist)||(J.hold<(J.wantLand?1:2.5)&&!R.done&&gpJetBendAt(kt,dist))){if(!J.wantLand)J.fuel=0;return false;}
+  J.ph="land";J.lt=0;J.lT=T1;J.x0=kt.x;J.xT=Math.max(-0.6,Math.min(0.6,kt.x*0.25));J.safe=gpJetSafe(kt,dist);J.hdg0=J.hdg;if(kt.jg)kt.jg.want=0;GPA.play("jetfold");(R.jetLog=R.jetLog||[]).push({ev:"land",t:+(R.simT||0).toFixed(2),fuel:+J.fuel.toFixed(2),x:+kt.x.toFixed(2),T:+T1.toFixed(2),safe:Math.round(J.safe*3.6)});return true;}
+/* speed in the air: the car settles at its cruising speed; afterburner on top; on the way down, no faster than the next bends allow */
+function gpJetSpeed(kt,dt){R3.frameDt=dt;const J=kt.jet;if(J.ph==="hop"){const left=J.T-J.t;if(left<1.2&&kt.speed>J.safe)kt.speed=Math.max(J.safe,kt.speed-16*dt);else kt.speed*=1-0.015*dt;return;}
+  if(J.ph==="land"){J.safe=gpJetSafe(kt,Math.max(0,kt.speed*(J.lT-J.lt)));const tg=Math.min(J.safe,Math.max(kt.speed,J.vc));if(kt.speed>tg)kt.speed=Math.max(tg,kt.speed-Math.max(10,(kt.speed-tg)/Math.max(0.3,J.lT-J.lt))*dt);return;}
+  const tg=J.vc*(kt.boostT>0?1.26:1)*(1+(kt.cu||0)*0.5);kt.speed+=(tg-kt.speed)*Math.min(1,dt*(kt.speed<tg?1.5:0.8));}
+/* across the road and along it: returns how fast the car moves along the road's centre line (true curved-road geometry, so an outside line is really longer) */
+function gpJetMove(kt,inp,kap,dt,i){const J=kt.jet,R=R3,XS=R.W-1.2,M=R.M;if(J.ph==="hop")return kt.speed;
+  J.kap=(J.kap==null?kap:J.kap+(kap-J.kap)*Math.min(1,dt*5));const k=J.kap,xm=kt.x*XS,v=Math.max(10,kt.speed);
+  if(J.ph==="fly"){const easy=gpPace()==="gentle",next=J.rings.find(r=>!r.hit&&!r.miss);let hT=inp?inp*0.58:0;J.pIn=gpJetPitchIn();let vhT=J.pIn*GP_JET.climb;
+    if(easy&&next){const dist=Math.max(14,((next.t-kt.t+1)%1)*R.len),aH=Math.max(-0.5,Math.min(0.5,Math.atan2((next.x-kt.x)*XS,dist)*1.35)),aV=Math.max(-GP_JET.climb,Math.min(GP_JET.climb,(next.h-J.h)*v/dist*1.2));hT=inp?inp*0.42+aH*0.45:aH;vhT=J.pIn?J.pIn*GP_JET.climb*0.7+aV*0.4:aV;}
+    const over=Math.abs(xm)-GP_JET.xSoft;if(over>0)hT-=Math.sign(xm)*Math.min(0.75,over*0.09);
+    const sideLim=R.jetLim[xm<0?0:1][i];if(Math.abs(xm)>sideLim-5)hT-=Math.sign(xm)*Math.min(0.7,(Math.abs(xm)-sideLim+5)*0.14);
+    J.hdg+=(hT-J.hdg)*Math.min(1,dt*3.4);J.vh+=(vhT-J.vh)*Math.min(1,dt*4.2);J.h+=J.vh*dt;
+    if(J.h<2.4&&J.vh<0)J.vh*=Math.max(0,J.h/2.4);if(J.h<0){J.h=0;J.vh=Math.max(0,J.vh);}
+    if(J.h>GP_JET.hMax-4&&J.vh>0)J.vh*=Math.max(0,(GP_JET.hMax-J.h)/4);if(J.h>GP_JET.hMax){J.h=GP_JET.hMax;J.vh=Math.min(0,J.vh);}
+    const bk=!!(R.brake||R.keys["s"]||R.keys[" "]);if(bk&&!J.brk&&!J.wantLand){J.wantLand=1;gpMsg("Landing...");}J.brk=bk;
+    if(J.t>GP_JET.out)J.fuel=Math.max(0,J.fuel-dt);if(J.fuel<=0||J.wantLand||R.done)gpJetLand(kt);
+    kt.x+=Math.sin(J.hdg)*v*dt/XS;}
+  else{J.lt+=dt;const u=Math.min(1,J.lt/J.lT),e=Math.min(1,u/0.72),s=e*e*(3-2*e),xn=J.x0+(J.xT-J.x0)*s,vx=(xn-kt.x)*XS/Math.max(dt,0.001);kt.x=xn;const hT=Math.max(-0.42,Math.min(0.42,Math.atan2(vx,v)))*(1-u);J.hdg+=(hT-J.hdg)*Math.min(1,dt*7);J.vh=0;}
+  // hard limits: the far edge of the corridor, the scenery beside it, and the inside of a bend (the road frame folds up past the centre of the curve)
+  {const m=kt.x*XS,sg=m<0?0:1;let L=Math.min(GP_JET.xHard,J.ph==="fly"?R.jetLim[sg][i]+3:99);if((k>0&&m<0)||(k<0&&m>0))L=Math.min(L,0.7/Math.max(1e-4,Math.abs(k)));if(Math.abs(m)>L)kt.x-=Math.sign(m)*(Math.abs(m)-L)*Math.min(1,dt*3)/XS;}
+  const inward=(k>0?-1:1)*kt.x*XS*Math.abs(k),den=Math.max(0.5,Math.min(2,1-inward));
+  return Math.max(4,kt.speed*Math.cos(J.hdg)/den);}
+function gpJetPitchIn(){const R=R3,k=R.keys;let p=R.pitchIn||0;if(k["arrowup"]||k["w"])p=1;else if(k["arrowdown"])p=-1;return p;}
+/* height: the set arc for a rival's hop; for Prince the sky floor + h, a quick climb off the ramp, and on landing an S-curve down onto the road, soft at both ends */
+function gpJetVert(kt,pos,dt,waiting){const ry=pos.y,J=kt.jet;
+  if(kt.vy==null||kt.ry==null||waiting||dt<=0||Math.abs(ry-kt.ry)>0.6+Math.abs(kt.speed)*dt*0.9){gpJetCancel(kt);kt.y=ry;kt.vy=0;kt.ry=ry;kt.air=false;kt.airT=0;kt.tPrev=kt.t;pos.y=ry;return;}
+  const rv=Math.max(-kt.speed*0.6-2,Math.min(kt.speed*0.6+2,(ry-kt.ry)/dt));kt.ry=ry;kt.tPrev=kt.t;kt.airT+=dt;J.t+=dt;let y,down=false;
+  if(J.ph==="hop"){const u=Math.min(1,J.t/J.T);y=ry+J.H*Math.pow(Math.sin(Math.PI*Math.pow(u,0.8)),1.25);down=u>=1;J.e=u;}
+  else{J.yOff*=Math.exp(-dt/0.7);const yf=gpJetF(kt.t)+J.h+J.yOff;if(J.ph==="land"){const u=Math.min(1,J.lt/J.lT),e=u*u*(3-2*u);y=yf+(ry-yf)*e;J.e=e;down=u>=1;}else{y=yf;J.e=0;}}
+  if(y<ry)y=ry;kt.vy=(y-kt.y)/dt;kt.y=y;kt.airPeak=Math.max(kt.airPeak,y-ry);pos.y=y;
+  if(down)gpJetTouch(kt,ry,rv,pos);}
+function gpJetCancel(kt){const J=kt.jet;if(!J)return;kt.jet=null;if(kt.jg){kt.jg.want=0;kt.jg.a=0;kt.jg.g.visible=false;}if(kt.player){const R=R3;if(R.jr)R.jr.fade=0.001;R.jetBrakeLock=false;gpJetCamBack();gpJetHudOff();}gpJetShadow(kt,false);}
+function gpJetCamBack(){const R=R3;if(R.camSave){R.camMode=R.camSave;R.camSave=null;gpCamApply();}}
+function gpJetTouch(kt,ry,rv,pos){const R=R3,J=kt.jet,imp=Math.max(0,rv-kt.vy);kt.y=ry;kt.vy=rv;kt.air=false;pos.y=ry;kt.jet=null;kt.pS=kt.sR;kt.noBurst=1;gpJetShadow(kt,false);if(kt.jg)kt.jg.want=0;gpTrickLand(kt);gpLand(kt,Math.min(2.2,imp));kt.noBurst=0;
+  if(!kt.player)return;kt.headA=J.hdg;kt.headV=0;kt.sv=0;kt.lossCool=Math.max(kt.lossCool||0,2.5);kt.overT=0;kt.wallRec=0;kt.jetGas=2.4;kt.jetCalm=gpPace()==="gentle"?2.2:1.6;gpJetCamBack();gpJetHudOff();if(R.jr)R.jr.fade=1;
+  const n=J.rings.length,hit=J.hit;let add=0;if(hit>0&&R.tk){add=GP_JET.landQ[0]+GP_JET.landQ[1]*hit/n;R.tk.fill=Math.min(1,(R.tk.fill||0)+add);gpTrickPop("",hit===n?"PERFECT LANDING!":"SMOOTH LANDING!","+NITRO · "+hit+"/"+n+" rings");GPA.play("cheer");gpSkill("Jet flight",hit*150,true);}
+  (R.jetLog=R.jetLog||[]).push({ev:"touch",t:+(R.simT||0).toFixed(2),f:R.frameN,x:+kt.x.toFixed(3),hdg:+(J.hdg*57.3).toFixed(1),kmh:Math.round(kt.speed*3.6),imp:+imp.toFixed(2),rings:hit,of:n,add:+add.toFixed(2),lapT:+kt.t.toFixed(4),air:+kt.airT.toFixed(2)});}
+/* the body in the air: banks into the turn, nose follows the climb, and the road's own bends lean it too */
+function gpJetPose(kt,dt,yawRate){const J=kt.jet;if(J.ph==="hop"){const u=J.e||0;kt.body.rotation.x+=-0.22*Math.cos(Math.PI*u);kt.body.rotation.z+=0;return;}
+  const v=Math.max(10,kt.speed),land=J.ph==="land",rT=land?0:Math.max(-1.05,Math.min(1.05,J.hdg*1.35+Math.max(-0.65,Math.min(0.65,yawRate*0.5)))),pT=land?0.02+0.1*(1-(J.e||0))*(1-(J.e||0)):Math.max(-0.5,Math.min(0.42,-J.vh/v*2.2-(J.pIn||0)*0.14+(J.t<0.7?-0.3*(1-J.t/0.7):0)));
+  J.roll+=(rT-J.roll)*Math.min(1,dt*5.5);J.pitch+=(pT-J.pitch)*Math.min(1,dt*4.5);kt.body.rotation.z=kt.roll*0.3+J.roll;kt.body.rotation.x=kt.pitch*0.3+J.pitch;
+  gpJetShadow(kt,true);}
+/* a tall flight doesn't leave a dark blob and tyre marks glued to the road */
+function gpJetShadow(kt,on){if(!kt.shadows)return;const sh=kt.shadows,bl=sh[0];if(!bl||!bl.material)return;if(!on){if(kt._jsh){bl.material.opacity=kt._jsh;kt._jsh=0;if(sh[1])sh[1].visible=true;}return;}if(!kt._jsh)kt._jsh=bl.material.opacity;const lift=Math.max(0,kt.y-(kt.ry||0));bl.material.opacity=kt._jsh*Math.max(0.1,1-lift/32);if(sh[1])sh[1].visible=lift<1.5;}
+/* in-flight: rings flown through, wings pickup, HUD, contrails */
+function gpJetRingCheck(kt,before){const J=kt.jet,R=R3;if(!J||J.ph!=="fly"&&J.ph!=="land"||!J.rings)return;const XS=R.W-1.2,span=((kt.t-before)%1+1)%1,y=kt.y;for(const r of J.rings){if(r.hit||r.miss)continue;const d=((r.t-before)%1+1)%1;if(d>span)continue;const ok=Math.hypot((kt.x-r.x)*XS,y-r.y)<=r.r*1.12;if(ok){r.hit=1;J.hit++;J.streak++;if(R.boost)R.boost.q=Math.min(1,R.boost.q+GP_JET.ringQ);R.timeBonus=(R.timeBonus||0)+GP_JET.ringMs;GPA.play("ring",J.streak);if(R.jh){R.jh.pop="+"+(GP_JET.ringMs/1000).toFixed(1)+"s";}}else{r.miss=1;J.streak=0;}}}
+function gpJetPick(kt,before){const R=R3,P0=R.jp;if(!P0||!P0.alive||kt.air||R.done)return;const span=((kt.t-before)%1+1)%1,d=((P0.t-before)%1+1)%1;if(d>span)return;const easy=gpPace()==="gentle";if(Math.abs(kt.x-P0.x)>(easy?0.6:0.42)||kt.speed<GP_JET.minSpeed)return;P0.alive=false;P0.mesh.visible=false;(R.jetLog=R.jetLog||[]).push({ev:"pick",t:+(R.simT||0).toFixed(2)});gpJetStart(kt,R.curve.getPointAt(kt.t).y,"pick");}
+function gpJetAirLeft(kt){const J=kt.jet;if(J.ph==="fly")return J.fuel+1.4;return 0;}
+function gpJetTrail(dt){const R=R3,Tr=R.jetTrail;if(!Tr)return;const me=R.me,J=me.jet,on=!!(J&&J.ph==="fly"&&me.jg&&me.jg.a>0.8),N=Tr.N;Tr.acc+=dt;if(on&&!Tr.on){Tr.on=true;Tr.n=0;}else if(!on&&Tr.on)Tr.on=false;
+  if(Tr.on&&Tr.acc>=0.03){Tr.acc=0;[me.jg.wl,me.jg.wr].forEach((w,q)=>{w.userData.tip.getWorldPosition(R.tmpV);const a=Tr.pts[q];a.copyWithin(3,0,(N-1)*3);a[0]=R.tmpV.x;a[1]=R.tmpV.y;a[2]=R.tmpV.z;});Tr.n=Math.min(N,Tr.n+1);Tr.life=1;}
+  if(!Tr.on&&Tr.life>0)Tr.life=Math.max(0,Tr.life-dt/1.1);const vis=Tr.life>0&&Tr.n>2;if(Tr.mesh.visible!==vis)Tr.mesh.visible=vis;if(!vis)return;
+  const P1=Tr.pos,C1=Tr.col,cam=R.camPos,Hw=0.09;let o=0,c=0;for(let q=0;q<2;q++){const a=Tr.pts[q];if(Tr.on){me.jg[q?"wr":"wl"].userData.tip.getWorldPosition(R.tmpV);a[0]=R.tmpV.x;a[1]=R.tmpV.y;a[2]=R.tmpV.z;}
+    for(let i=0;i<N;i++){const j=Math.min(i,Tr.n-1)*3,jn=Math.max(0,Math.min(i,Tr.n-1)-1)*3,x=a[j],y=a[j+1],z=a[j+2];let dx=x-a[jn],dy=y-a[jn+1],dz=z-a[jn+2];const vx=x-cam.x,vy=y-cam.y,vz=z-cam.z;let sx=dy*vz-dz*vy,sy=dz*vx-dx*vz,sz=dx*vy-dy*vx;const L=Math.hypot(sx,sy,sz)||1,f=1-Math.min(i,Tr.n-1)/(Tr.n-1),w=Hw*(0.5+0.5*f)*(1+((N-i)/N)*0.2);sx*=w/L;sy*=w/L;sz*=w/L;
+      P1[o++]=x-sx;P1[o++]=y-sy;P1[o++]=z-sz;P1[o++]=x+sx;P1[o++]=y+sy;P1[o++]=z+sz;const dc=Math.hypot(vx,vy,vz),br=f*f*0.6*Tr.life*Math.max(0,Math.min(1,(dc-7)/16));for(let e=0;e<2;e++){C1[c++]=br*0.9;C1[c++]=br;C1[c++]=br;}}}
+  Tr.g.attributes.position.needsUpdate=true;Tr.g.attributes.color.needsUpdate=true;}
+function gpJetHudOff(){const H=R3.jh;if(!H)return;H.on=false;const w=$("gp3");if(w)w.classList.remove("jet","jetlow");if(H.back)H.back.classList.remove("on");const b=$("rcB");if(b){const t=b.querySelector("b");if(t)t.textContent="BRAKE";}}
+function gpJetHud(dt){const R=R3,H=R.jh;if(!H)return;const me=R.me,J=me.jet,fly=!!(J&&J.ph==="fly"&&!R.done);if(fly!==H.on){H.on=fly;const w=$("gp3");if(w)w.classList.toggle("jet",fly);const b=$("rcB");if(b){const t=b.querySelector("b");if(t)t.textContent=fly?"LAND":"BRAKE";}if(!fly){if(w)w.classList.remove("jetlow");if(H.back)H.back.classList.remove("on");}}
+  if(!fly)return;const f=Math.max(0,J.fuel/J.fuel0),q=Math.round(f*200);if(q!==H.q){H.q=q;H.fill.style.transform="scaleX("+f.toFixed(3)+")";const low=f<0.28;if(low!==H.low){H.low=low;$("gp3").classList.toggle("jetlow",low);if(low)GPA.play("fuel");}}
+  const rt=J.hit+" / "+J.rings.length;if(rt!==H.rt){H.rt=rt;H.rings.textContent=rt;H.rings.classList.remove("hit");void H.rings.offsetWidth;if(J.hit)H.rings.classList.add("hit");}
+  const m=me.x*(R.W-1.2),off=Math.abs(m)>GP_JET.xArrow;if(off!==H.off){H.off=off;H.back.classList.toggle("on",off);}if(off){const dir=m>0?"l":"r";if(dir!==H.dir){H.dir=dir;H.back.className="fz-jback on "+dir;H.back.innerHTML=dir==="l"?"<i>◀</i><b>BACK TO THE TRACK</b>":"<b>BACK TO THE TRACK</b><i>▶</i>";(R.jetLog=R.jetLog||[]).push({ev:"arrow",x:+me.x.toFixed(2)});}}}
+/* everything built once per race, at the start, so a lift-off never hitches on the iPad */
+function gpJetInit(){const R=R3,T=R.T,M=R.M,ds=R.len/M;R.rnd01=(()=>{let s=(R.C.id.length*7919+13)>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};})();gpJetFloor();
+  R.jetD=new T.Object3D();R.jetC=new T.Color();
+  {const m=new T.MeshBasicMaterial({color:0xffffff,side:T.DoubleSide,fog:false});m.toneMapped=false;m.userData.lin=1;const g=new T.TorusGeometry(1,0.085,8,40);const im=new T.InstancedMesh(g,m,16);im.frustumCulled=false;im.visible=false;im.setColorAt(0,new T.Color(1,1,1));im.count=0;R.scene.add(im);R.jr={mesh:im,list:[],t:0,fade:0};}
+  {const N=28,g=new T.BufferGeometry(),pos=new Float32Array(N*2*3*2),col=new Float32Array(N*2*3*2),idx=[];for(let q=0;q<2;q++){const b=q*N*2;for(let i=0;i<N-1;i++){const a=b+i*2;idx.push(a,a+1,a+2,a+1,a+3,a+2);}}g.setAttribute("position",new T.BufferAttribute(pos,3));g.setAttribute("color",new T.BufferAttribute(col,3));g.setIndex(idx);const m=new T.MeshBasicMaterial({vertexColors:true,transparent:true,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide,fog:false});m.toneMapped=false;m.userData.lin=1;const mesh=new T.Mesh(g,m);mesh.frustumCulled=false;mesh.visible=false;R.scene.add(mesh);R.jetTrail={N,g,pos,col,mesh,pts:[new Float32Array(N*3),new Float32Array(N*3)],n:0,acc:0,on:false,life:0};}
+  R.karts.forEach(k=>gpJetGear(k));
+  R.jh={on:false,fill:$("gp3FuelFill"),rings:$("gp3JetRings"),back:$("gp3Back"),q:-1,low:false,off:false,dir:null,rt:""};
+  // the rare WINGS pickup: the longest clear straight on the lap, far from every ramp and any roof
+  {let best=null;const clear=i=>Math.abs(R.kap[i%M])<1/280&&!R.jetLow[i%M];let run=0;for(let i=0;i<M*2;i++){if(clear(i))run++;else{if(run*ds>170){const a=i-run,tp=(a+Math.round(run*0.45))%M,t=tp/M;const farLip=(R.lips||[]).filter(L=>L.kind==="mega").every(L=>{let u=Math.abs(L.t-t);u=Math.min(u,1-u)*R.len;return u>170;}),farLine=Math.min(t,1-t)*R.len>120;if(farLip&&farLine&&(!best||run>best.run))best={run,t};}run=0;}}
+    if(best){const P1=R.curve.getPointAt(best.t),tn=R.curve.getTangentAt(best.t),G=gpJetParts(T),m=new T.MeshBasicMaterial({color:0xffdd00});m.toneMapped=false;m.userData.lin=1;const g=new T.Group();[1,-1].forEach(sd=>{const w=new T.Mesh(G.wing,m),e=new T.Mesh(G.edge,G.trim);w.scale.set(sd*1.5,1.5,1.5);e.scale.set(sd*1.5,1.5,1.5);g.add(w);g.add(e);});const bs=new T.Sprite(new T.SpriteMaterial({map:gpSoftDot(),color:0xffdd00,transparent:true,opacity:0.55,depthWrite:false,blending:T.AdditiveBlending}));bs.material.toneMapped=false;bs.material.userData.lin=1;bs.scale.set(5.5,5.5,1);g.add(bs);g.position.set(P1.x,P1.y+1.7,P1.z);g.rotation.y=Math.atan2(tn.x,tn.z);R.scene.add(g);R.jp={t:best.t,x:0,mesh:g,alive:true,y0:P1.y+1.7};}}
+  // first use of the jet materials costs a shader compile: do it now, while the track is still loading
+  try{const vis=[];R.karts.forEach(k=>{if(k.jg){vis.push(k.jg.g);k.jg.g.visible=true;}});R.jr.mesh.visible=true;R.jetTrail.mesh.visible=true;R.renderer.compile(R.scene,R.camera);vis.forEach(g=>{g.visible=false;});R.jr.mesh.visible=false;R.jetTrail.mesh.visible=false;}catch(e){}}
 /* ---------- vertical motion: the car follows the road over hills and dips, and flies off crests it takes too fast ----------
    On the ground the car rides the road. Each frame the ballistic step (current climb rate minus gravity) is compared with the road
    under the new spot: if the road falls away faster than gravity can follow, the car is airborne - wheels off the road, no grip, no
@@ -5894,12 +6089,13 @@ function gpLipsBuild(){const R=R3,C=R.C,M=R.M,ds=R.len/M,S=R.samples;R.lips=(C.j
 /* off the lip: the climb rate is slope x speed (exactly, at any frame rate); a mega ramp also fires a burst, so nobody stalls on it. The room left to land
    caps the flight, so a landing always comes before the next bend. */
 function gpFlightT(L,v,vy,y0){const R=R3,M=R.M,S=R.samples,ds=R.len/M,i0=Math.round(L.t*M);for(let T=0.1;T<3;T+=0.05){const k=Math.round(v*T/ds),y=y0+vy*T-0.5*GP_G*T*T;if(y<=S[(i0+k)%M].pos.y)return T;}return 3;}
-function gpLaunch(kt,L,ry){if(kt.speed<(L.kind==="mega"?8:15))return false;const mega=L.kind==="mega";
-  if(mega){const v0=kt.speed;kt.speed=Math.max(kt.speed*1.05,Math.min(kt.max*0.86,kt.speed+30));if(kt.boostT!==undefined){kt.boostT=Math.max(kt.boostT,0.9);kt.boostMul=Math.max(kt.boostMul||1,1.12);}if(kt.player){GPA.play("boost");gpMsg("MEGA RAMP!");}}
+function gpLaunch(kt,L,ry){if(kt.speed<(L.kind==="mega"?8:15))return false;const mega=L.kind==="mega",toJet=mega&&!!R3.jetF&&kt.speed>=Math.max(GP_JET.minSpeed,kt.max*0.32);
+  if(mega){const v0=kt.speed;kt.speed=Math.max(kt.speed*1.05,Math.min(kt.max*0.86,kt.speed+30));if(kt.boostT!==undefined){kt.boostT=Math.max(kt.boostT,0.9);kt.boostMul=Math.max(kt.boostMul||1,1.12);}if(kt.player){GPA.play("boost");if(!toJet)gpMsg("MEGA RAMP!");}}
+  if(toJet){gpJetStart(kt,ry,"ramp");return true;}
   const v=kt.speed,tMax=Math.min(mega?1.55:1.2,Math.max(0.62,(L.room-(mega?14:8))/Math.max(10,v)));let vy=Math.min(Math.max(L.slope,mega?0.16:0.09)*v,mega?7.6:6.5);
   for(let n=0;n<5&&gpFlightT(L,v,vy,ry)>tMax;n++)vy*=0.86;   // the real flight over the real road ahead (a hillside can fall away under the car): never longer than the room allows
   const over=Math.max(0,((kt.t-L.t+1.5)%1-0.5)*R3.len);kt.air=true;kt.airT=0;kt.airPeak=0;kt.y=Math.max(ry,L.y+vy*over/Math.max(10,v));kt.vy=vy;kt.takeoff={v:Math.round(v*3.6),vy:+vy.toFixed(2),f:R3.frameN,kind:L.kind};kt.lipT=R3.simT||0;gpRivalTrick(kt,vy);return true;}
-function gpVert(kt,pos,dt,waiting){const ry=pos.y;
+function gpVert(kt,pos,dt,waiting){if(kt.jet){gpJetVert(kt,pos,dt,waiting);return;}const ry=pos.y;
   if(kt.vy==null||waiting||kt.ry==null||dt<=0){kt.y=ry;kt.vy=0;kt.ry=ry;kt.air=false;kt.airT=0;kt.tPrev=kt.t;return;}
   if(Math.abs(ry-kt.ry)>0.6+Math.abs(kt.speed)*dt*0.35){kt.y=ry;kt.vy=0;kt.ry=ry;kt.air=false;kt.airT=0;kt.tPrev=kt.t;kt.trick=null;pos.y=ry;return;}   // a placement jump (grid, test hook), not motion
   const tilt=Math.abs((kt.pS||0)-(kt.sR||0))*1.45,rv=Math.max(-kt.speed*0.6-2,Math.min(kt.speed*0.6+2,(ry-kt.ry)/dt));kt.ry=ry;
@@ -5923,7 +6119,7 @@ function gpLand(kt,imp){const big=kt.airT>0.22||imp>2.5;if(!big)return;
     if(imp>4.5){V.set(0,0.12,0);kt.g.localToWorld(V);for(let q=0;q<10;q++)R3.sparks.emit(V.x,V.y,V.z,(Math.random()-0.5)*5,1+Math.random()*2.5,(Math.random()-0.5)*5,1,0.75,0.3,0.35);}}
   if(kt.player){R3.shake=Math.min(0.55,0.05+imp*0.055);GPA.play("land");
     const lg=R3.jumpLog||(R3.jumpLog=[]);lg.push({f:R3.frameN,t:+(R3.simT||0).toFixed(2),air:+kt.airT.toFixed(2),peak:+kt.airPeak.toFixed(2),impact:+imp.toFixed(1),takeoffKmh:kt.takeoff?kt.takeoff.v:null});
-    if(kt.airT>0.4&&R3.mode==="race"){gpSkill("Big air",Math.round(kt.airT*700),true);gpAirBurst(kt.airT);}}}
+    if(kt.airT>0.4&&R3.mode==="race"&&!kt.noBurst){gpSkill("Big air",Math.round(kt.airT*700),true);gpAirBurst(kt.airT);}}}
 function gpAirBurst(t){const e=$("gp3Air");if(!e)return;const ms=$("gp3Msg");if(ms)ms.classList.remove("show");e.innerHTML='<b>BIG AIR!</b><small>'+t.toFixed(1)+' s</small>';e.classList.remove("on");void e.offsetWidth;e.classList.add("on");}
 /* "TOO FAST!" banner with an arrow for the bend: shown when a tight corner is coming up and Prince is still too fast to make it
    by braking normally from here (his speed vs the corner's safe speed and the distance left); it goes away as soon as he brakes */
@@ -5942,7 +6138,7 @@ function gpWarn(me,waiting){const R=R3,M=R.M,ds=R.len/M,i=Math.floor(me.t*M)%M,v
 function gpYawRel(b){return b.player?Math.max(-0.7,Math.min(0.7,(b.headA||0)+(b.lossA||0))):(b.yawRel||0);}   // body yaw relative to the road (+ = nose toward +x)
 function gpLatV(b){return b.player?b.sv:(b.bv||0);}
 function gpAddLatV(b,v){if(b.player)b.sv=Math.max(-0.6,Math.min(0.6,b.sv+v));else b.bv=Math.max(-0.5,Math.min(0.5,(b.bv||0)+v));}
-function gpLimX(b){return b.player?(R3.mode==="free"?1.15:1.22):(b.traffic?0.98:1.1);}
+function gpLimX(b){if(b.player&&b.jet)return 99;return b.player?(R3.mode==="free"?1.15:1.22):(b.traffic?0.98:1.1);}
 function gpClampX(b){const lim=gpLimX(b);if(Math.abs(b.x)>lim){const sd=Math.sign(b.x);b.x=sd*lim;if(gpLatV(b)*sd>0)gpAddLatV(b,-gpLatV(b));}}
 function gpShiftT(b,d,waiting){const before=b.t;b.t=(b.t+d+1)%1;b._mv=1;gpLapCross(b,before,waiting);}
 /* two turned boxes in the road frame (u = across in metres, v = along in metres): separating-axis test over the 4 box axes.
@@ -5961,6 +6157,7 @@ function gpContacts(dt,waiting){if(waiting)return 0;const B=R3.bodies,L=R3.len,X
       for(let b=a+1;b<B.length;b++){const C=B[b];if(C.off)continue;
         let dz=(C.t-A.t)*L;if(dz>L/2)dz-=L;else if(dz<-L/2)dz+=L;if(dz>12||dz<-12||Math.abs((C.x-A.x)*XS)>7)continue;
         // C's true position and road direction, seen from A's road frame (u = across, v = along): exact on bends and over the arc-length table
+        if((A.jet||C.jet)&&gpPace()==="gentle")continue;   // Easy: nothing can be hit in the air
         gpRoadAt(A,RA);gpRoadAt(C,RC);if((A.air||C.air)&&Math.abs((A.air?A.y-RA.p.y:0)-(C.air?C.y-RC.p.y:0))>1.15)continue;   // one is flying over the other
         const wx=RC.x-RA.x,wz=RC.z-RA.z,u=wx*RA.nx+wz*RA.nz,v=wx*RA.tx+wz*RA.tz;
         const th=Math.atan2(RC.tx*RA.nx+RC.tz*RA.nz,RC.tx*RA.tx+RC.tz*RA.tz),ct=Math.cos(th),st=Math.sin(th);
@@ -5987,13 +6184,13 @@ function gpContacts(dt,waiting){if(waiting)return 0;const B=R3.bodies,L=R3.len,X
 function gpRivalSteer(kt,i,waiting){const XS=R3.W-1.2,L=R3.len,me=R3.me,hw=kt.S.w/2;let target=R3.lineX[(i+Math.round(12/(L/R3.M)))%R3.M];kt.capSpd=null;
   if(waiting)return 0;
   if(kt.testHold){kt.capSpd=kt.testHold.speed;return Math.max(-0.42,Math.min(0.42,(kt.testHold.x-kt.x)*1.5));}   // contact test only: hold a lane and a speed
-  let blk=null,bd=1e9;for(const o of R3.bodies){if(o===kt||o.off)continue;let dz=((o.t-kt.t+1.5)%1-0.5)*L;const need=(hw+o.S.w/2+0.7)/XS;
+  let blk=null,bd=1e9;for(const o of R3.bodies){if(o===kt||o.off||o.jet)continue;let dz=((o.t-kt.t+1.5)%1-0.5)*L;const need=(hw+o.S.w/2+0.7)/XS;
     if(dz>kt.S.len*0.3&&dz<20+Math.max(0,kt.speed-o.speed)*1.2&&Math.abs(o.x-kt.x)<need&&dz<bd){blk=o;bd=dz;}}
   if(blk){const need=(hw+blk.S.w/2+1.0)/XS,free=x=>Math.abs(x)<=0.98&&!R3.bodies.some(o=>o!==kt&&o!==blk&&!o.off&&Math.abs(((o.t-kt.t+1.5)%1-0.5)*L-bd)<9&&Math.abs(o.x-x)<(hw+o.S.w/2+0.5)/XS);
     const l=blk.x-need,r=blk.x+need,lo=free(l),ro=free(r);
     if(lo||ro)target=lo&&ro?(Math.abs(l-target)<Math.abs(r-target)?l:r):(lo?l:r);
     if(Math.abs(blk.x-kt.x)<(hw+blk.S.w/2+0.3)/XS&&bd<12+Math.max(0,kt.speed-blk.speed)*0.8)kt.capSpd=Math.max(0,blk.speed*0.97-(bd<kt.S.len?2:0));}
-  const dzp=((me.t-kt.t+1.5)%1-0.5)*L;if(dzp>-9&&dzp<6){const gap=(hw+me.S.w/2+1.0)/XS;if(Math.abs(me.x-kt.x)<gap){const sd=kt.x>=me.x?1:-1,want=me.x+sd*gap;target=Math.abs(want)<=0.98?want:me.x-sd*gap;}}
+  const dzp=((me.t-kt.t+1.5)%1-0.5)*L;if(dzp>-9&&dzp<6&&!me.jet){const gap=(hw+me.S.w/2+1.0)/XS;if(Math.abs(me.x-kt.x)<gap){const sd=kt.x>=me.x?1:-1,want=me.x+sd*gap;target=Math.abs(want)<=0.98?want:me.x-sd*gap;}}
   const gain=1.1+kt.racer.car.handle*0.18,vmax=0.42;return Math.max(-vmax,Math.min(vmax,(target-kt.x)*gain));}
 /* put cars that a contact moved back on the road this same frame (the view never shows the overlap that was just removed) */
 function gpPlaceAll(){const XS=R3.W-1.2,T=R3.T;R3.karts.forEach(kt=>{if(!kt._mv)return;kt._mv=0;const pos=R3.curve.getPointAt(kt.t),tan=R3.curve.getTangentAt(kt.t);const nx=-tan.z,nz=tan.x,nl=Math.hypot(nx,nz)||1;
@@ -6022,14 +6219,15 @@ function gpCountTick(now){const R=R3;
   if(R.phase==="count")R.countdown=Math.max(0.001,3-e);}
 function gpUpdate(dt,waiting){
   const {karts,samples,M,len,T,me}=R3;
-  const k=R3.keys;const left=k["arrowleft"]||k["a"]||R3.touchDir<0,right=k["arrowright"]||k["d"]||R3.touchDir>0,brake=k["arrowdown"]||k["s"]||R3.brake,gas=R3.autoGas||k["arrowup"]||k["w"]||R3.gas,driftKey=k[" "]||k["x"];
+  const k=R3.keys;const left=k["arrowleft"]||k["a"]||R3.touchDir<0,right=k["arrowright"]||k["d"]||R3.touchDir>0,gas=R3.autoGas||k["arrowup"]||k["w"]||R3.gas||(me.jetGas>0&&me.speed<R3.vProf[Math.floor(me.t*R3.M)%R3.M])||(!me.jet&&R3.ctl&&R3.ctl.pitch&&R3.ctl.pitch.size>0),driftKey=k[" "]||k["x"];let brake=k["arrowdown"]||k["s"]||R3.brake;
+  if(me.jetGas>0)me.jetGas-=dt;if(R3.jetBrakeLock){if(!me.jet&&!brake)R3.jetBrakeLock=false;else brake=false;}   // a thumb or key still down from flying (DOWN, LAND) doesn't slam the brakes at touchdown
   gpBoostTick(dt,waiting);gpPack(dt,waiting);
   const V=R3.tmpV,sk=R3.sk;R3.bumpT+=dt;if(!waiting){R3.simT=(R3.simT||0)+dt;if(R3.relFrame==null)R3.relFrame=R3.frameN;}
   karts.forEach(kt=>{
     const i=Math.floor(kt.t*M)%M;const s=samples[i];
     const kap=R3.kap[i];                                   // signed curvature here (+ = left-hander)
-    const offroad=Math.abs(kt.x)>1.05;
-    let draft=false;if(!waiting&&kt.speed/kt.max>0.55){draft=karts.some(o=>{if(o===kt)return false;const d=(o.t-kt.t+1)%1;return d>0.003&&d<0.028&&Math.abs(o.x-kt.x)<0.32;});}kt.draft=draft;
+    const offroad=Math.abs(kt.x)>1.05&&!kt.jet;
+    let draft=false;if(!waiting&&!kt.jet&&kt.speed/kt.max>0.55){draft=karts.some(o=>{if(o===kt)return false;const d=(o.t-kt.t+1)%1;return d>0.003&&d<0.028&&Math.abs(o.x-kt.x)<0.32;});}kt.draft=draft;
     let band=1;if(!kt.player&&!waiting)band=gpBand(kt);
     const maxNow=waiting?0:kt.max*band*(draft?1.07:1)*(kt.spin>0?0.6:1)*(R3.tw&&R3.tw.zoneAt(i,"ford")?0.9:1)*(offroad?(kt.player?Math.max(0.62,kt.offF):kt.offF):1)*(kt.drift?0.94:1)*(kt.boostT>0?kt.boostMul:1)*(kt.wobT>0?0.84:1)*(kt.player?1+(kt.cu||0):1);
     const spd0=kt.speed/kt.max,inp=kt.player?(left?-1:0)+(right?1:0):0;
@@ -6045,6 +6243,7 @@ function gpUpdate(dt,waiting){
       kt.brakeOn=braking;
       if(!gas||waiting)kt.gasT=0;
       if(waiting)kt.speed=0;
+      else if(kt.jet)gpJetSpeed(kt,dt);
       else if(kt.air)kt.speed*=1-0.015*dt;   // flying: no grip for the pedals
       else if(brake){kt.speed=kt.speed>0.3?Math.max(0,kt.speed-(kt.drift?14:24)*dt):Math.max(-5,kt.speed-5*dt);}
       else if(gas||kt.boostT>0||kt.speed<0){kt.gasT+=dt;const launch=(kt.speed<maxNow*0.5?Math.min(1,0.62+kt.gasT*1.5):1);   // pull builds over the first ~0.25 s instead of jumping
@@ -6054,7 +6253,7 @@ function gpUpdate(dt,waiting){
       // rivals follow the speed profile (real braking points for every corner), with a little driver variety and the rubber band
       const tgt=kt.testHold?kt.testHold.speed:Math.min(maxNow,R3.vProf[(i+3)%M]*kt.aiSkill*band*(kt.boostT>0?kt.boostMul:1),kt.capSpd!=null?kt.capSpd:1e9);
       kt.brakeOn=!waiting&&kt.speed>tgt+0.8;
-      if(waiting)kt.speed=0;else if(kt.air)kt.speed*=1-0.015*dt;else if(kt.brakeOn)kt.speed=Math.max(tgt,kt.speed-26*dt);else kt.speed+=(tgt-kt.speed)*Math.min(1,dt*(kt.speed<tgt?kt.accel/10*(kt.boostT>0?1.8:1):2.2));
+      if(waiting)kt.speed=0;else if(kt.jet)gpJetSpeed(kt,dt);else if(kt.air)kt.speed*=1-0.015*dt;else if(kt.brakeOn)kt.speed=Math.max(tgt,kt.speed-26*dt);else kt.speed+=(tgt-kt.speed)*Math.min(1,dt*(kt.speed<tgt?kt.accel/10*(kt.boostT>0?1.8:1):2.2));
     }
     // tyres: lateral load v²/R beyond the grip limit pushes the car to the outside of the bend and scrubs speed
     const spd=Math.abs(kt.speed)/kt.max;kt.px=kt.x;
@@ -6062,7 +6261,8 @@ function gpUpdate(dt,waiting){
     const aLat=kt.speed*kt.speed*Math.abs(kap),grip=R3.grip*(offroad?0.5:1)*(onDirt?0.82*kt.dirtK:1)*(kt.drift?1.6:1)*(kt.player?R3.upGrip:1.06)*kt.gripK;
     const ratio=aLat/grip,ex=Math.min(2.5,Math.max(0,ratio-1));kt.slip=ex;kt.load=ratio;
     if(kt.lossCool>0)kt.lossCool-=dt;
-    if(kt.air){kt.squeal=0;}   // in the air the tyres carry nothing
+    if(kt.jetCalm>0){kt.jetCalm-=dt;kt.squeal=0;const vq=R3.vProf[(i+3)%M]*Math.sqrt((kt.gripK||1)*(R3.upGrip||1));if(kt.speed>vq)kt.speed=Math.max(vq,kt.speed-20*dt);}   // the first moments after a jet landing: the car is settled and eased to what the road allows, however the thumbs are
+    if(kt.air||kt.jetCalm>0){kt.squeal=0;}   // in the air the tyres carry nothing
     else if(kt.player&&!waiting)gpGrip(kt,kap,ratio,ex,spd,dt,brake);
     else{kt.x+=Math.sign(kap)*(ex*1.7+0.12*spd*Math.min(1,ratio))*dt;if(ex>0&&!waiting)kt.speed=Math.max(0,kt.speed-ex*9*dt);}
     if(kt.player&&!waiting){
@@ -6070,17 +6270,18 @@ function gpUpdate(dt,waiting){
       let tgt;if(kt.drift){const same=inp===kt.drift,opp=inp===-kt.drift;tgt=kt.drift*kt.steer*Math.max(.35,spd)*(same?0.32:(opp?-0.3:0.14));}
       else tgt=kt.steerIn*kt.steer*(R3.mode==="free"?0.36:0.42)*Math.max(.4,spd);
       if(kt.loss)tgt*=0.35;   // sliding: the steering only half answers until the car gathers itself
-      if(kt.air)kt.sv*=Math.exp(-0.4*dt);else kt.sv+=(tgt-kt.sv)*Math.min(1,dt*(kt.drift?2.8:4.5));kt.x+=kt.sv*dt;
+      if(kt.jet)kt.sv=0;else if(kt.air)kt.sv*=Math.exp(-0.4*dt);else kt.sv+=(tgt-kt.sv)*Math.min(1,dt*(kt.drift?2.8:4.5));kt.x+=kt.sv*dt;
     }
     else if(!kt.player){if(!kt.air)kt.x+=gpRivalSteer(kt,i,waiting)*dt;if(kt.bv){kt.x+=kt.bv*dt;kt.bv*=Math.exp(-5*dt);if(Math.abs(kt.bv)<0.002)kt.bv=0;}}
-    if(kt.air&&Math.abs(kt.x)>0.8)kt.x-=Math.sign(kt.x)*(Math.abs(kt.x)-0.8)*2.6*dt;   // flying cars ease in from the edge: a landing is always on the road, never against the wall
-    if(kt.player&&R3.mode==="race"&&!kt.drift&&!left&&!right&&Math.abs(kt.x)>0.95)kt.x-=Math.sign(kt.x)*dt*0.7;
-    if(kt.player&&R3.mode==="free"&&!kt.drift&&!left&&!right&&Math.abs(kt.x)>0.7)kt.x-=Math.sign(kt.x)*dt*0.5;
+    if(kt.air&&!(kt.jet&&kt.player)&&Math.abs(kt.x)>0.8)kt.x-=Math.sign(kt.x)*(Math.abs(kt.x)-0.8)*2.6*dt;   // flying cars ease in from the edge: a landing is always on the road, never against the wall
+    if(kt.player&&!kt.jet&&R3.mode==="race"&&!kt.drift&&!left&&!right&&Math.abs(kt.x)>0.95)kt.x-=Math.sign(kt.x)*dt*0.7;
+    if(kt.player&&!kt.jet&&R3.mode==="free"&&!kt.drift&&!left&&!right&&Math.abs(kt.x)>0.7)kt.x-=Math.sign(kt.x)*dt*0.5;
     const lim=kt.player?(R3.mode==="free"?1.15:1.22):1.1;
-    if(Math.abs(kt.x)>lim){const sd=Math.sign(kt.x),vOut=(kt.x-kt.px)/Math.max(dt,0.001)*sd;kt.x=sd*lim;if(kt.player&&!waiting)gpWallHit(kt,sd,vOut,dt,inp);}
+    if(Math.abs(kt.x)>lim&&!(kt.jet&&kt.player)){const sd=Math.sign(kt.x),vOut=(kt.x-kt.px)/Math.max(dt,0.001)*sd;kt.x=sd*lim;if(kt.player&&!waiting)gpWallHit(kt,sd,vOut,dt,inp);}
     if(kt.wallT>0)kt.wallT-=dt;   // road edge is 1.19 (the car's outer wheels on the shoulder), the rail is 1.6
     if(kt.hop>0)kt.hop-=dt;
-    const before=kt.t;kt.t=(kt.t+kt.speed*dt/len+1)%1;
+    const before=kt.t,vAlong=kt.jet?gpJetMove(kt,inp,kap,dt,i):kt.speed;kt.t=(kt.t+vAlong*dt/len+1)%1;
+    if(kt.player&&!waiting){if(kt.jet)gpJetRingCheck(kt,before);else gpJetPick(kt,before);}
     gpLapCross(kt,before,waiting);
     if(kt.player&&!waiting&&!R3.done&&R3.mode==="race"&&kt.speed>1){const tt=R3.trapT;   // forwards only (reversing over the line read as a negative speed)
       const crossed=before<=kt.t?(before<tt&&kt.t>=tt):(before<tt||kt.t>=tt);if(crossed){const mph=Math.round(kt.speed*GP_MPH);R3.trapBest=Math.max(R3.trapBest,mph);const r=kt.speed/(kt.max||1);const stars=r>=0.97?"★★★":r>=0.9?"★★":"★";gpMsg("Speed trap "+mph+" mph "+stars);GPA.play("trap");gpSkill("Speed trap",mph*4,true);}}
@@ -6091,8 +6292,8 @@ function gpUpdate(dt,waiting){
     kt.g.position.copy(pos);kt.travel+=Math.abs(kt.speed)*dt;kt.wheelPhase+=kt.speed*dt/Math.max(0.01,kt.wheelRadius);
     let y=0;if(offroad)y=Math.abs(Math.sin(kt.t*len*3))*0.08;if(kt.hop>0)y+=Math.sin(Math.PI*(1-kt.hop/0.22))*0.25;
     const vib=spd*(Math.sin(kt.travel*(kt.racer.car.type==="suv"||kt.racer.car.type==="truck"?5.2:7.4))*0.005+Math.sin(kt.travel*2.3+1.1)*0.002);kt.body.position.y=kt.pic?(offroad?Math.min(0.08,y+vib):0):y+vib;   // photo tyre line stays planted on-road; the 3D fallback keeps its suspension motion
-    {const fl=Math.hypot(tan.x,tan.z)||1,sR=kt.sR=tan.y/fl,sT=kt.air?Math.max(-0.3,Math.min(0.4,kt.vy/Math.max(8,kt.speed)))*0.85:sR;   // in the air the nose follows the flight path (up off the ramp, dipping as it falls)
-      kt.pS=kt.pS==null?sR:kt.pS+(sT-kt.pS)*Math.min(1,dt*(kt.air?2.6:30));kt.g.lookAt(pos.x+tan.x/fl,pos.y+kt.pS,pos.z+tan.z/fl);}
+    {const fl=Math.hypot(tan.x,tan.z)||1,sR=kt.sR=tan.y/fl,sT=kt.jet?sR*(kt.jet.e||0):(kt.air?Math.max(-0.3,Math.min(0.4,kt.vy/Math.max(8,kt.speed)))*0.85:sR);   // in the air the nose follows the flight path (up off the ramp, dipping as it falls)
+      kt.pS=kt.pS==null?sR:kt.pS+(sT-kt.pS)*Math.min(1,dt*(kt.jet?7:(kt.air?2.6:30)));kt.g.lookAt(pos.x+tan.x/fl,pos.y+kt.pS,pos.z+tan.z/fl);}
     const yaw=Math.atan2(tan.x,tan.z);let yawRate=0;if(kt.yaw!==null){let d=yaw-kt.yaw;if(d>Math.PI)d-=Math.PI*2;if(d<-Math.PI)d+=Math.PI*2;yawRate=d/Math.max(dt,0.001);}kt.yaw=yaw;
     const vx=(kt.x-kt.px)/Math.max(dt,0.001);
     if(kt.player){
@@ -6100,7 +6301,7 @@ function gpUpdate(dt,waiting){
       // spring gives the body weight - it swings into a slide, holds it, and settles back without snapping
       const inpN=(left?-1:0)+(right?1:0),opp=kt.drift&&inpN===-kt.drift,latMs=kt.sv*(R3.W-1.2);
       const latA=Math.max(-0.2,Math.min(0.2,0.8*Math.atan2(latMs,Math.max(6,Math.abs(kt.speed))))),headT=kt.drift?Math.max(-0.48,Math.min(0.48,latA*0.5+kt.drift*(opp?0.18:0.36))):latA;   // a held drift settles near 22-27 degrees
-      if(kt.wallRec>0)kt.wallRec-=dt;const hk=kt.wallRec>0?64:38,hc=kt.wallRec>0?14:10.5;kt.headV+=((headT-kt.headA)*hk-kt.headV*hc)*dt;kt.headA+=kt.headV*dt;kt.g.rotateY(-(kt.headA+(kt.lossA||0)));
+      if(kt.wallRec>0)kt.wallRec-=dt;const hk=kt.wallRec>0?64:38,hc=kt.wallRec>0?14:10.5;if(kt.jet){kt.headA=kt.jet.hdg;kt.headV=0;}else{kt.headV+=((headT-kt.headA)*hk-kt.headV*hc)*dt;kt.headA+=kt.headV*dt;}kt.g.rotateY(-(kt.headA+(kt.lossA||0)));
       const ph=window.__gp&&window.__gp.phys;if(ph){ph.slipDeg=kt.headA*57.3;ph.steerIn=kt.steerIn;ph.sv=kt.sv;ph.drift=kt.drift;ph.x=kt.x;ph.speed=kt.speed;}
     }else{kt.yawRel=vx*0.05+(kt.drift?kt.drift*0.35:0);kt.g.rotateY(-kt.yawRel);}
     const heavy=kt.racer.car.type==="suv"||kt.racer.car.type==="truck",settle=heavy?4.5:6,rollMax=kt.pic?0:(heavy?0.105:0.09);
@@ -6116,13 +6317,14 @@ function gpUpdate(dt,waiting){
       kt.body.position.y+=-Math.abs(kt.roll)*0.03-Math.max(0,kt.pitch)*0.2;}   // the body sits down a little into the lean / dive
     else{const rollT=Math.max(-rollMax,Math.min(rollMax,yawRate*0.18*spd-vx*0.04+(kt.drift?-kt.drift*0.05:0)));kt.roll+=(rollT-kt.roll)*Math.min(1,dt*settle);
     const pitchMax=kt.pic?0.008:0.045,pitchT=Math.max(-pitchMax,Math.min(pitchMax,-acc*(kt.pic?0.00055:(heavy?0.0034:0.003))));kt.pitch+=(pitchT-kt.pitch)*Math.min(1,dt*settle);}
-    kt.body.rotation.z=kt.roll;kt.body.rotation.x=kt.pitch;gpTrickTick(kt,dt);if(kt.trick||kt.tkRe||kt.wobT>0||kt.tkLift)gpTrickPose(kt);
+    kt.body.rotation.z=kt.roll;kt.body.rotation.x=kt.pitch;if(kt.jet)gpJetPose(kt,dt,yawRate);gpJetGearTick(kt,dt);gpTrickTick(kt,dt);if(kt.trick||kt.tkRe||kt.wobT>0||kt.tkLift)gpTrickPose(kt);
     if(kt.sqV||kt.sq){kt.sqV+=(-kt.sq*170-kt.sqV*13)*dt;kt.sq+=kt.sqV*dt;if(Math.abs(kt.sq)<1e-4&&Math.abs(kt.sqV)<1e-3){kt.sq=0;kt.sqV=0;}}
     kt.hang=(kt.hang||0)+(((kt.air&&kt.airT>0.06&&kt.y-(kt.ry||0)>1.1)?0.12:0)-(kt.hang||0))*Math.min(1,dt*(kt.air?9:22));
     kt.body.position.y+=(kt.sq||0)+kt.hang*0.35+(kt.tkLift||0);if(kt.hubs)kt.hubs.forEach(h=>{h.position.y=h.userData.y0-kt.hang;});
     if(kt.shadows&&kt.air){const lift=Math.max(0,kt.y-kt.ry);kt.shadows.forEach(s=>{if(s.userData.y0==null)s.userData.y0=s.position.y;s.position.y=s.userData.y0-lift;});}
     else if(kt.shadows&&kt.shadows[0]&&kt.shadows[0].userData.y0!=null&&kt.shadows[0].position.y!==kt.shadows[0].userData.y0)kt.shadows.forEach(s=>{s.position.y=s.userData.y0;});
     if(kt.glb){const py=kt.glb.pivotY,P=V.set(0,py,0).applyEuler(kt.body.rotation);kt.body.position.x=-P.x;kt.body.position.y+=py-P.y;kt.body.position.z=-P.z;}   // pivot about the roll centre
+    if(kt.jet&&kt.trick&&kt.player){const A0=gpTrickAngle(kt);if(A0.k==="flip"){kt.body.position.y+=(1-Math.cos(A0.a))*3.6;kt.body.position.z+=Math.sin(A0.a)*3.6;}else if(A0.k==="roll")kt.body.position.x+=Math.sin(A0.a)*1.1;}   // a loop really circles; a barrel roll corkscrews
     if(kt.pic){   // picture cars: body lean / tail lift / kerb chatter targets for the sprite shader (gpPicUpdate springs toward them)
       const cl=-yawRate*0.06*spd+(kt.player?kt.steerIn*0.03*spd+kt.headA*0.09:0);kt.leanT=Math.max(-0.08,Math.min(0.08,cl));
       kt.liftT=waiting?0:Math.max(-0.035,Math.min(0.06,-acc*0.0022));
@@ -6148,15 +6350,15 @@ function gpUpdate(dt,waiting){
     if(skid&&near){kt.skidD+=kt.speed*dt;if(kt.skidD>0.9){const dl=Math.min(6,kt.skidD);kt.skidD=0;const D=R3.dummy;const fw=Math.atan2(tan.x,tan.z)-(kt.player?kt.headA+(kt.lossA||0):(kt.drift?kt.drift*0.42:0));   // each mark spans the distance since the last one, so the trail is continuous at any frame rate
       [-1,1].forEach(sd=>{V.set(sd*(kt.tyreX||kt.S.w/2-0.04),0,kt.xr);kt.g.localToWorld(V);D.position.set(V.x-tan.x*dl*0.5,kt.pos.y+0.028,V.z-tan.z*dl*0.5);D.rotation.set(0,fw,0);D.scale.set(1,1,dl+0.1);D.updateMatrix();const si=R3.skN;R3.skids.setMatrixAt(si,D.matrix);R3.skidLife[si]=4;R3.skidFade.setX(si,1);R3.skN=(si+1)%700;});R3.skids.instanceMatrix.needsUpdate=true;R3.skidFade.needsUpdate=true;}}
     // Coast Road: brown dust from both rear wheels on the dirt, a big spray through the ford
-    if(R3.tw&&near&&!waiting&&spd>0.12){const onDirt=R3.tw.zoneAt(i,"dirt"),inFord=R3.tw.zoneAt(i,"ford");if(onDirt||inFord){kt.g.updateMatrixWorld(true);
+    if(R3.tw&&near&&!waiting&&!kt.jet&&spd>0.12){const onDirt=R3.tw.zoneAt(i,"dirt"),inFord=R3.tw.zoneAt(i,"ford");if(onDirt||inFord){kt.g.updateMatrixWorld(true);
       [-1,1].forEach(sd=>{V.set(sd*(kt.tyreX||kt.S.w/2-0.04),0.15,kt.xr);kt.g.localToWorld(V);
         if(onDirt&&Math.random()<(kt.player?0.9:0.5))R3.dust.emit(V.x,V.y+0.1,V.z,-tan.x*kt.speed*0.12+(Math.random()-0.5)*2.5,0.6+Math.random()*1.4,-tan.z*kt.speed*0.12+(Math.random()-0.5)*2.5,0.62,0.47,0.3,1.4);
         if(inFord&&R3.splash)for(let q=0;q<(kt.player?3:1);q++)R3.splash.emit(V.x+(Math.random()-0.5)*0.6,V.y,V.z+(Math.random()-0.5)*0.6,sd*(1.5+Math.random()*2.5)*Math.abs(tan.z)+(Math.random()-0.5)*2+tan.x*kt.speed*0.2,2.5+Math.random()*3.5,sd*(1.5+Math.random()*2.5)*Math.abs(tan.x)+(Math.random()-0.5)*2+tan.z*kt.speed*0.2,0.86,0.93,1,0.6);});}}
     // desert: every car pulls a sandy dust trail; much bigger off the road
-    if(R3.C.theme==="desert"&&near&&!waiting&&spd>0.25&&Math.random()<(offroad?0.95:(kt.player?0.55:0.3))){kt.g.updateMatrixWorld(true);const sd=Math.random()<0.5?-1:1;V.set(sd*(kt.tyreX||kt.S.w/2-0.04),0.15,kt.xr);kt.g.localToWorld(V);const big=offroad?1.9:1;
+    if(R3.C.theme==="desert"&&near&&!waiting&&!kt.jet&&spd>0.25&&Math.random()<(offroad?0.95:(kt.player?0.55:0.3))){kt.g.updateMatrixWorld(true);const sd=Math.random()<0.5?-1:1;V.set(sd*(kt.tyreX||kt.S.w/2-0.04),0.15,kt.xr);kt.g.localToWorld(V);const big=offroad?1.9:1;
       for(let q=0;q<(offroad?2:1);q++)R3.dust.emit(V.x,V.y+0.1,V.z,-tan.x*kt.speed*0.1+(Math.random()-0.5)*2.2*big,0.5+Math.random()*1.3*big,-tan.z*kt.speed*0.1+(Math.random()-0.5)*2.2*big,0.8,0.66,0.46,1.2*big);}
     // a little dust off the outside wheel when the player runs right on the road edge / kerb
-    if(kt.player&&!offroad&&Math.abs(kt.x)>0.97&&spd>0.3&&Math.random()<0.45){const sd=-Math.sign(kt.x);kt.g.updateMatrixWorld(true);V.set(sd*(kt.tyreX||kt.S.w/2-0.04),0.1,kt.xr);kt.g.localToWorld(V);R3.dust.emit(V.x,V.y+0.15,V.z,-tan.x*2+(Math.random()-0.5)*1.5,0.5+Math.random()*0.8,-tan.z*2+(Math.random()-0.5)*1.5,0.62,0.55,0.42,0.6);}
+    if(kt.player&&!offroad&&!kt.jet&&Math.abs(kt.x)>0.97&&spd>0.3&&Math.random()<0.45){const sd=-Math.sign(kt.x);kt.g.updateMatrixWorld(true);V.set(sd*(kt.tyreX||kt.S.w/2-0.04),0.1,kt.xr);kt.g.localToWorld(V);R3.dust.emit(V.x,V.y+0.15,V.z,-tan.x*2+(Math.random()-0.5)*1.5,0.5+Math.random()*0.8,-tan.z*2+(Math.random()-0.5)*1.5,0.62,0.55,0.42,0.6);}
   });
   karts.forEach(k=>{if(k.player||!k.lod)return;const d2=k.pos.distanceToSquared(R3.camPos),far=k.lodFar?d2>3025:d2>4225;if(far!==k.lodFar){k.lodFar=far;k.lod.forEach(o=>{o.visible=!far;});k.casters.forEach(o=>{o.castShadow=!far;});if(k.glb)k.glb.blurs.forEach(b=>{if(far)b.visible=false;});}});   // rivals 65 m+ away: no small parts, no shadow
   gpTrafficUpdate(dt,waiting);
@@ -6165,7 +6367,7 @@ function gpUpdate(dt,waiting){
   gpTrafficPlace();
   if(R3.tw&&R3.tw.update)R3.tw.update(dt,me,R3.camPos,waiting);if(R3.splash)R3.splash.update(dt,9.5);if(R3.tw&&R3.tw.fordTex){R3.tw.fordTex.offset.y-=dt*0.25;}if(R3.tw&&R3.tw.waterTex2){R3.tw.waterTex2.offset.x+=dt*0.02;}
   // skills
-  if(!waiting&&!R3.done&&R3.mode==="race"){const spd=me.speed/me.max,offroad=Math.abs(me.x)>1.05;
+  if(!waiting&&!R3.done&&R3.mode==="race"){const spd=me.speed/me.max,offroad=Math.abs(me.x)>1.05&&!me.jet;
     if(me.drift&&spd>0.35&&!offroad)gpSkill("Drift",me.speed*dt*9);
     if(me.draft)gpSkill("Drafting",me.speed*dt*4);
     karts.forEach(o=>{if(o.player)return;const ahead=(o.lap+o.t)>(me.lap+me.t);if(o.ahead&&!ahead&&me.started){const gap=Math.abs(o.x-me.x)*(R3.W-1.2);if(R3.bumpT>1){if(gap<3.3){gpSkill("Near miss",350,true);gpMsg("Near miss");}else gpSkill("Pass",150,true);}}o.ahead=ahead;});
@@ -6185,7 +6387,7 @@ function gpUpdate(dt,waiting){
   el("gp3Lap","LAP "+Math.min(R3.C.laps,me.lap+1)+"/"+R3.C.laps);el("gp3Time",gpFmt(Math.max(0,R3.time)));
   if(!waiting){const st=R3.done?(R3.mode==="race"?"FINISH  P"+R3.place:"TRIP DONE"):(R3.mode==="race"?"LAP "+Math.min(R3.C.laps,me.lap+1)+"/"+R3.C.laps+"   P"+R3.place:"LAP "+Math.min(R3.C.laps,me.lap+1)+"/"+R3.C.laps+"  ♪ "+R3.notesGot);if(st!==R3.screenTxt){R3.screenTxt=st;R3.setScreen(st);}}
   const pe=$("gp3Pos");if(pe&&pe.dataset.p!==String(R3.place)){pe.dataset.p=String(R3.place);pe.innerHTML=R3.place+"<small>"+gpSuf(R3.place)+"</small><em>/"+karts.length+"</em>";}
-  gpSkillHud();gpTrickHud(dt);
+  gpSkillHud();gpTrickHud(dt);gpJetHud(dt);gpJetRingsDraw(dt);gpJetTrail(dt);if(R3.jp&&R3.jp.alive){R3.jp.mesh.rotation.y+=dt*2.1;R3.jp.mesh.position.y=R3.jp.y0+Math.sin(performance.now()/380)*0.3;}
   gpWarn(me,waiting);
   if(R3.mode==="free"&&R3.songDirty){R3.songDirty=0;const e=$("gp3Song");if(e){const cur=R3.song.length%8,ph=R3.song.slice(R3.song.length-cur);let dots="";for(let i=0;i<8;i++)dots+='<i class="'+(i<cur?"on":"")+'" style="--c:'+(ph[i]?ph[i].c:"#fff")+'"></i>';e.innerHTML='🎵 <b>'+R3.notesGot+' / '+R3.notesTotal+'</b>'+dots;}}
   gpDrawMini($("gp3Map"),R3.C,karts);
@@ -6214,17 +6416,17 @@ function gpRender(dt){
     // Forza-style chase: the camera's heading trails the car's (it swings late into a corner and shows the car turning, and follows
     // part of a drift angle), it eases sideways after lane changes, and pulls back up to 0.5 m as speed builds. Every term is a smooth
     // ease - no shake, no FOV change.
-    const roadYaw=Math.atan2(flat.x,flat.z),tgtYaw=roadYaw-(me.headA||0)*0.35;
+    const roadYaw=Math.atan2(flat.x,flat.z),jt=me.jet,tgtYaw=roadYaw-(me.headA||0)*(jt?0.72:0.35);R3.jetK=(R3.jetK||0)+((jt&&jt.ph!=="hop"&&jt.ph!=="land"?1:0)-(R3.jetK||0))*Math.min(1,dt*(jt?2.4:1.4));const jk=R3.jetK;
     if(R3.camYaw==null){R3.camYaw=roadYaw;R3.camX=me.x;R3.camBack=0;}
     R3.camYaw+=gpWrapAng(tgtYaw-R3.camYaw)*Math.min(1,dt*3.2);R3.camYaw=gpWrapAng(R3.camYaw);
     R3.camX+=(me.x-R3.camX)*Math.min(1,dt*4);R3.camBack+=(Math.max(0,spd)*0.95-R3.camBack)*Math.min(1,dt*1.5);
     const nor=R3.tmpV3.set(-flat.z,0,flat.x),foc=me.pos.clone().addScaledVector(nor,(R3.camX-me.x)*(R3.W-1.2)*0.45);
-    const vw0=R3.countdown<=0.5?R3.camMode:"chase",far=vw0==="far",cc=me.racer.car.cam||{},dir=R3.tmpV4.set(Math.sin(R3.camYaw),0,Math.cos(R3.camYaw));R3.airK=(R3.airK||0)+(((me.air&&me.airT>0.1)?1:0)-(R3.airK||0))*Math.min(1,dt*(me.air?2.6:3.5));const back=(tall?8.0:6.3)+R3.camBack+(cc.back||0)+(far?(tall?5:4.5):0)+(R3.bk||0)*1.1+R3.airK*2.2;
-    target=foc.clone().addScaledVector(dir,-back).add(new T.Vector3(0,(tall?3.9:2.1)+R3.camBack*0.25+(cc.up||0)+(far?2.2:0)-(R3.bk||0)*0.25+R3.airK*0.9,0));
+    const vw0=R3.countdown<=0.5?R3.camMode:"chase",far=vw0==="far",cc=me.racer.car.cam||{},dir=R3.tmpV4.set(Math.sin(R3.camYaw),0,Math.cos(R3.camYaw));R3.airK=(R3.airK||0)+(((me.air&&me.airT>0.1)?1:0)-(R3.airK||0))*Math.min(1,dt*(me.air?2.6:3.5));const back=(tall?8.0:6.3)+R3.camBack+(cc.back||0)+(far?(tall?5:4.5):0)+(R3.bk||0)*1.1+R3.airK*2.2+jk*(tall?2.4:3.2);
+    target=foc.clone().addScaledVector(dir,-back).add(new T.Vector3(0,(tall?3.9:2.1)+R3.camBack*0.25+(cc.up||0)+(far?2.2:0)-(R3.bk||0)*0.25+R3.airK*0.9+jk*1.3,0));
     target.y=Math.max(target.y,me.pos.y+(tall?3.4:1.4)+(cc.up||0));
     {const gy=R3.groundAt?Math.max(R3.groundAt(target.x,target.z),R3.curve.getPointAt(((me.t-back/R3.len)%1+1)%1).y):-1e9,want=Math.max(target.y,gy+1.4);   // a lagging height: the car visibly rises off a crest, and the camera never dips into the hill behind
-      if(R3.camYs==null)R3.camYs=want;R3.camYs+=(want-R3.camYs)*Math.min(1,dt*(me.air?4.5:8));target.y=Math.max(R3.camYs,gy+1.2);}
-    look=foc.clone().addScaledVector(tan,tall?9:10).add(new T.Vector3(0,(tall?-0.6:0.95)+(cc.up||0)*0.45,0));
+      if(R3.camYs==null)R3.camYs=want;R3.camYs+=(want-R3.camYs)*Math.min(1,dt*(me.jet?6:(me.air?4.5:8)));target.y=Math.max(R3.camYs,gy+1.2);}
+    look=foc.clone().addScaledVector(jt?dir:tan,(tall?9:10)+jk*8).add(new T.Vector3(0,(tall?-0.6:0.95)+(cc.up||0)*0.45-(jt&&jt.pitch?jt.pitch*5:0)*jk,0));
     R3.camPos.copy(target);const cm=window.__gp.cam;cm.lagDeg=gpWrapAng(R3.camYaw-roadYaw)*57.3;cm.back=back;}
   const vw=R3.countdown<=0.5?R3.camMode:"chase",cmode=vw==="far"?"chase":vw;if(cmode!=="chase"){me.g.updateMatrixWorld(true);   // bumper: low on the nose; hood: above the bonnet (car visible); cockpit: driver's eye. All ride the car's heading (not its body roll)
     const GD=GP_GLB[me.racer.car.id]||{},E=GD.eye||[0,1.04,-0.35],nz=GD.nose||(me.S.len/2),rY=GD.roofY||1.1;
@@ -6240,12 +6442,14 @@ function gpRender(dt){
   if(R3.shake>0){R3.shake=Math.max(0,R3.shake-dt*1.7);const a=R3.shake*R3.shake*0.6,tt=performance.now()/1000;R3.camera.position.y+=Math.sin(tt*57)*a;R3.camera.position.x+=Math.sin(tt*43+1.3)*a*0.6;R3.camera.position.z+=Math.cos(tt*39)*a*0.6;}   // short landing shake only
   R3.karts.forEach(k=>{if(k.player)return;const fwd=(k.pos.x-R3.camPos.x)*flat.x+(k.pos.z-R3.camPos.z)*flat.z;const vis=fwd>2.4;if(k.g.visible!==vis)k.g.visible=vis;});   // a solid car until it passes the camera (an opacity fade made rivals see-through)
   R3.camera.lookAt(look);
+  if(R3.jetK>0.01&&me.jet&&me.jet.roll)R3.camera.rotateZ(-me.jet.roll*0.22*R3.jetK);   // the chase plane leans with him
   if(cmode!=="chase"&&me.trick&&me.trick.k==="roll"&&!window.__gpCam)R3.camera.rotateZ(gpTrickAngle(me).a);   // from inside the car a barrel roll turns the whole world
-  R3.fovK=(R3.fovK||0)+(Math.max(0,Math.min(1,(spd-0.45)/0.55))-(R3.fovK||0))*Math.min(1,dt*1.6);R3.bk=(R3.bk||0)+((me.boostT>0?1:0)-(R3.bk||0))*Math.min(1,dt*(me.boostT>0?7:2.2));const fovT=(tall?78:(cmode==="chase"?60:66))+R3.fovK*(tall?6:(cmode==="chase"?9:7))+R3.bk*(tall?7:11);R3.fov=fovT;if(Math.abs(R3.camera.fov-fovT)>0.01){R3.camera.fov=fovT;R3.camera.updateProjectionMatrix();}   // eases wider with speed (no jumps)
+  R3.fovK=(R3.fovK||0)+(Math.max(0,Math.min(1,(spd-0.45)/0.55))-(R3.fovK||0))*Math.min(1,dt*1.6);R3.bk=(R3.bk||0)+((me.boostT>0?1:0)-(R3.bk||0))*Math.min(1,dt*(me.boostT>0?7:2.2));const fovT=(tall?78:(cmode==="chase"?60:66))+R3.fovK*(tall?6:(cmode==="chase"?9:7))+R3.bk*(tall?7:11)+(R3.jetK||0)*(tall?3:5);R3.fov=fovT;if(Math.abs(R3.camera.fov-fovT)>0.01){R3.camera.fov=fovT;R3.camera.updateProjectionMatrix();}   // eases wider with speed (no jumps)
   R3.sky.position.copy(R3.camera.position);if(R3.band)R3.band.position.set(R3.camera.position.x,R3.band.userData.y,R3.camera.position.z);R3.glare.position.copy(R3.camera.position).addScaledVector(R3.sunDir,1500);
-  R3.sun.position.copy(me.pos).add(R3.sunOff);R3.sun.target.position.copy(me.pos);R3.sun.target.updateMatrixWorld();
+  R3.sun.position.copy(me.pos).add(R3.sunOff);R3.sun.target.position.copy(me.pos);if(me.jet){const dh=me.pos.y-me.ry;R3.sun.position.y-=dh;R3.sun.target.position.y-=dh;}R3.sun.target.updateMatrixWorld();
   R3.renderer.info.reset();if(cmode==="cockpit")gpCockpit();
   const pp=R3.post;if(pp){pp.mat.uniforms.t.value=performance.now()/1000;R3.renderer.setRenderTarget(pp.rt);R3.renderer.render(R3.scene,R3.camera);R3.renderer.setRenderTarget(null);R3.renderer.render(pp.scene,pp.cam);}else{R3.renderer.render(R3.scene,R3.camera);if(cmode==="cockpit")gpMirror();gpSpeedFx(R3.countdown>0?0:spd+(R3.bk||0)*0.4,me.drift);}
+  if(pp&&(me.jet||R3.fxOn)){R3.fxOn=!!me.jet;gpSpeedFx(me.jet?Math.max(spd,0.95)+(R3.bk||0)*0.4:0,0);}
   const tele=window.__gp,off=R3.teleV.copy(R3.camera.position).sub(me.pos),ov=tele.cameraOffsetVector;ov.x=off.x;ov.y=off.y;ov.z=off.z;
   tele.playerWheelPhase=tele.wheelPhase=me.wheelPhase;tele.playerSpeed=tele.speed=me.speed;tele.wheelRadius=me.wheelRadius;tele.cameraFov=R3.camera.fov;tele.cameraOffsetFromCar=tele.cameraOffset=off.length();
   if(me.shadows&&me.shadows[0]){me.shadows[0].getWorldPosition(R3.teleShadow);tele.playerShadowWorldY=tele.shadowY=R3.teleShadow.y;}
