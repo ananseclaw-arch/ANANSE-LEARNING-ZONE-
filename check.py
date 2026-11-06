@@ -28,7 +28,7 @@ with tempfile.TemporaryDirectory() as td:
 ok(f"{len(blocks)} script blocks parse") if not problems else None
 
 # 2. inlined copies match sources
-for fn, marker in (("lessons.js", "/* lessons.js is inlined here"), ("lab.js", "/* lab.js is inlined here"), ("reveal.js", "/* reveal.js is inlined here"), ("workbook.js", "/* workbook.js is inlined here"), ("race.js", "/* race.js is inlined here"), ("race3d.js", "/* race3d.js is inlined here")):
+for fn, marker in (("lessons.js", "/* lessons.js is inlined here"), ("lab.js", "/* lab.js is inlined here"), ("reveal.js", "/* reveal.js is inlined here"), ("workbook.js", "/* workbook.js is inlined here"), ("finddetail.js", "/* finddetail.js is inlined here"), ("race.js", "/* race.js is inlined here"), ("race3d.js", "/* race3d.js is inlined here")):
     src = read(fn)
     start = html.find(marker)
     if start < 0: bad(f"{fn} marker missing from index.html"); continue
@@ -94,6 +94,38 @@ else:
     res = json.loads(r.stdout.strip().splitlines()[-1])
     for m in sorted(set(res["bad"]))[:40]: bad(m)
     if not res["bad"]: ok(f"{res['lessons']} lessons / {res['qs']} questions, {res['labs']} labs, {res['reveal']} Reveal lessons × 40 generated problems all clean")
+
+# 3b. Find the Detail passages (finddetail.js) + focus.json shape
+fdjs = r"""
+const fs=require("fs");eval(fs.readFileSync(process.argv[2],"utf8")+";globalThis.__P=FD_PASSAGES");
+const bad=[],ids=new Set();let nq=0;
+for(const p of __P){ if(ids.has(p.id))bad.push("dup id "+p.id);ids.add(p.id);
+  const wc=p.s.join(" ").split(/\s+/).length; if(wc<60||wc>120)bad.push(p.id+" has "+wc+" words (need 60-120)");
+  if(p.qs.length<2||p.qs.length>4)bad.push(p.id+" needs 2-4 questions");
+  for(const q of p.qs){nq++;
+    if(!(q.ev>=0&&q.ev<p.s.length))bad.push(p.id+" ev out of range: "+q.q);
+    if(q.t==="evidence"||q.t==="clue"){ if(q.o)bad.push(p.id+" tap question has options: "+q.q); if(!q.hint)bad.push(p.id+" tap question needs a hint: "+q.q); }
+    else if(!Array.isArray(q.o)||q.o.length<3||q.o.length>4||new Set(q.o).size!==q.o.length)bad.push(p.id+" bad options: "+q.q);
+    if(!/^(detail|event|feel|evidence|clue)$/.test(q.t))bad.push(p.id+" bad type "+q.t);
+  }}
+console.log(JSON.stringify({bad,passages:__P.length,qs:nq}));
+"""
+with tempfile.TemporaryDirectory() as td:
+    p = os.path.join(td, "fd.js"); open(p, "w").write(fdjs)
+    r = subprocess.run(["node", p, os.path.join(HERE, "finddetail.js")], capture_output=True, text=True)
+    try:
+        o = json.loads(r.stdout.strip().splitlines()[-1])
+        for b in o["bad"]: bad("finddetail: " + b)
+        if o["passages"] < 12: bad(f"finddetail: only {o['passages']} passages (need 12+)")
+        if not o["bad"] and o["passages"] >= 12: ok(f"Find the Detail: {o['passages']} passages / {o['qs']} questions, shapes clean")
+    except Exception:
+        bad("finddetail.js failed to evaluate: " + (r.stderr or r.stdout)[:300])
+try:
+    fj = json.load(open(os.path.join(HERE, "focus.json")))
+    if not isinstance(fj.get("topics"), list) or not isinstance(fj.get("reveal"), list) or not isinstance(fj.get("subjects"), dict): bad("focus.json shape (topics[], reveal[], subjects{}) is wrong")
+    else: ok("focus.json shape ok")
+except Exception as e:
+    bad(f"focus.json unreadable: {e}")
 
 # 4. no spider text in shipped files
 for fn in ("index.html", "README.md", "manifest.webmanifest"):

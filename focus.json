@@ -1,1 +1,7 @@
-{"updated":"2026-10-04","note":"","topics":[],"reveal":[],"subjects":{}}
+{
+  "updated": "2026-11-06",
+  "note": "Grade 3 report card, Marking Period 1: Reading is the top priority (Reading Level Code 1 = below grade level; teacher says he sometimes struggles to answer questions about a text, especially finding key details to support answers). Math is second (grade C, the lowest). Reading, Writing and Science are B, Social Studies is A.",
+  "topics": ["key details", "text evidence", "main events", "characters", "reading comprehension"],
+  "reveal": ["4-2", "4-1", "4-3", "4-4", "4-5", "2-8", "2-4"],
+  "subjects": {"comprehension": 3, "math": 2, "english": 1.5, "science": 1, "history": 0.5}
+}
