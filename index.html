@@ -5986,7 +5986,7 @@ function gpJetRingsMake(kt,J){const R=R3,M=R.M,easy=gpPace()==="gentle",n=GP_JET
 function gpJetRingsShow(list){const R=R3,G=R.jr;G.list=list;G.t=0;G.fade=0;G.mesh.count=list.length;const D=R.jetD,V=R.tmpV;list.forEach(r=>{const p=R.curve.getPointAt(r.t),tn=R.curve.getTangentAt(r.t);const nor=V.set(-tn.z,0,tn.x).normalize();p.addScaledVector(nor,r.x*(R.W-1.2));p.y=r.y;r.p=p;r.tn=tn.clone();});G.mesh.visible=true;gpJetRingsDraw(0);}
 function gpJetRingsDraw(dt){const R=R3,G=R.jr;if(!G||!G.mesh.visible)return;G.t+=dt;if(G.fade>0){G.fade=Math.max(0,G.fade-dt/0.5);if(G.fade<=0){G.mesh.visible=false;G.list=[];return;}}const D=R.jetD,C=R.jetC,me=R.me,J=me.jet,next=G.list.find(r=>!r.hit&&!r.miss);
   G.list.forEach((r,i)=>{const pop=Math.min(1,Math.max(0,(G.t-i*0.05)/0.28)),e=pop*pop*(3-2*pop);let s=r.r*Math.max(0.001,e)*(G.fade>0?G.fade:1);let col=0x00f0ff;
-    if(r.hit){r.fx+=dt;s=r.fx<0.2?r.r*(1+r.fx*1.2):0.001;col=0xffffff;}else if(r.miss){col=0x2a7f96;}else if(r===next){col=0xffdd00;s*=1+0.06*Math.sin(G.t*9);}
+    if(r.hit){r.fx+=dt;s=Math.max(0.001,r.r*(1-r.fx/0.14));col=0xffffff;}else if(r.miss){col=0x2a7f96;}else if(r===next){col=0xffdd00;s*=1+0.06*Math.sin(G.t*9);}
     D.position.copy(r.p);D.up.set(0,1,0);D.lookAt(r.p.x+r.tn.x,r.p.y+r.tn.y*0,r.p.z+r.tn.z);D.scale.setScalar(s);D.updateMatrix();G.mesh.setMatrixAt(i,D.matrix);C.set(col);G.mesh.setColorAt(i,C);});
   G.mesh.instanceMatrix.needsUpdate=true;if(G.mesh.instanceColor)G.mesh.instanceColor.needsUpdate=true;}
 /* cruising speed: what the road under this flight is worth to a good driver (a touch more), so a flight is a thrill, not a free 200 m on the rivals who still have to brake for its bends. Tops out at the car's top speed + a bit on an open road */
