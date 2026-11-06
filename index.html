@@ -5879,9 +5879,9 @@ const GP_TRICK={dur:0.6,name:{roll:"BARREL ROLL!",flip:"FLIP!",spin:"360 SPIN!"}
 function gpTrickInit(){const R=R3;R.tk={btn:$("gp3Trick"),pop:$("gp3Nitro"),on:false,fill:0,log:[],count:0,next:null,swipe:new Map()};
   const g=$("gp3");if(!g)return;   // swipes anywhere on the race view (pedals and buttons keep their own fingers); capture phase, because the steering zone captures its pointer
   const isCtl=t=>t&&t.closest&&t.closest(".fz-pedal,.fz-boost,.fz-cam,.fz-trick,.fz-btn,.fz-pitch");
-  const dn=e=>{if(isCtl(e.target)||!R3||!R3.tk)return;R3.tk.swipe.set(e.pointerId,{x:e.clientX,y:e.clientY,t:performance.now(),st:!!(e.target&&e.target.id==="gp3L")});};
-  const mv=e=>{const K=R3&&R3.tk;if(!K)return;const p=K.swipe.get(e.pointerId);if(!p)return;const now=performance.now(),dx=e.clientX-p.x,dy=e.clientY-p.y,fly=R3.me.air&&!(R3.me.jet&&p.st);   /* in a jet the steering thumb slides a lot: only the other side of the screen swipes */
-    if(!fly||now-p.t>420){p.x=e.clientX;p.y=e.clientY;p.t=now;return;}
+  const dn=e=>{if(isCtl(e.target)||!R3||!R3.tk)return;R3.tk.swipe.set(e.pointerId,{x:e.clientX,y:e.clientY,t:e.timeStamp,st:!!(e.target&&e.target.id==="gp3L")});};
+  const mv=e=>{const K=R3&&R3.tk;if(!K)return;const p=K.swipe.get(e.pointerId);if(!p)return;const now=e.timeStamp,dx=e.clientX-p.x,dy=e.clientY-p.y,fly=R3.me.air&&!(R3.me.jet&&p.st);   /* in a jet the steering thumb slides a lot: only the other side of the screen swipes */
+    if(!fly||now-p.t>(R3.me.jet?800:420)){p.x=e.clientX;p.y=e.clientY;p.t=now;return;}
     const ax=Math.abs(dx),ay=Math.abs(dy);if(Math.max(ax,ay)<26)return;let ok=false;if(ax>=ay)ok=gpTrick("roll",dx<0?-1:1);else if(dy<0)ok=gpTrick("flip",1);p.x=e.clientX;p.y=e.clientY;p.t=now;void ok;};
   const up=e=>{const K=R3&&R3.tk;if(K)K.swipe.delete(e.pointerId);};
   g.addEventListener("pointerdown",dn,true);g.addEventListener("pointermove",mv,true);["pointerup","pointercancel"].forEach(t=>g.addEventListener(t,up,true));}
