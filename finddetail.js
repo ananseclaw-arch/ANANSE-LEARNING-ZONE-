@@ -6,7 +6,7 @@
    - Question types:  detail (who/what/where/why/how many), event (main event / what happened),
      feel (how a character feels), evidence + clue (TAP the sentence that proves it).
    - Wrong answer -> the sentence that holds the answer is highlighted, then the SAME question is retried.
-   - Sticky Check button. Read-aloud uses the app's existing say() (no new voice recordings).
+   - Sticky Check button. Every line is pre-recorded in the teacher voice (voice/, see fdVoiceLines()); NEVER device voice. Each story opens on its own screen, questions follow one per screen; the story is only on a question screen via 'Look back' (sheet), tap-mode, or a wrong-answer highlight.
    Data format: s = sentences (tappable); qs[].o = options with the RIGHT one first (app shuffles);
    qs[].ev = index of the sentence that holds the answer; evidence/clue questions have no options (tap ev).
    Edit this file, then run: python3 inline_lessons.py
@@ -203,6 +203,18 @@ function fdCss(){
   ".fd-sen.good{background:#d8f3dc;outline:3px solid #2f9e5b;outline-offset:1px}",
   ".fd-sen.no{text-decoration:line-through;text-decoration-color:#d9480f;opacity:.7}",
   ".fd-read{display:inline-flex;align-items:center;gap:6px;margin:0 8px 10px 0;padding:8px 14px;border:2.5px solid #2d221c;border-radius:999px;background:#fff;font:inherit;font-weight:700;font-size:15px;cursor:pointer;color:#2d221c}",
+  ".fd-tools{display:flex;flex-wrap:wrap;gap:8px;margin:-4px 0 12px}.fd-tools .fd-read{margin:0}",
+  ".fd-big{padding:18px 18px 20px;font-size:20px;line-height:1.95}.fd-big h2{margin:0 0 8px;font-family:inherit;font-size:24px;line-height:1.2;color:#7a4a00}",
+  ".fd-hint{margin:2px 4px 0;text-align:center;font-weight:600;font-size:14px;color:rgba(255,255,255,.85)}",
+  ".fd-passhead{display:flex;align-items:center;gap:8px}",
+  ".fd-sheet-back{position:fixed;inset:0;z-index:40;background:rgba(15,20,40,.55)}",
+  ".fd-sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;max-height:66vh;max-height:66dvh;display:flex;flex-direction:column;background:#fffdf5;color:#2d221c;border:3px solid #2d221c;border-bottom:0;border-radius:22px 22px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.35);animation:fdUp .22s ease-out;max-width:640px;margin:0 auto}",
+  "@keyframes fdUp{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}",
+  ".fd-sheet-head{display:flex;align-items:center;gap:10px;padding:12px 14px 8px}.fd-sheet-head h3{flex:1;margin:0;font-size:18px;color:#7a4a00}",
+  ".fd-x{width:44px;height:44px;border:2.5px solid #2d221c;border-radius:50%;background:#fff;font-size:20px;font-weight:800;color:#2d221c;cursor:pointer}",
+  ".fd-sheet-body{overflow:auto;padding:0 16px 8px;-webkit-overflow-scrolling:touch}",
+  ".fd-pass-in{font-family:'Lexend','Atkinson Hyperlegible',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:18px;line-height:1.95}",
+  ".fd-sheet-done{margin:8px 14px calc(12px + env(safe-area-inset-bottom,0px));min-height:50px;border:3px solid #2d221c;border-radius:16px;background:#ff9f1c;font:inherit;font-size:17px;font-weight:800;color:#2d221c;box-shadow:0 4px 0 #2d221c;cursor:pointer}",
   ".fd-opts{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}",
   ".fd-opt{display:flex;align-items:center;gap:12px;text-align:left;padding:13px 14px;min-height:54px;border:3px solid #2d221c;border-radius:16px;background:#fff;font:inherit;font-size:17px;font-weight:600;color:#2d221c;cursor:pointer;box-shadow:0 3px 0 #2d221c}",
   ".fd-opt .ltr{flex:0 0 30px;height:30px;border-radius:50%;background:#fff3d6;border:2.5px solid #2d221c;display:grid;place-items:center;font-size:14px;font-weight:800}",
@@ -246,8 +258,10 @@ function fdStart(id){
   const p=id?fdPassage(id):fdPickNext(P);
   if(!p)return;
   clearTimers();closeOverlay();
-  FDS={p,qi:0,results:[],start:Date.now(),qStart:Date.now(),tries:0,pick:null,dead:[],hintOn:false,orders:{},phase:"ask",xp:0,wrongTaps:0};
+  FD_SEQ++;FD_READING=false;
+  FDS={p,qi:0,results:[],start:Date.now(),qStart:Date.now(),tries:0,pick:null,dead:[],hintOn:false,hinted:false,look:false,orders:{},phase:"ask",screen:"story",xp:0,wrongTaps:0};
   fdRender();
+  window.scrollTo&&window.scrollTo(0,0);
 }
 function fdQ(){return FDS.p.qs[FDS.qi];}
 function fdIsTap(q){return q.t==="evidence"||q.t==="clue";}
@@ -256,19 +270,89 @@ function fdOrder(){
   if(!FDS.orders[FDS.qi])FDS.orders[FDS.qi]=shuffle(q.o.map((_,i)=>i));
   return FDS.orders[FDS.qi];
 }
+/* every line the Find the Detail screens can say(): each one has a recorded teacher-voice clip in voice/
+   (record with ~/staging/lz-rc-focus-voice/record_fd.py; the browser test checks this list resolves to clips) */
+const FD_PRAISE=["Perfect detective work!","Great reading! You found the details.","Good effort. Reading the story again for clues makes you stronger."];
+const FD_WRONG_LINES=["Look at the lit up sentence and tap it.","Not quite. Read the lit up sentence, then try again.","Not that one. Try again."];
+function fdTapMissLine(q){return "Not that one. "+(q.hint||"Try again.");}
+function fdVoiceLines(){
+  const out=[];
+  FD_PASSAGES.forEach(p=>{out.push(p.title);p.s.forEach(s=>out.push(s));p.qs.forEach(q=>{out.push(q.q);if(fdIsTap(q))out.push(fdTapMissLine(q));});});
+  return out.concat(FD_PRAISE,FD_WRONG_LINES);
+}
+/* ---- reading the story aloud: one recorded clip per sentence, played in a row ---- */
+let FD_SEQ=0,FD_READING=false;
+function fdSyncReadBtns(){
+  if(typeof document==="undefined")return;
+  document.querySelectorAll(".fd-readstory").forEach(b=>{b.textContent=FD_READING?"⏹ Stop reading":"🔊 Read the story to me";});
+}
+async function fdWaitVoice(){for(let i=0;i<40&&(!_voiceUnlocked||!_voiceManifestDone);i++)await new Promise(r=>setTimeout(r,75));}
+function fdSayP(text){return new Promise(res=>{say(text,{onend:()=>res(true)});setTimeout(()=>res(false),20000);});}
+async function fdReadStory(){
+  const p=FDS&&FDS.p;if(!p)return;
+  if(FD_READING){FD_SEQ++;FD_READING=false;if(typeof stopRecorded==="function")stopRecorded();fdSyncReadBtns();return;}
+  const my=++FD_SEQ;FD_READING=true;fdSyncReadBtns();
+  await fdWaitVoice();
+  for(const line of [p.title].concat(p.s)){
+    if(my!==FD_SEQ)return;
+    await fdSayP(line);
+  }
+  if(my===FD_SEQ){FD_READING=false;fdSyncReadBtns();}
+}
+function fdStopRead(){FD_SEQ++;if(FD_READING){FD_READING=false;if(typeof stopRecorded==="function")stopRecorded();}}
+function fdSens(tap,done,q){
+  return FDS.p.s.map((t,i)=>{
+    let c="fd-sen";
+    if(tap&&FDS.pick===i&&!done)c+=" pick";
+    if(q&&FDS.hintOn&&i===q.ev&&!done)c+=" hint";
+    if(q&&done&&FDS.hinted&&i===q.ev)c+=" good";
+    if(q&&tap&&done&&i===q.ev)c+=" good";
+    if(tap&&FDS.dead.indexOf(i)>=0&&!done)c+=" no";
+    return '<span class="'+c+'" data-i="'+i+'"'+(tap&&!done?' role="button" tabindex="0" onclick="fdTapSentence('+i+')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();fdTapSentence('+i+')}"':'')+'>'+esc(t)+'</span>';
+  }).join(" ");
+}
+const FD_READ_BTN='<button class="fd-read fd-readstory" onclick="fdReadStory()">'+"🔊 Read the story to me"+'</button>';
+/* SCREEN 1 of each story: the story on its own, big, with read-aloud and one button */
+function fdRenderStory(){
+  const p=FDS.p;
+  const dots=p.qs.map(()=>'<span class="fd-dot"></span>').join("");
+  app.innerHTML='<div class="fd-wrap fadein" id="fdRoot">'
+   +'<div class="fd-top"><span class="fd-title">Story time</span><span class="fd-dots" aria-label="'+p.qs.length+' questions after the story">'+dots+'</span></div>'
+   +FD_READ_BTN
+   +'<article class="fd-card fd-pass fd-big" id="fdPass"><h2>'+esc(p.icon+" "+p.title)+'</h2>'+p.s.map((t,i)=>'<span class="fd-sen" data-i="'+i+'">'+esc(t)+'</span>').join(" ")+'</article>'
+   +'<p class="fd-hint">Read it first. Then you will answer '+p.qs.length+' questions, one at a time.</p>'
+   +'</div><div class="fd-foot"><button class="next" id="fdReady" onclick="fdReady()">I\'m ready for the questions ▶</button></div>';
+  fdSyncReadBtns();
+  if(typeof lzBack==="function")lzBack(()=>{FDS=null;fdStopRead();if(typeof stopRecorded==="function")stopRecorded();renderHome();},"Home");
+}
+function fdReady(){
+  if(!FDS||FDS.screen!=="story")return;
+  fdStopRead();if(typeof stopRecorded==="function")stopRecorded();
+  FDS.screen="q";FDS.qStart=Date.now();FDS.look=false;
+  fdRender();
+  window.scrollTo&&window.scrollTo(0,0);
+  say(fdQ().q);
+}
+function fdLook(on){
+  if(!FDS||FDS.screen!=="q")return;
+  FDS.look=!!on;if(!on)fdStopRead();
+  fdRender();
+}
+if(typeof document!=="undefined")document.addEventListener("keydown",e=>{if(e.key==="Escape"&&typeof FDS!=="undefined"&&FDS&&FDS.look)fdLook(false);});
 function fdRender(){
+  if(FDS.screen==="story"){
+    if(document.body&&document.body.classList)document.body.classList.add("focus");
+    showAnanseCorner(false);
+    return fdRenderStory();
+  }
   const q=fdQ(),p=FDS.p,tap=fdIsTap(q),done=FDS.phase==="right";
   if(document.body&&document.body.classList)document.body.classList.add("focus");
   showAnanseCorner(false);
   const dots=p.qs.map((_,i)=>'<span class="fd-dot '+(i<FDS.results.length?(FDS.results[i]?'ok':'miss'):(i===FDS.qi?'now':''))+'"></span>').join("");
-  const sens=p.s.map((t,i)=>{
-    let c="fd-sen";
-    if(tap&&FDS.pick===i&&!done)c+=" pick";
-    if(FDS.hintOn&&i===q.ev&&!done)c+=" hint";
-    if(done&&i===q.ev)c+=" good";
-    if(tap&&FDS.dead.indexOf(i)>=0&&!done)c+=" no";
-    return '<span class="'+c+'" data-i="'+i+'"'+(tap&&!done?' role="button" tabindex="0" onclick="fdTapSentence('+i+')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();fdTapSentence('+i+')}"':'')+'>'+esc(t)+'</span>';
-  }).join(" ");
+  /* the story is NOT on a question screen unless: tap-the-sentence question (needs it), a wrong answer (answer sentence lit),
+     or the child opened "Look back at the story" (bottom sheet) */
+  const inline=tap||FDS.hintOn||(done&&FDS.hinted);
+  const sens=fdSens(tap,done,q);
   let opts="";
   if(!tap){
     const ord=fdOrder(),L=["A","B","C","D"];
@@ -281,23 +365,28 @@ function fdRender(){
     }).join("")+'</div>';
   }
   let msg="";
-  if(done)msg='<div class="fd-msg ok" id="fdMsg" role="status"><b>'+esc(FDS.okLine||"Yes!")+'</b>The green sentence in the story holds the answer.</div>';
+  if(done)msg='<div class="fd-msg ok" id="fdMsg" role="status"><b>'+esc(FDS.okLine||"Yes!")+'</b>'+(inline?'The green sentence in the story holds the answer.':'')+'</div>';
   else if(FDS.hintOn)msg='<div class="fd-msg no" id="fdMsg" role="status"><b>Not quite. Let\'s look again.</b>'+(tap?'The sentence with the answer is lit up in the story. Tap it.':'The sentence with the answer is lit up in the story. Read it, then try this question again.')+'</div>';
   else if(FDS.tries>0&&tap)msg='<div class="fd-msg no" id="fdMsg" role="status"><b>Not that one. Try again.</b>'+esc(q.hint||"Read the story again and look for the clue.")+'</div>';
-  const canCheck=tap?FDS.pick!==null:FDS.pick!==null;
+  const canCheck=FDS.pick!==null;
   const last=FDS.qi>=p.qs.length-1;
   const foot=done?'<button class="next" onclick="fdNext()">'+(last?'Finish ▶':'Next ▶')+'</button>'
     :'<button id="fdCheck" '+(canCheck?'':'disabled ')+'onclick="fdCheck()">Check ✓</button>';
+  const storyCard=inline?'<div class="fd-card fd-pass '+(tap&&!done?'fd-tap':'')+'" id="fdPass"><div class="fd-passhead"><h3>'+esc(p.title)+'</h3></div>'+sens+'</div>':'';
+  const lookBtn=inline?'':'<button class="fd-read fd-look" id="fdLookBtn" onclick="fdLook(true)">📖 Look back at the story</button>';
+  const sheet=(FDS.look&&!inline)?'<div class="fd-sheet-back" onclick="fdLook(false)"></div><div class="fd-sheet" id="fdSheet" role="dialog" aria-modal="true" aria-label="The story">'
+    +'<div class="fd-sheet-head"><h3>'+esc(p.icon+" "+p.title)+'</h3><button class="fd-x" aria-label="Close the story" onclick="fdLook(false)">✕</button></div>'
+    +'<div class="fd-sheet-body">'+FD_READ_BTN+'<div class="fd-pass-in">'+sens+'</div></div>'
+    +'<button class="fd-sheet-done" onclick="fdLook(false)">Back to the question</button></div>':'';
   app.innerHTML='<div class="fd-wrap fadein" id="fdRoot">'
    +'<div class="fd-top"><span class="fd-title">'+esc(p.icon+" "+p.title)+'</span><span class="fd-dots" aria-label="Question '+(FDS.qi+1)+' of '+p.qs.length+'">'+dots+'</span></div>'
    +'<div class="fd-card fd-q"><div class="fd-kicker">'+(tap?'Tap the sentence':'Find the detail')+' · '+(FDS.qi+1)+' of '+p.qs.length+'</div><p class="fd-qtext">'+esc(q.q)+'</p></div>'
-   +'<button class="fd-read" onclick="fdReadStory()">🔊 Read the story to me</button><button class="fd-read" onclick="say(fdQ().q)">🔊 Read the question</button>'
-   +'<div class="fd-card fd-pass '+(tap&&!done?'fd-tap':'')+'" id="fdPass"><h3>'+esc(p.title)+'</h3>'+sens+'</div>'
-   +opts+msg
-   +'</div><div class="fd-foot">'+foot+'</div>';
-  if(typeof lzBack==="function")lzBack(()=>{FDS=null;if(typeof stopRecorded==="function")stopRecorded();renderHome();},"Home");
+   +'<div class="fd-tools"><button class="fd-read" onclick="say(fdQ().q)">🔊 Read the question</button>'+lookBtn+'</div>'
+   +msg+storyCard+opts
+   +'</div><div class="fd-foot">'+foot+'</div>'+sheet;
+  fdSyncReadBtns();
+  if(typeof lzBack==="function")lzBack(()=>{FDS=null;fdStopRead();if(typeof stopRecorded==="function")stopRecorded();renderHome();},"Home");
 }
-function fdReadStory(){const p=FDS&&FDS.p;if(p)say(p.title+". "+p.s.join(" "));}
 function fdPickOpt(oi){if(!FDS||FDS.phase==="right")return;FDS.pick=oi;sfx("tick");fdRender();}
 function fdTapSentence(i){if(!FDS||FDS.phase==="right")return;if(FDS.dead.indexOf(i)>=0)return;FDS.pick=i;sfx("tick");fdRender();}
 function fdCheck(){
@@ -314,25 +403,26 @@ function fdCheck(){
     if(typeof logQuestion==="function")logQuestion("practice","comprehension",q.topic,null,q.q,first,FDS.tries,Date.now()-FDS.qStart,{shown:[FDS.p.title+": "+FDS.p.s[q.ev]],given:tap?FDS.p.s[given]:q.o[given],correct:tap?FDS.p.s[q.ev]:q.o[0]});
     save();
     fdRender();
-    const m=document.getElementById("fdMsg");if(m&&m.scrollIntoView)m.scrollIntoView({block:"nearest",behavior:"smooth"});
+    window.scrollTo&&window.scrollTo(0,0);   // feedback sits under the question, at the top
   }else{
     sfx("wrong");
     if(typeof P.wrongLog!=="undefined"&&FDS.tries===1){P.wrongLog.push({date:today(),topic:q.topic,subject:"comprehension"});P.wrongLog=P.wrongLog.slice(-1500);}
     if(typeof sm2Update==="function"&&FDS.tries===1)sm2Update(q.topic,2);
     if(typeof logQuestion==="function"&&FDS.tries===1)logQuestion("practice","comprehension",q.topic,null,q.q,false,1,Date.now()-FDS.qStart,{shown:[FDS.p.title+": "+FDS.p.s[q.ev]],given:tap?FDS.p.s[given]:q.o[given],correct:tap?FDS.p.s[q.ev]:q.o[0]});
     if(tap){FDS.dead.push(given);FDS.wrongTaps++;FDS.hintOn=FDS.wrongTaps>=2;}
-    else{FDS.dead.push(given);FDS.hintOn=true;}   // multiple choice: light up the sentence with the answer, same question again
+    else{FDS.dead.push(given);FDS.hintOn=true;}
+    if(FDS.hintOn)FDS.hinted=true;   // multiple choice: light up the sentence with the answer, same question again
     FDS.pick=null;
     save();
     fdRender();
-    const m=document.getElementById("fdMsg");if(m&&m.scrollIntoView)m.scrollIntoView({block:"nearest",behavior:"smooth"});
-    say(tap?(FDS.hintOn?"Look at the lit up sentence and tap it.":"Not that one. "+(q.hint||"Try again.")):"Not quite. Read the lit up sentence, then try again.");
+    window.scrollTo&&window.scrollTo(0,0);   // feedback sits under the question, at the top
+    say(tap?(FDS.hintOn?FD_WRONG_LINES[0]:fdTapMissLine(q)):FD_WRONG_LINES[1]);
   }
 }
 function fdNext(){
   if(!FDS||FDS.phase!=="right")return;
   if(FDS.qi>=FDS.p.qs.length-1){fdFinish();return;}
-  FDS.qi++;FDS.tries=0;FDS.pick=null;FDS.dead=[];FDS.hintOn=false;FDS.phase="ask";FDS.wrongTaps=0;FDS.qStart=Date.now();
+  FDS.qi++;FDS.tries=0;FDS.pick=null;FDS.dead=[];FDS.hintOn=false;FDS.hinted=false;FDS.look=false;FDS.phase="ask";FDS.wrongTaps=0;FDS.qStart=Date.now();
   fdRender();
   window.scrollTo&&window.scrollTo(0,0);
   say(fdQ().q);
@@ -350,7 +440,7 @@ function fdFinish(){
   save();
   if(typeof syncProgress==="function")syncProgress("finish");
   const nx=fdPickNext(P,p.id);
-  const praise=correct===total?"Perfect detective work!":(correct>=total-1?"Great reading! You found the details.":"Good effort. Reading the story again for clues makes you stronger.");
+  const praise=correct===total?FD_PRAISE[0]:(correct>=total-1?FD_PRAISE[1]:FD_PRAISE[2]);
   if(correct>=total-1&&typeof confetti==="function")confetti();
   app.innerHTML='<div class="fd-done fadein"><div style="margin:6px auto">'+(typeof ananseSVG==="function"?ananseSVG(120,correct>=total-1?"party":"idle"):"")+'</div>'
    +'<h1 style="margin:6px 0">Story complete!</h1>'
@@ -362,7 +452,7 @@ function fdFinish(){
   say(praise);
   const _fs=FDS;FDS=null;void _fs;
 }
-if(typeof window!=="undefined"){window.FD_PASSAGES=FD_PASSAGES;window.fdStart=fdStart;window.fdHomeCardHTML=fdHomeCardHTML;window.fdPickNext=fdPickNext;}
+if(typeof window!=="undefined"){window.FD_PASSAGES=FD_PASSAGES;window.fdStart=fdStart;window.fdHomeCardHTML=fdHomeCardHTML;window.fdVoiceLines=fdVoiceLines;window.fdPickNext=fdPickNext;}
 /* does the school focus ask for reading-detail practice? (topics name a reading skill, or comprehension is weighted) */
 function fdFocusWants(focus){
   if(!focus||typeof focus!=="object")return false;
