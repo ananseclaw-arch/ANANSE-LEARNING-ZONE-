@@ -3948,6 +3948,7 @@ function raceFinish(){
    ============================================================ */
 "use strict";
 let R3=null;
+let GPN=null;   // the online room (Race a friend) this device is in; null = plain single-player
 const GP_CARS=[
  {id:"falcon",grp:"racers",n:"Rosso Falcon",kind:"GT racer",cls:"S2",pi:940,type:"super",paint:"#d1121c",speed:4,grip:5,handle:5,accel:4,bio:"Red GT race car, number 7. Big rear wing, glued to the road."},
  {id:"arrow",grp:"exotics",n:"Silver Arrow",kind:"Electric hypercar",cls:"S2",pi:960,type:"hyper",paint:"#d7dbe0",speed:5,grip:3,handle:3,accel:5,bio:"Silent electric rocket. Fastest off the line - brake early!"},
@@ -4254,6 +4255,7 @@ const GPA={ctx:null,master:null,eng:null,muted:false,
 function gpAudioUnlock(){if(window._gpAU)return;window._gpAU=true;const f=()=>{GPA.init();if(GPA.ctx&&GPA.ctx.state==="running")["pointerdown","touchend","click","keydown"].forEach(t=>document.removeEventListener(t,f,true));};["pointerdown","touchend","click","keydown"].forEach(t=>document.addEventListener(t,f,true));}
 /* ---------- one-time CSS: Horizon look (default) + storybook modifier ---------- */
 function gpCss(){if(document.getElementById("gpV4Css"))return;const s=document.createElement("style");s.id="gpV4Css";s.textContent=`
+.gpn-entry{display:block;width:100%;min-height:68px;margin:0 0 10px;padding:9px 14px;border:0;border-bottom:5px solid #00a93f;border-radius:16px;background:#00ff66;color:#061a10;cursor:pointer;font-family:inherit;text-align:center}.gpn-entry b{display:block;font-size:22px;font-weight:900}.gpn-entry small{font-size:14px;font-weight:600}.gpn-entry:active{transform:translateY(3px);border-bottom-width:2px}
 .fz-pic{position:relative;display:block;width:100%;aspect-ratio:2.4;overflow:hidden;border-radius:10px;background:linear-gradient(#5f8fd0,#c9dcf0 55%,#4a5a3c 56%,#2b3524)}
 .fz-pic.hero{background:#0a0d18 var(--bg) center/cover no-repeat}
 .fz-pic.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,13,24,0) 40%,rgba(10,13,24,.55) 100%)}
@@ -4648,7 +4650,7 @@ function gpCardPic(c){const D=GP_PICS[c.id];if(!D)return'<canvas width="480" hei
 function gpHead(sub,bg,pos){return '<div class="fz-head" style="background-image:url('+(bg||GP_WORLD.hero)+')'+(pos?';background-position:'+pos:'')+'"><img class="fz-logo" src="'+GP_WORLD.logo+'" alt="Grand Fable Horizon" decoding="async"><div class="fz-sub">'+sub+'</div></div>';}
 function gpShellClass(){return "fadein fz-shell"+(gpStory()?" story":"");}
 function renderRace(){
-  clearTimers();closeOverlay();defocus();showAnanseCorner(false);gpStop();
+  if(GPN)gpnLeave();clearTimers();closeOverlay();defocus();showAnanseCorner(false);gpStop();
   if(typeof kdWebgl==="function"&&!kdWebgl()){renderRace2D();return;}
   gpCss();gpAudioUnlock();document.body.classList.add("learningworld");
   const sel=gpCar().id,paint=gpPaint();
@@ -4677,21 +4679,21 @@ function gpPickGrp(g){window._gpGrp=g;document.querySelectorAll(".fz-gtabs butto
 function gpPickCar(id){if(P){P.gpCar=id;save();}else window._gpCar=id;document.querySelectorAll(".fz-car").forEach(b=>b.classList.toggle("on",b.dataset.car===id));const sh=$("fzShell");if(sh)sh.classList.toggle("pic",!!GP_PICS[id]);gpDrawPreviews();sfx("tick");}
 function gpPickPaint(h){if(P){P.gpPaint=h;save();}else window._gpPaint=h;document.querySelectorAll(".fz-sw").forEach(b=>b.classList.toggle("on",b.dataset.paint===h));gpDrawPreviews();sfx("tick");}
 function gpPickRacer(id){gpPickCar(GP_CARS.some(c=>c.id===id)?id:"falcon");}
-function gpMode(){return (P&&P.gpMode)||window._gpMode||"free";}
-function gpPace(){return (P&&P.gpPace)||window._gpPace||"gentle";}
+function gpMode(){if(GPN&&GPN.race)return"race";return (P&&P.gpMode)||window._gpMode||"free";}
+function gpPace(){if(GPN&&GPN.race)return GPN.race.pace;return (P&&P.gpPace)||window._gpPace||"gentle";}
 function gpPickPace(v){if(P){P.gpPace=v;save();}else window._gpPace=v;document.querySelectorAll(".fz-pace button").forEach(b=>b.classList.toggle("on",b.dataset.p===v));sfx("tick");}
 function gpPaceMul(){const g=gpPace()==="gentle";return gpMode()==="free"?(g?0.62:0.8):(g?0.76:0.92);}
 function gpPickMode(m){if(P){P.gpMode=m;save();}else window._gpMode=m;document.querySelectorAll(".fz-mode.fz-m button").forEach(b=>b.classList.toggle("on",b.dataset.m===m));sfx("tick");}
 function gpAuto(){return !!(P?P.gpAuto:window._gpAuto);}
 function gpPickAuto(v){if(P){P.gpAuto=!!v;save();}else window._gpAuto=!!v;document.querySelectorAll(".fz-auto button").forEach(b=>b.classList.toggle("on",(b.dataset.a==="1")===!!v));sfx("tick");}
-function gpTrafficOn(){const v=P?P.gpTraffic:window._gpTrafficOpt;return v!==false;}
+function gpTrafficOn(){if(GPN&&GPN.race)return false;const v=P?P.gpTraffic:window._gpTrafficOpt;return v!==false;}
 function gpPickLook(v){if(P){P.gpLook=v;save();}else window._gpLook=v;sfx("tick");renderCircuits(window._gpTab);}
 /* ---------- options (saved on the profile, like the other racer choices) ---------- */
 function gpOpt(k,def){const v=P?P[k]:window["_"+k];return v==null?def:v;}
 function gpSetOpt(k,v){if(P){P[k]=v;save();}else window["_"+k]=v;}
 const GP_VIEWS=["chase","far","hood","bumper","cockpit"],GP_VIEW_NAME={chase:"CHASE",far:"FAR",hood:"HOOD",bumper:"BUMPER",cockpit:"COCKPIT"};   // the 🎥 button cycles them in this order
 function gpCamMode(){const v=gpOpt("gpCam","chase");return GP_VIEWS.includes(v)?v:"chase";}
-function gpLaps(){const n=+gpOpt("gpLaps",2);return n>=1&&n<=3?n:2;}
+function gpLaps(){if(GPN&&GPN.race)return GPN.race.laps;const n=+gpOpt("gpLaps",2);return n>=1&&n<=3?n:2;}
 function gpPickOpt(k,v){if(k==="gpLook"){gpPickLook(v);return;}if(k==="gpTraffic")v=!!v;if(k==="gpLaps")v=+v;gpSetOpt(k,v);if(k==="gpPace")window._gpPace=v;
   document.querySelectorAll('.fz-opt[data-k="'+k+'"] button').forEach(b=>b.classList.toggle("on",b.dataset.v===String(v)));sfx("tick");}
 const GP_TAG={deep:["UNDERWATER","#00d2ff"],desert:["DESERT","#ffb347"],kawaguchi:["JAPAN","#ff5fa2"],hakone:["JAPAN","#ff5fa2"],tokyo:["JAPAN","#ff5fa2"],city:["CITY","#2fd3c3"],accra:["GHANA","#fcd116"],coast:["COAST","#4fa8ff"]};
@@ -4706,10 +4708,10 @@ function gpTrackCard(c,i,best){const tg=GP_TAG[c.id]||["ROUTE","#fff"],b=best[c.
 function gpOptRow(k,label,opts,cur){return'<div class="fz-opt" data-k="'+k+'"><span class="fz-ol">'+label+'</span><div>'+opts.map(o=>'<button data-v="'+o[0]+'" class="'+(String(cur)===String(o[0])?"on":"")+'" onclick="gpPickOpt(\''+k+'\','+JSON.stringify(o[0]).replace(/"/g,"'")+')">'+o[1]+'</button>').join("")+'</div></div>';}
 function GP_TRACK_ORDER(){const first=["deep","desert","accra","city","coast"];return GP_CIRCUITS.map((c,i)=>i).sort((a,b)=>{const fa=first.indexOf(GP_CIRCUITS[a].id),fb=first.indexOf(GP_CIRCUITS[b].id);return (fa<0?9+a:fa)-(fb<0?9+b:fb);});}   // the new courses lead the picker
 function renderCircuits(tab){
-  clearTimers();closeOverlay();showAnanseCorner(false);gpStop();gpCss();gpAudioUnlock();
+  if(GPN)gpnLeave();clearTimers();closeOverlay();showAnanseCorner(false);gpStop();gpCss();gpAudioUnlock();
   tab=tab==="opts"?"opts":"tracks";window._gpTab=tab;
   const best=P&&P.race?P.race:{};
-  const tracks='<div class="fz-mode fz-m"><button data-m="race" class="'+(gpMode()==="race"?"on":"")+'" onclick="gpPickMode(\'race\')">🏁 Race: beat 4 rivals</button><button data-m="free" class="'+(gpMode()==="free"?"on":"")+'" onclick="gpPickMode(\'free\')">🎵 Free drive: collect the music</button></div>'
+  const tracks='<button class="gpn-entry" id="gpnEntry" onclick="renderOnline()"><b>👫 Race a friend</b><small>Each on your own device, with a private code</small></button><div class="fz-mode fz-m"><button data-m="race" class="'+(gpMode()==="race"?"on":"")+'" onclick="gpPickMode(\'race\')">🏁 Race: beat 4 rivals</button><button data-m="free" class="'+(gpMode()==="free"?"on":"")+'" onclick="gpPickMode(\'free\')">🎵 Free drive: collect the music</button></div>'
    +'<div class="fz-tracks">'+GP_TRACK_ORDER().map(i=>gpTrackCard(GP_CIRCUITS[i],i,best)).join("")+'</div>'
    +'<div class="fz-hint">Tap a track to start · '+gpLaps()+' lap'+(gpLaps()>1?'s':'')+' · '+(GP_VIEW_NAME[gpCamMode()]||"CHASE").toLowerCase()+' cam'+' · traffic '+(gpTrafficOn()?'on':'off')+' <button class="fz-link" onclick="renderCircuits(\'opts\')">change ⚙️</button></div>';
   const opts='<div class="fz-opts">'
@@ -4749,7 +4751,7 @@ function gpDrawMini(cv,c,karts,overlay){
   x.strokeStyle=story?"#f2c14e":"#fff";x.lineWidth=karts?cv.width/80:3.5;x.stroke();
   const P0=c.pts;const st=map(P0[0][0],P0[0][1]);x.fillStyle="#fff";x.fillRect(st[0]-4,st[1]-4,8,8);x.fillStyle="#111";x.fillRect(st[0]-4,st[1]-4,4,4);x.fillRect(st[0],st[1],4,4);
   if(karts&&R3&&R3.traffic)R3.traffic.cars.forEach(k=>{const m=map(k.pos.x,k.pos.z);x.fillStyle="rgba(230,235,245,.8)";x.fillRect(m[0]-2,m[1]-2,4,4);});
-  if(karts)karts.forEach(k=>{const p=k.pos;const m=map(p.x,p.z);x.fillStyle=k.player?"#ff2d87":k.racer.css;const rr=cv.width/(k.player?24:34);x.beginPath();x.arc(m[0],m[1],rr,0,7);x.fill();x.strokeStyle=k.player?"#fff":"rgba(0,0,0,.5)";x.lineWidth=cv.width/90;x.stroke();});
+  if(karts)karts.forEach(k=>{if(k.netGone)return;const p=k.pos;const m=map(p.x,p.z);x.fillStyle=k.player?"#ff2d87":k.racer.css;const rr=cv.width/(k.player?24:34);x.beginPath();x.arc(m[0],m[1],rr,0,7);x.fill();x.strokeStyle=k.player?"#fff":"rgba(0,0,0,.5)";x.lineWidth=cv.width/90;x.stroke();});
 }
 /* ---------- textures drawn on canvases ---------- */
 function gpCanvasTex(w,h,draw,repeat){const cv=document.createElement("canvas");cv.width=w;cv.height=h;draw(cv.getContext("2d"),w,h);const t=new THREE.CanvasTexture(cv);if(repeat){t.wrapS=t.wrapT=THREE.RepeatWrapping;}t.anisotropy=window._gpAniso||4;if(THREE.sRGBEncoding)t.encoding=THREE.sRGBEncoding;return t;}
@@ -4951,6 +4953,30 @@ function gpBuildGlbCar(T,car,src,paint,shared){
 function gpGlbUpdate(kt,dt){const G=kt.glb;G.glow+=((kt.brakeOn?1:0)-G.glow)*Math.min(1,dt*(kt.brakeOn?18:7));
   const om=Math.abs(kt.speed)/Math.max(0.1,kt.S.radR),bo=Math.max(0,Math.min(0.88,(om-18)/34));G.blurs.forEach(b=>{const v=bo>0.02&&!kt.lodFar;if(b.visible!==v)b.visible=v;if(v)b.material.opacity=bo;});
   kt.tailMat.emissiveIntensity=0.5+G.glow*1.9;G.glows.forEach(s=>{const v=G.glow>0.02;if(s.visible!==v)s.visible=v;if(v)s.material.opacity=G.glow*0.7;});}
+/* ---------- the racing name ON the car (job 1107-0258): a livery plate on both doors and one across the back ----------
+   Only ever drawn from a name that passed gpnNameOk (2-10 letters, rude-word filter). The plates sit on the sprung body so they lean with
+   it; their spot is found by shooting a ray at the real model (every car has a different shape), with a fixed guess if nothing is hit.
+   Plate colours flip with the paint (light paint = dark plate) so the name reads on every car, in the chase camera at race distance. */
+function gpnFontFace(){if(document.getElementById("gpnFont"))return;const s=document.createElement("style");s.id="gpnFont";s.textContent='@font-face{font-family:"GPN Bungee";src:url(assets/vendor/fonts/Bungee-Regular.woff2) format("woff2");font-display:swap}';document.head.appendChild(s);}
+function gpnLight(hex){const h=/^#[0-9a-f]{6}$/i.test(hex||"")?hex:"#888888",r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return(0.299*r+0.587*g+0.114*b)/255;}
+function gpNamePlate(text,paint,W,H){const dark=gpnLight(paint)>0.56,bg=dark?"#14101f":"#ffffff",fg=dark?"#ffffff":"#14101f",edge=dark?"#00f0ff":"#ff2d87";
+  const draw=(x,w,h)=>{x.clearRect(0,0,w,h);const r=h*0.3;x.fillStyle=edge;x.beginPath();x.moveTo(r,0);x.arcTo(w,0,w,h,r);x.arcTo(w,h,0,h,r);x.arcTo(0,h,0,0,r);x.arcTo(0,0,w,0,r);x.fill();
+    const b=h*0.1;x.fillStyle=bg;x.beginPath();x.moveTo(r,b);x.arcTo(w-b,b,w-b,h-b,r*0.8);x.arcTo(w-b,h-b,b,h-b,r*0.8);x.arcTo(b,h-b,b,b,r*0.8);x.arcTo(b,b,w-b,b,r*0.8);x.fill();
+    let px=h*0.62;const fam='"GPN Bungee",Impact,system-ui,sans-serif',wt=document.fonts&&document.fonts.check('40px "GPN Bungee"')?"400":"900";x.font=wt+" "+px+"px "+fam;const mw=x.measureText(text).width;if(mw>w*0.86){px*=w*0.86/mw;x.font=wt+" "+px+"px "+fam;}
+    x.textAlign="center";x.textBaseline="middle";x.fillStyle=fg;x.fillText(text,w/2,h/2+h*0.04);};
+  const tex=gpCanvasTex(W,H,draw);if(document.fonts&&document.fonts.load)document.fonts.load('40px "GPN Bungee"').then(()=>{const cv=tex.image;draw(cv.getContext("2d"),cv.width,cv.height);tex.needsUpdate=true;}).catch(()=>{});return tex;}
+function gpNameLivery(T,m,text,paint){if(!text||!gpnNameOk(text)||!m||!m.g||!m.body||(m.pic))return;gpnFontFace();
+  const D=(m.carId&&GP_GLB[m.carId])||{},S=m.S||{len:4.4,w:1.9},roofY=D.roofY||1.2,tail=D.tail||-S.len/2,tyX=D.tyreX||S.w*0.42;
+  const g=m.g;g.updateMatrixWorld(true);const skin=[];m.g.traverse(o=>{if(!o.isMesh||!o.material||o.material.transparent||o.material.opacity<1)return;const nm=o.material.name||"";if(/^(glass|decal|lamp)$/.test(nm))return;for(let q=o;q&&q!==g;q=q.parent)if(/^(wheel|hub|caliper)_/.test(q.name||""))return;skin.push(o);});
+  const rc=new T.Raycaster(),hit=(o,d)=>{const wo=g.localToWorld(new T.Vector3(o[0],o[1],o[2])),wd=new T.Vector3(d[0],d[1],d[2]).transformDirection(g.matrixWorld);rc.set(wo,wd);rc.far=12;const h=rc.intersectObjects(skin,false)[0];return h?g.worldToLocal(h.point.clone()):null;};
+  const bodyIn=v=>m.body.worldToLocal(g.localToWorld(v.clone()));
+  const y=roofY*0.5,yr=roofY*0.62,sw=Math.min(1.7,Math.max(1.15,S.len*0.3)),sh=sw*0.27,rw=Math.min(1.5,Math.max(0.9,S.w*0.64)),rh=rw*0.25;
+  const sideTex=gpNamePlate(text,paint,512,138),rearTex=gpNamePlate(text,paint,512,128);
+  const mk=(tex,w,h)=>{const mt=new T.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-6,polygonOffsetUnits:-6,toneMapped:false});mt.userData.lin=1;const mesh=new T.Mesh(new T.PlaneGeometry(w,h),mt);mesh.renderOrder=3;mesh.userData.liv=1;return mesh;};
+  const out=[];
+  [1,-1].forEach(sd=>{let p=hit([sd*3,y,0.0],[-sd,0,0]);const x=p?p.x:sd*S.w*0.46;const pl=mk(sideTex,sw,sh);const v=bodyIn(new T.Vector3(x+sd*0.012,y,0.05));pl.position.copy(v);pl.rotation.y=sd*Math.PI/2;m.body.add(pl);out.push(pl);});
+  {const p=hit([0,yr,tail-3],[0,0,1]);const z=p?p.z:tail;const pl=mk(rearTex,rw,rh);pl.position.copy(bodyIn(new T.Vector3(0,yr,z-0.012)));pl.rotation.y=Math.PI;m.body.add(pl);out.push(pl);}
+  m.livery=out;}
 /* ---------- pick-an-upgrade after each race ----------
    Finishing a race (any place) offers 3 big cards; one tap fits that upgrade, saved on the profile (P.gpUp, same save() pattern).
    Everything is earned by racing: no shop, no coins, nothing to buy. Steps are small so races stay fair and finishable:
@@ -5021,7 +5047,7 @@ function gpGarageSet(k,v){const u=gpUpState();u[k]=v||null;gpUpSave(u);sfx("tick
 function gpRivalCars(cid){const mine=gpCar(),others=GP_CARS.filter(c=>c.id!==mine.id),k=Math.max(0,GP_CIRCUITS.findIndex(c=>c.id===cid));const out=[];
   if(cid==="desert"){const tr=others.filter(c=>c.grp==="trucks"),ot=others.filter(c=>c.grp!=="trucks");return[ot[2],tr[0],ot[9]||ot[0],tr[2]||tr[1]];}   // desert: two trucks on the grid
   for(let q=0;q<4;q++)out.push(others[(k*3+q*Math.max(1,Math.floor(others.length/4)))%others.length]);return out;}
-function gpRacePicIds(cid){return[gpCar()].concat(gpRivalCars(cid)).map(c=>c.id);}
+function gpRacePicIds(cid){if(GPN&&GPN.race)return GPN.race.roster.map(r=>GP_CARS.find(c=>c.id===r.car)||GP_CARS[0]);return[gpCar()].concat(gpRivalCars(cid)).map(c=>c.id);}
 function gpLoadPics(ids){
   if(!window.THREE)return Promise.resolve({});
   const T=THREE;window._gpPics=window._gpPics||{};const L=new T.TextureLoader(),want=[...new Set(ids||Object.keys(GP_PICS))].filter(id=>GP_PICS[id]);
@@ -5835,7 +5861,7 @@ function gpDeepSplash(kt,dir,power){const R=R3,dp=R.dp,sp=dp.spl,V=kt.pos,tn=R.c
   if(kt.player){GPA.play(dir>0?"splashout":"splashin",big);R.shake=Math.max(R.shake,0.2*big);if(dir>0)dp.stats.exits++;else dp.stats.entries++;dp.stats.log.push({ev:dir>0?"out":"in",t:+(R.simT||0).toFixed(2),kmh:Math.round(kt.speed*3.6),air:!!kt.air,vy:+(kt.vy||0).toFixed(1)});}}
 function gpDeepWash(){const e=R3.dp.wash;if(!e)return;e.classList.remove("on");void e.offsetWidth;e.classList.add("on");}
 /* everything that moves or decides, once a frame: animals, bumps, dodge rewards, the cue, splashes, bubbles */
-function gpDeepUpdate(dt,waiting){const R=R3,dp=R.dp,me=R.me,T=R.T,S=dp.y;if(!dp.A)return;dp.t+=dt;const tm=dp.t;dp.U.t.value=tm;dp.kelpT.value=tm;if(dp.Ca){dp.Ca.U.t.value=tm;}
+function gpDeepUpdate(dt,waiting){const R=R3,dp=R.dp,me=R.me,T=R.T,S=dp.y;if(!dp.A)return;dp.t+=dt;if(R.online&&R.netGo)dp.t=(performance.now()-R.netGo)/1000+60;const tm=dp.t;dp.U.t.value=tm;dp.kelpT.value=tm;if(dp.Ca){dp.Ca.U.t.value=tm;}
   if(dp.chevT)dp.chevT.offset.y=(dp.chevT.offset.y-dt*1.4)%1;
   if(dp.fish)dp.fish.forEach(f=>{f.g.rotation.y+=f.v*dt;});
   // ---- cars and the water line ----
@@ -5862,7 +5888,7 @@ function gpDeepUpdate(dt,waiting){const R=R3,dp=R.dp,me=R.me,T=R.T,S=dp.y;if(!dp
     if(waiting||R.done)continue;
     // ---- contact: an ellipse on the road's own frame, a little smaller than the picture (fair to the driver) ----
     const fairK=dp.easy?0.8:0.92,a=K.a*fairK,b=K.b*fairK,cy=Math.cos(A.relYaw),sy=Math.sin(A.relYaw);
-    for(const k of R.karts){if(k.jet||(k.dpSafe||0)>0)continue;let dd=k.t*len-dn;if(dd>len/2)dd-=len;else if(dd<-len/2)dd+=len;if(Math.abs(dd)>26)continue;const lat=(k.x-xn)*XS,al=dd*cy+lat*sy,ac=-dd*sy+lat*cy,top=K.top+p.h;if(k.air&&k.y-(k.ry||0)>top)continue;
+    for(const k of R.karts){if(k.net||k.jet||(k.dpSafe||0)>0)continue;let dd=k.t*len-dn;if(dd>len/2)dd-=len;else if(dd<-len/2)dd+=len;if(Math.abs(dd)>26)continue;const lat=(k.x-xn)*XS,al=dd*cy+lat*sy,ac=-dd*sy+lat*cy,top=K.top+p.h;if(k.air&&k.y-(k.ry||0)>top)continue;
       const aa=a+(k.S.len||4.4)*0.42,bb=b+(k.S.w||2)*0.42;if((al*al)/(aa*aa)+(ac*ac)/(bb*bb)<1)gpDeepBump(k,A,lat,dd);}
   }
   SH.count=sn;SH.instanceMatrix.needsUpdate=true;
@@ -5952,30 +5978,30 @@ async function startRace3D(cid){
   clearTimers();closeOverlay();showAnanseCorner(false);gpStop();
   GPA.init(); // inside the tap on a route card, which is what iOS needs to allow sound
   const C0=GP_CIRCUITS.find(c=>c.id===cid)||GP_CIRCUITS[0],C=Object.assign({},C0,{laps:gpLaps()});   // laps come from Options (1-3)
-  app.innerHTML='<div class="fadein center" style="padding-top:20vh"><div class="ananse-wrap">'+ananseSVG(100,"idle")+'</div><h2 style="color:#fff">'+({city:"Heading downtown…",accra:"Akwaaba! Heading to Accra…",coast:"Heading to the coast…",desert:"Heading into the desert…",deep:"Diving into the deep…"}[C.theme]||"Heading to Japan…")+'</h2><p class="muted" style="color:#ffd2e6">Loading '+esc(C.name)+'…</p></div>';
+  app.innerHTML='<div class="fadein center" id="gpnLoad" style="padding-top:20vh"><div class="ananse-wrap">'+ananseSVG(100,"idle")+'</div><h2 style="color:#fff">'+({city:"Heading downtown…",accra:"Akwaaba! Heading to Accra…",coast:"Heading to the coast…",desert:"Heading into the desert…",deep:"Diving into the deep…"}[C.theme]||"Heading to Japan…")+'</h2><p class="muted" style="color:#ffd2e6">Loading '+esc(C.name)+'…</p></div>';
   const fb=()=>startRace2D(cid==="kawaguchi"?"accra":(cid==="tokyo"?"nebula":"skybridge"));
-  const intro=gpIntro(false);   // started inside the tap so iOS lets it play with sound
-  try{await loadThree();}catch(e){document.querySelectorAll(".fz-intro").forEach(e=>e.remove());toast("3D engine could not load — using the classic racer");fb();return;}
+  const intro=(GPN&&GPN.race)?null:gpIntro(false);   // started inside the tap so iOS lets it play with sound
+  try{await loadThree();}catch(e){document.querySelectorAll(".fz-intro").forEach(e=>e.remove());if(GPN&&GPN.race){renderOnline("The 3D game couldn't load on this device. Check the Wi-Fi and try again.");return;}toast("3D engine could not load — using the classic racer");fb();return;}
   // car pictures load lazily here (a slow network never holds the race more than a few seconds: cars without a picture use the 3D model)
   if(!gpStory()){try{await Promise.race([Promise.all([gpLoadPics(gpRacePicIds(C.id).filter(id=>!GP_GLB[id])),gpLoadGlb(gpRacePicIds(C.id)),gpLoadWorld(),C.traffic&&C.theme&&(gpTrafficOn()||C.theme==="accra")?gpLoadTraffic():null]),new Promise(r=>setTimeout(r,7000))]);}catch(e){}}
   await intro;
-  if(!app.querySelector("h2"))return;   // the player left while the intro was playing
-  try{gpBuild(C);}catch(e){console.error(e);gpStop();toast("3D racer hit a problem — using the classic racer");fb();}
+  if(!app.querySelector("h2")||(GPN&&GPN.race&&!$("gpnLoad")))return;   // the player left while the intro was playing
+  try{gpBuild(C);}catch(e){console.error(e);gpStop();if(GPN&&GPN.race){renderOnline("The 3D game hit a problem on this device.");return;}toast("3D racer hit a problem — using the classic racer");fb();}
 }
 function gpBuild(C){
   gpCss();
   const myCar=gpCar(),myPaint=gpPaint(),story=gpStory(),L=story?Object.assign({},C.look,C.story):C.look;
   if(P&&typeof P.gpMute==="boolean")GPA.muted=P.gpMute;GPA.setMute(GPA.muted);
-  app.innerHTML='<div class="fadein gp3-wrap v3'+(story?" story":"")+'" id="gp3">'
+  app.innerHTML='<div class="fadein gp3-wrap v3'+(story?" story":"")+(GPN&&GPN.race?" net":"")+'" id="gp3">'
    +'<canvas id="gp3c"></canvas><canvas class="fz-fx" id="gp3Fx" width="16" height="9"></canvas><div class="fz-vig"></div><canvas class="fz-ck" id="gp3Ck" width="16" height="9"></canvas>'
    +'<div class="gp3-touch" id="gp3L"></div>'
-   +'<div class="fz-tl"><div class="fz-pos" id="gp3Pos"'+(gpMode()==="free"?' style="display:none"':'')+'>5<small>th</small><em>/5</em></div><div class="fz-lap" id="gp3Lap">LAP 1/'+C.laps+'</div><div class="fz-time" id="gp3Time">0:00.0</div><div class="fz-song" id="gp3Song"'+(gpMode()==="free"?'':' style="display:none"')+'></div></div>'
+   +'<div class="fz-tl"><div class="fz-pos" id="gp3Pos"'+(gpMode()==="free"?' style="display:none"':'')+'>5<small>th</small><em>/5</em></div><div class="fz-lap" id="gp3Lap">LAP 1/'+C.laps+'</div><div class="fz-time" id="gp3Time">0:00.0</div>'+(GPN&&GPN.race?'<div class="fz-spd" id="gp3Spd"></div>':'')+'<div class="fz-song" id="gp3Song"'+(gpMode()==="free"?'':' style="display:none"')+'></div></div>'
    +'<canvas class="gp3-map" id="gp3Map" width="300" height="220"></canvas>'
    +'<div class="fz-skill" id="gp3Skill"></div>'
    +'<canvas class="fz-tach" id="gp3Tach" width="320" height="320"></canvas>'
    +'<button class="fz-btn mute" id="gp3Mute" aria-label="Sound on or off">'+(GPA.muted?"🔇":"🔊")+'</button>'
    +'<button class="fz-btn quit" id="gp3Quit" aria-label="Quit race" onclick="renderCircuits()">✕</button><button class="fz-cam" id="gp3Cam" aria-label="Change camera view"><i>🎥</i><b id="gp3CamL">CHASE</b></button>'
-   +'<div class="gp3-msg" id="gp3Msg"></div>'
+   +'<div class="gp3-msg" id="gp3Msg"></div><div class="gp3-last" id="gp3Last" aria-live="polite">LAST LAP</div>'
    +'<div class="gp3-card" id="gp3Card"><b>'+esc(C.name)+'</b><small>'+(gpMode()==="free"?"Free drive · ":"Race · ")+esc(L.time)+' · '+esc(myCar.n)+'</small></div>'
    +'<div class="gp3-count" id="gp3Count"></div>'
    +'<div class="fz-cue" id="gp3Cue"><b>TOO FAST!</b></div><div class="fz-air" id="gp3Air"></div><div class="fz-deepcue" id="gp3Deep"></div><div class="fz-wash" id="gp3Wash"></div><div class="fz-nitro" id="gp3Nitro"></div>'
@@ -5987,6 +6013,7 @@ function gpBuild(C){
    +'<div class="gp3-pad r"><button class="fz-pedal brake" id="rcB" aria-label="Brake pedal"><i></i><b>BRAKE</b></button><button class="fz-pedal gas'+(gpAuto()?" auto":"")+'" id="rcG" aria-label="Gas pedal"><i></i><b>'+(gpAuto()?"AUTO":"GAS")+'</b></button></div>'
    +'</div>'
    +'<div class="center fz-quit-row"><button class="readbtn" onclick="renderCircuits()">⟵ Quit race</button></div>';
+  if(GPN&&GPN.race){const w3=$("gp3"),pl=document.createElement("div");pl.className="gp3-plate";pl.id="gp3Plate";pl.append(w3.querySelector(".gp3-pad.l"),$("gp3Boost"),w3.querySelector(".gp3-pad.r"));w3.appendChild(pl);}   // online on a phone: the controls live on their own plate (CSS decides where; on a big screen it changes nothing)
   const T=THREE,canvas=$("gp3c"),UP=new T.Vector3(0,1,0);
   const renderer=new T.WebGLRenderer({canvas,antialias:true,powerPreference:"high-performance"});
   renderer.info.autoReset=false;
@@ -6345,13 +6372,13 @@ function gpBuild(C){
   if(!story){const ct=new T.Color(1,1,1).lerp(gpLin(L.sun),0.3).multiply(TINT);ct.multiplyScalar(1/Math.max(ct.r,ct.g,ct.b));shared.carTint=ct;}   // sunset rim/tint for the photo cars, matched to the route light
   const others=gpRivalCars(C.id);
   const pname=(P&&typeof P.name==="string"&&P.name.trim())?P.name.trim().split(/\s+/)[0]:"You";
-  const racers=[{n:pname,car:myCar,css:myPaint,player:true}].concat(gpMode()==="race"?others.slice(0,4).map((c,i)=>({n:GP_DRIVERS[i%GP_DRIVERS.length],car:c,css:c.paint,player:false})):[]);
+  const NET=!!(GPN&&GPN.race);const racers=NET?GPN.race.roster.map((r,ri)=>({rank:ri,n:r.disp,livery:r.name||"",car:GP_CARS.find(c=>c.id===r.car)||GP_CARS[0],css:r.paint,player:!!r.me,netPaint:r.paint,netUid:r.uid,slot:r.slot})):[{n:pname,livery:gpnProfileName(),car:myCar,css:myPaint,player:true}].concat(gpMode()==="race"?others.slice(0,4).map((c,i)=>({n:GP_DRIVERS[i%GP_DRIVERS.length],car:c,css:c.paint,player:false})):[]);
   const pics=story?{}:(window._gpPics||{});   // the storybook look keeps the drawn 3D cars (the ink filter buries a photo)
   const glbs=story?{}:(window._gpGlb||{});   // real 3D models (GLB) win over the photo sprites when they loaded
-  const pace=gpPaceMul();const karts=racers.map((r,i)=>{const m=(GP_GLB[r.car.id]&&glbs[r.car.id])?gpBuildGlbCar(T,r.car,glbs[r.car.id],gpGlbPaintFor(r.car,r.player),shared):(GP_PICS[r.car.id]&&pics[r.car.id])?gpBuildPicCar(T,r.car,pics[r.car.id],shared):gpBuildCar(T,r.car,r.css,shared);scene.add(m.g);const st=gpStats(r.car);st.max*=pace;st.accel*=0.75;if(r.player&&gpMode()==="race"){const U=gpUpState();st.max*=1+0.02*U.speed;st.accel*=1+0.06*U.launch;gpUpFit(T,m,true,shared);}
-    return{racer:r,player:r.player,...m,...st,t:0,x:0,px:0,speed:0,lap:0,spin:0,drift:0,off:0,hop:0,roll:0,pitch:0,steerVis:0,st1:0,steerIn:0,sv:0,dHold:0,wasBrake:false,lockT:0,gasT:0,wallT:0,knock:0,headA:0,headV:0,wallRec:0,leanT:0,liftT:0,chatter:0,yaw:null,lastSpeed:0,wheelPhase:0,wheelRadius:m.S.radR,travel:0,skidD:0,ahead:true,started:false,pos:new T.Vector3(),draft:false,brakeOn:false,load:0,squeal:0,loss:null,lossA:0,lossCool:0,overT:0,air:false,airT:0,vy:null,y:0,ry:null,sq:0,sqV:0,hang:0,pS:null,aiSkill:(r.player?1:(0.95+(i%3)*0.025+r.car.handle*0.006)*(gpPace()!=="gentle"?1:0.97)*((GP_PACK[gpPace()]||GP_PACK.normal).skill||1))};});
+  const pace=gpPaceMul();const karts=racers.map((r,i)=>{const m=(GP_GLB[r.car.id]&&glbs[r.car.id])?gpBuildGlbCar(T,r.car,glbs[r.car.id],r.netPaint||gpGlbPaintFor(r.car,r.player),shared):(GP_PICS[r.car.id]&&pics[r.car.id])?gpBuildPicCar(T,r.car,pics[r.car.id],shared):gpBuildCar(T,r.car,r.css,shared);scene.add(m.g);gpNameLivery(T,m,r.livery,r.netPaint||(r.player?gpGlbPaintFor(r.car,true):r.css));const st=gpStats(NET?GPN_STD:r.car);st.max*=pace;st.accel*=0.75;if(r.player&&gpMode()==="race"){const U=gpUpState();if(!NET){st.max*=1+0.02*U.speed;st.accel*=1+0.06*U.launch;}gpUpFit(T,m,true,shared);}   // online: everyone races on the car's own numbers, upgrades are looks only
+    return{racer:r,player:r.player,net:NET&&!r.player,netUid:r.netUid,...m,...st,t:0,x:0,px:0,speed:0,lap:0,spin:0,drift:0,off:0,hop:0,roll:0,pitch:0,steerVis:0,st1:0,steerIn:0,sv:0,dHold:0,wasBrake:false,lockT:0,gasT:0,wallT:0,knock:0,headA:0,headV:0,wallRec:0,leanT:0,liftT:0,chatter:0,yaw:null,lastSpeed:0,wheelPhase:0,wheelRadius:m.S.radR,travel:0,skidD:0,ahead:true,started:false,pos:new T.Vector3(),draft:false,brakeOn:false,load:0,squeal:0,loss:null,lossA:0,lossCool:0,overT:0,air:false,airT:0,vy:null,y:0,ry:null,sq:0,sqV:0,hang:0,pS:null,aiSkill:(r.player?1:(0.95+(i%3)*0.025+r.car.handle*0.006)*(gpPace()!=="gentle"?1:0.97)*((GP_PACK[gpPace()]||GP_PACK.normal).skill||1))};});
   {const me0=karts.find(k=>k.player);karts.forEach(k=>{if(!k.player)k.max=Math.min(k.max,me0.max*(gpPace()==="gentle"?0.97:1.05));});}   // kid-fair: a rival's top speed never runs away from Prince's car (Easy: a touch under it)
-  const rows=karts.length,pitch=8/(len/M);karts.forEach((k,i)=>{const row=k.player?rows-1:i-1;k.t=((M-5-row*pitch)/M)%1;k.x=(row%2?0.4:-0.4)*(rows>1?1:0);k.px=k.x;});
+  const rows=karts.length,pitch=8/(len/M);karts.forEach((k,i)=>{const row=NET?(k.racer.rank+(GPN.race.shift||0))%rows:(k.player?rows-1:i-1);k.t=((M-5-row*pitch)/M)%1;k.x=(row%2?0.4:-0.4)*(rows>1?1:0);k.px=k.x;});
   const TR=(TH&&!story&&(gpTrafficOn()||!!(TW&&TW.parked&&TW.parked.length)))?gpTrafficBuild(T,scene,window._gpTraffic,C,karts,len,karts.find(k=>k.player),shared0,{moving:gpTrafficOn(),parked:(TW&&TW.parked)||[]}):null;   // traffic cars (street + coast courses, Options: traffic on)
   if(gpMode()==="race"){const boxTex=gpCanvasTex(128,256,(x,w,h)=>{x.clearRect(0,0,w,h);x.strokeStyle="rgba(255,255,255,.9)";x.lineWidth=10;x.strokeRect(6,6,w-12,h-12);});
     const boxMat=new T.MeshBasicMaterial({map:boxTex,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});boxMat.userData.lin=1;const boxGeo=new T.PlaneGeometry(2.8,5.8).rotateX(-Math.PI/2);
@@ -6389,7 +6416,7 @@ function gpBuild(C){
     if(m.color&&!(o.isInstancedMesh&&o.instanceColor)&&!m.map)m.color.convertSRGBToLinear();if(m.emissive&&!m.emissiveMap)m.emissive.convertSRGBToLinear();});});
   R3={T,C,renderer,scene,camera,curve,samples,M,W,len,karts,me:karts.find(k=>k.player),keys:{},touchDir:0,brake:false,gas:false,drift:false,autoGas:gpAuto(),kap,vProf,vLim,lineX,corners,big,grip:GRIP,groundAt,shake:0,lossLog:[],jumpLog:[],t0:performance.now(),time:0,countdown:3.8,phase:"intro",cdReq:false,cdLog:[],frameN:0,goAt:0,done:false,raf:null,last:performance.now(),camPos:new T.Vector3(),msgT:0,place:5,board:[],
     sun,sky,band,glare,sunDir,sunOff:sunDir.clone().multiplyScalar(170),envRT,smoke,dust,sparks,petals,skids,skidLife,skidFade,skN:0,dummy,setLights,setScreen,screenTxt:"",fov:60,pr:pr0,fpsT:0,fpsN:0,fps:0,lowT:0,shadowsOn:true,tmpV:new T.Vector3(),tmpV2:new T.Vector3(),tmpV3:new T.Vector3(),tmpV4:new T.Vector3(),camYaw:null,teleV:new T.Vector3(),teleShadow:new T.Vector3(),teleSprite:new T.Vector3(),UP,story,
-    gates,trapT:trapI/M,trapBest:0,gear:1,tachT:0,post,mode:gpMode(),notes,notesGot:0,notesTotal:notes.length*C.laps,song:[],lastDeg:4,songDirty:1,water,waterTex,fx:$("gp3Fx"),fxW:16,fxH:9,sk:{chain:0,mult:1,total:0,idle:0,list:[],dirty:1,clean:0,cool:0},bumpT:9,upGrip:gpMode()==="race"?1+0.04*gpUpState().tyres:1,cLog:null,sunTint:new T.Color(L.sun).lerp(new T.Color(1,1,1),0.35),skyTint:new T.Color(L.mid).lerp(new T.Color(L.hor),0.4),traffic:TR,tw:TW,megaTex,splash:TH==="coast"?gpParticles(T,scene,140,0.9,false,0.55):null};R3.bodies=R3.karts.concat(TR?TR.cars:[]);
+    gates,trapT:trapI/M,trapBest:0,gear:1,tachT:0,post,mode:gpMode(),notes,notesGot:0,notesTotal:notes.length*C.laps,song:[],lastDeg:4,songDirty:1,water,waterTex,fx:$("gp3Fx"),fxW:16,fxH:9,sk:{chain:0,mult:1,total:0,idle:0,list:[],dirty:1,clean:0,cool:0},bumpT:9,upGrip:(gpMode()==="race"&&!NET)?1+0.04*gpUpState().tyres:1,online:NET,netGo:0,cLog:null,sunTint:new T.Color(L.sun).lerp(new T.Color(1,1,1),0.35),skyTint:new T.Color(L.mid).lerp(new T.Color(L.hor),0.4),traffic:TR,tw:TW,megaTex,splash:TH==="coast"?gpParticles(T,scene,140,0.9,false,0.55):null};R3.bodies=R3.karts.concat(TR?TR.cars:[]);
   window.__gp={fps:0,pr:pr0,shadows:true,playerWheelPhase:0,wheelPhase:0,playerSpeed:0,speed:0,wheelRadius:R3.me.wheelRadius,cameraFov:60,cameraOffsetFromCar:0,cameraOffset:0,cameraOffsetVector:{x:0,y:0,z:0},playerShadowWorldY:0,shadowY:0,bodyRoll:0,spriteBottomY:R3.me.pos.y,smokeCount:0,rendererCalls:0,renderCalls:0,wheelPatchDrawCalls:0,wheelPatchState:R3.me.pic?"sharp":"3d",wheelPatchVisible:false,wheelPatchFrame:R3.me.pic?R3.me.pic.frame:null,wheelPatchKind:R3.me.pic&&R3.me.pic.wheelPatch?R3.me.pic.wheelPatch.kind:"3d",phys:{slipDeg:0,steerIn:0,sv:0,drift:0,x:0,speed:0},cam:{}};
   // keyboard
   R3.kd=e=>{if(!R3)return;const k=e.key.toLowerCase();GPA.init();if(k==="escape"){renderCircuits();return;}if(k==="m"){gpToggleMute();return;}if(k==="c"){gpCycleCam();return;}if((k==="b"||k==="shift")&&!e.repeat){gpBoost();e.preventDefault();return;}if(k==="t"&&!e.repeat){gpTrick("spin",1);e.preventDefault();return;}if(k==="l"&&!e.repeat&&R3.me&&R3.me.jet){gpTrick("flip",1);e.preventDefault();return;}
@@ -6429,13 +6456,14 @@ function gpBuild(C){
   document.addEventListener("touchmove",R3.blockTouch,{passive:false});document.addEventListener("gesturestart",R3.blockTouch,{passive:false});
   R3.onVis=()=>{if(!GPA.ctx)return;if(document.hidden)GPA.ctx.suspend();else GPA.ctx.resume();};document.addEventListener("visibilitychange",R3.onVis);
   const wrapEl=$("gp3");
-  R3.onResize=()=>{if(!R3)return;const w=wrapEl.clientWidth||720,h=wrapEl.clientHeight||Math.round(w*9/16);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();const pr=renderer.getPixelRatio();R3.vpW=w*pr;R3.vpH=h*pr;R3.smoke.mat.uniforms.scale.value=h*pr*0.72;R3.smoke.mat.uniforms.maxPx.value=h*pr*(R3.me&&R3.me.glb?0.5:0.08);if(R3.post)R3.post.resize(w,h,renderer.getPixelRatio());if(R3.fx){R3.fxW=Math.max(16,Math.round(w/2));R3.fxH=Math.max(9,Math.round(h/2));R3.fx.width=R3.fxW;R3.fx.height=R3.fxH;}const ck=$("gp3Ck");if(ck){const q=Math.min(2,window.devicePixelRatio||1);ck.width=Math.round(w*q);ck.height=Math.round(h*q);}};
+  R3.onResize=()=>{if(!R3)return;const w=wrapEl.clientWidth||720,h=(wrapEl.classList.contains("net")&&canvas.clientHeight>50?canvas.clientHeight:wrapEl.clientHeight)||Math.round(w*9/16);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();const pr=renderer.getPixelRatio();R3.vpW=w*pr;R3.vpH=h*pr;R3.smoke.mat.uniforms.scale.value=h*pr*0.72;R3.smoke.mat.uniforms.maxPx.value=h*pr*(R3.me&&R3.me.glb?0.5:0.08);if(R3.post)R3.post.resize(w,h,renderer.getPixelRatio());if(R3.fx){R3.fxW=Math.max(16,Math.round(w/2));R3.fxH=Math.max(9,Math.round(h/2));R3.fx.width=R3.fxW;R3.fx.height=R3.fxH;}const ck=$("gp3Ck");if(ck){const q=Math.min(2,window.devicePixelRatio||1);ck.width=Math.round(w*q);ck.height=Math.round(h*q);}};
   R3.onOrient=()=>{[150,400,900].forEach(ms=>setTimeout(()=>{if(R3)R3.onResize();},ms));};
   window.addEventListener("resize",R3.onResize);window.addEventListener("orientationchange",R3.onOrient);if(R3.me.glb){R3.smoke.lim=0.95;R3.smoke.base=0.85;R3.smoke.cap=150;const sc=R3.sunTint||new T.Color(1,1,1),sk=R3.skyTint||new T.Color(0.8,0.82,0.9);R3.smoke.mat.uniforms.tint.value.copy(sc).multiplyScalar(1.2);R3.smoke.mat.uniforms.shade.value.copy(sk).multiplyScalar(0.97);}R3.onResize();   // smoke takes the scene light: warm sun on top, sky-blue shade underneath
   GPA.under=0;GPA.startEngine();
   // the track + car line is said BEFORE the count; the count starts when that clip ends (never speaks "three, two, one")
   const voiceOn=typeof DB!=="undefined"&&DB&&DB.sound&&!(typeof _voiceUnlocked!=="undefined"&&!_voiceUnlocked);
-  if(voiceOn&&typeof sayAndThen==="function")sayAndThen(C.name+". "+myCar.n+".",()=>setTimeout(gpCountStart,250),6000);
+  if(NET)gpnBuilt();
+  else if(voiceOn&&typeof sayAndThen==="function")sayAndThen(C.name+". "+myCar.n+".",()=>setTimeout(gpCountStart,250),6000);
   else setTimeout(gpCountStart,1300);
   R3.raf=requestAnimationFrame(gpFrame);
   setTimeout(gpEnvCheck,1200);
@@ -6462,7 +6490,7 @@ function gpBoostTick(dt,waiting){const R=R3;if(!R.boost)gpBoostInit();const B=R.
   if(!waiting&&!R.done){const spd=me.speed/me.max,off=Math.abs(me.x)>1.05&&!me.jet;let r=B.easy?0.03:0.018;   // on its own: a full meter in ~35-55 s
     if(me.drift&&spd>0.35&&!off)r+=0.11;if(me.air)r+=0.08;if(!off&&spd>0.55&&R.bumpT>2&&!me.loss)r+=B.easy?0.03:0.02;
     if(me.boostT<=0)B.q=Math.min(1,B.q+r*dt);
-    R.karts.forEach(k=>{if(k.player||k.boostT>0)return;k.bNext-=dt;if(k.bNext>0)return;const i=Math.floor(k.t*R.M)%R.M,clear=R.vProf[(i+Math.round(40/(R.len/R.M)))%R.M]>=k.max*0.98&&R.vProf[i]>=k.max*0.98;
+    R.karts.forEach(k=>{if(k.player||k.net||k.boostT>0)return;k.bNext-=dt;if(k.bNext>0)return;const i=Math.floor(k.t*R.M)%R.M,clear=R.vProf[(i+Math.round(40/(R.len/R.M)))%R.M]>=k.max*0.98&&R.vProf[i]>=k.max*0.98;
       if(!clear){k.bNext=0.7;return;}if(B.easy&&(k.lap+k.t)>(me.lap+me.t)){k.bNext=5;return;}k.boostT=1.8;k.boostMul=B.easy?1.05:1.08;k.bNext=(B.easy?28:18)+Math.random()*14;});}
   const ready=!waiting&&!R.done&&R.phase==="race"&&B.q>=GP_BOOST.cost&&B.cool<=0&&me.boostT<=0,on=me.boostT>0,key=Math.round(B.q*100)+"|"+ready+"|"+on;
   if(key!==B.key&&B.btn){B.key=key;B.ring.setAttribute("stroke-dashoffset",(276.5*(1-B.q)).toFixed(1));B.btn.classList.toggle("ready",ready);B.btn.classList.toggle("on",on);
@@ -6515,12 +6543,13 @@ function gpMirror(){const R=R3,T=R.T,rd=R.renderer;let m=R.mir;
   m.q.position.set(fx+fw/2,1-(fy+fh/2),0);m.q.scale.set(-fw,fh,1);   // negative width = a mirror image, like a real mirror
   if((m.n++)%2===0){const me=R.me;me.g.updateMatrixWorld(true);me.g.localToWorld(m.a.set(0,1.18,-0.4));me.g.localToWorld(m.b.set(0,0.9,-40));
     m.cam.position.copy(m.a);m.cam.lookAt(m.b);m.sky.position.copy(m.a);m.sky.quaternion.copy(m.cam.quaternion);
-    const hid=[];R.karts.forEach(k=>{if(!k.player&&!k.g.visible){k.g.visible=true;hid.push(k);}});   // rivals behind are hidden for the main camera
+    const hid=[];R.karts.forEach(k=>{if(!k.player&&!k.g.visible&&!k.netGone){k.g.visible=true;hid.push(k);}});   // rivals behind are hidden for the main camera
     const au=rd.shadowMap.autoUpdate;rd.shadowMap.autoUpdate=false;const sp=R.sky.position.clone();R.sky.position.copy(m.a);
     rd.setRenderTarget(m.rt);rd.clear();rd.render(R.sky,m.sky);rd.clearDepth();const ac=rd.autoClear;rd.autoClear=false;const c0=rd.info.render.calls;rd.render(R.scene,m.cam);m.calls=rd.info.render.calls-c0;rd.autoClear=ac;rd.setRenderTarget(null);
     R.sky.position.copy(sp);rd.shadowMap.autoUpdate=au;hid.forEach(k=>{k.g.visible=false;});m.renders++;}
   const ac=rd.autoClear;rd.autoClear=false;rd.render(m.hs,m.hc);rd.autoClear=ac;}
 function gpToggleMute(){GPA.init();GPA.setMute(!GPA.muted);if(P){P.gpMute=GPA.muted;save();}const b=$("gp3Mute");if(b)b.textContent=GPA.muted?"🔇":"🔊";}
+function gpLastLap(){const e=$("gp3Last");if(!e)return;e.classList.remove("show");void e.offsetWidth;e.classList.add("show");R3.lastLapAt=R3.time;}
 function gpMsg(m){if(!R3)return;const e=$("gp3Msg");if(e){e.textContent=m;e.classList.add("show");}R3.msgT=1.7;}
 /* ---------- skill chains ---------- */
 /* one row per skill name (a repeated skill adds to its row and shows a count); the multiplier grows with each new
@@ -6566,6 +6595,7 @@ function gpFrame(now){
   R3.frameN=(R3.frameN||0)+1;
   gpCountTick(now);
   if(R3.phase==="race"&&!R3.done)R3.time=now-R3.goAt-(R3.timeBonus||0);
+  if(R3.online)gpnTick(now);
   gpUpdate(dt,R3.countdown>0);gpRender(dt);
   R3.raf=requestAnimationFrame(gpFrame);
 }
@@ -6573,7 +6603,7 @@ function gpFrame(now){
 function gpLapCross(kt,before,waiting){if(waiting||kt.traffic)return;const fwdX=kt.t<before&&before-kt.t>0.5,backX=kt.t>before&&kt.t-before>0.5;
   if(backX){if(kt.lap>0)kt.lap--;else kt.started=false;}
   else if(fwdX&&!kt.started){kt.started=true;}
-  else if(fwdX){kt.lap++;if(kt.player){if(kt.lap>=R3.C.laps&&!R3.done)gpFinish();else{R3.notes.forEach(n=>{n.alive=true;n.mesh.visible=true;});GPA.play("lap");gpMsg(kt.lap+1===R3.C.laps?"Final lap":"Lap "+(kt.lap+1));}}}}
+  else if(fwdX){kt.lap++;if(kt.player){if(kt.lap>=R3.C.laps&&!R3.done)gpFinish();else{R3.notes.forEach(n=>{n.alive=true;n.mesh.visible=true;});GPA.play("lap");if(kt.lap+1===R3.C.laps&&R3.online)gpLastLap();else gpMsg(kt.lap+1===R3.C.laps?"Final lap":"Lap "+(kt.lap+1));}}}}
 /* ---------- grip limit (Prince's car) ----------
    Every corner has a safe speed: lateral load v^2/R over the tyres' grip (ratio r). Kid-fair, progressive:
    r > 0.88  the tyres squeal and puff a little smoke (a warning, nothing else);
@@ -6623,7 +6653,7 @@ function gpWallFx(kt,sd,n){const V=R3.tmpV,R=R3,tn=R.curve.getTangentAt(kt.t),sa
    plus a short extra after a wall hit or a slide; nothing at all once he leads. Grip is never touched, so corners stay his to get right. */
 const GP_PACK={gentle:{ahead:0.08,behind:0.13,me:0.12,hit:0.05,skill:1.015},normal:{ahead:0.04,behind:0.11,me:0.1,hit:0.03,skill:1.02}};
 function gpBand(kt){const R=R3,me=R.me,K=GP_PACK[gpPace()]||GP_PACK.normal,g=((kt.lap+kt.t)-(me.lap+me.t))*R.len,u=Math.min(1,Math.max(0,(Math.abs(g)-15)/115)),e=u*u*(3-2*u);return g>0?1-K.ahead*e:1+(K.behind+(me.jet?GP_JET.pull[gpPace()==="gentle"?"gentle":"normal"]:0))*e;}
-function gpPack(dt,waiting){const R=R3,me=R.me;if(waiting||R.mode!=="race"||R.done){me.cu=0;return;}const K=GP_PACK[gpPace()]||GP_PACK.normal;let top=-1e9;for(const k of R.karts)if(!k.player)top=Math.max(top,k.lap+k.t);
+function gpPack(dt,waiting){const R=R3,me=R.me;if(R.online&&!waiting&&R.mode==="race"&&!R.done){me.cu=gpnCatchUp(dt);return;}if(waiting||R.mode!=="race"||R.done||R.online){me.cu=0;return;}const K=GP_PACK[gpPace()]||GP_PACK.normal;let top=-1e9;for(const k of R.karts)if(!k.player)top=Math.max(top,k.lap+k.t);
   const gap=top<-1e8?0:(top-(me.lap+me.t))*R.len,u=Math.min(1,Math.max(0,(gap-12)/138));R.recB=me.loss||me.wobT>0||me.wallRec>0.5?1:Math.max(0,(R.recB||0)-dt/4);
   const want=gap>0?K.me*u+K.hit*R.recB:0;me.cu=(me.cu||0)+(want-(me.cu||0))*Math.min(1,dt*(want>(me.cu||0)?1.5:0.8));R.packLog&&R.packLog.push(+me.cu.toFixed(3));}
 /* ---------- tricks in the air ----------
@@ -6912,7 +6942,7 @@ function gpContacts(dt,waiting){if(waiting)return 0;const B=R3.bodies,L=R3.len,X
   const RA=R3._ra||(R3._ra={p:new T.Vector3(),t:new T.Vector3()}),RC=R3._rc||(R3._rc={p:new T.Vector3(),t:new T.Vector3()});
   for(let it=0;it<3;it++){let any=false;
     for(let a=0;a<B.length;a++){const A=B[a];if(A.off)continue;
-      for(let b=a+1;b<B.length;b++){const C=B[b];if(C.off)continue;
+      for(let b=a+1;b<B.length;b++){const C=B[b];if(C.off)continue;if(A.netGone||C.netGone||A.netDone||C.netDone)continue;
         let dz=(C.t-A.t)*L;if(dz>L/2)dz-=L;else if(dz<-L/2)dz+=L;if(dz>12||dz<-12||Math.abs((C.x-A.x)*XS)>7)continue;
         // C's true position and road direction, seen from A's road frame (u = across, v = along): exact on bends and over the arc-length table
         if((A.jet||C.jet)&&gpPace()==="gentle")continue;   // Easy: nothing can be hit in the air
@@ -6925,7 +6955,7 @@ function gpContacts(dt,waiting){if(waiting)return 0;const B=R3.bodies,L=R3.len,X
         // remove just the overlap along the contact normal, split by weight (A goes -n, C goes +n)
         A.x-=nu*pen*wA/XS;C.x+=cu*pen*wC/XS;A._mv=C._mv=1;gpShiftT(A,-nv*pen*wA/L,waiting);gpShiftT(C,cv*pen*wC/L,waiting);
         // closing speed along the normal (m/s): A's velocity in its frame vs C's velocity turned into A's frame
-        const aU=gpLatV(A)*XS,aV=A.speed,cU0=gpLatV(C)*XS,cV0=C.speed,cU=cU0*ct+cV0*st,cV=-cU0*st+cV0*ct,vrel=(cU-aU)*nu+(cV-aV)*nv;   // < 0: closing
+        const aU=gpLatV(A)*XS,aV=A.speed,cU0=gpLatV(C)*XS,cV0=C.speed,cU=cU0*ct+cV0*st,cV=-cU0*st+cV0*ct,vrel=(A.net||C.net)?Math.max(-2.5,(cU-aU)*nu+(cV-aV)*nv):(cU-aU)*nu+(cV-aV)*nv;   // < 0: closing (online: a capped, gentle knock, since the other car is a moment old)
         let impact=0;if(vrel<0){impact=-vrel;const e=impact>2.5?0.2:0;   // a real knock bounces softly; a slow push is a plain push (no frame-to-frame ping-pong)
           const j=-(1+e)*vrel/(1/mA+1/mC);gpAddLatV(A,-j*nu/mA/XS);A.speed-=j*nv/mA;gpAddLatV(C,j*cu/mC/XS);C.speed+=j*cv/mC;
           if(impact>0.8){const loss=Math.min(0.03,0.004*impact);A.speed*=1-loss;C.speed*=1-loss;}}   // the small speed loss is shared
@@ -6965,15 +6995,16 @@ function gpCountStart(){if(!R3||R3.phase!=="intro"||R3.cdReq)return;
   const c=GPA.ctx;if(c&&c.state!=="running"&&!GPA.muted){let fired=false;const f=()=>{if(fired)return;fired=true;go();};try{c.resume().then(f,f);}catch(e){f();}setTimeout(f,450);}   // wake the audio first so beat 1's beep is not late
   else go();}
 function gpCountTick(now){const R=R3;
+  if(R.online&&R.phase==="intro"){R.countdown=3.8;if(!R.netGo||now<R.netGo-3000)return;R.phase="count";R.cdF0=R.netGo-3000;R.cdStep=-1;const cd=$("gp3Card");if(cd)cd.classList.add("hide");}   // online: one GO for everyone, from the server's clock; a late screen joins the count where it stands
   if(R.phase==="intro"){R.countdown=3.8;if(!R.cdReq)return;R.cdReq=false;R.phase="count";R.cdF0=now;R.cdStep=-1;const cd=$("gp3Card");if(cd)cd.classList.add("hide");}
   if(R.phase!=="count")return;
   let e=(now-R.cdF0)/1000,step=Math.min(3,Math.floor(e)),stall=0;
-  if(step>R.cdStep+1){step=R.cdStep+1;stall=now-(R.cdF0+step*1000);R.cdF0=now-step*1000;e=step;}   // a frame that arrives very late (device hiccup) never swallows a number: show the next one now and give it its full second
+  if(step>R.cdStep+1&&!R.online){step=R.cdStep+1;stall=now-(R.cdF0+step*1000);R.cdF0=now-step*1000;e=step;}   // a frame that arrives very late (device hiccup) never swallows a number: show the next one now and give it its full second
   if(step!==R.cdStep){R.cdStep=step;const n=3-step;R.setLights(n);R.litShown=n;R.setScreen(n>0?String(n):"GO!");GPA.play(n>0?"beep":"go");
     const c=$("gp3Count");if(c){c.textContent=n>0?String(n):"GO!";c.classList.remove("pop");void c.offsetWidth;c.classList.add("show","pop");}
     let beepPerf=null;try{if(GPA.ctx&&GPA.ctx.getOutputTimestamp){const ts=GPA.ctx.getOutputTimestamp();beepPerf=+(ts.performanceTime+(GPA.ctx.currentTime-ts.contextTime)*1000).toFixed(2);}}catch(x){}
     R.cdLog.push({n,frame:R.frameN,frameMs:+now.toFixed(2),ideal:+(R.cdF0+step*1000).toFixed(2),callPerf:+performance.now().toFixed(2),beepPerf,beepAudio:GPA.ctx?+GPA.ctx.currentTime.toFixed(4):null,audioState:GPA.ctx?GPA.ctx.state:"none",lit:n,released:n===0,stallMs:+stall.toFixed(1)});
-    if(n===0){R.phase="race";R.countdown=0;R.goAt=now;setTimeout(()=>{const cc=$("gp3Count");if(cc)cc.classList.remove("show");},800);}}
+    if(n===0){R.phase="race";R.countdown=0;R.goAt=R.online?R.netGo:now;setTimeout(()=>{const cc=$("gp3Count");if(cc)cc.classList.remove("show");},800);}}
   if(R.phase==="count")R.countdown=Math.max(0.001,3-e);}
 function gpUpdate(dt,waiting){
   const {karts,samples,M,len,T,me}=R3;
@@ -6985,9 +7016,10 @@ function gpUpdate(dt,waiting){
     const i=Math.floor(kt.t*M)%M;const s=samples[i];
     const kap=R3.kap[i];                                   // signed curvature here (+ = left-hander)
     const offroad=Math.abs(kt.x)>1.05&&!kt.jet;
-    let draft=false;if(!waiting&&!kt.jet&&kt.speed/kt.max>0.55){draft=karts.some(o=>{if(o===kt)return false;const d=(o.t-kt.t+1)%1;return d>0.003&&d<0.028&&Math.abs(o.x-kt.x)<0.32;});}kt.draft=draft;
+    if(kt.net)gpNetKart(kt,dt);else{   // a friend's car: their device drives it, this one only draws it
+    let draft=false;if(!waiting&&!kt.jet&&kt.speed/kt.max>0.55){draft=karts.some(o=>{if(o===kt)return false;const d=(o.t-kt.t+1)%1;return d>0.003&&d<0.028&&Math.abs(o.x-kt.x)<0.32;});}kt.draft=draft;const dG=R3.online?gpnDraft(kt,dt,waiting):0;if(R3.online)kt.draft=dG>0.2;
     let band=1;if(!kt.player&&!waiting)band=gpBand(kt);
-    const maxNow=waiting?0:kt.max*band*(draft?1.07:1)*(kt.spin>0?0.6:1)*(R3.tw&&R3.tw.zoneAt(i,"ford")?0.9:1)*(offroad?(kt.player?Math.max(0.62,kt.offF):kt.offF):1)*(kt.drift?0.94:1)*(kt.boostT>0?kt.boostMul:1)*(kt.wobT>0?0.84:1)*(kt.dpSlow>0?kt.dpSlowK:1)*(kt.player?1+(kt.cu||0):1);
+    const maxNow=waiting?0:kt.max*band*(R3.online?1+GPN_DRAFT*dG:(draft?1.07:1))*(kt.spin>0?0.6:1)*(R3.tw&&R3.tw.zoneAt(i,"ford")?0.9:1)*(offroad?(kt.player?Math.max(0.62,kt.offF):kt.offF):1)*(kt.drift?0.94:1)*(kt.boostT>0?kt.boostMul:1)*(kt.wobT>0?0.84:1)*(kt.dpSlow>0?kt.dpSlowK:1)*(kt.player?1+(kt.cu||0):1);
     const spd0=kt.speed/kt.max,inp=kt.player?(left?-1:0)+(right?1:0):0;
     if(kt.player){
       // steering input eases in and out (two cascaded smoothers = an S-curve over ~0.3 s): a tap never jerks the car
@@ -7014,7 +7046,7 @@ function gpUpdate(dt,waiting){
       if(waiting)kt.speed=0;else if(kt.jet)gpJetSpeed(kt,dt);else if(kt.air)kt.speed*=1-0.015*dt;else if(kt.brakeOn)kt.speed=Math.max(tgt,kt.speed-26*dt);else kt.speed+=(tgt-kt.speed)*Math.min(1,dt*(kt.speed<tgt?kt.accel/10*(kt.boostT>0?1.8:1):2.2));
     }
     // tyres: lateral load v²/R beyond the grip limit pushes the car to the outside of the bend and scrubs speed
-    const spd=Math.abs(kt.speed)/kt.max;kt.px=kt.x;
+    const spd=Math.abs(kt.speed)/kt.max;kt.px=kt.x;kt.spdV=spd;
     const onDirt=!!(R3.tw&&R3.tw.zoneAt&&R3.tw.zoneAt(i,"dirt"));
     const aLat=kt.speed*kt.speed*Math.abs(kap),grip=R3.grip*(offroad?0.5:1)*(onDirt?0.82*kt.dirtK:1)*(kt.drift?1.6:1)*(kt.player?R3.upGrip:1.06)*kt.gripK*(kt.player&&kt.wet?0.95:1);
     const ratio=aLat/grip,ex=Math.min(2.5,Math.max(0,ratio-1));kt.slip=ex;kt.load=ratio;
@@ -7044,9 +7076,11 @@ function gpUpdate(dt,waiting){
     if(kt.player&&!waiting&&!R3.done&&R3.mode==="race"&&kt.speed>1){const tt=R3.trapT;   // forwards only (reversing over the line read as a negative speed)
       const crossed=before<=kt.t?(before<tt&&kt.t>=tt):(before<tt||kt.t>=tt);if(crossed){const mph=Math.round(kt.speed*GP_MPH);R3.trapBest=Math.max(R3.trapBest,mph);const r=kt.speed/(kt.max||1);const stars=r>=0.97?"★★★":r>=0.9?"★★":"★";gpMsg("Speed trap "+mph+" mph "+stars);GPA.play("trap");gpSkill("Speed trap",mph*4,true);}}
     if(kt.player&&R3.gates&&!waiting){const G=R3.gates;G.ts.forEach(gt=>{const crossed=before<=kt.t?(before<gt&&kt.t>=gt):(before<gt||kt.t>=gt);if(crossed)G.flash=1;});}
+    }
+    const spd=kt.net?Math.abs(kt.speed)/kt.max:kt.spdV;
     // place the car
     const pos=R3.curve.getPointAt(kt.t),tan=R3.curve.getTangentAt(kt.t).normalize(),nor=new T.Vector3(-tan.z,0,tan.x).normalize();
-    pos.addScaledVector(nor,kt.x*(R3.W-1.2));gpVert(kt,pos,dt,waiting);kt.pos.copy(pos);
+    pos.addScaledVector(nor,kt.x*(R3.W-1.2));if(kt.net){kt.ry=pos.y;if(kt.air)pos.y=kt.y;else kt.y=pos.y;}else gpVert(kt,pos,dt,waiting);kt.pos.copy(pos);
     kt.g.position.copy(pos);kt.travel+=Math.abs(kt.speed)*dt;kt.wheelPhase+=kt.speed*dt/Math.max(0.01,kt.wheelRadius);
     let y=0;if(offroad)y=Math.abs(Math.sin(kt.t*len*3))*0.08;if(kt.hop>0)y+=Math.sin(Math.PI*(1-kt.hop/0.22))*0.25;
     const vib=spd*(Math.sin(kt.travel*(kt.racer.car.type==="suv"||kt.racer.car.type==="truck"?5.2:7.4))*0.005+Math.sin(kt.travel*2.3+1.1)*0.002);kt.body.position.y=kt.pic?(offroad?Math.min(0.08,y+vib):0):y+vib;   // photo tyre line stays planted on-road; the 3D fallback keeps its suspension motion
@@ -7061,7 +7095,7 @@ function gpUpdate(dt,waiting){
       const latA=Math.max(-0.2,Math.min(0.2,0.8*Math.atan2(latMs,Math.max(6,Math.abs(kt.speed))))),headT=kt.drift?Math.max(-0.48,Math.min(0.48,latA*0.5+kt.drift*(opp?0.18:0.36))):latA;   // a held drift settles near 22-27 degrees
       if(kt.wallRec>0)kt.wallRec-=dt;const hk=kt.wallRec>0?64:38,hc=kt.wallRec>0?14:10.5;if(kt.jet){kt.headA=kt.jet.hdg;kt.headV=0;}else{kt.headV+=((headT-kt.headA)*hk-kt.headV*hc)*dt;kt.headA+=kt.headV*dt;}kt.g.rotateY(-(kt.headA+(kt.lossA||0)));
       const ph=window.__gp&&window.__gp.phys;if(ph){ph.slipDeg=kt.headA*57.3;ph.steerIn=kt.steerIn;ph.sv=kt.sv;ph.drift=kt.drift;ph.x=kt.x;ph.speed=kt.speed;}
-    }else{kt.yawRel=vx*0.05+(kt.drift?kt.drift*0.35:0);kt.g.rotateY(-kt.yawRel);}
+    }else{kt.yawRel=kt.net?(kt.netA||0):vx*0.05+(kt.drift?kt.drift*0.35:0);kt.g.rotateY(-kt.yawRel);}
     const heavy=kt.racer.car.type==="suv"||kt.racer.car.type==="truck",settle=heavy?4.5:6,rollMax=kt.pic?0:(heavy?0.105:0.09);
     const acc=(kt.speed-kt.lastSpeed)/Math.max(dt,0.001);kt.lastSpeed=kt.speed;
     if(kt.glb){   // model cars: body on springs (a touch of overshoot) - leans out of corners and slides, dives on the brakes, squats on launch
@@ -7139,17 +7173,17 @@ function gpUpdate(dt,waiting){
   {let dirty=false;for(let i=0;i<R3.skidLife.length;i++){const life=R3.skidLife[i];if(life<=0)continue;const next=Math.max(0,life-dt);R3.skidLife[i]=next;R3.skidFade.setX(i,Math.min(1,next/1.2));dirty=true;}if(dirty)R3.skidFade.needsUpdate=true;}
   R3.smoke.update(dt,R3.camPos,R3.vpW||1280,R3.vpH||720);R3.dust.update(dt,-0.4);R3.sparks.update(dt,9);
   // standings + HUD
-  const all=karts.slice().sort((a,b)=>(b.lap+b.t)-(a.lap+a.t));R3.board=all;R3.place=all.indexOf(me)+1;
+  const all=R3.online?karts.filter(q=>!q.netGone).sort((a,b)=>(b.lap+b.t-(b.started?0:1))-(a.lap+a.t-(a.started?0:1))):karts.slice().sort((a,b)=>(b.lap+b.t)-(a.lap+a.t));R3.board=all;R3.place=all.indexOf(me)+1;
   if(R3.msgT>0){R3.msgT-=dt;if(R3.msgT<=0){const e=$("gp3Msg");if(e)e.classList.remove("show");}}
   const el=(id,v)=>{const e=$(id);if(e&&e.textContent!==v)e.textContent=v;};
   el("gp3Lap","LAP "+Math.min(R3.C.laps,me.lap+1)+"/"+R3.C.laps);el("gp3Time",gpFmt(Math.max(0,R3.time)));
   if(!waiting){const st=R3.done?(R3.mode==="race"?"FINISH  P"+R3.place:"TRIP DONE"):(R3.mode==="race"?"LAP "+Math.min(R3.C.laps,me.lap+1)+"/"+R3.C.laps+"   P"+R3.place:"LAP "+Math.min(R3.C.laps,me.lap+1)+"/"+R3.C.laps+"  ♪ "+R3.notesGot);if(st!==R3.screenTxt){R3.screenTxt=st;R3.setScreen(st);}}
-  const pe=$("gp3Pos");if(pe&&pe.dataset.p!==String(R3.place)){pe.dataset.p=String(R3.place);pe.innerHTML=R3.place+"<small>"+gpSuf(R3.place)+"</small><em>/"+karts.length+"</em>";}
+  const pe=$("gp3Pos");if(pe&&pe.dataset.p!==String(R3.place)){pe.dataset.p=String(R3.place);pe.innerHTML=R3.place+"<small>"+gpSuf(R3.place)+"</small><em>/"+R3.board.length+"</em>";}
   if(R3.dp)gpDeepUpdate(dt,waiting);
   gpSkillHud();gpTrickHud(dt);gpJetHud(dt);gpJetRingsDraw(dt);gpJetTrail(dt);if(R3.jp&&R3.jp.alive){R3.jp.mesh.rotation.y+=dt*2.1;R3.jp.mesh.position.y=R3.jp.y0+Math.sin(performance.now()/380)*0.3;}
   gpWarn(me,waiting);
   if(R3.mode==="free"&&R3.songDirty){R3.songDirty=0;const e=$("gp3Song");if(e){const cur=R3.song.length%8,ph=R3.song.slice(R3.song.length-cur);let dots="";for(let i=0;i<8;i++)dots+='<i class="'+(i<cur?"on":"")+'" style="--c:'+(ph[i]?ph[i].c:"#fff")+'"></i>';e.innerHTML='🎵 <b>'+R3.notesGot+' / '+R3.notesTotal+'</b>'+dots;}}
-  gpDrawMini($("gp3Map"),R3.C,karts);
+  gpDrawMini($("gp3Map"),R3.C,karts);if(R3.online){gpnBoard(dt);const sp=$("gp3Spd");if(sp){const t=Math.round(me.speed*GP_MPH)+" mph";if(sp.textContent!==t)sp.textContent=t;}}
   // gearbox + engine sound + speedometer
   const mph=me.speed*GP_MPH;let gear=1;for(let g=1;g<GP_GEARS.length;g++)if(mph>=GP_GEARS[g])gear=g+1;
   const lo=GP_GEARS[gear-1],hi=gear<GP_GEARS.length?GP_GEARS[gear]:180;let rf=0.14+0.8*Math.max(0,Math.min(1,(mph-lo)/(hi-lo)));if(waiting)rf=(gas&&!R3.autoGas?0.6:0.14)+Math.random()*0.02;
@@ -7159,7 +7193,13 @@ function gpUpdate(dt,waiting){
 }
 /* edge speed lines drawn on a half-resolution overlay canvas; the 25 stroke colours are built once (no per-frame strings) */
 const GP_STREAK=Array.from({length:25},(_,i)=>"rgba(255,255,255,"+(i/80).toFixed(4)+")");
-function gpSpeedFx(spd,drift){const cv=R3.fx;if(!cv)return;const x=cv.getContext("2d"),W=R3.fxW,H=R3.fxH;x.clearRect(0,0,W,H);const a=Math.max(0,Math.min(1,(spd-0.6)/0.3));if(a<=0.02)return;
+function gpSpeedFx(spd,drift){const cv=R3.fx;if(!cv)return;const x=cv.getContext("2d"),W=R3.fxW,H=R3.fxH;x.clearRect(0,0,W,H);
+  const dg=R3.online?(R3.me.drG||0):0;
+  if(dg>0.04){   // slipstream: long cool-white streaks pouring past both sides of the car, stronger the longer you sit in the tow
+    const cx=W/2,cy=H*0.56,R=Math.hypot(W,H)/2,tr=R3.me.travel;x.lineCap="round";
+    for(let i=0;i<20;i++){const side=i%2?1:-1,j=i>>1,ang=(side<0?Math.PI:0)+side*(-0.5+((j*0.173)%1)*0.95)*(side<0?-1:1)*0.9+(side<0?0.05:-0.05),ph=((tr*0.09+j*0.131+(i%2)*0.37)%1+1)%1,r0=R*(0.34+0.2*ph*ph+0.06*((j*5)%3)),r1=r0+R*(0.16+0.3*dg)*(0.4+ph),c=Math.cos(ang),sn=Math.sin(ang);
+      x.strokeStyle="rgba(190,245,255,"+(Math.min(0.85,(0.25+0.6*dg)*(1-ph*0.7))).toFixed(2)+")";x.lineWidth=(1+2.2*dg)*(1-ph*0.5);x.beginPath();x.moveTo(cx+c*r0,cy+sn*r0*0.85);x.lineTo(cx+c*r1,cy+sn*r1*0.85);x.stroke();}}
+  const a=Math.max(0,Math.min(1,(spd-0.6)/0.3));if(a<=0.02)return;
   // wind streaks only near top speed: 22 fixed directions across the upper half and both sides (nothing below the horizon in the middle), each growing and fading with distance travelled
   // (no per-frame randomness, so nothing flickers), starting well outside the car and clear of the pedals and the dial
   const cx=W/2,cy=H*0.5,R=Math.hypot(W,H)/2,tr=R3.me.travel;x.lineCap="round";
@@ -7199,7 +7239,7 @@ function gpRender(dt){
     else{const rx=R3.tmpV3.set(flat.z,0,-flat.x);R3.camPos.copy(me.pos).addScaledVector(rx,dc.side||0).addScaledVector(flat,-(dc.back||5));R3.camPos.y+=dc.h||1.2;look=me.pos.clone().addScaledVector(flat,dc.ahead||0);look.y+=dc.look||0.5;}}
   R3.camera.position.copy(R3.camPos);
   if(R3.shake>0){R3.shake=Math.max(0,R3.shake-dt*1.7);const a=R3.shake*R3.shake*0.6,tt=performance.now()/1000;R3.camera.position.y+=Math.sin(tt*57)*a;R3.camera.position.x+=Math.sin(tt*43+1.3)*a*0.6;R3.camera.position.z+=Math.cos(tt*39)*a*0.6;}   // short landing shake only
-  R3.karts.forEach(k=>{if(k.player)return;const fwd=(k.pos.x-R3.camPos.x)*flat.x+(k.pos.z-R3.camPos.z)*flat.z;const vis=fwd>2.4;if(k.g.visible!==vis)k.g.visible=vis;});   // a solid car until it passes the camera (an opacity fade made rivals see-through)
+  R3.karts.forEach(k=>{if(k.player)return;const fwd=(k.pos.x-R3.camPos.x)*flat.x+(k.pos.z-R3.camPos.z)*flat.z;const vis=fwd>2.4&&!k.netGone;if(k.g.visible!==vis)k.g.visible=vis;});   // a solid car until it passes the camera (an opacity fade made rivals see-through)
   R3.camera.lookAt(look);
   if(R3.jetK>0.01&&me.jet&&me.jet.roll)R3.camera.rotateZ(-me.jet.roll*0.22*R3.jetK);   // the chase plane leans with him
   if(cmode!=="chase"&&me.trick&&me.trick.k==="roll"&&!window.__gpCam)R3.camera.rotateZ(gpTrickAngle(me).a);   // from inside the car a barrel roll turns the whole world
@@ -7209,7 +7249,7 @@ function gpRender(dt){
   if(R3.dp)gpDeepRender(dt);
   R3.renderer.info.reset();if(cmode==="cockpit")gpCockpit();
   const pp=R3.post;if(pp){pp.mat.uniforms.t.value=performance.now()/1000;R3.renderer.setRenderTarget(pp.rt);R3.renderer.render(R3.scene,R3.camera);R3.renderer.setRenderTarget(null);R3.renderer.render(pp.scene,pp.cam);}else{R3.renderer.render(R3.scene,R3.camera);if(cmode==="cockpit")gpMirror();gpSpeedFx(R3.countdown>0?0:spd+(R3.bk||0)*0.4,me.drift);}
-  if(pp&&(me.jet||R3.fxOn)){R3.fxOn=!!me.jet;gpSpeedFx(me.jet?Math.max(spd,0.95)+(R3.bk||0)*0.4:0,0);}
+  if(pp&&(me.jet||R3.fxOn||(R3.online&&me.drG>0.04))){R3.fxOn=!!me.jet||(R3.online&&me.drG>0.04);gpSpeedFx(me.jet?Math.max(spd,0.95)+(R3.bk||0)*0.4:0,0);}
   const tele=window.__gp,off=R3.teleV.copy(R3.camera.position).sub(me.pos),ov=tele.cameraOffsetVector;ov.x=off.x;ov.y=off.y;ov.z=off.z;
   tele.playerWheelPhase=tele.wheelPhase=me.wheelPhase;tele.playerSpeed=tele.speed=me.speed;tele.wheelRadius=me.wheelRadius;tele.cameraFov=R3.camera.fov;tele.cameraOffsetFromCar=tele.cameraOffset=off.length();
   if(me.shadows&&me.shadows[0]){me.shadows[0].getWorldPosition(R3.teleShadow);tele.playerShadowWorldY=tele.shadowY=R3.teleShadow.y;}
@@ -7228,6 +7268,7 @@ function gpFinishFree(){R3.done=true;const got=R3.notesGot,tot=R3.notesTotal,tun
   window._gpSong=R3.song.slice();
   const myR=R3;setTimeout(()=>{if(!R3||R3!==myR)return;GPA.stopEngine();const w=$("gp3");if(!w)return;w.insertAdjacentHTML("beforeend",'<div class="gp3-finish"><div class="fz-fin-t">Trip complete! 🎵</div><div class="fz-fin-s" style="font-size:1.25em;margin:8px 0">'+got+' of '+tot+' notes · '+tunes+' tune'+(tunes===1?'':'s')+' · '+gpFmt(R3.time)+(earned?' · +'+earned+' XP':'')+'</div><div class="btn-row" style="margin-top:12px"><button class="btn big" onclick="gpPlaySong()">▶ Play my song</button><button class="btn secondary big" onclick="startRace3D(\''+R3.C.id+'\')">Drive again 🔁</button><button class="btn secondary big" onclick="renderCircuits()">Routes 🗺️</button></div></div>');},1300);}
 function gpFinish(){
+  if(R3.online)return gpnFinish();
   if(R3.mode==="free")return gpFinishFree();
   R3.done=true;gpBank();const place=R3.place;const skill=R3.sk.total;const bonus=Math.min(10,Math.floor(skill/2000));const xp=([0,30,20,10,5,5][place]||5)+bonus;
   const w0=$("gp3");if(w0)w0.classList.add("done");
@@ -7246,6 +7287,390 @@ function gpFinish(){
     if(!R3.upDone){R3.upDone=true;gpUpPicker(w,msg=>{const e=$("fzFinUp");if(e&&msg){e.textContent="New: "+msg;e.classList.add("on");}});}};
   setTimeout(()=>{if(!R3||R3!==myR)return;GPA.stopEngine();if(place===1&&!story){gpVideo(GP_VIDEO.win,"HORIZON CHAMPION · "+R3.C.name.toUpperCase(),9000).then(panel);}else panel();},1300);
 }
+/* ========== RACE A FRIEND (job 1107-0116): live online races, every kid on their own device ==========
+   Backend: its own free Firebase project (Realtime DB + Anonymous Auth), rules in tools/online/. Safety by design: no chat, no free
+   text anywhere (cars and tracks are ids from a fixed list, labels like "Red Falcon" are made on each screen), no public lobby, no
+   room list (rules deny it): the only way in is a private 5-letter code that someone read out to you.
+   A room: meta (host, track, laps, pace, state, run, goAt, touched) + slots/0-3 (seat claims, capping a room at 4) + players/<uid> +
+   cars/<uid> (12 x a second, numbers only) + finish/<uid> + order (host only). Each car is simulated only on its owner's device; the others
+   draw it from a short buffer of snapshots (kt.net karts in gpUpdate). The host's device runs the room; if it drops, the next player
+   takes over. Nothing here runs unless someone taps "Race a friend". */
+const GPN_CFG={apiKey:"AIzaSyAtBgXG5ydZQ8ljCZ3KwcYE2eCigourCSA",authDomain:"grand-fable-gp-race.firebaseapp.com",databaseURL:"https://grand-fable-gp-race-default-rtdb.firebaseio.com",projectId:"grand-fable-gp-race",appId:"1:77253679827:web:b0450b83cd962adf465226"};
+const GPN_ALPHA="BDFGHJKLMNRSTWXY";   // no vowels (so no words), and only letters that are hard to mishear when read out
+const GPN_BAD=/(.)\1|FK|FG|FD|SHT|SH[DGLRTW]|BTCH|BT|DK|DMN|DM|GDD|KK|NGG|NGR|WTF|STF|TWT|WNK|WHR|SLT|HNT|LMF|MF|BJ|JRK|GTF|GFY|XX|TTY|WTH|FML|SX|SXY|HL|DRN|BLLX|BLX|DLD|DYK|TRD|TWD|PWN|LST/;
+/* every car races on the same numbers online (the car you pick is a look, not an advantage) */
+const GPN_STD={speed:4,grip:4,handle:4,accel:4,type:"gt"};
+const GPN_IDLE=1800000,GPN_SEND=83,GPN_MAX=4,GPN_LATE=75000;
+const GPN_COLS=[["Red",209,18,28],["Silver",215,219,224],["White",245,245,245],["Blue",29,95,209],["Orange",242,138,28],["Yellow",247,216,60],["Black",20,22,28],["Green",46,158,87],["Purple",142,59,214],["Pink",255,80,160],["Sky Blue",18,176,232],["Brown",130,84,50],["Teal",20,160,150],["Gold",196,160,70]];
+const GPN_SPARE=["#1d5fd1","#f7c600","#2e9e57","#8e3bd6","#f28a1c","#ff3d8b","#12b0e8","#f2f2f2"];
+function gpnCodeOk(c){return /^[BDFGHJKLMNRSTWXY]{5}$/.test(c)&&!GPN_BAD.test(c);}
+function gpnNewCode(){for(;;){const a=new Uint8Array(5);crypto.getRandomValues(a);let c="";a.forEach(v=>{c+=GPN_ALPHA[v%16];});if(gpnCodeOk(c))return c;}}
+function gpnColor(h){const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);let n="",bd=1e9;GPN_COLS.forEach(c=>{const d=(c[1]-r)*(c[1]-r)+(c[2]-g)*(c[2]-g)+(c[3]-b)*(c[3]-b);if(d<bd){bd=d;n=c[0];}});return n;}
+function gpnLabel(car,paint){const C=GP_CARS.find(c=>c.id===car),w=C?C.n.split(/\s+/).pop():"Car";return gpnColor(paint)+" "+w;}
+/* ---------- the racing name (job 1107-0258): the kid's own first name, letters only, run through a rude-word filter ----------
+   2-10 letters A-Z, Title Case. Anything else (or a rude word) is refused and the car+colour label is shown instead. The database
+   rules (tools/online/make_rules.py, which reads these two lists) check the very same pattern, length and word list. Whole words are
+   checked for the short ones (so Hassan and Cassandra are fine), stems for the long ones; a letter repeated ("Fuuck") still counts. */
+const GPN_RUDE_SUB="fuck|fuk|shit|shyt|bitch|cunt|nigg|nigr|fagg|whore|slut|penis|vagina|hitler|porn|dildo|bastard|pussy|wank|twat|dickhead|asshole|bollock|sexy|stupid|idiot|retard|moron|kkk|nude|naked|suck|nipple|orgasm|erotic|molest|paedo|pedo|terror|suicide|killer";
+const GPN_RUDE_EX="ass|arse|dick|cock|cum|sex|tit|tits|boob|boobs|butt|bum|poo|poop|fart|piss|crap|damn|hell|anus|rape|nazi|jerk|dumb|loser|ugly|fat|hate|kill|die|dead|drunk|stfu|wtf|gay|fag|hoe|ho|pee|wee";
+const GPN_RUDE_RE=(()=>{const ex=s=>s.split("").map(c=>c+"+").join("");return{sub:new RegExp("("+GPN_RUDE_SUB.split("|").map(ex).join("|")+")"),ex:new RegExp("^("+GPN_RUDE_EX.split("|").map(ex).join("|")+")$")};})();
+function gpnNameOk(n){return typeof n==="string"&&/^[A-Z][a-z]{1,9}$/.test(n)&&!GPN_RUDE_RE.sub.test(n.toLowerCase())&&!GPN_RUDE_RE.ex.test(n.toLowerCase());}
+/* anything a kid (or a profile) has typed -> a clean racing name, or "" if it can't be one */
+function gpnNameClean(s){let t=String(s==null?"":s);try{t=t.normalize("NFD").replace(/[̀-ͯ]/g,"");}catch(e){}const w=t.split(/[^A-Za-z]+/).filter(Boolean)[0]||"";const n=w?w.charAt(0).toUpperCase()+w.slice(1,10).toLowerCase():"";return gpnNameOk(n)?n:"";}
+function gpnProfileName(){return gpnNameClean(P&&P.name);}
+function gpnMyName(){return typeof window._gpnName==="string"?window._gpnName:gpnProfileName();}
+function gpnMyPaint(){const c=gpCar(),p=String(gpGlbPaintFor(c,true)||c.paint||"#d1121c").toLowerCase();return /^#[0-9a-f]{6}$/.test(p)?p:"#d1121c";}
+function gpnLoadSdk(){if(window._gpnSdk)return window._gpnSdk;
+  const load=src=>new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.async=false;const to=setTimeout(()=>rej(new Error("timeout")),20000);s.onload=()=>{clearTimeout(to);res();};s.onerror=()=>{clearTimeout(to);rej(new Error("load"));};document.head.appendChild(s);});
+  const B="assets/vendor/firebase/firebase-";
+  window._gpnSdk=load(B+"app-compat.js").then(()=>Promise.all([load(B+"auth-compat.js"),load(B+"database-compat.js")]));
+  window._gpnSdk.catch(()=>{window._gpnSdk=null;});return window._gpnSdk;}
+/* sign in with a throwaway anonymous id. Session persistence: it dies with the tab, and two tabs are two players */
+async function gpnConnect(){if(window._gpnFb&&window._gpnFb.auth.currentUser)return window._gpnFb;
+  await gpnLoadSdk();
+  if(!window._gpnFb){const app=firebase.apps.find(a=>a.name==="gfgp")||firebase.initializeApp(GPN_CFG,"gfgp"),auth=firebase.auth(app),db=firebase.database(app),E=window.__GPN_EMU;
+    if(E){auth.useEmulator("http://127.0.0.1:"+E.auth,{disableWarnings:true});db.useEmulator("127.0.0.1",E.db);}
+    window._gpnFb={app,auth,db,off:0,conn:false};
+    db.ref(".info/serverTimeOffset").on("value",s=>{window._gpnFb.off=s.val()||0;});
+    db.ref(".info/connected").on("value",s=>{const on=!!s.val();window._gpnFb.conn=on;if(GPN&&GPN.code)gpnPresence(on);});}
+  const F=window._gpnFb;await F.auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+  if(!F.auth.currentUser)await Promise.race([F.auth.signInAnonymously(),new Promise((_,r)=>setTimeout(()=>r(new Error("timeout")),15000))]);
+  return F;}
+function gpnNow(){return Date.now()+((window._gpnFb&&window._gpnFb.off)||0);}
+const GPN_SV=()=>firebase.database.ServerValue.TIMESTAMP;
+function gpnRef(p){return window._gpnFb.db.ref("rooms/"+GPN.code+(p?"/"+p:""));}
+/* ---------- screens: menu, code keypad, lobby ---------- */
+function gpnCss(){gpCss();if($("gpnCss"))return;const s=document.createElement("style");s.id="gpnCss";s.textContent=`
+@font-face{font-family:"GPN Bungee";src:url(assets/vendor/fonts/Bungee-Regular.woff2) format("woff2");font-display:swap}
+.gpn{position:relative;max-width:1000px;margin:0 auto;min-height:calc(100dvh - 8px);padding:max(12px,env(safe-area-inset-top)) 14px 22px;box-sizing:border-box;background:#120626;border-radius:18px;color:#fff;display:flex;flex-direction:column;gap:12px;font-weight:600}
+.gpn h1,.gpn h2,.gpn .gpn-big{font-family:"GPN Bungee",system-ui,sans-serif;font-weight:400;margin:0;letter-spacing:.5px}
+.gpn-top{display:flex;align-items:center;justify-content:space-between;gap:10px}.gpn-top h1{font-size:clamp(20px,5.4vw,30px)}
+.gpn button{font-family:inherit;color:inherit;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.gpn-x{min-width:64px;min-height:48px;border-radius:14px;border:3px solid #4b2a80;background:#2d1254;font-weight:800;font-size:16px}
+.gpn-note{margin:0;color:#d9cdf2;font-size:15px;line-height:1.35}
+.gpn-mine{display:flex;align-items:center;gap:12px;background:#2d1254;border-radius:18px;padding:10px 14px}.gpn-mine i{flex:none;width:96px;height:56px;background:center/contain no-repeat var(--pic)}.gpn-mine b{display:block;font-size:19px}.gpn-mine small{color:#d9cdf2}
+.gpn-mine button{margin-left:auto;min-height:48px;padding:0 14px;border-radius:14px;border:3px solid #00f0ff;background:transparent;font-weight:800}
+.gpn .gpn-act{display:block;width:100%;min-height:96px;padding:14px;border-radius:22px;border:0;border-bottom:7px solid #00a93f;background:#00ff66;color:#061a10!important;font-family:"GPN Bungee",system-ui,sans-serif;font-size:clamp(21px,6vw,30px);text-align:center;transition:transform .12s cubic-bezier(.3,1.6,.5,1)}.gpn .gpn-act small{display:block;font:700 15px system-ui,sans-serif;margin-top:4px}
+.gpn .gpn-act:active{transform:translateY(4px) scale(.985);border-bottom-width:3px}.gpn .gpn-act.cy{background:#00f0ff;border-bottom-color:#0098a3}.gpn .gpn-act.off{background:#2d1254;border:4px solid #00ff66;color:#fff!important;border-bottom-width:4px}.gpn .gpn-act[disabled]{opacity:.55;cursor:default}
+.gpn-err{min-height:22px;margin:0;color:#ffd600;font-weight:700;font-size:16px;text-align:center}
+.gpn-cells{display:flex;justify-content:center;gap:8px}.gpn-cells b{display:flex;align-items:center;justify-content:center;width:min(16vw,76px);aspect-ratio:.86;border-radius:14px;background:#2d1254;border:3px solid #4b2a80;color:#ffd600;font:400 clamp(30px,10vw,50px) "GPN Bungee",system-ui,sans-serif}.gpn-cells b.on{border-color:#00f0ff}.gpn-cells.bad{animation:gpnShake .3s}
+@keyframes gpnShake{25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+.gpn-keys{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:520px;width:100%;margin:0 auto}.gpn-keys button{min-height:64px;border-radius:14px;border:0;border-bottom:5px solid #1a0a33;background:#4b2a80;font:400 28px "GPN Bungee",system-ui,sans-serif}.gpn-keys button:active{transform:translateY(3px);border-bottom-width:2px;background:#00f0ff;color:#120626}.gpn-keys .wide{grid-column:span 2;font:800 19px system-ui,sans-serif;background:#2d1254}
+.gpn-code{border:5px solid #00f0ff;border-radius:22px;padding:8px 10px 10px;text-align:center;background:#0d041d;box-shadow:0 0 22px rgba(0,240,255,.25)}.gpn-code small{font-size:15px;color:#fff}.gpn-code .gpn-big{display:block;color:#ffd600;font-size:clamp(46px,14.5vw,76px);line-height:1.08;letter-spacing:.09em;margin-right:-.09em}
+.gpn-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gpn-slot{position:relative;min-height:112px;border-radius:16px;background:#2d1254;padding:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;overflow:hidden;text-align:center}.gpn-slot.empty{background:transparent;border:3px dashed #4b2a80;color:#a897cc}.gpn-slot.empty em{font-style:normal;font-size:30px;line-height:1}.gpn-slot.ready{background:#0c6a36;box-shadow:inset 0 0 0 3px #00ff66}.gpn-slot.gone{opacity:.5}
+.gpn-slot i{width:100%;height:50px;background:center/contain no-repeat var(--pic)}.gpn-slot b{font-size:17px;line-height:1.1}.gpn-slot small{font-size:13px;color:#e8e0f7}.gpn-slot u{position:absolute;right:-27px;top:11px;width:100px;transform:rotate(38deg);text-decoration:none;background:repeating-linear-gradient(120deg,#ffd600 0 12px,#111 12px 16px);color:#111;font:400 11px "GPN Bungee",system-ui,sans-serif;padding:2px 0;text-shadow:0 0 3px #ffd600}
+.gpn-slot .kick{position:absolute;left:4px;top:4px;width:48px;height:48px;border-radius:12px;border:0;background:rgba(0,0,0,.35);font-size:18px}
+.gpn-h{font-size:15px;color:#00f0ff;font-weight:800;letter-spacing:.3px;margin:2px 0 -4px}
+.gpn-tr{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 8px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}.gpn-tr button{flex:none;width:138px;padding:0;border-radius:14px;border:4px solid transparent;background:#2d1254;overflow:hidden;scroll-snap-align:start;text-align:left}.gpn-tr button.on{border-color:#ffd600}.gpn-tr img{display:block;width:100%;height:68px;object-fit:cover;background:#1a0a33}.gpn-tr b{display:block;font-size:13px;line-height:1.15;padding:5px 7px 6px;min-height:36px}
+.gpn-picked{display:flex;align-items:center;gap:12px;background:#2d1254;border-radius:14px;overflow:hidden}.gpn-picked img{width:124px;height:72px;object-fit:cover}.gpn-picked b{font-size:17px}.gpn-picked small{display:block;color:#d9cdf2;font-weight:600}
+.gpn-chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.gpn-chips button{min-height:48px;min-width:56px;padding:0 12px;border-radius:12px;border:3px solid #4b2a80;background:#2d1254;font-weight:800;font-size:15px}.gpn-chips button.on{background:#ffd600;border-color:#ffd600;color:#120626}.gpn-chips span{font-size:14px;color:#d9cdf2;margin-left:6px}
+.gpn-cta{margin-top:auto;position:sticky;bottom:8px;z-index:3}
+.gpn.gpn-sheet{position:fixed;inset:0;z-index:50;background:rgba(10,3,24,.86);display:flex;flex-direction:row;gap:0;align-items:flex-end;justify-content:center;animation:gpnFade .15s}@keyframes gpnFade{from{opacity:0}}
+.gpn-sheet>div{width:100%;max-width:760px;max-height:84dvh;overflow:auto;background:#1c0b3a;border-radius:22px 22px 0 0;padding:14px;box-sizing:border-box;animation:gpnUp .22s cubic-bezier(.2,.9,.3,1)}@keyframes gpnUp{from{transform:translateY(40px)}}
+.gpn-sheet .row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.gpn-sheet h2{font-size:20px}
+.gpn-pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}.gpn-pick button{border-radius:14px;border:3px solid #4b2a80;background:#2d1254;padding:6px;font-size:13px;font-weight:700;min-height:84px;color:#fff}.gpn-pick button.on{border-color:#00ff66}.gpn-pick i{display:block;height:48px;background:center/contain no-repeat var(--pic)}
+@media(min-width:760px) and (min-height:560px){.gpn-lob{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}.gpn-lob>div{display:flex;flex-direction:column;gap:10px;min-width:0}.gpn-tr{flex-wrap:wrap;overflow:visible}.gpn-tr button{width:calc(33.3% - 6px)}}
+@media(min-width:600px) and (max-height:520px){.gpn-lob{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}.gpn-lob>div{display:flex;flex-direction:column;gap:8px;min-width:0}.gpn-slot{min-height:84px}.gpn-slot i{height:34px}.gpn-code .gpn-big{font-size:44px}}
+@media(max-width:380px),(max-height:700px){.gpn-slot{min-height:92px}.gpn-slot i{height:38px}}
+.gp3-wrap .gpn-wait{position:absolute;left:50%;top:18%;transform:translateX(-50%);z-index:7;background:rgba(18,6,38,.85);border:3px solid #00f0ff;border-radius:14px;padding:8px 14px;color:#fff;font-weight:800;font-size:15px;white-space:nowrap;pointer-events:none}
+.gp3-finish .gpn-rows{display:flex;flex-direction:column;gap:6px;margin:10px auto;width:min(420px,100%)}.gpn-rows div{display:flex;align-items:center;gap:10px;background:rgba(45,18,84,.92);border-radius:12px;padding:7px 12px;font-weight:700;color:#fff;text-align:left}.gpn-rows div.me{box-shadow:inset 0 0 0 3px #ffd600}.gpn-az{grid-template-columns:repeat(7,1fr);max-width:560px}.gpn-az button{min-height:56px;font-size:24px}.gpn-az .wide{grid-column:span 2;font:800 17px system-ui,sans-serif}.gpn-az .wide.ok{grid-column:span 3;background:#00ff66;color:#061a10;border-bottom-color:#00a93f}
+.gpn-nm{margin:6px auto 0;min-width:70%;text-align:center;padding:10px 14px;border-radius:16px;background:#0d041d;border:4px solid #00f0ff;color:#ffd600;font:400 clamp(30px,9vw,46px)/1.15 "GPN Bungee",system-ui,sans-serif;letter-spacing:.04em;min-height:1.2em}
+.gpn-slot small.cl{font-size:12px;color:#bfb2dd}.gpn-slot button.kick{font-size:18px}.gpn-slot b{font-family:"GPN Bungee",system-ui,sans-serif;font-weight:400;letter-spacing:.3px;font-size:18px;word-break:break-all}
+.gpn-rows em{font:400 18px "GPN Bungee",system-ui,sans-serif;font-style:normal;width:46px;flex:none;color:#ffd600}.gpn-rows span{flex:1;min-width:0}.gpn-rows small{flex:none;opacity:.9;font-weight:600}
+
+.gpn-fin{overflow:auto}.gpn-fin .gpn-rows{margin:6px auto}
+.gpn-rows b.pts{flex:none;display:flex;flex-direction:column;align-items:flex-end;font:400 17px "GPN Bungee",system-ui,sans-serif;color:#00ff66;line-height:1}.gpn-rows b.pts i{font:700 11px system-ui,sans-serif;font-style:normal;color:#e8e0f7;margin-top:2px}
+.gpn-rows div.pf{box-shadow:inset 0 0 0 3px #ff2d87}.gpn-rows div.pf.me{box-shadow:inset 0 0 0 3px #ffd600}
+.gpn-pf{margin:2px auto;width:min(420px,100%);box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 12px;border-radius:12px;background:linear-gradient(90deg,#ff2d87,#ff7a00);color:#fff;text-align:center;transform:skewX(-6deg);animation:gpnPop .5s cubic-bezier(.2,1.6,.4,1)}.gpn-pf b{font:400 20px "GPN Bungee",system-ui,sans-serif;letter-spacing:.5px}.gpn-pf span{font-size:15px;font-weight:800}
+@keyframes gpnPop{from{transform:scale(.6) skewX(-6deg);opacity:0}}
+.gpn-flash{position:absolute;inset:0;z-index:30;background:#fff;pointer-events:none;animation:gpnFlash .9s ease-out forwards}@keyframes gpnFlash{0%{opacity:.95}100%{opacity:0}}
+.gpn-ser{margin:4px auto;width:min(420px,100%);font-size:14px;font-weight:700;color:#ffd9ec;text-align:center}
+.gpn-pod{margin:6px auto;width:min(420px,100%)}.gpn-podt{font:400 15px "GPN Bungee",system-ui,sans-serif;color:#ffd600;text-align:center;margin-bottom:6px}
+.gpn-podc{display:flex;align-items:flex-end;justify-content:center;gap:8px}.gpn-podc>div{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;background:rgba(45,18,84,.92);border-radius:14px 14px 0 0;padding:6px 4px 0;color:#fff}.gpn-podc>div.me{box-shadow:inset 0 0 0 3px #ffd600}
+.gpn-podc span{font-size:28px;line-height:1}.gpn-podc b{font:400 15px "GPN Bungee",system-ui,sans-serif;max-width:100%;overflow:hidden;text-overflow:ellipsis}.gpn-podc i{font:700 13px system-ui,sans-serif;font-style:normal;color:#00ff66}.gpn-podc u{display:block;width:100%;margin-top:4px;background:#4b2a80}
+.gpn-podc .p1 u{height:46px;background:#ffd600}.gpn-podc .p2 u{height:28px;background:#c9ced6}.gpn-podc .p3 u{height:16px;background:#cd8a4b}
+/* live position board: 1st-4th with names and the gap to the car in front */
+.gpn-board{position:absolute;z-index:4;left:14px;top:calc(clamp(118px,13.5vw,146px) + 112px);width:clamp(150px,15vw,200px);display:flex;flex-direction:column;gap:3px;pointer-events:none;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.gpn-board div{display:flex;align-items:center;gap:6px;height:28px;padding:0 9px 0 4px;border-radius:15px;background:rgba(18,22,32,.72);color:#fff;font-weight:800;font-size:14px;line-height:1;box-sizing:border-box;border:2px solid transparent}
+.gpn-board div.me{border-color:#00E5FF;box-shadow:0 0 12px rgba(0,229,255,.45)}.gpn-board em{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:#fff;color:#121620;font-style:normal;font-size:12px;font-weight:900}.gpn-board div:first-child em{background:#FFD700}
+.gpn-board b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:800}.gpn-board u{flex:none;text-decoration:none;font-size:12px;font-weight:800;color:#39FF14;font-variant-numeric:tabular-nums}.gpn-board u.l{color:#ffd0e3}
+.gp3-last{position:absolute;left:50%;top:21%;z-index:9;transform:translate(-50%,-50%) skewX(-10deg) scale(0);padding:8px 26px;border-radius:10px;border:4px solid #121620;background:#FF2079;color:#fff;font:400 clamp(28px,8vw,52px) "GPN Bungee",system-ui,sans-serif;letter-spacing:1px;box-shadow:0 6px 0 #121620,0 0 34px rgba(255,32,121,.8);pointer-events:none;white-space:nowrap;opacity:0}
+.gp3-last.show{animation:gpLast 2.2s ease-out forwards}@keyframes gpLast{0%{opacity:1;transform:translate(-50%,-50%) skewX(-10deg) scale(1.9)}12%{transform:translate(-50%,-50%) skewX(-10deg) scale(1)}80%{opacity:1;transform:translate(-50%,-50%) skewX(-10deg) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) skewX(-10deg) scale(1)}}
+@media (prefers-reduced-motion:reduce){.gp3-last.show{animation-duration:2.4s}.gpn-pf,.gpn-flash{animation:none}}
+.gp3-wrap.net .fz-skill,.gp3-wrap.net .fz-pos{display:none}
+.gp3-wrap.net .fz-tl .fz-spd{font-size:13px;font-weight:800;margin-top:3px;color:#cfe}
+/* phones, upright: big steering / brake / gas / boost buttons on their own plate under the picture, so nothing sits over the road */
+@media (orientation:portrait) and (max-width:600px){
+.gp3-wrap.v3.net{--plate:clamp(184px,25vh,232px)}@supports (height:100dvh){.gp3-wrap.v3.net{--plate:clamp(184px,25dvh,232px)}}
+.gp3-wrap.v3.net canvas#gp3c{height:calc(100% - var(--plate))}.gp3-wrap.v3.net canvas.fz-fx,.gp3-wrap.v3.net .fz-vig{height:calc(100% - var(--plate));bottom:auto}
+.gp3-wrap.v3.net .gp3-plate{position:absolute;left:0;right:0;bottom:0;height:var(--plate);z-index:5;box-sizing:border-box;padding:10px 10px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(#1a1f2e,#0d111b);border-top:4px solid #00E5FF;box-shadow:0 -6px 18px rgba(0,0,0,.45);display:grid;grid-template-columns:1fr 1fr .9fr 1fr;grid-template-rows:1fr 1fr;gap:8px;pointer-events:none}
+.gp3-wrap.v3.net .gp3-plate .gp3-pad{display:contents}
+.gp3-wrap.v3.net .gp3-plate .race-btn{width:auto;height:auto;min-width:0;border-radius:22px;font-size:40px;grid-row:1/3;background:#262c40;border:4px solid #3a4468;box-shadow:0 6px 0 #0a0d16;-webkit-backdrop-filter:none;backdrop-filter:none}
+.gp3-wrap.v3.net .gp3-plate #rcL{grid-column:1}.gp3-wrap.v3.net .gp3-plate #rcR{grid-column:2}
+.gp3-wrap.v3.net .gp3-plate .race-btn.on{background:#00E5FF;color:#121620;transform:translateY(4px);box-shadow:0 2px 0 #0a0d16}
+.gp3-wrap.v3.net .gp3-plate .fz-pedal{width:100%!important;height:100%!important;pointer-events:auto;min-height:0}
+.gp3-wrap.v3.net .gp3-plate .fz-pedal.gas{grid-column:4;grid-row:1/3}.gp3-wrap.v3.net .gp3-plate .fz-pedal.brake{grid-column:3;grid-row:2}
+.gp3-wrap.v3.net .gp3-plate .fz-pedal b{top:46%;font-size:15px}
+.gp3-wrap.v3.net .gp3-plate .fz-boost{position:relative;right:auto;bottom:auto;grid-column:3;grid-row:1;justify-self:center;align-self:center;width:min(100%,92px);height:auto;aspect-ratio:1;--bst:92px;pointer-events:auto}
+.gp3-wrap.v3.net .fz-trick{left:auto;right:calc(10px + (100% - 20px)*0.5);bottom:calc(var(--plate) - 4px);margin:0;z-index:8;width:96px;height:96px}
+.gp3-wrap.v3.net .fz-trick.on{bottom:calc(var(--plate) + 8px)}
+.gp3-wrap.v3.net .fz-tach,.gp3-wrap.v3.net .fz-cam{display:none}
+.gp3-wrap.v3.net .fz-tl{display:flex;flex-wrap:wrap;align-items:center;gap:8px;max-width:calc(100% - 130px);top:calc(8px + env(safe-area-inset-top))}.gp3-wrap.v3.net .fz-lap{margin:0}.gp3-wrap.v3.net .fz-time{margin:0;font-size:16px}.gp3-wrap.v3.net .fz-tl .fz-spd{margin:0}
+.gp3-wrap.v3.net .gpn-board{left:calc(8px + env(safe-area-inset-left));top:calc(48px + env(safe-area-inset-top));width:min(46vw,190px)}
+.gp3-wrap.v3.net .gp3-map{left:auto;right:calc(8px + env(safe-area-inset-right));top:calc(60px + env(safe-area-inset-top));width:78px}
+.gp3-wrap.v3.net .fz-btn{width:44px;height:44px;font-size:19px;top:calc(8px + env(safe-area-inset-top))}.gp3-wrap.v3.net .fz-btn.quit{right:calc(8px + env(safe-area-inset-right))}.gp3-wrap.v3.net .fz-btn.mute{right:calc(60px + env(safe-area-inset-right))}
+.gp3-wrap.v3.net .gp3-msg{top:30%}.gp3-wrap.v3.net .gp3-count{top:30%}
+.gp3-wrap.v3.net.done .gp3-plate{display:none}.gp3-wrap.v3.net.done canvas#gp3c{height:100%}
+}
+`;document.head.appendChild(s);}
+function gpnShell(title,back,body){return'<div class="fadein gpn" id="gpnScr"><div class="gpn-top"><h1>'+esc(title)+'</h1><button class="gpn-x" onclick="'+back+'">⟵ Back</button></div>'+body+'</div>';}
+function gpnCarPic(id){return'assets/cars3d/thumbs/'+id+'.webp';}
+function gpnFriendErr(e){const c=String(e&&(e.code||e.message)||e);if(/network|timeout|load|unavailable/i.test(c))return"Can't reach the race server. Check the Wi-Fi and try again.";return"Something went wrong. Try again.";}
+function renderOnline(msg){window.scrollTo(0,0);clearTimers();closeOverlay();showAnanseCorner(false);gpStop();gpnCss();gpAudioUnlock();if(GPN)gpnLeave();GPA.init();
+  const c=gpCar(),p=gpnMyPaint();
+  app.innerHTML=gpnShell("Race a friend","renderCircuits()",
+    '<div class="gpn-mine"><i style="--pic:url('+gpnCarPic(c.id)+')"></i><div><b>'+esc(gpnLabel(c.id,p))+'</b><small>This is your name in the race</small></div><button onclick="renderRace()">Change</button></div>'
+    +'<button class="gpn-act" id="gpnCreate" onclick="gpnCreate()">Create room<small>You get a code to read out to your friends</small></button>'
+    +'<button class="gpn-act cy" id="gpnJoin" onclick="gpnJoinScreen()">Join room<small>Your friend tells you their code</small></button>'
+    +'<p class="gpn-err" id="gpnErr">'+esc(msg||"")+'</p>'
+    +'<p class="gpn-note">🔒 Only people you give the code to can join. There is no chat and no strangers. Up to 4 players, each on their own device. Rooms end by themselves after 30 minutes with nothing going on.</p>');
+  say("Race a friend.");gpnSweepMine();}
+/* the room I made last time, if it was left behind by a crash or a closed tab: the rules let anyone remove a room idle for 30 min */
+function gpnRememberRoom(c){try{if(c)localStorage.setItem("gfgp_room",c+"|"+Date.now());else localStorage.removeItem("gfgp_room");}catch(e){}}
+async function gpnSweepMine(){let v=null;try{v=localStorage.getItem("gfgp_room");}catch(e){}if(!v)return;const q=v.split("|");if(Date.now()-(+q[1]||0)<31*60000)return;gpnRememberRoom(null);try{const F=await gpnConnect();await F.db.ref("rooms/"+q[0]).remove();}catch(e){}}
+function gpnBusy(on,msg){["gpnCreate","gpnJoin"].forEach(i=>{const b=$(i);if(b)b.disabled=!!on;});const e=$("gpnErr");if(e)e.textContent=msg||"";}
+async function gpnCreate(){gpnBusy(true,"Making your room…");
+  try{const F=await gpnConnect(),uid=F.auth.currentUser.uid;let code=null;
+    for(let i=0;i<6&&!code;i++){const c=gpnNewCode();   // the rules only let a room be made where nothing exists, so a code in use (or an expired room) just refuses: try another
+      try{await F.db.ref("rooms/"+c+"/meta").set({host:uid,track:window._gpnTrack||"deep",laps:2,pace:"gentle",state:"lobby",run:0,touched:GPN_SV()});code=c;}catch(e){if(!/denied/i.test(String(e.code||e.message)))throw e;}}
+    if(!code)throw new Error("no code");
+    await F.db.ref("rooms/"+code+"/slots/0").set(uid);await gpnEnter(code,0);gpnRememberRoom(code);}
+  catch(e){console.warn("online create",e);GPN=null;gpnBusy(false,gpnFriendErr(e));}}
+function gpnJoinScreen(msg){gpnCss();window._gpnEntry="";window.scrollTo(0,0);
+  const keys=GPN_ALPHA.split("").map(l=>'<button data-k="'+l+'" onclick="gpnKey(\''+l+'\')">'+l+'</button>').join("");
+  app.innerHTML=gpnShell("Join room","renderOnline()",'<p class="gpn-note" style="text-align:center;font-size:17px">Type the 5 letters your friend reads out</p><div class="gpn-cells" id="gpnCells">'+[0,1,2,3,4].map(()=>'<b></b>').join("")+'</div><p class="gpn-err" id="gpnErr">'+esc(msg||"")+'</p><div class="gpn-keys">'+keys+'<button class="wide" onclick="gpnKey(\'back\')">⌫ Delete</button><button class="wide" onclick="gpnKey(\'clear\')">Clear</button></div>');
+  gpnCellsDraw();window._gpnKd=e=>{if(!$("gpnCells")){window.removeEventListener("keydown",window._gpnKd);return;}const k=e.key.toUpperCase();if(k==="BACKSPACE")gpnKey("back");else if(k.length===1&&GPN_ALPHA.includes(k))gpnKey(k);};window.addEventListener("keydown",window._gpnKd);}
+function gpnCellsDraw(){const v=window._gpnEntry||"",e=$("gpnCells");if(!e)return;[...e.children].forEach((b,i)=>{b.textContent=v[i]||"";b.classList.toggle("on",i===v.length);});}
+function gpnKey(k){if(window._gpnJoining)return;let v=window._gpnEntry||"";if(k==="back")v=v.slice(0,-1);else if(k==="clear")v="";else if(v.length<5)v+=k;window._gpnEntry=v;gpnCellsDraw();if(typeof sfx==="function")sfx("tick");const er=$("gpnErr");if(er&&v.length<5)er.textContent="";if(v.length===5)gpnJoin(v);}
+function gpnBad(msg){window._gpnJoining=false;window._gpnEntry="";gpnCellsDraw();const e=$("gpnErr"),c=$("gpnCells");if(e)e.textContent=msg;if(c){c.classList.remove("bad");void c.offsetWidth;c.classList.add("bad");}}
+async function gpnJoin(code){window._gpnJoining=true;const er=$("gpnErr");if(er)er.textContent="Looking for the room…";
+  const none="No room with that code. Check the letters with your friend. Rooms end after 30 minutes with nothing going on.";
+  if(!/^[BDFGHJKLMNRSTWXY]{5}$/.test(code))return gpnBad(none);
+  try{const F=await gpnConnect(),uid=F.auth.currentUser.uid;let m=null;
+    try{m=(await F.db.ref("rooms/"+code+"/meta").once("value")).val();}catch(e){if(/denied/i.test(String(e.code||e.message)))return gpnBad(none);throw e;}   // an expired room is simply gone
+    if(!m)return gpnBad(none);
+    if(m.locked)return gpnBad("That room is locked. Ask the host to open it.");
+    if(m.state!=="lobby")return gpnBad("That race has already started. Ask them to tap Race again, then join.");
+    let seat=-1;try{const mine=(await F.db.ref("rooms/"+code+"/players/"+uid).once("value")).val();if(mine)seat=mine.slot;}catch(e){}   // back after a page refresh: same seat
+    for(let n=0;n<GPN_MAX&&seat<0;n++){try{await F.db.ref("rooms/"+code+"/slots/"+n).set(uid);seat=n;}catch(e){if(!/denied/i.test(String(e.code||e.message)))throw e;}}
+    if(seat<0)return gpnBad("That room is full (4 players), or the host closed your spot.");
+    await gpnEnter(code,seat);window._gpnJoining=false;}
+  catch(e){console.warn("online join",e);GPN=null;gpnBad(gpnFriendErr(e));}}
+/* sits in a seat: write my player row, then start listening (reads are members only) */
+async function gpnEnter(code,seat){const F=window._gpnFb,uid=F.auth.currentUser.uid,c=gpCar();
+  GPN={code,uid,seat,meta:null,players:{},series:{},finish:{},order:null,race:null,scr:"lobby",iv:null,subs:[],offT:{},sendL:0,inflight:0,sent:0};
+  const G=GPN;const nm=gpnMyName(),row={car:c.id,paint:gpnMyPaint(),slot:seat,on:true,ready:-1,load:-1};if(nm)row.name=nm;await gpnRef("players/"+uid).set(row);
+  gpnRef("players/"+uid).onDisconnect().update({on:false,offAt:GPN_SV()});G.leaveArmed=true;
+  const sub=(path,ev,fn)=>{const r=gpnRef(path),cb=r.on(ev,fn,()=>{if(GPN===G&&(path==="meta"||path===""))gpnGone();});G.subs.push(()=>r.off(ev,cb));};
+  sub("meta","value",s=>{if(GPN===G)gpnOnMeta(s.val());});
+  sub("players","value",s=>{if(GPN===G)gpnOnPlayers(s.val()||{});});
+  sub("slots","value",s=>{if(GPN===G)G.slots=s.val()||{};});
+  sub("finish","value",s=>{if(GPN===G)gpnOnFinish(s.val()||{});});
+  sub("order","value",s=>{if(GPN===G)gpnOnOrder(s.val());});
+  sub("series","value",s=>{if(GPN===G){G.series=s.val()||{};if(G.scr==="lobby")gpnLobbySoon();else gpnPanelSoon();}});
+  sub("cars","child_added",s=>{if(GPN===G)gpnOnCar(s.key,s.val());});sub("cars","child_changed",s=>{if(GPN===G)gpnOnCar(s.key,s.val());});
+  sub("kick/"+uid,"value",s=>{if(GPN===G&&s.val()){gpnLeave(true);renderOnline("The host closed your spot in that room.");}});
+  G.iv=setInterval(()=>{if(GPN===G)gpnRoomTick();},500);
+  gpnTouch();window.scrollTo(0,0);gpnLobby();}
+function gpnTouch(){if(!GPN)return;GPN.touchT=gpnNow();gpnRef("meta/touched").set(GPN_SV()).catch(()=>{});}
+function gpnPresence(on){const G=GPN;if(!G||!G.leaveArmed)return;if(on){gpnRef("players/"+G.uid).onDisconnect().update({on:false,offAt:GPN_SV()});gpnRef("players/"+G.uid+"/on").set(true).catch(()=>{});}}
+/* leave for good: seat and car go; the last one out removes the whole room */
+function gpnLeave(quiet){const G=GPN;if(!G)return;GPN=null;clearInterval(G.iv);G.subs.forEach(f=>{try{f();}catch(e){}});
+  const F=window._gpnFb,R="rooms/"+G.code+"/",u=G.uid;if(!F)return;const db=F.db,others=Object.keys(G.players).filter(k=>k!==u&&G.players[k].on!==false);
+  try{db.ref(R+"players/"+u).onDisconnect().cancel();
+    const rm=()=>Promise.all([db.ref(R+"players/"+u).remove(),db.ref(R+"cars/"+u).remove(),db.ref(R+"slots/"+G.seat).remove()]);
+    if(!others.length){const amHost=G.meta&&G.meta.host===u;(amHost?Promise.resolve():db.ref(R+"meta/host").set(u)).then(()=>db.ref("rooms/"+G.code).remove()).then(()=>gpnRememberRoom(null)).catch(()=>rm().catch(()=>{}));}
+    else rm().catch(()=>{});}catch(e){}}
+function gpnGone(msg){const G=GPN;if(!G)return;GPN=null;clearInterval(G.iv);G.subs.forEach(f=>{try{f();}catch(e){}});gpnRememberRoom(null);try{window._gpnFb.db.ref("rooms/"+G.code).remove().catch(()=>{});}catch(e){}gpStop();renderOnline(msg||"That room has ended.");}   // the rules only allow that removal if the room really has expired
+/* everyone in seat order, each with the paint and label THIS race uses (the same on every screen: a copy of an earlier car gets a spare colour) */
+function gpnRoster(){const G=GPN,used=[],names=[],out=[];Object.keys(G.players).map(u=>Object.assign({uid:u},G.players[u])).sort((a,b)=>a.slot-b.slot).forEach(p=>{let pt=p.paint;if(used.includes(p.car+pt)){pt=GPN_SPARE.find(s=>!used.includes(p.car+s)&&gpnColor(s)!==gpnColor(p.paint))||pt;}used.push(p.car+pt);const label=gpnLabel(p.car,pt),nm=gpnNameOk(p.name)?p.name:"",dup=!!nm&&names.includes(nm.toLowerCase());if(nm&&!dup)names.push(nm.toLowerCase());out.push(Object.assign(p,{paint:pt,label,name:dup?"":nm,dup,disp:(nm&&!dup)?nm:label,me:p.uid===G.uid}));});return out;}
+function gpnOnMeta(m){const G=GPN;if(!m){gpnGone();return;}const prev=G.meta;G.meta=m;
+  if(m.state==="lobby"){if(G.scr!=="lobby"){gpStop();G.race=null;G.scr="lobby";G.finish={};G.order=null;window.scrollTo(0,0);gpnLobby();return;}gpnLobbySoon();return;}
+  if((!G.race||G.race.run!==m.run)&&(m.state==="load"||m.state==="count"||m.state==="race")){if(!gpnOnScreen()){gpnLeave();return;}gpnBegin(m);}
+  if(R3&&R3.online&&m.goAt&&!R3.netGo&&G.race&&G.race.run===m.run){gpnSetGo(m.goAt);}
+  if(G.scr==="race"||G.scr==="done")gpnPanelSoon();}
+function gpnOnPlayers(v){const G=GPN;G.players=v;const u=G.uid;
+  if(!v[u]&&G.meta){gpnLeave(true);renderOnline("You left that room.");return;}
+  const nowT=gpnNow();Object.keys(v).forEach(k=>{if(v[k].on===false){if(!G.offT[k])G.offT[k]=nowT;}else delete G.offT[k];});
+  if(G.scr==="lobby")gpnLobbySoon();
+  if(R3&&R3.online){R3.karts.forEach(kt=>{if(!kt.net)return;const p=v[kt.netUid],off=!p||p.on===false;if(off&&!kt.netOffS){kt.netOffS=1;kt.netGone=true;gpMsg(kt.racer.n+" left the race");}else if(!off&&kt.netOffS){kt.netOffS=0;}});gpnPanelSoon();}
+}
+function gpnOnFinish(v){const G=GPN;G.finish=v;if(G.scr==="race"||G.scr==="done")gpnPanelSoon();}
+function gpnOnOrder(o){const G=GPN;G.order=o;if(G.race&&o&&o.run===G.race.run&&o.final&&R3&&R3.online&&!R3.done){gpFinish();}if(G.scr==="race"||G.scr==="done")gpnPanelSoon();}
+function gpnLobbySoon(){if(window._gpnLS)return;window._gpnLS=1;setTimeout(()=>{window._gpnLS=0;if(GPN&&GPN.scr==="lobby")gpnLobby();},30);}
+function gpnPanelSoon(){if(window._gpnPS)return;window._gpnPS=1;setTimeout(()=>{window._gpnPS=0;if(GPN&&R3&&R3.online&&R3.done)gpnPanel();},60);}
+function gpnSlotHtml(r,i,G,isHost){if(!r)return'<div class="gpn-slot empty"><em>＋</em><small>Waiting for a friend</small></div>';
+  const m=G.meta,rdy=r.ready===(m?m.run:-2),gone=r.on===false;
+  return'<div class="gpn-slot'+(rdy?" ready":"")+(gone?" gone":"")+'" data-uid="'+esc(r.uid)+'">'+(rdy?'<u>READY</u>':'')+(isHost&&!r.me?'<button class="kick" aria-label="Remove this player" onclick="gpnKick(\''+esc(r.uid)+'\')">✕</button>':'')+'<i style="--pic:url('+gpnCarPic(r.car)+')"></i><b>'+esc(r.disp)+'</b>'+(r.name?'<small class="cl">'+esc(r.label)+'</small>':'')+'<small>'+(r.me?"You":(gone?"Lost connection…":(rdy?"Ready":"Getting ready")))+(m&&m.host===r.uid?" · Host":"")+((m&&(m.n|0)>0&&G.series&&G.series[r.uid]!=null)?" · "+G.series[r.uid]+" pts":"")+'</small></div>';}
+function gpnLobby(){const G=GPN;if(!G||G.scr!=="lobby"||!app)return;gpnCss();const m=G.meta||{track:"deep",laps:2,pace:"gentle",run:0},isHost=m.host===G.uid,ros=gpnRoster(),me=ros.find(r=>r.me),rdy=!!me&&me.ready===m.run,C=GP_CIRCUITS.find(c=>c.id===m.track)||GP_CIRCUITS[0];
+  const seats=[0,1,2,3].map(n=>ros.find(r=>r.slot===n)||null);
+  const prevScroll=(()=>{const t=document.querySelector(".gpn-tr");return t?t.scrollLeft:0;})();
+  const tracks=isHost?'<p class="gpn-h">PICK THE TRACK</p><div class="gpn-tr">'+GP_TRACK_ORDER().map(i=>{const c=GP_CIRCUITS[i];return'<button class="'+(c.id===m.track?"on":"")+'" data-id="'+c.id+'" onclick="gpnSet(\'track\',\''+c.id+'\')"><img src="assets/tracks/'+c.id+'.webp?v=1" alt="" loading="lazy"><b>'+esc(c.name)+'</b></button>';}).join("")+'</div>'
+    +'<div class="gpn-chips">'+[1,2,3].map(n=>'<button class="'+(m.laps===n?"on":"")+'" onclick="gpnSet(\'laps\','+n+')">'+n+' lap'+(n>1?"s":"")+'</button>').join("")+'<button class="'+(m.pace==="gentle"?"on":"")+'" onclick="gpnSet(\'pace\',\'gentle\')">🐢 Easy</button><button class="'+(m.pace==="normal"?"on":"")+'" onclick="gpnSet(\'pace\',\'normal\')">🚗 Normal</button><button id="gpnLock" class="'+(m.locked?"on":"")+'" onclick="gpnSet(\'locked\','+(m.locked?"false":"true")+')">'+(m.locked?"🔒 Locked":"🔓 Open")+'</button></div>'
+    :'<p class="gpn-h">THE TRACK</p><div class="gpn-picked" id="gpnPicked"><img src="assets/tracks/'+C.id+'.webp?v=1" alt=""><div><b>'+esc(C.name)+'</b><small>'+m.laps+' lap'+(m.laps>1?"s":"")+' · '+(m.pace==="normal"?"Normal":"Easy")+'</small></div></div>';
+  const others=ros.filter(r=>!r.me&&r.on!==false).length;
+  const taken=!!(me&&me.dup),hint=taken?"Someone here already has your name. Tap Change name":(others?(rdy?"Waiting for everyone to tap Ready":"Tap when you're ready. The race starts when everyone is"):"Read the code out to a friend");
+  app.innerHTML='<div class="gpn" id="gpnScr"><div class="gpn-top"><h1>Grand Fable GP</h1><button class="gpn-x" id="gpnExit" onclick="renderOnline()">Exit</button></div>'
+   +'<div class="gpn-lob"><div><div class="gpn-code" id="gpnCode" aria-label="Room code '+G.code.split("").join(" ")+'"><small>ROOM CODE · read it out to your friends</small><span class="gpn-big">'+G.code+'</span></div>'
+   +'<div class="gpn-grid" id="gpnSeats">'+seats.map((r,i)=>gpnSlotHtml(r,i,G,isHost)).join("")+'</div></div>'
+   +'<div>'+(m.n>0?'<p class="gpn-h" id="gpnSer">SERIES · RACE '+Math.min(GPN_RACES,(m.n|0)+1)+' OF '+GPN_RACES+' · points carry over</p>':'')+tracks
+   +'<div class="gpn-mine" style="padding:6px 12px"><small>Your racing name<b id="gpnMyName" style="display:block;font-size:19px;color:#fff;font-family:\'GPN Bungee\',system-ui,sans-serif;font-weight:400">'+esc(me?me.disp:"")+'</b></small><button id="gpnNameBtn" onclick="gpnNameSheet()"'+(rdy?" disabled":"")+'>✏️ Change name</button></div>'
+   +'<div class="gpn-mine" style="padding:6px 12px"><small>Your car: <b style="display:inline;font-size:15px;color:#fff">'+esc(me?me.label:"")+'</b></small><button id="gpnCarBtn" onclick="gpnCarSheet()"'+(rdy?" disabled":"")+'>🚗 Change car</button></div>'
+   +'<div class="gpn-cta"><button class="gpn-act'+(rdy?" off":"")+'" id="gpnReady" onclick="gpnReady()"'+(taken?" disabled":"")+'>'+(rdy?"Ready ✓<small>"+hint+"</small>":"Ready to race!<small>"+hint+"</small>")+'</button></div></div></div></div>';
+  const t2=document.querySelector(".gpn-tr");if(t2&&prevScroll)t2.scrollLeft=prevScroll;}
+function gpnSet(k,v){const G=GPN;if(!G||!G.meta||G.meta.host!==G.uid||G.meta.state!=="lobby")return;if(k==="track")window._gpnTrack=v;if(typeof sfx==="function")sfx("tick");gpnRef("meta").update({[k]:v,touched:GPN_SV()}).catch(e=>console.warn(e));}
+function gpnReady(){const G=GPN;if(!G||!G.meta)return;GPA.init();{const mr=gpnRoster().find(r=>r.me);if(mr&&mr.dup&&mr.ready!==G.meta.run)return;}if(typeof sfx==="function")sfx("tick");const me=G.players[G.uid];if(!me)return;gpnRef("players/"+G.uid+"/ready").set(me.ready===G.meta.run?-1:G.meta.run).catch(e=>console.warn(e));gpnTouch();}
+function gpnKick(uid){const G=GPN;if(!G||G.meta.host!==G.uid||uid===G.uid)return;const p=G.players[uid];if(!p)return;Promise.all([gpnRef("meta/locked").set(true),gpnRef("kick/"+uid).set(true),gpnRef("slots/"+p.slot).remove(),gpnRef("players/"+uid).remove(),gpnRef("cars/"+uid).remove()]).catch(e=>console.warn(e));}
+function gpnCarSheet(){const sel=gpCar().id,h='<div class="gpn gpn-sheet" id="gpnSheet" style="max-width:none;min-height:0;padding:0;background:rgba(10,3,24,.86);border-radius:0"><div><div class="row"><h2>Choose your car</h2><button class="gpn-x" onclick="$(\'gpnSheet\').remove()">Close</button></div><div class="gpn-pick">'+GP_CARS.map(c=>'<button class="'+(c.id===sel?"on":"")+'" data-car="'+c.id+'" onclick="gpnPickCar(\''+c.id+'\')"><i style="--pic:url('+gpnCarPic(c.id)+')"></i>'+esc(c.n)+'</button>').join("")+'</div></div></div>';document.body.insertAdjacentHTML("beforeend",h);}
+function gpnPickCar(id){const sh=$("gpnSheet");if(sh)sh.remove();gpPickCar(id);const G=GPN;if(G)gpnRef("players/"+G.uid).update({car:gpCar().id,paint:gpnMyPaint()}).catch(e=>console.warn(e));}
+/* the racing name keypad: big letter keys only (no free text box), Title Case, run through the same filter the database uses */
+function gpnNameSheet(){const G=GPN;if(!G||$("gpnSheet"))return;window._gpnNm=(gpnRoster().find(r=>r.me)||{}).name||"";
+  const keys="ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map(l=>'<button data-k="'+l+'" onclick="gpnNameKey(\''+l+'\')">'+l+'</button>').join("");
+  document.body.insertAdjacentHTML("beforeend",'<div class="gpn gpn-sheet" id="gpnSheet" style="max-width:none;min-height:0;padding:0;background:rgba(10,3,24,.86);border-radius:0"><div><div class="row"><h2>Your racing name</h2><button class="gpn-x" onclick="$(\'gpnSheet\').remove()">Close</button></div>'
+   +'<p class="gpn-note" style="text-align:center">It shows on your car and over it for your friends. 2 to 10 letters.</p><div class="gpn-nm" id="gpnNmShow"></div><p class="gpn-err" id="gpnNmErr"></p><div class="gpn-keys gpn-az">'+keys+'<button class="wide" onclick="gpnNameKey(\'back\')">⌫ Delete</button><button class="wide" onclick="gpnNameKey(\'clear\')">Clear</button><button class="wide ok" id="gpnNmSave" onclick="gpnNameSave()">✓ Save</button></div></div></div>');
+  gpnNameDraw();window._gpnNmKd=e=>{if(!$("gpnNmShow")){window.removeEventListener("keydown",window._gpnNmKd);return;}const k=e.key;if(k==="Backspace")gpnNameKey("back");else if(k==="Enter")gpnNameSave();else if(/^[A-Za-z]$/.test(k))gpnNameKey(k.toUpperCase());};window.addEventListener("keydown",window._gpnNmKd);}
+function gpnNameDraw(){const e=$("gpnNmShow"),v=window._gpnNm||"";if(e)e.innerHTML=v?esc(v):'<span style="opacity:.45">Type a name</span>';const er=$("gpnNmErr");if(er)er.textContent="";}
+function gpnNameKey(k){let v=window._gpnNm||"";if(k==="back")v=v.slice(0,-1);else if(k==="clear")v="";else if(v.length<10)v+=k;v=v?v.charAt(0).toUpperCase()+v.slice(1).toLowerCase():"";window._gpnNm=v;if(typeof sfx==="function")sfx("tick");gpnNameDraw();}
+function gpnNameSave(){const v=window._gpnNm||"",er=$("gpnNmErr");
+  if(v&&!gpnNameOk(v)){if(er)er.textContent=v.length<2?"A name needs at least 2 letters.":"That name can't be used. Try a different one.";return;}
+  const G=GPN;if(!G)return;window._gpnName=v;const sh=$("gpnSheet");if(sh)sh.remove();
+  gpnRef("players/"+G.uid+"/name").set(v||null).catch(e=>console.warn(e));gpnTouch();}
+/* ---------- the room's heartbeat: the host's device moves the state on ---------- */
+function gpnOnScreen(){const G=GPN;return G.scr==="lobby"?!!$("gpnScr"):(!!R3||!!$("gpnLoad"));}   // false once the kid went somewhere else (Learning Zone Home button, say)
+function gpnRoomTick(){const G=GPN,m=G.meta;if(!gpnOnScreen()){gpnLeave();return;}if(!m)return;const now=gpnNow(),u=G.uid,ros=gpnRoster();
+  if(m.touched&&now-m.touched>GPN_IDLE){gpnGone("That room ended after 30 minutes with nothing going on.");return;}
+  const on=ros.filter(r=>r.on!==false);
+  // the host has gone: the player in the lowest seat takes over, after a short grace
+  const H=G.players[m.host],stale=m.state!=="lobby"&&m.state!=="done"&&now-m.touched>120000;   // gone, or still connected but its timers have stopped (a tab in the background) so nothing moves on
+  if(m.host!==u&&(!H||H.on===false||stale)){if(!G.hostOff)G.hostOff=now;if(now-G.hostOff>11000&&on.length&&on[0].uid===u){gpnRef("meta/host").set(u).catch(()=>{});G.hostOff=0;}}else G.hostOff=0;
+  if(m.host!==u)return;
+  if(m.state!=="lobby"&&m.state!=="done"&&!(m.goAt&&now-m.goAt>GPN_IDLE)&&(!G.touchT||now-G.touchT>60000))gpnTouch();
+  if(m.state==="lobby"){
+    ros.forEach(r=>{if(r.on===false&&G.offT[r.uid]&&now-G.offT[r.uid]>20000){gpnRef("players/"+r.uid).remove();gpnRef("slots/"+r.slot).remove();gpnRef("cars/"+r.uid).remove();}});
+    const SL=G.slots||{},emp=G.emptyS||(G.emptyS={});Object.keys(SL).forEach(n=>{const u=SL[n];if(!u||G.players[u]){delete emp[n];return;}if(!emp[n])emp[n]=now;else if(now-emp[n]>15000){delete emp[n];gpnRef("slots/"+n).remove().catch(()=>{});}});   // a seat claimed with no player in it (crash mid-join) frees itself
+    if(on.length>=2&&on.every(r=>r.ready===m.run)&&!G.starting){G.starting=true;G.loadAt=now;gpnRef("meta").update({state:"load",run:(m.run+1)%9000,touched:GPN_SV()}).catch(e=>console.warn(e)).then(()=>{G.starting=false;});}}
+  else if(m.state==="load"){const need=(G.race?G.race.roster:on).filter(r=>{const p=G.players[r.uid];return p&&p.on!==false;});const all=need.every(r=>G.players[r.uid].load===m.run);if(!G.loadAt)G.loadAt=now;
+    if(all||now-G.loadAt>25000){G.loadAt=0;gpnRef("meta").update({state:"count",goAt:now+4300,touched:GPN_SV()}).catch(e=>console.warn(e));}}
+  else if(m.state==="count"){if(m.goAt&&now>m.goAt)gpnRef("meta/state").set("race").catch(()=>{});}
+  else if(m.state==="race"){gpnHostOrder(m,on,now);}}
+/* the order everyone sees. Times come from the shared race clock; two times under 50 ms apart are a tie, and the tie goes to whichever reached the host first */
+function gpnSortFinish(G,run){const seq=G.finSeq||(G.finSeq={}),rows=Object.keys(G.finish).filter(u=>G.finish[u].run===run).map(u=>{if(!(u in seq))seq[u]=Object.keys(seq).length;return{u,ms:G.finish[u].ms,s:seq[u]};});rows.sort((a,b)=>Math.abs(a.ms-b.ms)<50?a.s-b.s:a.ms-b.ms);return rows.map(r=>r.u);}
+function gpnHostOrder(m,on,now){const G=GPN,list=gpnSortFinish(G,m.run);if(!list.length)return;if(!G.firstFin||G.firstRun!==m.run){G.firstFin=now;G.firstRun=m.run;}
+  const left=on.filter(r=>!list.includes(r.uid)),fin=!left.length||now-G.firstFin>GPN_LATE,key=list.join()+(fin?"!":"");
+  if(G.orderKey===m.run+key)return;G.orderKey=m.run+key;const o={run:m.run,final:fin,list:{}};list.forEach((u,i)=>{o.list[i]=u;});
+  gpnRef("order").set(o).then(()=>{if(fin)return gpnScore(m,list).then(()=>gpnRef("meta/state").set("done"));}).catch(e=>console.warn(e));}
+/* series points (10/6/4/2 for 1st-4th, 0 for not finishing), written once per race by whoever is host, in ONE update together with the "scored" mark, so a host change never counts a race twice */
+const GPN_PTS=[10,6,4,2],GPN_RACES=3;
+function gpnScore(m,list){const G=GPN;if(!G||m.scored===m.run)return Promise.resolve();const S=G.series||{},upd={};
+  (G.race?G.race.roster:[]).forEach(r=>{upd["series/"+r.uid]=S[r.uid]||0;});list.forEach((u,i)=>{upd["series/"+u]=(S[u]||0)+(GPN_PTS[i]||0);});
+  upd["meta/scored"]=m.run;upd["meta/n"]=Math.min(GPN_RACES,(m.n|0)+1);upd["meta/touched"]=GPN_SV();return gpnRef("").update(upd);}
+function gpnAgain(){const G=GPN;if(!G||G.meta.host!==G.uid)return;G.finSeq={};const fresh=(G.meta.n|0)>=GPN_RACES;   // after the third race "Race again" starts a new series from zero
+  Promise.all([gpnRef("order").remove(),gpnRef("finish").remove(),gpnRef("cars").remove()].concat(fresh?[gpnRef("series").remove()]:[])).then(()=>gpnRef("meta").update(Object.assign({state:"lobby",goAt:null,touched:GPN_SV()},fresh?{n:0}:{}))).catch(e=>console.warn(e));}
+/* ---------- into the race ---------- */
+function gpnBegin(m){const G=GPN;G.race={run:m.run,no:(m.n|0)+1,shift:(m.n|0),track:m.track,laps:m.laps,pace:m.pace,roster:gpnRoster().filter(r=>r.on!==false)};G.scr="race";G.finSeq={};G.firstFin=0;G.orderKey="";G.pfShown=0;G.panelKey="";G.loadAt=gpnNow();const sh=$("gpnSheet");if(sh)sh.remove();startRace3D(m.track);}
+function gpnBuilt(){const G=GPN,R=R3;if(!G||!R)return;R.online=true;R.netGo=0;const T=R.T;R.karts.forEach(k=>{if(!k.net)return;k.netBuf=[];k.netJit=0;k.netOff=null;k.netOffW=[];k.netDelay=130;k.netSt=null;k.netLast=performance.now();
+    // the label over a friend's car: drawn here, from the car and its colour; nothing typed ever reaches it
+    const tex=gpCanvasTex(340,76,(x,w,h)=>{x.clearRect(0,0,w,h);x.fillStyle="rgba(18,6,38,.82)";x.beginPath();x.moveTo(20,3);x.arcTo(w-3,3,w-3,h-3,18);x.arcTo(w-3,h-3,3,h-3,18);x.arcTo(3,h-3,3,3,18);x.arcTo(3,3,w-3,3,18);x.fill();x.strokeStyle="#00E5FF";x.lineWidth=5;x.stroke();let fs=44;x.font="800 "+fs+"px system-ui,sans-serif";const mw=x.measureText(k.racer.n).width;if(mw>w-44){fs=Math.floor(fs*(w-44)/mw);x.font="800 "+fs+"px system-ui,sans-serif";}x.textAlign="center";x.textBaseline="middle";x.fillStyle="#fff";x.fillText(k.racer.n,w/2,h/2+2);});
+    const sp=new T.Sprite(new T.SpriteMaterial({map:tex,transparent:true,depthWrite:false,fog:false}));sp.scale.set(3.3,0.74,1);sp.position.y=k.racer.car.grp==="trucks"?3.7:2.2;sp.renderOrder=5;k.g.add(sp);k.netTag=sp;});
+  const w=$("gp3");if(w)w.insertAdjacentHTML("beforeend",'<div class="gpn-board" id="gpnBoard" aria-label="Race positions"></div><div class="gpn-wait" id="gpnWait">Waiting for your friends…</div>');
+  if(G.meta&&G.meta.goAt)gpnSetGo(G.meta.goAt);
+  gpnRef("players/"+G.uid+"/load").set(G.race.run).catch(()=>{});
+  if(G.order&&G.order.run===G.race.run&&G.order.final)setTimeout(()=>{if(GPN===G&&R3===R&&!R.done)gpFinish();},0);   // built so late the race is already over
+}
+function gpnSetGo(goAt){const R=R3;R.netGo=performance.now()+(goAt-gpnNow());const e=$("gpnWait");if(e)e.remove();}
+function gpnOnCar(uid,v){const G=GPN;if(!G||uid===G.uid||!v)return;const L=window.__gpnLag;if(L){const d=L[0]+Math.random()*(L[1]-L[0]);setTimeout(()=>gpnInCar(G,uid,v),d);return;}gpnInCar(G,uid,v);}
+function gpnInCar(G,uid,v){if(GPN!==G||!R3||!R3.online)return;const k=R3.karts.find(q=>q.net&&q.netUid===uid);if(!k||!k.netBuf)return;const now=performance.now();const B=k.netBuf;if(B.length&&v.n<=B[B.length-1].n)return;
+  // the sender's clock mapped onto mine: the quickest recent delivery is the baseline, spread above it = jitter
+  const off=now-v.n,W=k.netOffW;W.push({at:now,o:off});while(W.length&&now-W[0].at>4000)W.shift();let mn=1e12;for(let i=0;i<W.length;i++)if(W[i].o<mn)mn=W[i].o;k.netOff=mn;const jit=off-mn;k.netJit=Math.max(jit,(k.netJit||0)*0.97);
+  const gap=k.netLast?now-k.netLast:83;k.netGap=(k.netGap||83)*0.9+gap*0.1;k.netDelay=Math.max(100,Math.min(420,k.netGap*1.15+k.netJit*1.1+15));k.netLast=now;
+  B.push(v);if(B.length>48)B.shift();if(k.netOffS&&!(!G.players[uid]||G.players[uid].on===false))k.netGone=false;}
+/* ---------- fair racing online (job 1107-0258) ----------
+   Slipstream: sit 3.5-26 m behind another car (and within 2.6 m of its line) and, after about a second, the air in front lets you go up to
+   +5% faster than the top speed everyone has (it builds over 1 s, fades over 0.6 s; wind lines show it). Catch-up: only when the room is on
+   Easy, only for the player in LAST place, and only when the car in front is more than 25 m away: +0% at 25 m rising to +4% at 100 m, never more.
+   The leader and the middle of the pack get nothing. Each device works out its own bonus from the same shared positions. */
+const GPN_DRAFT=0.05,GPN_CATCH=0.04;
+function gpnDraft(kt,dt,waiting){const R=R3,XS=R.W-1.2,L=R.len;let on=false,who=null;
+  if(!waiting&&!R.done&&!kt.jet&&!kt.air&&kt.speed>0.5*kt.max){for(let i=0;i<R.karts.length;i++){const o=R.karts[i];if(o===kt||o.netGone||!o.started||o.net&&!o.netBuf)continue;const d=((o.t-kt.t+1)%1)*L;if(d<3.5||d>26||Math.abs(o.x-kt.x)*XS>2.6)continue;on=true;who=o;break;}}
+  kt.drT=on?Math.min(1.5,(kt.drT||0)+dt):Math.max(0,(kt.drT||0)-dt/0.6);const k=Math.min(1,kt.drT);kt.drG=k*k*(3-2*k);kt.drWho=on?who:null;
+  if(on&&kt.drG>0.2){R.drLog=R.drLog||{t:0,max:0};R.drLog.t+=dt;R.drLog.max=Math.max(R.drLog.max,kt.drG*GPN_DRAFT);}
+  return kt.drG;}
+function gpnCatchUp(dt){const R=R3,me=R.me;let want=0;
+  if(GPN&&GPN.race&&GPN.race.pace==="gentle"&&me.started&&R.board&&R.board.length>1&&R.board[R.board.length-1]===me){const ahead=R.board[R.board.length-2],g=((ahead.lap+ahead.t)-(me.lap+me.t))*R.len;want=GPN_CATCH*Math.max(0,Math.min(1,(g-25)/75));}
+  me.cuT=(me.cuT||0)+(want-(me.cuT||0))*Math.min(1,dt*1.5);if(want>0.001)R.cuLog=Math.max(R.cuLog||0,me.cuT);return me.cuT;}
+/* live position board: 1st-4th, name, and the gap (seconds) to the car in front. Refreshed ~6 times a second from the same positions the race uses */
+function gpnBoard(dt){const R=R3;R.bdT=(R.bdT||0)-dt;if(R.bdT>0)return;R.bdT=0.16;const el=$("gpnBoard");if(!el||!R.board)return;
+  const html=R.board.map((k,i)=>{let g="";if(i>0){const a=R.board[i-1],d=((a.lap+a.t)-(k.lap+k.t))*R.len,sec=d/Math.max(25,k.speed||0);g='<u>+'+Math.max(0,sec).toFixed(1)+'s</u>';}else g='<u class="l">LEAD</u>';
+    return'<div class="'+(k.player?"me":"")+'" data-n="'+esc(k.racer.n)+'"><em>'+(i+1)+'</em><b>'+esc(k.racer.n)+'</b>'+g+'</div>';}).join("");
+  if(R.bdHtml!==html){R.bdHtml=html;el.innerHTML=html;}}
+/* a friend's car this frame: where the snapshots say it was a moment ago (short prediction if they are late), joined up so a correction is never a jump */
+function gpNetKart(kt,dt){const R=R3,B=kt.netBuf,now=performance.now();kt.px=kt.x;if(!B||!B.length){kt.speed=0;return;}
+  const age=now-kt.netLast;if(age>5000&&!kt.netGone){kt.netGone=true;if(!kt.netOffS)gpMsg(kt.racer.n+" lost connection");}else if(age<1000&&!kt.netOffS&&kt.netGone)kt.netGone=false;
+  const tgt=now-kt.netOff-kt.netDelay,L=R.len;let a=B[0],b=null;for(let i=B.length-1;i>=0;i--){if(B[i].n<=tgt){a=B[i];b=B[i+1]||null;break;}}
+  const dw=(p,q)=>{let d=q-p;if(d>0.5)d-=1;else if(d<-0.5)d+=1;return d;};
+  // how fast it really moves, measured from the snapshots themselves (a slow sender's "speed" is not its real progress)
+  const last=B[B.length-1],prev=B.length>1?B[B.length-2]:null,rate=(b&&b.n>a.n)?dw(a.t,b.t)/(b.n-a.n):((prev&&last.n>prev.n)?dw(prev.t,last.t)/(last.n-prev.n):a.v/L/1000);
+  let t,x,y,yaw,v,lap;
+  if(b&&b.n>a.n&&tgt>=a.n){const u=(tgt-a.n)/(b.n-a.n);t=(a.t+dw(a.t,b.t)*u+1)%1;x=a.x+(b.x-a.x)*u;y=a.y+(b.y-a.y)*u;yaw=a.a+(b.a-a.a)*u;v=a.v+(b.v-a.v)*u;lap=(t<a.t-0.5)?b.l:a.l;}
+  else{const ex=Math.max(0,Math.min(tgt-a.n,400)),lv=(prev&&a===last&&a.n>prev.n)?(a.x-prev.x)/(a.n-prev.n):0;t=(a.t+rate*ex+1)%1;x=a.x+lv*ex;y=a.y;yaw=a.a;v=a.v;lap=(t<a.t-0.5)?a.l+1:a.l;}
+  const f=(last||a).f|0,F=a.f|0;
+  // carry on at that rate and ease into the target: no lag and no snap (only a real teleport, over ~18 m, jumps)
+  const wall=kt.netWall?Math.min(0.5,(now-kt.netWall)/1000):dt;kt.netWall=now;
+  let S=kt.netSt;if(!S){S=kt.netSt={t,x,y,a:yaw};}
+  const pt=(S.t+rate*wall*1000+1)%1,et=dw(pt,t);
+  if(Math.abs(et*L)>18){S.t=t;S.x=x;S.y=y;S.a=yaw;}
+  else{const q=1-Math.exp(-wall*9),nx=(pt+et*q+1)%1;S.t=(rate>=0&&dw(S.t,nx)<0)?S.t:nx;S.x+=(x-S.x)*q;S.y+=(y-S.y)*(1-Math.exp(-wall*16));S.a+=(yaw-S.a)*q;}   // driving forwards it only ever eases forwards
+  kt.t=S.t;kt.x=S.x;kt.vy=dt>0?Math.max(-30,Math.min(30,(S.y-(kt.y||S.y))/dt)):0;kt.y=S.y;kt.netA=S.a;kt.speed=v;kt.lap=(kt.t<0.02&&lap<a.l)?a.l:lap;kt.started=true;
+  const air=!!(F&1);kt.airT=air?(kt.airT||0)+dt:0;kt.air=air;kt.brakeOn=!!(f&32);kt.drift=(f&8)?-1:((f&16)?1:0);kt.boostT=(f&4)?0.3:0;kt.boostMul=1;kt.netDone=!!(f&512);
+  if(kt.jg)kt.jg.want=(F&2)?1:0;kt.netJet=!!(F&2);
+  const tk=(f>>6)&3;if(tk&&!kt.netTk&&!kt.trick)gpTrickStart(kt,["","roll","flip","spin"][tk],(f&256)?-1:1);kt.netTk=tk;
+}
+function gpnSend(now){const G=GPN,R=R3,me=R.me;if(!G||!R.online)return;const every=(R.countdown>1||R.done)?500:GPN_SEND;if(now-G.sendL<every||G.inflight>=3)return;G.sendL=now;
+  const tk=me.trick?({roll:1,flip:2,spin:3}[me.trick.k]||0):0;
+  const f=(me.air?1:0)|(me.jet?2:0)|(me.boostT>0?4:0)|(me.drift<0?8:0)|(me.drift>0?16:0)|(me.brakeOn?32:0)|(tk<<6)|(me.trick&&me.trick.d<0?256:0)|(R.done?512:0);
+  const num=(v,d,lo,hi)=>{const r=+(+v).toFixed(d);return r<lo?lo:(r>hi?hi:(isFinite(r)?r:0));};
+  const v={t:num(me.t,5,0,1),l:me.started?Math.min(9,me.lap):-1,x:num(me.x,3,-99,99),y:num(me.pos.y,2,-1000,3000),a:num(gpYawRel(me),3,-7,7),v:num(me.speed,1,-200,400),f,n:Math.round(now)};
+  G.inflight++;G.sent++;gpnRef("cars/"+G.uid).set(v).then(()=>{G.inflight=Math.max(0,G.inflight-1);},e=>{G.inflight=Math.max(0,G.inflight-1);if(!G.sendErr){G.sendErr=1;console.warn("online send",e&&e.code);}});}
+function gpnTick(now){if(GPN&&R3&&R3.online)gpnSend(performance.now());}
+/* crossing the line: my time from the shared GO, then the results board fills in from the host's order */
+function gpnFinish(){const G=GPN,R=R3;if(!G||!G.race){R.done=true;return;}R.done=true;gpBank();const crossed=R.me.lap>=R.C.laps;const ms=Math.max(1,Math.round(performance.now()-(R.netGo||performance.now())));
+  if(crossed)gpnRef("finish/"+G.uid).set({ms,run:G.race.run}).catch(e=>console.warn(e));else G.dnf=true;
+  G.scr="done";G.xpDone=false;const w=$("gp3");if(w)w.classList.add("done");GPA.play("lap");R.gas=false;R.touchDir=0;R.autoGas=false;setTimeout(()=>{if(GPN===G&&R3===R)GPA.stopEngine();},1300);gpnPanel();}
+function gpnRows(){const G=GPN,run=G.race.run,o=G.order&&G.order.run===run?G.order:null,ros=G.race.roster;const names=ros.map(r=>Object.assign({},r,{ms:G.finish[r.uid]&&G.finish[r.uid].run===run?G.finish[r.uid].ms:null}));
+  const list=o&&o.list?Object.keys(o.list).sort((a,b)=>a-b).map(i=>o.list[i]):[];
+  const fin=list.map(u=>names.find(n=>n.uid===u)).filter(Boolean),rest=names.filter(n=>!list.includes(n.uid));
+  return{fin,rest,final:!!(o&&o.final),list};}
+function gpnPanel(){const G=GPN,R=R3;if(!G||!R||!R.done||!G.race)return;const w=$("gp3");if(!w)return;let P0=w.querySelector(".gp3-finish");if(!P0){w.insertAdjacentHTML("beforeend",'<div class="gp3-finish gpn-fin" id="gpnFin"></div>');P0=w.querySelector(".gp3-finish");}
+  const X=gpnRows(),mePos=X.list.indexOf(G.uid)+1,isHost=G.meta&&G.meta.host===G.uid,run=G.race.run,scored=!!(X.final&&G.meta&&G.meta.scored===run),S=G.series||{},nDone=G.meta?(G.meta.n|0):0,series=scored&&nDone>=GPN_RACES;
+  const title=X.final?(mePos?gpOrd(mePos).toUpperCase()+" PLACE"+(mePos===1?" 🏆":""):"TIME'S UP"):(mePos?gpOrd(mePos).toUpperCase()+" SO FAR":"FINISHED");
+  // photo finish: two neighbours across the line less than 0.2 s apart (the closest pair gets the banner)
+  let pf=null;for(let i=1;i<X.fin.length;i++){const a=X.fin[i-1],b=X.fin[i];if(a.ms!=null&&b.ms!=null&&b.ms-a.ms<200){const d=b.ms-a.ms;if(!pf||d<pf.d)pf={w:a,l:b,d};}}
+  const pfBan=pf?'<div class="gpn-pf" id="gpnPf"><b>📸 PHOTO FINISH!</b><span>'+esc(pf.w.disp)+' beat '+esc(pf.l.disp)+' by '+(pf.d/1000).toFixed(3)+' s</span></div>':"";
+  const pts=n=>{if(!scored)return"";const i=X.list.indexOf(n.uid);return'<b class="pts">'+(i>=0&&GPN_PTS[i]?"+"+GPN_PTS[i]:"+0")+'<i>'+(S[n.uid]||0)+' pts</i></b>';};
+  const row=(n,pos)=>'<div class="'+(n.me?"me":"")+(pf&&(n===pf.w||n===pf.l)?" pf":"")+'" data-uid="'+esc(n.uid)+'"><em>'+pos+'</em><span>'+esc(n.disp)+(n.me?" · You":"")+'</span><small>'+(n.ms!=null?gpFmt(n.ms):"")+'</small>'+pts(n)+'</div>';
+  const rows=X.fin.map((n,i)=>row(n,gpOrd(i+1))).join("")+X.rest.map(n=>{const p=G.players[n.uid],gone=!p||p.on===false,txt=gone?"Left":(X.final?"Didn't finish":"Still racing…");return'<div class="'+(n.me?"me":"")+'" data-uid="'+esc(n.uid)+'"><em>–</em><span>'+esc(n.disp)+(n.me?" · You":"")+'</span><small>'+txt+'</small>'+pts(n)+'</div>';}).join("");
+  // series: race n of 3, then a podium on the points
+  let ser="";
+  if(series){const best={};X.list.forEach((u,i)=>{best[u]=i;});const rank=G.race.roster.map(r=>Object.assign({},r,{pt:S[r.uid]||0})).sort((a,b)=>b.pt-a.pt||((best[a.uid]==null?9:best[a.uid])-(best[b.uid]==null?9:best[b.uid]))),top=rank.slice(0,3),order=top.length>=3?[1,0,2]:(top.length===2?[1,0]:[0]),med=["🥇","🥈","🥉"];
+    ser='<div class="gpn-pod" id="gpnPod"><div class="gpn-podt">SERIES PODIUM · after '+GPN_RACES+' races</div><div class="gpn-podc">'+order.map(i=>{const r=top[i];return'<div class="p'+(i+1)+(r.me?" me":"")+'" data-uid="'+esc(r.uid)+'"><span>'+med[i]+'</span><b>'+esc(r.disp)+'</b><i>'+r.pt+' pts</i><u></u></div>';}).join("")+'</div></div>';}
+  else if(X.final)ser='<div class="gpn-ser" id="gpnSerLine">Series: race '+Math.min(GPN_RACES,Math.max(1,G.race.no))+' of '+GPN_RACES+' done · points carry over to the next race</div>';
+  const next=nDone>=GPN_RACES?"New series 🔁":"Race again 🔁";
+  const btn=X.final?(isHost?'<button class="btn big" id="gpnAgainBtn" onclick="gpnAgain()">'+next+'</button>':'<div class="fz-fin-s" id="gpnWaitHost">Waiting for the host to start the next race…</div>'):'<div class="fz-fin-s">Waiting for everyone to finish…</div>';
+  const key=title+pfBan+rows+ser+btn;if(G.panelKey===key&&P0.innerHTML)return;const first=!G.panelKey;G.panelKey=key;
+  P0.innerHTML='<div class="fz-fin-t" id="gpnFinT">'+title+'</div>'+pfBan+'<div class="gpn-rows" id="gpnRows">'+rows+'</div>'+ser+'<div class="btn-row" style="margin-top:10px">'+btn+'<button class="btn secondary big" onclick="renderOnline()">Leave room</button></div>';
+  if(pf&&!G.pfShown){G.pfShown=1;const f=document.createElement("div");f.className="gpn-flash";w.appendChild(f);setTimeout(()=>f.remove(),900);}
+  if(X.final&&!G.xpDone){G.xpDone=true;if(mePos===1){if(typeof confetti==="function")confetti();gpConfetti(P0);GPA.play("fanfare");}if(P&&mePos){P.xp=(P.xp||0)+([0,30,20,10,5][mePos]||5);if(typeof save==="function")save();}}}
 
 </script>
 <script>

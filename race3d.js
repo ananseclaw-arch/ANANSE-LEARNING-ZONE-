@@ -1021,6 +1021,30 @@ function gpBuildGlbCar(T,car,src,paint,shared){
 function gpGlbUpdate(kt,dt){const G=kt.glb;G.glow+=((kt.brakeOn?1:0)-G.glow)*Math.min(1,dt*(kt.brakeOn?18:7));
   const om=Math.abs(kt.speed)/Math.max(0.1,kt.S.radR),bo=Math.max(0,Math.min(0.88,(om-18)/34));G.blurs.forEach(b=>{const v=bo>0.02&&!kt.lodFar;if(b.visible!==v)b.visible=v;if(v)b.material.opacity=bo;});
   kt.tailMat.emissiveIntensity=0.5+G.glow*1.9;G.glows.forEach(s=>{const v=G.glow>0.02;if(s.visible!==v)s.visible=v;if(v)s.material.opacity=G.glow*0.7;});}
+/* ---------- the racing name ON the car (job 1107-0258): a livery plate on both doors and one across the back ----------
+   Only ever drawn from a name that passed gpnNameOk (2-10 letters, rude-word filter). The plates sit on the sprung body so they lean with
+   it; their spot is found by shooting a ray at the real model (every car has a different shape), with a fixed guess if nothing is hit.
+   Plate colours flip with the paint (light paint = dark plate) so the name reads on every car, in the chase camera at race distance. */
+function gpnFontFace(){if(document.getElementById("gpnFont"))return;const s=document.createElement("style");s.id="gpnFont";s.textContent='@font-face{font-family:"GPN Bungee";src:url(assets/vendor/fonts/Bungee-Regular.woff2) format("woff2");font-display:swap}';document.head.appendChild(s);}
+function gpnLight(hex){const h=/^#[0-9a-f]{6}$/i.test(hex||"")?hex:"#888888",r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return(0.299*r+0.587*g+0.114*b)/255;}
+function gpNamePlate(text,paint,W,H){const dark=gpnLight(paint)>0.56,bg=dark?"#14101f":"#ffffff",fg=dark?"#ffffff":"#14101f",edge=dark?"#00f0ff":"#ff2d87";
+  const draw=(x,w,h)=>{x.clearRect(0,0,w,h);const r=h*0.3;x.fillStyle=edge;x.beginPath();x.moveTo(r,0);x.arcTo(w,0,w,h,r);x.arcTo(w,h,0,h,r);x.arcTo(0,h,0,0,r);x.arcTo(0,0,w,0,r);x.fill();
+    const b=h*0.1;x.fillStyle=bg;x.beginPath();x.moveTo(r,b);x.arcTo(w-b,b,w-b,h-b,r*0.8);x.arcTo(w-b,h-b,b,h-b,r*0.8);x.arcTo(b,h-b,b,b,r*0.8);x.arcTo(b,b,w-b,b,r*0.8);x.fill();
+    let px=h*0.62;const fam='"GPN Bungee",Impact,system-ui,sans-serif',wt=document.fonts&&document.fonts.check('40px "GPN Bungee"')?"400":"900";x.font=wt+" "+px+"px "+fam;const mw=x.measureText(text).width;if(mw>w*0.86){px*=w*0.86/mw;x.font=wt+" "+px+"px "+fam;}
+    x.textAlign="center";x.textBaseline="middle";x.fillStyle=fg;x.fillText(text,w/2,h/2+h*0.04);};
+  const tex=gpCanvasTex(W,H,draw);if(document.fonts&&document.fonts.load)document.fonts.load('40px "GPN Bungee"').then(()=>{const cv=tex.image;draw(cv.getContext("2d"),cv.width,cv.height);tex.needsUpdate=true;}).catch(()=>{});return tex;}
+function gpNameLivery(T,m,text,paint){if(!text||!gpnNameOk(text)||!m||!m.g||!m.body||(m.pic))return;gpnFontFace();
+  const D=(m.carId&&GP_GLB[m.carId])||{},S=m.S||{len:4.4,w:1.9},roofY=D.roofY||1.2,tail=D.tail||-S.len/2,tyX=D.tyreX||S.w*0.42;
+  const g=m.g;g.updateMatrixWorld(true);const skin=[];m.g.traverse(o=>{if(!o.isMesh||!o.material||o.material.transparent||o.material.opacity<1)return;const nm=o.material.name||"";if(/^(glass|decal|lamp)$/.test(nm))return;for(let q=o;q&&q!==g;q=q.parent)if(/^(wheel|hub|caliper)_/.test(q.name||""))return;skin.push(o);});
+  const rc=new T.Raycaster(),hit=(o,d)=>{const wo=g.localToWorld(new T.Vector3(o[0],o[1],o[2])),wd=new T.Vector3(d[0],d[1],d[2]).transformDirection(g.matrixWorld);rc.set(wo,wd);rc.far=12;const h=rc.intersectObjects(skin,false)[0];return h?g.worldToLocal(h.point.clone()):null;};
+  const bodyIn=v=>m.body.worldToLocal(g.localToWorld(v.clone()));
+  const y=roofY*0.5,yr=roofY*0.62,sw=Math.min(1.7,Math.max(1.15,S.len*0.3)),sh=sw*0.27,rw=Math.min(1.5,Math.max(0.9,S.w*0.64)),rh=rw*0.25;
+  const sideTex=gpNamePlate(text,paint,512,138),rearTex=gpNamePlate(text,paint,512,128);
+  const mk=(tex,w,h)=>{const mt=new T.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-6,polygonOffsetUnits:-6,toneMapped:false});mt.userData.lin=1;const mesh=new T.Mesh(new T.PlaneGeometry(w,h),mt);mesh.renderOrder=3;mesh.userData.liv=1;return mesh;};
+  const out=[];
+  [1,-1].forEach(sd=>{let p=hit([sd*3,y,0.0],[-sd,0,0]);const x=p?p.x:sd*S.w*0.46;const pl=mk(sideTex,sw,sh);const v=bodyIn(new T.Vector3(x+sd*0.012,y,0.05));pl.position.copy(v);pl.rotation.y=sd*Math.PI/2;m.body.add(pl);out.push(pl);});
+  {const p=hit([0,yr,tail-3],[0,0,1]);const z=p?p.z:tail;const pl=mk(rearTex,rw,rh);pl.position.copy(bodyIn(new T.Vector3(0,yr,z-0.012)));pl.rotation.y=Math.PI;m.body.add(pl);out.push(pl);}
+  m.livery=out;}
 /* ---------- pick-an-upgrade after each race ----------
    Finishing a race (any place) offers 3 big cards; one tap fits that upgrade, saved on the profile (P.gpUp, same save() pattern).
    Everything is earned by racing: no shop, no coins, nothing to buy. Steps are small so races stay fair and finishable:
@@ -2036,16 +2060,16 @@ function gpBuild(C){
   gpCss();
   const myCar=gpCar(),myPaint=gpPaint(),story=gpStory(),L=story?Object.assign({},C.look,C.story):C.look;
   if(P&&typeof P.gpMute==="boolean")GPA.muted=P.gpMute;GPA.setMute(GPA.muted);
-  app.innerHTML='<div class="fadein gp3-wrap v3'+(story?" story":"")+'" id="gp3">'
+  app.innerHTML='<div class="fadein gp3-wrap v3'+(story?" story":"")+(GPN&&GPN.race?" net":"")+'" id="gp3">'
    +'<canvas id="gp3c"></canvas><canvas class="fz-fx" id="gp3Fx" width="16" height="9"></canvas><div class="fz-vig"></div><canvas class="fz-ck" id="gp3Ck" width="16" height="9"></canvas>'
    +'<div class="gp3-touch" id="gp3L"></div>'
-   +'<div class="fz-tl"><div class="fz-pos" id="gp3Pos"'+(gpMode()==="free"?' style="display:none"':'')+'>5<small>th</small><em>/5</em></div><div class="fz-lap" id="gp3Lap">LAP 1/'+C.laps+'</div><div class="fz-time" id="gp3Time">0:00.0</div><div class="fz-song" id="gp3Song"'+(gpMode()==="free"?'':' style="display:none"')+'></div></div>'
+   +'<div class="fz-tl"><div class="fz-pos" id="gp3Pos"'+(gpMode()==="free"?' style="display:none"':'')+'>5<small>th</small><em>/5</em></div><div class="fz-lap" id="gp3Lap">LAP 1/'+C.laps+'</div><div class="fz-time" id="gp3Time">0:00.0</div>'+(GPN&&GPN.race?'<div class="fz-spd" id="gp3Spd"></div>':'')+'<div class="fz-song" id="gp3Song"'+(gpMode()==="free"?'':' style="display:none"')+'></div></div>'
    +'<canvas class="gp3-map" id="gp3Map" width="300" height="220"></canvas>'
    +'<div class="fz-skill" id="gp3Skill"></div>'
    +'<canvas class="fz-tach" id="gp3Tach" width="320" height="320"></canvas>'
    +'<button class="fz-btn mute" id="gp3Mute" aria-label="Sound on or off">'+(GPA.muted?"🔇":"🔊")+'</button>'
    +'<button class="fz-btn quit" id="gp3Quit" aria-label="Quit race" onclick="renderCircuits()">✕</button><button class="fz-cam" id="gp3Cam" aria-label="Change camera view"><i>🎥</i><b id="gp3CamL">CHASE</b></button>'
-   +'<div class="gp3-msg" id="gp3Msg"></div>'
+   +'<div class="gp3-msg" id="gp3Msg"></div><div class="gp3-last" id="gp3Last" aria-live="polite">LAST LAP</div>'
    +'<div class="gp3-card" id="gp3Card"><b>'+esc(C.name)+'</b><small>'+(gpMode()==="free"?"Free drive · ":"Race · ")+esc(L.time)+' · '+esc(myCar.n)+'</small></div>'
    +'<div class="gp3-count" id="gp3Count"></div>'
    +'<div class="fz-cue" id="gp3Cue"><b>TOO FAST!</b></div><div class="fz-air" id="gp3Air"></div><div class="fz-deepcue" id="gp3Deep"></div><div class="fz-wash" id="gp3Wash"></div><div class="fz-nitro" id="gp3Nitro"></div>'
@@ -2057,6 +2081,7 @@ function gpBuild(C){
    +'<div class="gp3-pad r"><button class="fz-pedal brake" id="rcB" aria-label="Brake pedal"><i></i><b>BRAKE</b></button><button class="fz-pedal gas'+(gpAuto()?" auto":"")+'" id="rcG" aria-label="Gas pedal"><i></i><b>'+(gpAuto()?"AUTO":"GAS")+'</b></button></div>'
    +'</div>'
    +'<div class="center fz-quit-row"><button class="readbtn" onclick="renderCircuits()">⟵ Quit race</button></div>';
+  if(GPN&&GPN.race){const w3=$("gp3"),pl=document.createElement("div");pl.className="gp3-plate";pl.id="gp3Plate";pl.append(w3.querySelector(".gp3-pad.l"),$("gp3Boost"),w3.querySelector(".gp3-pad.r"));w3.appendChild(pl);}   // online on a phone: the controls live on their own plate (CSS decides where; on a big screen it changes nothing)
   const T=THREE,canvas=$("gp3c"),UP=new T.Vector3(0,1,0);
   const renderer=new T.WebGLRenderer({canvas,antialias:true,powerPreference:"high-performance"});
   renderer.info.autoReset=false;
@@ -2415,13 +2440,13 @@ function gpBuild(C){
   if(!story){const ct=new T.Color(1,1,1).lerp(gpLin(L.sun),0.3).multiply(TINT);ct.multiplyScalar(1/Math.max(ct.r,ct.g,ct.b));shared.carTint=ct;}   // sunset rim/tint for the photo cars, matched to the route light
   const others=gpRivalCars(C.id);
   const pname=(P&&typeof P.name==="string"&&P.name.trim())?P.name.trim().split(/\s+/)[0]:"You";
-  const NET=!!(GPN&&GPN.race);const racers=NET?GPN.race.roster.map(r=>({n:r.label,car:GP_CARS.find(c=>c.id===r.car)||GP_CARS[0],css:r.paint,player:!!r.me,netPaint:r.paint,netUid:r.uid,slot:r.slot})):[{n:pname,car:myCar,css:myPaint,player:true}].concat(gpMode()==="race"?others.slice(0,4).map((c,i)=>({n:GP_DRIVERS[i%GP_DRIVERS.length],car:c,css:c.paint,player:false})):[]);
+  const NET=!!(GPN&&GPN.race);const racers=NET?GPN.race.roster.map((r,ri)=>({rank:ri,n:r.disp,livery:r.name||"",car:GP_CARS.find(c=>c.id===r.car)||GP_CARS[0],css:r.paint,player:!!r.me,netPaint:r.paint,netUid:r.uid,slot:r.slot})):[{n:pname,livery:gpnProfileName(),car:myCar,css:myPaint,player:true}].concat(gpMode()==="race"?others.slice(0,4).map((c,i)=>({n:GP_DRIVERS[i%GP_DRIVERS.length],car:c,css:c.paint,player:false})):[]);
   const pics=story?{}:(window._gpPics||{});   // the storybook look keeps the drawn 3D cars (the ink filter buries a photo)
   const glbs=story?{}:(window._gpGlb||{});   // real 3D models (GLB) win over the photo sprites when they loaded
-  const pace=gpPaceMul();const karts=racers.map((r,i)=>{const m=(GP_GLB[r.car.id]&&glbs[r.car.id])?gpBuildGlbCar(T,r.car,glbs[r.car.id],r.netPaint||gpGlbPaintFor(r.car,r.player),shared):(GP_PICS[r.car.id]&&pics[r.car.id])?gpBuildPicCar(T,r.car,pics[r.car.id],shared):gpBuildCar(T,r.car,r.css,shared);scene.add(m.g);const st=gpStats(r.car);st.max*=pace;st.accel*=0.75;if(r.player&&gpMode()==="race"){const U=gpUpState();if(!NET){st.max*=1+0.02*U.speed;st.accel*=1+0.06*U.launch;}gpUpFit(T,m,true,shared);}   // online: everyone races on the car's own numbers, upgrades are looks only
+  const pace=gpPaceMul();const karts=racers.map((r,i)=>{const m=(GP_GLB[r.car.id]&&glbs[r.car.id])?gpBuildGlbCar(T,r.car,glbs[r.car.id],r.netPaint||gpGlbPaintFor(r.car,r.player),shared):(GP_PICS[r.car.id]&&pics[r.car.id])?gpBuildPicCar(T,r.car,pics[r.car.id],shared):gpBuildCar(T,r.car,r.css,shared);scene.add(m.g);gpNameLivery(T,m,r.livery,r.netPaint||(r.player?gpGlbPaintFor(r.car,true):r.css));const st=gpStats(NET?GPN_STD:r.car);st.max*=pace;st.accel*=0.75;if(r.player&&gpMode()==="race"){const U=gpUpState();if(!NET){st.max*=1+0.02*U.speed;st.accel*=1+0.06*U.launch;}gpUpFit(T,m,true,shared);}   // online: everyone races on the car's own numbers, upgrades are looks only
     return{racer:r,player:r.player,net:NET&&!r.player,netUid:r.netUid,...m,...st,t:0,x:0,px:0,speed:0,lap:0,spin:0,drift:0,off:0,hop:0,roll:0,pitch:0,steerVis:0,st1:0,steerIn:0,sv:0,dHold:0,wasBrake:false,lockT:0,gasT:0,wallT:0,knock:0,headA:0,headV:0,wallRec:0,leanT:0,liftT:0,chatter:0,yaw:null,lastSpeed:0,wheelPhase:0,wheelRadius:m.S.radR,travel:0,skidD:0,ahead:true,started:false,pos:new T.Vector3(),draft:false,brakeOn:false,load:0,squeal:0,loss:null,lossA:0,lossCool:0,overT:0,air:false,airT:0,vy:null,y:0,ry:null,sq:0,sqV:0,hang:0,pS:null,aiSkill:(r.player?1:(0.95+(i%3)*0.025+r.car.handle*0.006)*(gpPace()!=="gentle"?1:0.97)*((GP_PACK[gpPace()]||GP_PACK.normal).skill||1))};});
   {const me0=karts.find(k=>k.player);karts.forEach(k=>{if(!k.player)k.max=Math.min(k.max,me0.max*(gpPace()==="gentle"?0.97:1.05));});}   // kid-fair: a rival's top speed never runs away from Prince's car (Easy: a touch under it)
-  const rows=karts.length,pitch=8/(len/M);karts.forEach((k,i)=>{const row=NET?k.racer.slot:(k.player?rows-1:i-1);k.t=((M-5-row*pitch)/M)%1;k.x=(row%2?0.4:-0.4)*(rows>1?1:0);k.px=k.x;});
+  const rows=karts.length,pitch=8/(len/M);karts.forEach((k,i)=>{const row=NET?(k.racer.rank+(GPN.race.shift||0))%rows:(k.player?rows-1:i-1);k.t=((M-5-row*pitch)/M)%1;k.x=(row%2?0.4:-0.4)*(rows>1?1:0);k.px=k.x;});
   const TR=(TH&&!story&&(gpTrafficOn()||!!(TW&&TW.parked&&TW.parked.length)))?gpTrafficBuild(T,scene,window._gpTraffic,C,karts,len,karts.find(k=>k.player),shared0,{moving:gpTrafficOn(),parked:(TW&&TW.parked)||[]}):null;   // traffic cars (street + coast courses, Options: traffic on)
   if(gpMode()==="race"){const boxTex=gpCanvasTex(128,256,(x,w,h)=>{x.clearRect(0,0,w,h);x.strokeStyle="rgba(255,255,255,.9)";x.lineWidth=10;x.strokeRect(6,6,w-12,h-12);});
     const boxMat=new T.MeshBasicMaterial({map:boxTex,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});boxMat.userData.lin=1;const boxGeo=new T.PlaneGeometry(2.8,5.8).rotateX(-Math.PI/2);
@@ -2499,7 +2524,7 @@ function gpBuild(C){
   document.addEventListener("touchmove",R3.blockTouch,{passive:false});document.addEventListener("gesturestart",R3.blockTouch,{passive:false});
   R3.onVis=()=>{if(!GPA.ctx)return;if(document.hidden)GPA.ctx.suspend();else GPA.ctx.resume();};document.addEventListener("visibilitychange",R3.onVis);
   const wrapEl=$("gp3");
-  R3.onResize=()=>{if(!R3)return;const w=wrapEl.clientWidth||720,h=wrapEl.clientHeight||Math.round(w*9/16);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();const pr=renderer.getPixelRatio();R3.vpW=w*pr;R3.vpH=h*pr;R3.smoke.mat.uniforms.scale.value=h*pr*0.72;R3.smoke.mat.uniforms.maxPx.value=h*pr*(R3.me&&R3.me.glb?0.5:0.08);if(R3.post)R3.post.resize(w,h,renderer.getPixelRatio());if(R3.fx){R3.fxW=Math.max(16,Math.round(w/2));R3.fxH=Math.max(9,Math.round(h/2));R3.fx.width=R3.fxW;R3.fx.height=R3.fxH;}const ck=$("gp3Ck");if(ck){const q=Math.min(2,window.devicePixelRatio||1);ck.width=Math.round(w*q);ck.height=Math.round(h*q);}};
+  R3.onResize=()=>{if(!R3)return;const w=wrapEl.clientWidth||720,h=(wrapEl.classList.contains("net")&&canvas.clientHeight>50?canvas.clientHeight:wrapEl.clientHeight)||Math.round(w*9/16);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();const pr=renderer.getPixelRatio();R3.vpW=w*pr;R3.vpH=h*pr;R3.smoke.mat.uniforms.scale.value=h*pr*0.72;R3.smoke.mat.uniforms.maxPx.value=h*pr*(R3.me&&R3.me.glb?0.5:0.08);if(R3.post)R3.post.resize(w,h,renderer.getPixelRatio());if(R3.fx){R3.fxW=Math.max(16,Math.round(w/2));R3.fxH=Math.max(9,Math.round(h/2));R3.fx.width=R3.fxW;R3.fx.height=R3.fxH;}const ck=$("gp3Ck");if(ck){const q=Math.min(2,window.devicePixelRatio||1);ck.width=Math.round(w*q);ck.height=Math.round(h*q);}};
   R3.onOrient=()=>{[150,400,900].forEach(ms=>setTimeout(()=>{if(R3)R3.onResize();},ms));};
   window.addEventListener("resize",R3.onResize);window.addEventListener("orientationchange",R3.onOrient);if(R3.me.glb){R3.smoke.lim=0.95;R3.smoke.base=0.85;R3.smoke.cap=150;const sc=R3.sunTint||new T.Color(1,1,1),sk=R3.skyTint||new T.Color(0.8,0.82,0.9);R3.smoke.mat.uniforms.tint.value.copy(sc).multiplyScalar(1.2);R3.smoke.mat.uniforms.shade.value.copy(sk).multiplyScalar(0.97);}R3.onResize();   // smoke takes the scene light: warm sun on top, sky-blue shade underneath
   GPA.under=0;GPA.startEngine();
@@ -2592,6 +2617,7 @@ function gpMirror(){const R=R3,T=R.T,rd=R.renderer;let m=R.mir;
     R.sky.position.copy(sp);rd.shadowMap.autoUpdate=au;hid.forEach(k=>{k.g.visible=false;});m.renders++;}
   const ac=rd.autoClear;rd.autoClear=false;rd.render(m.hs,m.hc);rd.autoClear=ac;}
 function gpToggleMute(){GPA.init();GPA.setMute(!GPA.muted);if(P){P.gpMute=GPA.muted;save();}const b=$("gp3Mute");if(b)b.textContent=GPA.muted?"🔇":"🔊";}
+function gpLastLap(){const e=$("gp3Last");if(!e)return;e.classList.remove("show");void e.offsetWidth;e.classList.add("show");R3.lastLapAt=R3.time;}
 function gpMsg(m){if(!R3)return;const e=$("gp3Msg");if(e){e.textContent=m;e.classList.add("show");}R3.msgT=1.7;}
 /* ---------- skill chains ---------- */
 /* one row per skill name (a repeated skill adds to its row and shows a count); the multiplier grows with each new
@@ -2645,7 +2671,7 @@ function gpFrame(now){
 function gpLapCross(kt,before,waiting){if(waiting||kt.traffic)return;const fwdX=kt.t<before&&before-kt.t>0.5,backX=kt.t>before&&kt.t-before>0.5;
   if(backX){if(kt.lap>0)kt.lap--;else kt.started=false;}
   else if(fwdX&&!kt.started){kt.started=true;}
-  else if(fwdX){kt.lap++;if(kt.player){if(kt.lap>=R3.C.laps&&!R3.done)gpFinish();else{R3.notes.forEach(n=>{n.alive=true;n.mesh.visible=true;});GPA.play("lap");gpMsg(kt.lap+1===R3.C.laps?"Final lap":"Lap "+(kt.lap+1));}}}}
+  else if(fwdX){kt.lap++;if(kt.player){if(kt.lap>=R3.C.laps&&!R3.done)gpFinish();else{R3.notes.forEach(n=>{n.alive=true;n.mesh.visible=true;});GPA.play("lap");if(kt.lap+1===R3.C.laps&&R3.online)gpLastLap();else gpMsg(kt.lap+1===R3.C.laps?"Final lap":"Lap "+(kt.lap+1));}}}}
 /* ---------- grip limit (Prince's car) ----------
    Every corner has a safe speed: lateral load v^2/R over the tyres' grip (ratio r). Kid-fair, progressive:
    r > 0.88  the tyres squeal and puff a little smoke (a warning, nothing else);
@@ -2695,7 +2721,7 @@ function gpWallFx(kt,sd,n){const V=R3.tmpV,R=R3,tn=R.curve.getTangentAt(kt.t),sa
    plus a short extra after a wall hit or a slide; nothing at all once he leads. Grip is never touched, so corners stay his to get right. */
 const GP_PACK={gentle:{ahead:0.08,behind:0.13,me:0.12,hit:0.05,skill:1.015},normal:{ahead:0.04,behind:0.11,me:0.1,hit:0.03,skill:1.02}};
 function gpBand(kt){const R=R3,me=R.me,K=GP_PACK[gpPace()]||GP_PACK.normal,g=((kt.lap+kt.t)-(me.lap+me.t))*R.len,u=Math.min(1,Math.max(0,(Math.abs(g)-15)/115)),e=u*u*(3-2*u);return g>0?1-K.ahead*e:1+(K.behind+(me.jet?GP_JET.pull[gpPace()==="gentle"?"gentle":"normal"]:0))*e;}
-function gpPack(dt,waiting){const R=R3,me=R.me;if(waiting||R.mode!=="race"||R.done||R.online){me.cu=0;return;}const K=GP_PACK[gpPace()]||GP_PACK.normal;let top=-1e9;for(const k of R.karts)if(!k.player)top=Math.max(top,k.lap+k.t);
+function gpPack(dt,waiting){const R=R3,me=R.me;if(R.online&&!waiting&&R.mode==="race"&&!R.done){me.cu=gpnCatchUp(dt);return;}if(waiting||R.mode!=="race"||R.done||R.online){me.cu=0;return;}const K=GP_PACK[gpPace()]||GP_PACK.normal;let top=-1e9;for(const k of R.karts)if(!k.player)top=Math.max(top,k.lap+k.t);
   const gap=top<-1e8?0:(top-(me.lap+me.t))*R.len,u=Math.min(1,Math.max(0,(gap-12)/138));R.recB=me.loss||me.wobT>0||me.wallRec>0.5?1:Math.max(0,(R.recB||0)-dt/4);
   const want=gap>0?K.me*u+K.hit*R.recB:0;me.cu=(me.cu||0)+(want-(me.cu||0))*Math.min(1,dt*(want>(me.cu||0)?1.5:0.8));R.packLog&&R.packLog.push(+me.cu.toFixed(3));}
 /* ---------- tricks in the air ----------
@@ -3059,9 +3085,9 @@ function gpUpdate(dt,waiting){
     const kap=R3.kap[i];                                   // signed curvature here (+ = left-hander)
     const offroad=Math.abs(kt.x)>1.05&&!kt.jet;
     if(kt.net)gpNetKart(kt,dt);else{   // a friend's car: their device drives it, this one only draws it
-    let draft=false;if(!waiting&&!kt.jet&&kt.speed/kt.max>0.55){draft=karts.some(o=>{if(o===kt)return false;const d=(o.t-kt.t+1)%1;return d>0.003&&d<0.028&&Math.abs(o.x-kt.x)<0.32;});}kt.draft=draft;
+    let draft=false;if(!waiting&&!kt.jet&&kt.speed/kt.max>0.55){draft=karts.some(o=>{if(o===kt)return false;const d=(o.t-kt.t+1)%1;return d>0.003&&d<0.028&&Math.abs(o.x-kt.x)<0.32;});}kt.draft=draft;const dG=R3.online?gpnDraft(kt,dt,waiting):0;if(R3.online)kt.draft=dG>0.2;
     let band=1;if(!kt.player&&!waiting)band=gpBand(kt);
-    const maxNow=waiting?0:kt.max*band*(draft?1.07:1)*(kt.spin>0?0.6:1)*(R3.tw&&R3.tw.zoneAt(i,"ford")?0.9:1)*(offroad?(kt.player?Math.max(0.62,kt.offF):kt.offF):1)*(kt.drift?0.94:1)*(kt.boostT>0?kt.boostMul:1)*(kt.wobT>0?0.84:1)*(kt.dpSlow>0?kt.dpSlowK:1)*(kt.player?1+(kt.cu||0):1);
+    const maxNow=waiting?0:kt.max*band*(R3.online?1+GPN_DRAFT*dG:(draft?1.07:1))*(kt.spin>0?0.6:1)*(R3.tw&&R3.tw.zoneAt(i,"ford")?0.9:1)*(offroad?(kt.player?Math.max(0.62,kt.offF):kt.offF):1)*(kt.drift?0.94:1)*(kt.boostT>0?kt.boostMul:1)*(kt.wobT>0?0.84:1)*(kt.dpSlow>0?kt.dpSlowK:1)*(kt.player?1+(kt.cu||0):1);
     const spd0=kt.speed/kt.max,inp=kt.player?(left?-1:0)+(right?1:0):0;
     if(kt.player){
       // steering input eases in and out (two cascaded smoothers = an S-curve over ~0.3 s): a tap never jerks the car
@@ -3225,7 +3251,7 @@ function gpUpdate(dt,waiting){
   gpSkillHud();gpTrickHud(dt);gpJetHud(dt);gpJetRingsDraw(dt);gpJetTrail(dt);if(R3.jp&&R3.jp.alive){R3.jp.mesh.rotation.y+=dt*2.1;R3.jp.mesh.position.y=R3.jp.y0+Math.sin(performance.now()/380)*0.3;}
   gpWarn(me,waiting);
   if(R3.mode==="free"&&R3.songDirty){R3.songDirty=0;const e=$("gp3Song");if(e){const cur=R3.song.length%8,ph=R3.song.slice(R3.song.length-cur);let dots="";for(let i=0;i<8;i++)dots+='<i class="'+(i<cur?"on":"")+'" style="--c:'+(ph[i]?ph[i].c:"#fff")+'"></i>';e.innerHTML='🎵 <b>'+R3.notesGot+' / '+R3.notesTotal+'</b>'+dots;}}
-  gpDrawMini($("gp3Map"),R3.C,karts);
+  gpDrawMini($("gp3Map"),R3.C,karts);if(R3.online){gpnBoard(dt);const sp=$("gp3Spd");if(sp){const t=Math.round(me.speed*GP_MPH)+" mph";if(sp.textContent!==t)sp.textContent=t;}}
   // gearbox + engine sound + speedometer
   const mph=me.speed*GP_MPH;let gear=1;for(let g=1;g<GP_GEARS.length;g++)if(mph>=GP_GEARS[g])gear=g+1;
   const lo=GP_GEARS[gear-1],hi=gear<GP_GEARS.length?GP_GEARS[gear]:180;let rf=0.14+0.8*Math.max(0,Math.min(1,(mph-lo)/(hi-lo)));if(waiting)rf=(gas&&!R3.autoGas?0.6:0.14)+Math.random()*0.02;
@@ -3235,7 +3261,13 @@ function gpUpdate(dt,waiting){
 }
 /* edge speed lines drawn on a half-resolution overlay canvas; the 25 stroke colours are built once (no per-frame strings) */
 const GP_STREAK=Array.from({length:25},(_,i)=>"rgba(255,255,255,"+(i/80).toFixed(4)+")");
-function gpSpeedFx(spd,drift){const cv=R3.fx;if(!cv)return;const x=cv.getContext("2d"),W=R3.fxW,H=R3.fxH;x.clearRect(0,0,W,H);const a=Math.max(0,Math.min(1,(spd-0.6)/0.3));if(a<=0.02)return;
+function gpSpeedFx(spd,drift){const cv=R3.fx;if(!cv)return;const x=cv.getContext("2d"),W=R3.fxW,H=R3.fxH;x.clearRect(0,0,W,H);
+  const dg=R3.online?(R3.me.drG||0):0;
+  if(dg>0.04){   // slipstream: long cool-white streaks pouring past both sides of the car, stronger the longer you sit in the tow
+    const cx=W/2,cy=H*0.56,R=Math.hypot(W,H)/2,tr=R3.me.travel;x.lineCap="round";
+    for(let i=0;i<20;i++){const side=i%2?1:-1,j=i>>1,ang=(side<0?Math.PI:0)+side*(-0.5+((j*0.173)%1)*0.95)*(side<0?-1:1)*0.9+(side<0?0.05:-0.05),ph=((tr*0.09+j*0.131+(i%2)*0.37)%1+1)%1,r0=R*(0.34+0.2*ph*ph+0.06*((j*5)%3)),r1=r0+R*(0.16+0.3*dg)*(0.4+ph),c=Math.cos(ang),sn=Math.sin(ang);
+      x.strokeStyle="rgba(190,245,255,"+(Math.min(0.85,(0.25+0.6*dg)*(1-ph*0.7))).toFixed(2)+")";x.lineWidth=(1+2.2*dg)*(1-ph*0.5);x.beginPath();x.moveTo(cx+c*r0,cy+sn*r0*0.85);x.lineTo(cx+c*r1,cy+sn*r1*0.85);x.stroke();}}
+  const a=Math.max(0,Math.min(1,(spd-0.6)/0.3));if(a<=0.02)return;
   // wind streaks only near top speed: 22 fixed directions across the upper half and both sides (nothing below the horizon in the middle), each growing and fading with distance travelled
   // (no per-frame randomness, so nothing flickers), starting well outside the car and clear of the pedals and the dial
   const cx=W/2,cy=H*0.5,R=Math.hypot(W,H)/2,tr=R3.me.travel;x.lineCap="round";
@@ -3285,7 +3317,7 @@ function gpRender(dt){
   if(R3.dp)gpDeepRender(dt);
   R3.renderer.info.reset();if(cmode==="cockpit")gpCockpit();
   const pp=R3.post;if(pp){pp.mat.uniforms.t.value=performance.now()/1000;R3.renderer.setRenderTarget(pp.rt);R3.renderer.render(R3.scene,R3.camera);R3.renderer.setRenderTarget(null);R3.renderer.render(pp.scene,pp.cam);}else{R3.renderer.render(R3.scene,R3.camera);if(cmode==="cockpit")gpMirror();gpSpeedFx(R3.countdown>0?0:spd+(R3.bk||0)*0.4,me.drift);}
-  if(pp&&(me.jet||R3.fxOn)){R3.fxOn=!!me.jet;gpSpeedFx(me.jet?Math.max(spd,0.95)+(R3.bk||0)*0.4:0,0);}
+  if(pp&&(me.jet||R3.fxOn||(R3.online&&me.drG>0.04))){R3.fxOn=!!me.jet||(R3.online&&me.drG>0.04);gpSpeedFx(me.jet?Math.max(spd,0.95)+(R3.bk||0)*0.4:0,0);}
   const tele=window.__gp,off=R3.teleV.copy(R3.camera.position).sub(me.pos),ov=tele.cameraOffsetVector;ov.x=off.x;ov.y=off.y;ov.z=off.z;
   tele.playerWheelPhase=tele.wheelPhase=me.wheelPhase;tele.playerSpeed=tele.speed=me.speed;tele.wheelRadius=me.wheelRadius;tele.cameraFov=R3.camera.fov;tele.cameraOffsetFromCar=tele.cameraOffset=off.length();
   if(me.shadows&&me.shadows[0]){me.shadows[0].getWorldPosition(R3.teleShadow);tele.playerShadowWorldY=tele.shadowY=R3.teleShadow.y;}
@@ -3334,6 +3366,8 @@ function gpFinish(){
 const GPN_CFG={apiKey:"AIzaSyAtBgXG5ydZQ8ljCZ3KwcYE2eCigourCSA",authDomain:"grand-fable-gp-race.firebaseapp.com",databaseURL:"https://grand-fable-gp-race-default-rtdb.firebaseio.com",projectId:"grand-fable-gp-race",appId:"1:77253679827:web:b0450b83cd962adf465226"};
 const GPN_ALPHA="BDFGHJKLMNRSTWXY";   // no vowels (so no words), and only letters that are hard to mishear when read out
 const GPN_BAD=/(.)\1|FK|FG|FD|SHT|SH[DGLRTW]|BTCH|BT|DK|DMN|DM|GDD|KK|NGG|NGR|WTF|STF|TWT|WNK|WHR|SLT|HNT|LMF|MF|BJ|JRK|GTF|GFY|XX|TTY|WTH|FML|SX|SXY|HL|DRN|BLLX|BLX|DLD|DYK|TRD|TWD|PWN|LST/;
+/* every car races on the same numbers online (the car you pick is a look, not an advantage) */
+const GPN_STD={speed:4,grip:4,handle:4,accel:4,type:"gt"};
 const GPN_IDLE=1800000,GPN_SEND=83,GPN_MAX=4,GPN_LATE=75000;
 const GPN_COLS=[["Red",209,18,28],["Silver",215,219,224],["White",245,245,245],["Blue",29,95,209],["Orange",242,138,28],["Yellow",247,216,60],["Black",20,22,28],["Green",46,158,87],["Purple",142,59,214],["Pink",255,80,160],["Sky Blue",18,176,232],["Brown",130,84,50],["Teal",20,160,150],["Gold",196,160,70]];
 const GPN_SPARE=["#1d5fd1","#f7c600","#2e9e57","#8e3bd6","#f28a1c","#ff3d8b","#12b0e8","#f2f2f2"];
@@ -3341,6 +3375,18 @@ function gpnCodeOk(c){return /^[BDFGHJKLMNRSTWXY]{5}$/.test(c)&&!GPN_BAD.test(c)
 function gpnNewCode(){for(;;){const a=new Uint8Array(5);crypto.getRandomValues(a);let c="";a.forEach(v=>{c+=GPN_ALPHA[v%16];});if(gpnCodeOk(c))return c;}}
 function gpnColor(h){const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);let n="",bd=1e9;GPN_COLS.forEach(c=>{const d=(c[1]-r)*(c[1]-r)+(c[2]-g)*(c[2]-g)+(c[3]-b)*(c[3]-b);if(d<bd){bd=d;n=c[0];}});return n;}
 function gpnLabel(car,paint){const C=GP_CARS.find(c=>c.id===car),w=C?C.n.split(/\s+/).pop():"Car";return gpnColor(paint)+" "+w;}
+/* ---------- the racing name (job 1107-0258): the kid's own first name, letters only, run through a rude-word filter ----------
+   2-10 letters A-Z, Title Case. Anything else (or a rude word) is refused and the car+colour label is shown instead. The database
+   rules (tools/online/make_rules.py, which reads these two lists) check the very same pattern, length and word list. Whole words are
+   checked for the short ones (so Hassan and Cassandra are fine), stems for the long ones; a letter repeated ("Fuuck") still counts. */
+const GPN_RUDE_SUB="fuck|fuk|shit|shyt|bitch|cunt|nigg|nigr|fagg|whore|slut|penis|vagina|hitler|porn|dildo|bastard|pussy|wank|twat|dickhead|asshole|bollock|sexy|stupid|idiot|retard|moron|kkk|nude|naked|suck|nipple|orgasm|erotic|molest|paedo|pedo|terror|suicide|killer";
+const GPN_RUDE_EX="ass|arse|dick|cock|cum|sex|tit|tits|boob|boobs|butt|bum|poo|poop|fart|piss|crap|damn|hell|anus|rape|nazi|jerk|dumb|loser|ugly|fat|hate|kill|die|dead|drunk|stfu|wtf|gay|fag|hoe|ho|pee|wee";
+const GPN_RUDE_RE=(()=>{const ex=s=>s.split("").map(c=>c+"+").join("");return{sub:new RegExp("("+GPN_RUDE_SUB.split("|").map(ex).join("|")+")"),ex:new RegExp("^("+GPN_RUDE_EX.split("|").map(ex).join("|")+")$")};})();
+function gpnNameOk(n){return typeof n==="string"&&/^[A-Z][a-z]{1,9}$/.test(n)&&!GPN_RUDE_RE.sub.test(n.toLowerCase())&&!GPN_RUDE_RE.ex.test(n.toLowerCase());}
+/* anything a kid (or a profile) has typed -> a clean racing name, or "" if it can't be one */
+function gpnNameClean(s){let t=String(s==null?"":s);try{t=t.normalize("NFD").replace(/[̀-ͯ]/g,"");}catch(e){}const w=t.split(/[^A-Za-z]+/).filter(Boolean)[0]||"";const n=w?w.charAt(0).toUpperCase()+w.slice(1,10).toLowerCase():"";return gpnNameOk(n)?n:"";}
+function gpnProfileName(){return gpnNameClean(P&&P.name);}
+function gpnMyName(){return typeof window._gpnName==="string"?window._gpnName:gpnProfileName();}
 function gpnMyPaint(){const c=gpCar(),p=String(gpGlbPaintFor(c,true)||c.paint||"#d1121c").toLowerCase();return /^#[0-9a-f]{6}$/.test(p)?p:"#d1121c";}
 function gpnLoadSdk(){if(window._gpnSdk)return window._gpnSdk;
   const load=src=>new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.async=false;const to=setTimeout(()=>rej(new Error("timeout")),20000);s.onload=()=>{clearTimeout(to);res();};s.onerror=()=>{clearTimeout(to);rej(new Error("load"));};document.head.appendChild(s);});
@@ -3396,7 +3442,55 @@ function gpnCss(){gpCss();if($("gpnCss"))return;const s=document.createElement("
 @media(min-width:600px) and (max-height:520px){.gpn-lob{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}.gpn-lob>div{display:flex;flex-direction:column;gap:8px;min-width:0}.gpn-slot{min-height:84px}.gpn-slot i{height:34px}.gpn-code .gpn-big{font-size:44px}}
 @media(max-width:380px),(max-height:700px){.gpn-slot{min-height:92px}.gpn-slot i{height:38px}}
 .gp3-wrap .gpn-wait{position:absolute;left:50%;top:18%;transform:translateX(-50%);z-index:7;background:rgba(18,6,38,.85);border:3px solid #00f0ff;border-radius:14px;padding:8px 14px;color:#fff;font-weight:800;font-size:15px;white-space:nowrap;pointer-events:none}
-.gp3-finish .gpn-rows{display:flex;flex-direction:column;gap:6px;margin:10px auto;width:min(420px,100%)}.gpn-rows div{display:flex;align-items:center;gap:10px;background:rgba(45,18,84,.92);border-radius:12px;padding:7px 12px;font-weight:700;color:#fff;text-align:left}.gpn-rows div.me{box-shadow:inset 0 0 0 3px #ffd600}.gpn-rows em{font:400 18px "GPN Bungee",system-ui,sans-serif;font-style:normal;width:46px;flex:none;color:#ffd600}.gpn-rows span{flex:1;min-width:0}.gpn-rows small{flex:none;opacity:.9;font-weight:600}
+.gp3-finish .gpn-rows{display:flex;flex-direction:column;gap:6px;margin:10px auto;width:min(420px,100%)}.gpn-rows div{display:flex;align-items:center;gap:10px;background:rgba(45,18,84,.92);border-radius:12px;padding:7px 12px;font-weight:700;color:#fff;text-align:left}.gpn-rows div.me{box-shadow:inset 0 0 0 3px #ffd600}.gpn-az{grid-template-columns:repeat(7,1fr);max-width:560px}.gpn-az button{min-height:56px;font-size:24px}.gpn-az .wide{grid-column:span 2;font:800 17px system-ui,sans-serif}.gpn-az .wide.ok{grid-column:span 3;background:#00ff66;color:#061a10;border-bottom-color:#00a93f}
+.gpn-nm{margin:6px auto 0;min-width:70%;text-align:center;padding:10px 14px;border-radius:16px;background:#0d041d;border:4px solid #00f0ff;color:#ffd600;font:400 clamp(30px,9vw,46px)/1.15 "GPN Bungee",system-ui,sans-serif;letter-spacing:.04em;min-height:1.2em}
+.gpn-slot small.cl{font-size:12px;color:#bfb2dd}.gpn-slot button.kick{font-size:18px}.gpn-slot b{font-family:"GPN Bungee",system-ui,sans-serif;font-weight:400;letter-spacing:.3px;font-size:18px;word-break:break-all}
+.gpn-rows em{font:400 18px "GPN Bungee",system-ui,sans-serif;font-style:normal;width:46px;flex:none;color:#ffd600}.gpn-rows span{flex:1;min-width:0}.gpn-rows small{flex:none;opacity:.9;font-weight:600}
+
+.gpn-fin{overflow:auto}.gpn-fin .gpn-rows{margin:6px auto}
+.gpn-rows b.pts{flex:none;display:flex;flex-direction:column;align-items:flex-end;font:400 17px "GPN Bungee",system-ui,sans-serif;color:#00ff66;line-height:1}.gpn-rows b.pts i{font:700 11px system-ui,sans-serif;font-style:normal;color:#e8e0f7;margin-top:2px}
+.gpn-rows div.pf{box-shadow:inset 0 0 0 3px #ff2d87}.gpn-rows div.pf.me{box-shadow:inset 0 0 0 3px #ffd600}
+.gpn-pf{margin:2px auto;width:min(420px,100%);box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 12px;border-radius:12px;background:linear-gradient(90deg,#ff2d87,#ff7a00);color:#fff;text-align:center;transform:skewX(-6deg);animation:gpnPop .5s cubic-bezier(.2,1.6,.4,1)}.gpn-pf b{font:400 20px "GPN Bungee",system-ui,sans-serif;letter-spacing:.5px}.gpn-pf span{font-size:15px;font-weight:800}
+@keyframes gpnPop{from{transform:scale(.6) skewX(-6deg);opacity:0}}
+.gpn-flash{position:absolute;inset:0;z-index:30;background:#fff;pointer-events:none;animation:gpnFlash .9s ease-out forwards}@keyframes gpnFlash{0%{opacity:.95}100%{opacity:0}}
+.gpn-ser{margin:4px auto;width:min(420px,100%);font-size:14px;font-weight:700;color:#ffd9ec;text-align:center}
+.gpn-pod{margin:6px auto;width:min(420px,100%)}.gpn-podt{font:400 15px "GPN Bungee",system-ui,sans-serif;color:#ffd600;text-align:center;margin-bottom:6px}
+.gpn-podc{display:flex;align-items:flex-end;justify-content:center;gap:8px}.gpn-podc>div{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;background:rgba(45,18,84,.92);border-radius:14px 14px 0 0;padding:6px 4px 0;color:#fff}.gpn-podc>div.me{box-shadow:inset 0 0 0 3px #ffd600}
+.gpn-podc span{font-size:28px;line-height:1}.gpn-podc b{font:400 15px "GPN Bungee",system-ui,sans-serif;max-width:100%;overflow:hidden;text-overflow:ellipsis}.gpn-podc i{font:700 13px system-ui,sans-serif;font-style:normal;color:#00ff66}.gpn-podc u{display:block;width:100%;margin-top:4px;background:#4b2a80}
+.gpn-podc .p1 u{height:46px;background:#ffd600}.gpn-podc .p2 u{height:28px;background:#c9ced6}.gpn-podc .p3 u{height:16px;background:#cd8a4b}
+/* live position board: 1st-4th with names and the gap to the car in front */
+.gpn-board{position:absolute;z-index:4;left:14px;top:calc(clamp(118px,13.5vw,146px) + 112px);width:clamp(150px,15vw,200px);display:flex;flex-direction:column;gap:3px;pointer-events:none;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.gpn-board div{display:flex;align-items:center;gap:6px;height:28px;padding:0 9px 0 4px;border-radius:15px;background:rgba(18,22,32,.72);color:#fff;font-weight:800;font-size:14px;line-height:1;box-sizing:border-box;border:2px solid transparent}
+.gpn-board div.me{border-color:#00E5FF;box-shadow:0 0 12px rgba(0,229,255,.45)}.gpn-board em{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:#fff;color:#121620;font-style:normal;font-size:12px;font-weight:900}.gpn-board div:first-child em{background:#FFD700}
+.gpn-board b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:800}.gpn-board u{flex:none;text-decoration:none;font-size:12px;font-weight:800;color:#39FF14;font-variant-numeric:tabular-nums}.gpn-board u.l{color:#ffd0e3}
+.gp3-last{position:absolute;left:50%;top:21%;z-index:9;transform:translate(-50%,-50%) skewX(-10deg) scale(0);padding:8px 26px;border-radius:10px;border:4px solid #121620;background:#FF2079;color:#fff;font:400 clamp(28px,8vw,52px) "GPN Bungee",system-ui,sans-serif;letter-spacing:1px;box-shadow:0 6px 0 #121620,0 0 34px rgba(255,32,121,.8);pointer-events:none;white-space:nowrap;opacity:0}
+.gp3-last.show{animation:gpLast 2.2s ease-out forwards}@keyframes gpLast{0%{opacity:1;transform:translate(-50%,-50%) skewX(-10deg) scale(1.9)}12%{transform:translate(-50%,-50%) skewX(-10deg) scale(1)}80%{opacity:1;transform:translate(-50%,-50%) skewX(-10deg) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) skewX(-10deg) scale(1)}}
+@media (prefers-reduced-motion:reduce){.gp3-last.show{animation-duration:2.4s}.gpn-pf,.gpn-flash{animation:none}}
+.gp3-wrap.net .fz-skill,.gp3-wrap.net .fz-pos{display:none}
+.gp3-wrap.net .fz-tl .fz-spd{font-size:13px;font-weight:800;margin-top:3px;color:#cfe}
+/* phones, upright: big steering / brake / gas / boost buttons on their own plate under the picture, so nothing sits over the road */
+@media (orientation:portrait) and (max-width:600px){
+.gp3-wrap.v3.net{--plate:clamp(184px,25vh,232px)}@supports (height:100dvh){.gp3-wrap.v3.net{--plate:clamp(184px,25dvh,232px)}}
+.gp3-wrap.v3.net canvas#gp3c{height:calc(100% - var(--plate))}.gp3-wrap.v3.net canvas.fz-fx,.gp3-wrap.v3.net .fz-vig{height:calc(100% - var(--plate));bottom:auto}
+.gp3-wrap.v3.net .gp3-plate{position:absolute;left:0;right:0;bottom:0;height:var(--plate);z-index:5;box-sizing:border-box;padding:10px 10px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(#1a1f2e,#0d111b);border-top:4px solid #00E5FF;box-shadow:0 -6px 18px rgba(0,0,0,.45);display:grid;grid-template-columns:1fr 1fr .9fr 1fr;grid-template-rows:1fr 1fr;gap:8px;pointer-events:none}
+.gp3-wrap.v3.net .gp3-plate .gp3-pad{display:contents}
+.gp3-wrap.v3.net .gp3-plate .race-btn{width:auto;height:auto;min-width:0;border-radius:22px;font-size:40px;grid-row:1/3;background:#262c40;border:4px solid #3a4468;box-shadow:0 6px 0 #0a0d16;-webkit-backdrop-filter:none;backdrop-filter:none}
+.gp3-wrap.v3.net .gp3-plate #rcL{grid-column:1}.gp3-wrap.v3.net .gp3-plate #rcR{grid-column:2}
+.gp3-wrap.v3.net .gp3-plate .race-btn.on{background:#00E5FF;color:#121620;transform:translateY(4px);box-shadow:0 2px 0 #0a0d16}
+.gp3-wrap.v3.net .gp3-plate .fz-pedal{width:100%!important;height:100%!important;pointer-events:auto;min-height:0}
+.gp3-wrap.v3.net .gp3-plate .fz-pedal.gas{grid-column:4;grid-row:1/3}.gp3-wrap.v3.net .gp3-plate .fz-pedal.brake{grid-column:3;grid-row:2}
+.gp3-wrap.v3.net .gp3-plate .fz-pedal b{top:46%;font-size:15px}
+.gp3-wrap.v3.net .gp3-plate .fz-boost{position:relative;right:auto;bottom:auto;grid-column:3;grid-row:1;justify-self:center;align-self:center;width:min(100%,92px);height:auto;aspect-ratio:1;--bst:92px;pointer-events:auto}
+.gp3-wrap.v3.net .fz-trick{left:auto;right:calc(10px + (100% - 20px)*0.5);bottom:calc(var(--plate) - 4px);margin:0;z-index:8;width:96px;height:96px}
+.gp3-wrap.v3.net .fz-trick.on{bottom:calc(var(--plate) + 8px)}
+.gp3-wrap.v3.net .fz-tach,.gp3-wrap.v3.net .fz-cam{display:none}
+.gp3-wrap.v3.net .fz-tl{display:flex;flex-wrap:wrap;align-items:center;gap:8px;max-width:calc(100% - 130px);top:calc(8px + env(safe-area-inset-top))}.gp3-wrap.v3.net .fz-lap{margin:0}.gp3-wrap.v3.net .fz-time{margin:0;font-size:16px}.gp3-wrap.v3.net .fz-tl .fz-spd{margin:0}
+.gp3-wrap.v3.net .gpn-board{left:calc(8px + env(safe-area-inset-left));top:calc(48px + env(safe-area-inset-top));width:min(46vw,190px)}
+.gp3-wrap.v3.net .gp3-map{left:auto;right:calc(8px + env(safe-area-inset-right));top:calc(60px + env(safe-area-inset-top));width:78px}
+.gp3-wrap.v3.net .fz-btn{width:44px;height:44px;font-size:19px;top:calc(8px + env(safe-area-inset-top))}.gp3-wrap.v3.net .fz-btn.quit{right:calc(8px + env(safe-area-inset-right))}.gp3-wrap.v3.net .fz-btn.mute{right:calc(60px + env(safe-area-inset-right))}
+.gp3-wrap.v3.net .gp3-msg{top:30%}.gp3-wrap.v3.net .gp3-count{top:30%}
+.gp3-wrap.v3.net.done .gp3-plate{display:none}.gp3-wrap.v3.net.done canvas#gp3c{height:100%}
+}
 `;document.head.appendChild(s);}
 function gpnShell(title,back,body){return'<div class="fadein gpn" id="gpnScr"><div class="gpn-top"><h1>'+esc(title)+'</h1><button class="gpn-x" onclick="'+back+'">⟵ Back</button></div>'+body+'</div>';}
 function gpnCarPic(id){return'assets/cars3d/thumbs/'+id+'.webp';}
@@ -3443,8 +3537,8 @@ async function gpnJoin(code){window._gpnJoining=true;const er=$("gpnErr");if(er)
   catch(e){console.warn("online join",e);GPN=null;gpnBad(gpnFriendErr(e));}}
 /* sits in a seat: write my player row, then start listening (reads are members only) */
 async function gpnEnter(code,seat){const F=window._gpnFb,uid=F.auth.currentUser.uid,c=gpCar();
-  GPN={code,uid,seat,meta:null,players:{},finish:{},order:null,race:null,scr:"lobby",iv:null,subs:[],offT:{},sendL:0,inflight:0,sent:0};
-  const G=GPN;await gpnRef("players/"+uid).set({car:c.id,paint:gpnMyPaint(),slot:seat,on:true,ready:-1,load:-1});
+  GPN={code,uid,seat,meta:null,players:{},series:{},finish:{},order:null,race:null,scr:"lobby",iv:null,subs:[],offT:{},sendL:0,inflight:0,sent:0};
+  const G=GPN;const nm=gpnMyName(),row={car:c.id,paint:gpnMyPaint(),slot:seat,on:true,ready:-1,load:-1};if(nm)row.name=nm;await gpnRef("players/"+uid).set(row);
   gpnRef("players/"+uid).onDisconnect().update({on:false,offAt:GPN_SV()});G.leaveArmed=true;
   const sub=(path,ev,fn)=>{const r=gpnRef(path),cb=r.on(ev,fn,()=>{if(GPN===G&&(path==="meta"||path===""))gpnGone();});G.subs.push(()=>r.off(ev,cb));};
   sub("meta","value",s=>{if(GPN===G)gpnOnMeta(s.val());});
@@ -3452,6 +3546,7 @@ async function gpnEnter(code,seat){const F=window._gpnFb,uid=F.auth.currentUser.
   sub("slots","value",s=>{if(GPN===G)G.slots=s.val()||{};});
   sub("finish","value",s=>{if(GPN===G)gpnOnFinish(s.val()||{});});
   sub("order","value",s=>{if(GPN===G)gpnOnOrder(s.val());});
+  sub("series","value",s=>{if(GPN===G){G.series=s.val()||{};if(G.scr==="lobby")gpnLobbySoon();else gpnPanelSoon();}});
   sub("cars","child_added",s=>{if(GPN===G)gpnOnCar(s.key,s.val());});sub("cars","child_changed",s=>{if(GPN===G)gpnOnCar(s.key,s.val());});
   sub("kick/"+uid,"value",s=>{if(GPN===G&&s.val()){gpnLeave(true);renderOnline("The host closed your spot in that room.");}});
   G.iv=setInterval(()=>{if(GPN===G)gpnRoomTick();},500);
@@ -3467,7 +3562,7 @@ function gpnLeave(quiet){const G=GPN;if(!G)return;GPN=null;clearInterval(G.iv);G
     else rm().catch(()=>{});}catch(e){}}
 function gpnGone(msg){const G=GPN;if(!G)return;GPN=null;clearInterval(G.iv);G.subs.forEach(f=>{try{f();}catch(e){}});gpnRememberRoom(null);try{window._gpnFb.db.ref("rooms/"+G.code).remove().catch(()=>{});}catch(e){}gpStop();renderOnline(msg||"That room has ended.");}   // the rules only allow that removal if the room really has expired
 /* everyone in seat order, each with the paint and label THIS race uses (the same on every screen: a copy of an earlier car gets a spare colour) */
-function gpnRoster(){const G=GPN,used=[],out=[];Object.keys(G.players).map(u=>Object.assign({uid:u},G.players[u])).sort((a,b)=>a.slot-b.slot).forEach(p=>{let pt=p.paint;if(used.includes(p.car+pt)){pt=GPN_SPARE.find(s=>!used.includes(p.car+s)&&gpnColor(s)!==gpnColor(p.paint))||pt;}used.push(p.car+pt);out.push(Object.assign(p,{paint:pt,label:gpnLabel(p.car,pt),me:p.uid===G.uid}));});return out;}
+function gpnRoster(){const G=GPN,used=[],names=[],out=[];Object.keys(G.players).map(u=>Object.assign({uid:u},G.players[u])).sort((a,b)=>a.slot-b.slot).forEach(p=>{let pt=p.paint;if(used.includes(p.car+pt)){pt=GPN_SPARE.find(s=>!used.includes(p.car+s)&&gpnColor(s)!==gpnColor(p.paint))||pt;}used.push(p.car+pt);const label=gpnLabel(p.car,pt),nm=gpnNameOk(p.name)?p.name:"",dup=!!nm&&names.includes(nm.toLowerCase());if(nm&&!dup)names.push(nm.toLowerCase());out.push(Object.assign(p,{paint:pt,label,name:dup?"":nm,dup,disp:(nm&&!dup)?nm:label,me:p.uid===G.uid}));});return out;}
 function gpnOnMeta(m){const G=GPN;if(!m){gpnGone();return;}const prev=G.meta;G.meta=m;
   if(m.state==="lobby"){if(G.scr!=="lobby"){gpStop();G.race=null;G.scr="lobby";G.finish={};G.order=null;window.scrollTo(0,0);gpnLobby();return;}gpnLobbySoon();return;}
   if((!G.race||G.race.run!==m.run)&&(m.state==="load"||m.state==="count"||m.state==="race")){if(!gpnOnScreen()){gpnLeave();return;}gpnBegin(m);}
@@ -3485,7 +3580,7 @@ function gpnLobbySoon(){if(window._gpnLS)return;window._gpnLS=1;setTimeout(()=>{
 function gpnPanelSoon(){if(window._gpnPS)return;window._gpnPS=1;setTimeout(()=>{window._gpnPS=0;if(GPN&&R3&&R3.online&&R3.done)gpnPanel();},60);}
 function gpnSlotHtml(r,i,G,isHost){if(!r)return'<div class="gpn-slot empty"><em>＋</em><small>Waiting for a friend</small></div>';
   const m=G.meta,rdy=r.ready===(m?m.run:-2),gone=r.on===false;
-  return'<div class="gpn-slot'+(rdy?" ready":"")+(gone?" gone":"")+'" data-uid="'+esc(r.uid)+'">'+(rdy?'<u>READY</u>':'')+(isHost&&!r.me?'<button class="kick" aria-label="Remove this player" onclick="gpnKick(\''+esc(r.uid)+'\')">✕</button>':'')+'<i style="--pic:url('+gpnCarPic(r.car)+')"></i><b>'+esc(r.label)+'</b><small>'+(r.me?"You":(gone?"Lost connection…":(rdy?"Ready":"Getting ready")))+(m&&m.host===r.uid?" · Host":"")+'</small></div>';}
+  return'<div class="gpn-slot'+(rdy?" ready":"")+(gone?" gone":"")+'" data-uid="'+esc(r.uid)+'">'+(rdy?'<u>READY</u>':'')+(isHost&&!r.me?'<button class="kick" aria-label="Remove this player" onclick="gpnKick(\''+esc(r.uid)+'\')">✕</button>':'')+'<i style="--pic:url('+gpnCarPic(r.car)+')"></i><b>'+esc(r.disp)+'</b>'+(r.name?'<small class="cl">'+esc(r.label)+'</small>':'')+'<small>'+(r.me?"You":(gone?"Lost connection…":(rdy?"Ready":"Getting ready")))+(m&&m.host===r.uid?" · Host":"")+((m&&(m.n|0)>0&&G.series&&G.series[r.uid]!=null)?" · "+G.series[r.uid]+" pts":"")+'</small></div>';}
 function gpnLobby(){const G=GPN;if(!G||G.scr!=="lobby"||!app)return;gpnCss();const m=G.meta||{track:"deep",laps:2,pace:"gentle",run:0},isHost=m.host===G.uid,ros=gpnRoster(),me=ros.find(r=>r.me),rdy=!!me&&me.ready===m.run,C=GP_CIRCUITS.find(c=>c.id===m.track)||GP_CIRCUITS[0];
   const seats=[0,1,2,3].map(n=>ros.find(r=>r.slot===n)||null);
   const prevScroll=(()=>{const t=document.querySelector(".gpn-tr");return t?t.scrollLeft:0;})();
@@ -3493,18 +3588,32 @@ function gpnLobby(){const G=GPN;if(!G||G.scr!=="lobby"||!app)return;gpnCss();con
     +'<div class="gpn-chips">'+[1,2,3].map(n=>'<button class="'+(m.laps===n?"on":"")+'" onclick="gpnSet(\'laps\','+n+')">'+n+' lap'+(n>1?"s":"")+'</button>').join("")+'<button class="'+(m.pace==="gentle"?"on":"")+'" onclick="gpnSet(\'pace\',\'gentle\')">🐢 Easy</button><button class="'+(m.pace==="normal"?"on":"")+'" onclick="gpnSet(\'pace\',\'normal\')">🚗 Normal</button><button id="gpnLock" class="'+(m.locked?"on":"")+'" onclick="gpnSet(\'locked\','+(m.locked?"false":"true")+')">'+(m.locked?"🔒 Locked":"🔓 Open")+'</button></div>'
     :'<p class="gpn-h">THE TRACK</p><div class="gpn-picked" id="gpnPicked"><img src="assets/tracks/'+C.id+'.webp?v=1" alt=""><div><b>'+esc(C.name)+'</b><small>'+m.laps+' lap'+(m.laps>1?"s":"")+' · '+(m.pace==="normal"?"Normal":"Easy")+'</small></div></div>';
   const others=ros.filter(r=>!r.me&&r.on!==false).length;
-  const hint=others?(rdy?"Waiting for everyone to tap Ready":"Tap when you're ready. The race starts when everyone is"):"Read the code out to a friend";
+  const taken=!!(me&&me.dup),hint=taken?"Someone here already has your name. Tap Change name":(others?(rdy?"Waiting for everyone to tap Ready":"Tap when you're ready. The race starts when everyone is"):"Read the code out to a friend");
   app.innerHTML='<div class="gpn" id="gpnScr"><div class="gpn-top"><h1>Grand Fable GP</h1><button class="gpn-x" id="gpnExit" onclick="renderOnline()">Exit</button></div>'
    +'<div class="gpn-lob"><div><div class="gpn-code" id="gpnCode" aria-label="Room code '+G.code.split("").join(" ")+'"><small>ROOM CODE · read it out to your friends</small><span class="gpn-big">'+G.code+'</span></div>'
    +'<div class="gpn-grid" id="gpnSeats">'+seats.map((r,i)=>gpnSlotHtml(r,i,G,isHost)).join("")+'</div></div>'
-   +'<div>'+tracks+'<div class="gpn-mine" style="padding:6px 12px"><small>Your car: <b style="display:inline;font-size:15px;color:#fff">'+esc(me?me.label:"")+'</b></small><button id="gpnCarBtn" onclick="gpnCarSheet()"'+(rdy?" disabled":"")+'>🚗 Change car</button></div>'
-   +'<div class="gpn-cta"><button class="gpn-act'+(rdy?" off":"")+'" id="gpnReady" onclick="gpnReady()">'+(rdy?"Ready ✓<small>"+hint+"</small>":"Ready to race!<small>"+hint+"</small>")+'</button></div></div></div></div>';
+   +'<div>'+(m.n>0?'<p class="gpn-h" id="gpnSer">SERIES · RACE '+Math.min(GPN_RACES,(m.n|0)+1)+' OF '+GPN_RACES+' · points carry over</p>':'')+tracks
+   +'<div class="gpn-mine" style="padding:6px 12px"><small>Your racing name<b id="gpnMyName" style="display:block;font-size:19px;color:#fff;font-family:\'GPN Bungee\',system-ui,sans-serif;font-weight:400">'+esc(me?me.disp:"")+'</b></small><button id="gpnNameBtn" onclick="gpnNameSheet()"'+(rdy?" disabled":"")+'>✏️ Change name</button></div>'
+   +'<div class="gpn-mine" style="padding:6px 12px"><small>Your car: <b style="display:inline;font-size:15px;color:#fff">'+esc(me?me.label:"")+'</b></small><button id="gpnCarBtn" onclick="gpnCarSheet()"'+(rdy?" disabled":"")+'>🚗 Change car</button></div>'
+   +'<div class="gpn-cta"><button class="gpn-act'+(rdy?" off":"")+'" id="gpnReady" onclick="gpnReady()"'+(taken?" disabled":"")+'>'+(rdy?"Ready ✓<small>"+hint+"</small>":"Ready to race!<small>"+hint+"</small>")+'</button></div></div></div></div>';
   const t2=document.querySelector(".gpn-tr");if(t2&&prevScroll)t2.scrollLeft=prevScroll;}
 function gpnSet(k,v){const G=GPN;if(!G||!G.meta||G.meta.host!==G.uid||G.meta.state!=="lobby")return;if(k==="track")window._gpnTrack=v;if(typeof sfx==="function")sfx("tick");gpnRef("meta").update({[k]:v,touched:GPN_SV()}).catch(e=>console.warn(e));}
-function gpnReady(){const G=GPN;if(!G||!G.meta)return;GPA.init();if(typeof sfx==="function")sfx("tick");const me=G.players[G.uid];if(!me)return;gpnRef("players/"+G.uid+"/ready").set(me.ready===G.meta.run?-1:G.meta.run).catch(e=>console.warn(e));gpnTouch();}
+function gpnReady(){const G=GPN;if(!G||!G.meta)return;GPA.init();{const mr=gpnRoster().find(r=>r.me);if(mr&&mr.dup&&mr.ready!==G.meta.run)return;}if(typeof sfx==="function")sfx("tick");const me=G.players[G.uid];if(!me)return;gpnRef("players/"+G.uid+"/ready").set(me.ready===G.meta.run?-1:G.meta.run).catch(e=>console.warn(e));gpnTouch();}
 function gpnKick(uid){const G=GPN;if(!G||G.meta.host!==G.uid||uid===G.uid)return;const p=G.players[uid];if(!p)return;Promise.all([gpnRef("meta/locked").set(true),gpnRef("kick/"+uid).set(true),gpnRef("slots/"+p.slot).remove(),gpnRef("players/"+uid).remove(),gpnRef("cars/"+uid).remove()]).catch(e=>console.warn(e));}
 function gpnCarSheet(){const sel=gpCar().id,h='<div class="gpn gpn-sheet" id="gpnSheet" style="max-width:none;min-height:0;padding:0;background:rgba(10,3,24,.86);border-radius:0"><div><div class="row"><h2>Choose your car</h2><button class="gpn-x" onclick="$(\'gpnSheet\').remove()">Close</button></div><div class="gpn-pick">'+GP_CARS.map(c=>'<button class="'+(c.id===sel?"on":"")+'" data-car="'+c.id+'" onclick="gpnPickCar(\''+c.id+'\')"><i style="--pic:url('+gpnCarPic(c.id)+')"></i>'+esc(c.n)+'</button>').join("")+'</div></div></div>';document.body.insertAdjacentHTML("beforeend",h);}
 function gpnPickCar(id){const sh=$("gpnSheet");if(sh)sh.remove();gpPickCar(id);const G=GPN;if(G)gpnRef("players/"+G.uid).update({car:gpCar().id,paint:gpnMyPaint()}).catch(e=>console.warn(e));}
+/* the racing name keypad: big letter keys only (no free text box), Title Case, run through the same filter the database uses */
+function gpnNameSheet(){const G=GPN;if(!G||$("gpnSheet"))return;window._gpnNm=(gpnRoster().find(r=>r.me)||{}).name||"";
+  const keys="ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map(l=>'<button data-k="'+l+'" onclick="gpnNameKey(\''+l+'\')">'+l+'</button>').join("");
+  document.body.insertAdjacentHTML("beforeend",'<div class="gpn gpn-sheet" id="gpnSheet" style="max-width:none;min-height:0;padding:0;background:rgba(10,3,24,.86);border-radius:0"><div><div class="row"><h2>Your racing name</h2><button class="gpn-x" onclick="$(\'gpnSheet\').remove()">Close</button></div>'
+   +'<p class="gpn-note" style="text-align:center">It shows on your car and over it for your friends. 2 to 10 letters.</p><div class="gpn-nm" id="gpnNmShow"></div><p class="gpn-err" id="gpnNmErr"></p><div class="gpn-keys gpn-az">'+keys+'<button class="wide" onclick="gpnNameKey(\'back\')">⌫ Delete</button><button class="wide" onclick="gpnNameKey(\'clear\')">Clear</button><button class="wide ok" id="gpnNmSave" onclick="gpnNameSave()">✓ Save</button></div></div></div>');
+  gpnNameDraw();window._gpnNmKd=e=>{if(!$("gpnNmShow")){window.removeEventListener("keydown",window._gpnNmKd);return;}const k=e.key;if(k==="Backspace")gpnNameKey("back");else if(k==="Enter")gpnNameSave();else if(/^[A-Za-z]$/.test(k))gpnNameKey(k.toUpperCase());};window.addEventListener("keydown",window._gpnNmKd);}
+function gpnNameDraw(){const e=$("gpnNmShow"),v=window._gpnNm||"";if(e)e.innerHTML=v?esc(v):'<span style="opacity:.45">Type a name</span>';const er=$("gpnNmErr");if(er)er.textContent="";}
+function gpnNameKey(k){let v=window._gpnNm||"";if(k==="back")v=v.slice(0,-1);else if(k==="clear")v="";else if(v.length<10)v+=k;v=v?v.charAt(0).toUpperCase()+v.slice(1).toLowerCase():"";window._gpnNm=v;if(typeof sfx==="function")sfx("tick");gpnNameDraw();}
+function gpnNameSave(){const v=window._gpnNm||"",er=$("gpnNmErr");
+  if(v&&!gpnNameOk(v)){if(er)er.textContent=v.length<2?"A name needs at least 2 letters.":"That name can't be used. Try a different one.";return;}
+  const G=GPN;if(!G)return;window._gpnName=v;const sh=$("gpnSheet");if(sh)sh.remove();
+  gpnRef("players/"+G.uid+"/name").set(v||null).catch(e=>console.warn(e));gpnTouch();}
 /* ---------- the room's heartbeat: the host's device moves the state on ---------- */
 function gpnOnScreen(){const G=GPN;return G.scr==="lobby"?!!$("gpnScr"):(!!R3||!!$("gpnLoad"));}   // false once the kid went somewhere else (Learning Zone Home button, say)
 function gpnRoomTick(){const G=GPN,m=G.meta;if(!gpnOnScreen()){gpnLeave();return;}if(!m)return;const now=gpnNow(),u=G.uid,ros=gpnRoster();
@@ -3528,15 +3637,21 @@ function gpnSortFinish(G,run){const seq=G.finSeq||(G.finSeq={}),rows=Object.keys
 function gpnHostOrder(m,on,now){const G=GPN,list=gpnSortFinish(G,m.run);if(!list.length)return;if(!G.firstFin||G.firstRun!==m.run){G.firstFin=now;G.firstRun=m.run;}
   const left=on.filter(r=>!list.includes(r.uid)),fin=!left.length||now-G.firstFin>GPN_LATE,key=list.join()+(fin?"!":"");
   if(G.orderKey===m.run+key)return;G.orderKey=m.run+key;const o={run:m.run,final:fin,list:{}};list.forEach((u,i)=>{o.list[i]=u;});
-  gpnRef("order").set(o).then(()=>{if(fin)gpnRef("meta/state").set("done").catch(()=>{});}).catch(e=>console.warn(e));}
-function gpnAgain(){const G=GPN;if(!G||G.meta.host!==G.uid)return;G.finSeq={};Promise.all([gpnRef("order").remove(),gpnRef("finish").remove(),gpnRef("cars").remove()]).then(()=>gpnRef("meta").update({state:"lobby",goAt:null,touched:GPN_SV()})).catch(e=>console.warn(e));}
+  gpnRef("order").set(o).then(()=>{if(fin)return gpnScore(m,list).then(()=>gpnRef("meta/state").set("done"));}).catch(e=>console.warn(e));}
+/* series points (10/6/4/2 for 1st-4th, 0 for not finishing), written once per race by whoever is host, in ONE update together with the "scored" mark, so a host change never counts a race twice */
+const GPN_PTS=[10,6,4,2],GPN_RACES=3;
+function gpnScore(m,list){const G=GPN;if(!G||m.scored===m.run)return Promise.resolve();const S=G.series||{},upd={};
+  (G.race?G.race.roster:[]).forEach(r=>{upd["series/"+r.uid]=S[r.uid]||0;});list.forEach((u,i)=>{upd["series/"+u]=(S[u]||0)+(GPN_PTS[i]||0);});
+  upd["meta/scored"]=m.run;upd["meta/n"]=Math.min(GPN_RACES,(m.n|0)+1);upd["meta/touched"]=GPN_SV();return gpnRef("").update(upd);}
+function gpnAgain(){const G=GPN;if(!G||G.meta.host!==G.uid)return;G.finSeq={};const fresh=(G.meta.n|0)>=GPN_RACES;   // after the third race "Race again" starts a new series from zero
+  Promise.all([gpnRef("order").remove(),gpnRef("finish").remove(),gpnRef("cars").remove()].concat(fresh?[gpnRef("series").remove()]:[])).then(()=>gpnRef("meta").update(Object.assign({state:"lobby",goAt:null,touched:GPN_SV()},fresh?{n:0}:{}))).catch(e=>console.warn(e));}
 /* ---------- into the race ---------- */
-function gpnBegin(m){const G=GPN;G.race={run:m.run,track:m.track,laps:m.laps,pace:m.pace,roster:gpnRoster().filter(r=>r.on!==false)};G.scr="race";G.finSeq={};G.firstFin=0;G.orderKey="";G.loadAt=gpnNow();const sh=$("gpnSheet");if(sh)sh.remove();startRace3D(m.track);}
+function gpnBegin(m){const G=GPN;G.race={run:m.run,no:(m.n|0)+1,shift:(m.n|0),track:m.track,laps:m.laps,pace:m.pace,roster:gpnRoster().filter(r=>r.on!==false)};G.scr="race";G.finSeq={};G.firstFin=0;G.orderKey="";G.pfShown=0;G.panelKey="";G.loadAt=gpnNow();const sh=$("gpnSheet");if(sh)sh.remove();startRace3D(m.track);}
 function gpnBuilt(){const G=GPN,R=R3;if(!G||!R)return;R.online=true;R.netGo=0;const T=R.T;R.karts.forEach(k=>{if(!k.net)return;k.netBuf=[];k.netJit=0;k.netOff=null;k.netOffW=[];k.netDelay=130;k.netSt=null;k.netLast=performance.now();
     // the label over a friend's car: drawn here, from the car and its colour; nothing typed ever reaches it
-    const tex=gpCanvasTex(340,76,(x,w,h)=>{x.clearRect(0,0,w,h);x.fillStyle="rgba(18,6,38,.82)";x.beginPath();x.moveTo(20,3);x.arcTo(w-3,3,w-3,h-3,18);x.arcTo(w-3,h-3,3,h-3,18);x.arcTo(3,h-3,3,3,18);x.arcTo(3,3,w-3,3,18);x.fill();x.font="800 40px system-ui,sans-serif";x.textAlign="center";x.textBaseline="middle";x.fillStyle="#fff";x.fillText(k.racer.n,w/2,h/2+2);});
+    const tex=gpCanvasTex(340,76,(x,w,h)=>{x.clearRect(0,0,w,h);x.fillStyle="rgba(18,6,38,.82)";x.beginPath();x.moveTo(20,3);x.arcTo(w-3,3,w-3,h-3,18);x.arcTo(w-3,h-3,3,h-3,18);x.arcTo(3,h-3,3,3,18);x.arcTo(3,3,w-3,3,18);x.fill();x.strokeStyle="#00E5FF";x.lineWidth=5;x.stroke();let fs=44;x.font="800 "+fs+"px system-ui,sans-serif";const mw=x.measureText(k.racer.n).width;if(mw>w-44){fs=Math.floor(fs*(w-44)/mw);x.font="800 "+fs+"px system-ui,sans-serif";}x.textAlign="center";x.textBaseline="middle";x.fillStyle="#fff";x.fillText(k.racer.n,w/2,h/2+2);});
     const sp=new T.Sprite(new T.SpriteMaterial({map:tex,transparent:true,depthWrite:false,fog:false}));sp.scale.set(3.3,0.74,1);sp.position.y=k.racer.car.grp==="trucks"?3.7:2.2;sp.renderOrder=5;k.g.add(sp);k.netTag=sp;});
-  const w=$("gp3");if(w)w.insertAdjacentHTML("beforeend",'<div class="gpn-wait" id="gpnWait">Waiting for your friends…</div>');
+  const w=$("gp3");if(w)w.insertAdjacentHTML("beforeend",'<div class="gpn-board" id="gpnBoard" aria-label="Race positions"></div><div class="gpn-wait" id="gpnWait">Waiting for your friends…</div>');
   if(G.meta&&G.meta.goAt)gpnSetGo(G.meta.goAt);
   gpnRef("players/"+G.uid+"/load").set(G.race.run).catch(()=>{});
   if(G.order&&G.order.run===G.race.run&&G.order.final)setTimeout(()=>{if(GPN===G&&R3===R&&!R.done)gpFinish();},0);   // built so late the race is already over
@@ -3548,6 +3663,25 @@ function gpnInCar(G,uid,v){if(GPN!==G||!R3||!R3.online)return;const k=R3.karts.f
   const off=now-v.n,W=k.netOffW;W.push({at:now,o:off});while(W.length&&now-W[0].at>4000)W.shift();let mn=1e12;for(let i=0;i<W.length;i++)if(W[i].o<mn)mn=W[i].o;k.netOff=mn;const jit=off-mn;k.netJit=Math.max(jit,(k.netJit||0)*0.97);
   const gap=k.netLast?now-k.netLast:83;k.netGap=(k.netGap||83)*0.9+gap*0.1;k.netDelay=Math.max(100,Math.min(420,k.netGap*1.15+k.netJit*1.1+15));k.netLast=now;
   B.push(v);if(B.length>48)B.shift();if(k.netOffS&&!(!G.players[uid]||G.players[uid].on===false))k.netGone=false;}
+/* ---------- fair racing online (job 1107-0258) ----------
+   Slipstream: sit 3.5-26 m behind another car (and within 2.6 m of its line) and, after about a second, the air in front lets you go up to
+   +5% faster than the top speed everyone has (it builds over 1 s, fades over 0.6 s; wind lines show it). Catch-up: only when the room is on
+   Easy, only for the player in LAST place, and only when the car in front is more than 25 m away: +0% at 25 m rising to +4% at 100 m, never more.
+   The leader and the middle of the pack get nothing. Each device works out its own bonus from the same shared positions. */
+const GPN_DRAFT=0.05,GPN_CATCH=0.04;
+function gpnDraft(kt,dt,waiting){const R=R3,XS=R.W-1.2,L=R.len;let on=false,who=null;
+  if(!waiting&&!R.done&&!kt.jet&&!kt.air&&kt.speed>0.5*kt.max){for(let i=0;i<R.karts.length;i++){const o=R.karts[i];if(o===kt||o.netGone||!o.started||o.net&&!o.netBuf)continue;const d=((o.t-kt.t+1)%1)*L;if(d<3.5||d>26||Math.abs(o.x-kt.x)*XS>2.6)continue;on=true;who=o;break;}}
+  kt.drT=on?Math.min(1.5,(kt.drT||0)+dt):Math.max(0,(kt.drT||0)-dt/0.6);const k=Math.min(1,kt.drT);kt.drG=k*k*(3-2*k);kt.drWho=on?who:null;
+  if(on&&kt.drG>0.2){R.drLog=R.drLog||{t:0,max:0};R.drLog.t+=dt;R.drLog.max=Math.max(R.drLog.max,kt.drG*GPN_DRAFT);}
+  return kt.drG;}
+function gpnCatchUp(dt){const R=R3,me=R.me;let want=0;
+  if(GPN&&GPN.race&&GPN.race.pace==="gentle"&&me.started&&R.board&&R.board.length>1&&R.board[R.board.length-1]===me){const ahead=R.board[R.board.length-2],g=((ahead.lap+ahead.t)-(me.lap+me.t))*R.len;want=GPN_CATCH*Math.max(0,Math.min(1,(g-25)/75));}
+  me.cuT=(me.cuT||0)+(want-(me.cuT||0))*Math.min(1,dt*1.5);if(want>0.001)R.cuLog=Math.max(R.cuLog||0,me.cuT);return me.cuT;}
+/* live position board: 1st-4th, name, and the gap (seconds) to the car in front. Refreshed ~6 times a second from the same positions the race uses */
+function gpnBoard(dt){const R=R3;R.bdT=(R.bdT||0)-dt;if(R.bdT>0)return;R.bdT=0.16;const el=$("gpnBoard");if(!el||!R.board)return;
+  const html=R.board.map((k,i)=>{let g="";if(i>0){const a=R.board[i-1],d=((a.lap+a.t)-(k.lap+k.t))*R.len,sec=d/Math.max(25,k.speed||0);g='<u>+'+Math.max(0,sec).toFixed(1)+'s</u>';}else g='<u class="l">LEAD</u>';
+    return'<div class="'+(k.player?"me":"")+'" data-n="'+esc(k.racer.n)+'"><em>'+(i+1)+'</em><b>'+esc(k.racer.n)+'</b>'+g+'</div>';}).join("");
+  if(R.bdHtml!==html){R.bdHtml=html;el.innerHTML=html;}}
 /* a friend's car this frame: where the snapshots say it was a moment ago (short prediction if they are late), joined up so a correction is never a jump */
 function gpNetKart(kt,dt){const R=R3,B=kt.netBuf,now=performance.now();kt.px=kt.x;if(!B||!B.length){kt.speed=0;return;}
   const age=now-kt.netLast;if(age>5000&&!kt.netGone){kt.netGone=true;if(!kt.netOffS)gpMsg(kt.racer.n+" lost connection");}else if(age<1000&&!kt.netOffS&&kt.netGone)kt.netGone=false;
@@ -3585,12 +3719,23 @@ function gpnRows(){const G=GPN,run=G.race.run,o=G.order&&G.order.run===run?G.ord
   const list=o&&o.list?Object.keys(o.list).sort((a,b)=>a-b).map(i=>o.list[i]):[];
   const fin=list.map(u=>names.find(n=>n.uid===u)).filter(Boolean),rest=names.filter(n=>!list.includes(n.uid));
   return{fin,rest,final:!!(o&&o.final),list};}
-function gpnPanel(){const G=GPN,R=R3;if(!G||!R||!R.done||!G.race)return;const w=$("gp3");if(!w)return;let P0=w.querySelector(".gp3-finish");if(!P0){w.insertAdjacentHTML("beforeend",'<div class="gp3-finish" id="gpnFin"></div>');P0=w.querySelector(".gp3-finish");}
-  const X=gpnRows(),mePos=X.list.indexOf(G.uid)+1,isHost=G.meta&&G.meta.host===G.uid;
+function gpnPanel(){const G=GPN,R=R3;if(!G||!R||!R.done||!G.race)return;const w=$("gp3");if(!w)return;let P0=w.querySelector(".gp3-finish");if(!P0){w.insertAdjacentHTML("beforeend",'<div class="gp3-finish gpn-fin" id="gpnFin"></div>');P0=w.querySelector(".gp3-finish");}
+  const X=gpnRows(),mePos=X.list.indexOf(G.uid)+1,isHost=G.meta&&G.meta.host===G.uid,run=G.race.run,scored=!!(X.final&&G.meta&&G.meta.scored===run),S=G.series||{},nDone=G.meta?(G.meta.n|0):0,series=scored&&nDone>=GPN_RACES;
   const title=X.final?(mePos?gpOrd(mePos).toUpperCase()+" PLACE"+(mePos===1?" 🏆":""):"TIME'S UP"):(mePos?gpOrd(mePos).toUpperCase()+" SO FAR":"FINISHED");
-  const row=(n,pos)=>'<div class="'+(n.me?"me":"")+'" data-uid="'+esc(n.uid)+'"><em>'+pos+'</em><span>'+esc(n.label)+(n.me?" · You":"")+'</span><small>'+(n.ms!=null?gpFmt(n.ms):"")+'</small></div>';
-  const rows=X.fin.map((n,i)=>row(n,gpOrd(i+1))).join("")+X.rest.map(n=>{const p=G.players[n.uid],gone=!p||p.on===false,txt=gone?"Left":(X.final?"Didn't finish":"Still racing…");return'<div class="'+(n.me?"me":"")+'" data-uid="'+esc(n.uid)+'"><em>–</em><span>'+esc(n.label)+(n.me?" · You":"")+'</span><small>'+txt+'</small></div>';}).join("");
-  const btn=X.final?(isHost?'<button class="btn big" id="gpnAgainBtn" onclick="gpnAgain()">Race again 🔁</button>':'<div class="fz-fin-s" id="gpnWaitHost">Waiting for the host to start the next race…</div>'):'<div class="fz-fin-s">Waiting for everyone to finish…</div>';
-  const key=title+rows+btn;if(G.panelKey===key&&P0.innerHTML)return;G.panelKey=key;
-  P0.innerHTML='<div class="fz-fin-t" id="gpnFinT">'+title+'</div><div class="gpn-rows" id="gpnRows">'+rows+'</div><div class="btn-row" style="margin-top:10px">'+btn+'<button class="btn secondary big" onclick="renderOnline()">Leave room</button></div>';
+  // photo finish: two neighbours across the line less than 0.2 s apart (the closest pair gets the banner)
+  let pf=null;for(let i=1;i<X.fin.length;i++){const a=X.fin[i-1],b=X.fin[i];if(a.ms!=null&&b.ms!=null&&b.ms-a.ms<200){const d=b.ms-a.ms;if(!pf||d<pf.d)pf={w:a,l:b,d};}}
+  const pfBan=pf?'<div class="gpn-pf" id="gpnPf"><b>📸 PHOTO FINISH!</b><span>'+esc(pf.w.disp)+' beat '+esc(pf.l.disp)+' by '+(pf.d/1000).toFixed(3)+' s</span></div>':"";
+  const pts=n=>{if(!scored)return"";const i=X.list.indexOf(n.uid);return'<b class="pts">'+(i>=0&&GPN_PTS[i]?"+"+GPN_PTS[i]:"+0")+'<i>'+(S[n.uid]||0)+' pts</i></b>';};
+  const row=(n,pos)=>'<div class="'+(n.me?"me":"")+(pf&&(n===pf.w||n===pf.l)?" pf":"")+'" data-uid="'+esc(n.uid)+'"><em>'+pos+'</em><span>'+esc(n.disp)+(n.me?" · You":"")+'</span><small>'+(n.ms!=null?gpFmt(n.ms):"")+'</small>'+pts(n)+'</div>';
+  const rows=X.fin.map((n,i)=>row(n,gpOrd(i+1))).join("")+X.rest.map(n=>{const p=G.players[n.uid],gone=!p||p.on===false,txt=gone?"Left":(X.final?"Didn't finish":"Still racing…");return'<div class="'+(n.me?"me":"")+'" data-uid="'+esc(n.uid)+'"><em>–</em><span>'+esc(n.disp)+(n.me?" · You":"")+'</span><small>'+txt+'</small>'+pts(n)+'</div>';}).join("");
+  // series: race n of 3, then a podium on the points
+  let ser="";
+  if(series){const best={};X.list.forEach((u,i)=>{best[u]=i;});const rank=G.race.roster.map(r=>Object.assign({},r,{pt:S[r.uid]||0})).sort((a,b)=>b.pt-a.pt||((best[a.uid]==null?9:best[a.uid])-(best[b.uid]==null?9:best[b.uid]))),top=rank.slice(0,3),order=top.length>=3?[1,0,2]:(top.length===2?[1,0]:[0]),med=["🥇","🥈","🥉"];
+    ser='<div class="gpn-pod" id="gpnPod"><div class="gpn-podt">SERIES PODIUM · after '+GPN_RACES+' races</div><div class="gpn-podc">'+order.map(i=>{const r=top[i];return'<div class="p'+(i+1)+(r.me?" me":"")+'" data-uid="'+esc(r.uid)+'"><span>'+med[i]+'</span><b>'+esc(r.disp)+'</b><i>'+r.pt+' pts</i><u></u></div>';}).join("")+'</div></div>';}
+  else if(X.final)ser='<div class="gpn-ser" id="gpnSerLine">Series: race '+Math.min(GPN_RACES,Math.max(1,G.race.no))+' of '+GPN_RACES+' done · points carry over to the next race</div>';
+  const next=nDone>=GPN_RACES?"New series 🔁":"Race again 🔁";
+  const btn=X.final?(isHost?'<button class="btn big" id="gpnAgainBtn" onclick="gpnAgain()">'+next+'</button>':'<div class="fz-fin-s" id="gpnWaitHost">Waiting for the host to start the next race…</div>'):'<div class="fz-fin-s">Waiting for everyone to finish…</div>';
+  const key=title+pfBan+rows+ser+btn;if(G.panelKey===key&&P0.innerHTML)return;const first=!G.panelKey;G.panelKey=key;
+  P0.innerHTML='<div class="fz-fin-t" id="gpnFinT">'+title+'</div>'+pfBan+'<div class="gpn-rows" id="gpnRows">'+rows+'</div>'+ser+'<div class="btn-row" style="margin-top:10px">'+btn+'<button class="btn secondary big" onclick="renderOnline()">Leave room</button></div>';
+  if(pf&&!G.pfShown){G.pfShown=1;const f=document.createElement("div");f.className="gpn-flash";w.appendChild(f);setTimeout(()=>f.remove(),900);}
   if(X.final&&!G.xpDone){G.xpDone=true;if(mePos===1){if(typeof confetti==="function")confetti();gpConfetti(P0);GPA.play("fanfare");}if(P&&mePos){P.xp=(P.xp||0)+([0,30,20,10,5][mePos]||5);if(typeof save==="function")save();}}}

@@ -6,6 +6,12 @@ here = os.path.dirname(os.path.abspath(__file__)); src = open(os.path.join(here,
 cars = re.findall(r'\{id:"([a-z0-9_]+)"', src[src.index("const GP_CARS=["):src.index("const GP_SHAPE=")])
 tracks = re.findall(r'\{id:"([a-z0-9_]+)"', src[src.index("const GP_CIRCUITS=["):src.index("function gpTrackPts")])
 assert len(cars) >= 18 and len(tracks) >= 5 and "deep" in tracks, (cars, tracks)
+# racing names (job 1107-0258): the very same pattern, length and rude-word lists the game checks (GPN_RUDE_SUB / GPN_RUDE_EX in race3d.js);
+# a letter repeated ("Fuuck") still matches, whole-word list for the short words (so Hassan and Cassandra are fine)
+sub = re.search(r'const GPN_RUDE_SUB="([a-z|]+)"', src).group(1).split("|"); ex = re.search(r'const GPN_RUDE_EX="([a-z|]+)"', src).group(1).split("|")
+rep_ = lambda w: "".join(c + "+" for c in w)
+RUDE_SUB = "(" + "|".join(rep_(w) for w in sub) + ")"; RUDE_EX = "(" + "|".join(rep_(w) for w in ex) + ")"
+NAME_OK = ("newData.isString() && newData.val().matches(/^[A-Z][a-z]{1,9}$/) && !newData.val().toLowerCase().matches(/^.*" + RUDE_SUB + ".*$/) && !newData.val().toLowerCase().matches(/^" + RUDE_EX + "$/)")
 CODE = "BDFGHJKLMNRSTWXY"  # kept in step with GPN_ALPHA in race3d.js
 IDLE = 1800000
 ROOM = "root.child('rooms').child($code)"
@@ -38,6 +44,8 @@ rules = {"rules": {
         "pace": {".validate": "newData.isString() && newData.val().matches(/^(gentle|normal)$/)"},
         "state": {".validate": "newData.isString() && newData.val().matches(/^(lobby|load|count|race|done)$/)"},
         "run": num(0, 9999),
+        "n": num(0, 3),            # races finished in this series (points carry over for 3 races)
+        "scored": num(0, 9999),    # the last run whose points were counted (so a host change never counts a race twice)
         "goAt": {".validate": "newData.isNumber() && newData.val() > now - 60000 && newData.val() < now + 60000"},
         # keeps the room alive while it is really being used; only ever the server's clock
         "touched": {".write": SEEN, ".validate": "newData.val() === now || newData.val() === data.val()"},
@@ -55,6 +63,7 @@ rules = {"rules": {
           ".validate": "newData.hasChildren(['car','paint','slot','on','ready','load'])",
           "car": {".validate": "newData.isString() && newData.val().matches(/^(" + "|".join(cars) + ")$/)"},
           "paint": {".validate": "newData.isString() && newData.val().matches(/^#[0-9a-f]{6}$/)"},
+          "name": {".validate": NAME_OK},   # optional: 2-10 letters, Title Case, no rude words; without it the car+colour label is shown
           "slot": num(0, 3),
           "on": {".validate": "newData.isBoolean()"},
           "ready": num(-1, 9999),  # the run this player is ready for: a new race never starts on an old "ready"
@@ -85,6 +94,11 @@ rules = {"rules": {
         "run": num(0, 9999), "final": {".validate": "newData.isBoolean()"},
         "list": {".validate": "newData.hasChildren()", "$i": {".validate": "$i.matches(/^[0-3]$/) && newData.isString() && newData.val().matches(/^[A-Za-z0-9]{1,64}$/)"}},
         "$other": NO},
+      "series": {
+        # series points: only the host writes them (a kid's own device can't award itself points)
+        ".read": SEEN,
+        ".write": f"auth != null && {FRESH} && {HOST}",
+        "$uid": {".validate": "$uid.matches(/^[A-Za-z0-9]{1,64}$/) && newData.isNumber() && newData.val() >= 0 && newData.val() <= 40", "$other": NO}},
       "kick": {
         # the host can remove a player from the lobby; that player cannot come back into this room
         "$uid": {

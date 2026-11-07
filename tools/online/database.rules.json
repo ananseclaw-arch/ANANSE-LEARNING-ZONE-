@@ -33,6 +33,12 @@
      "run": {
       ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999"
      },
+     "n": {
+      ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3"
+     },
+     "scored": {
+      ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999"
+     },
      "goAt": {
       ".validate": "newData.isNumber() && newData.val() > now - 60000 && newData.val() < now + 60000"
      },
@@ -61,6 +67,9 @@
       },
       "paint": {
        ".validate": "newData.isString() && newData.val().matches(/^#[0-9a-f]{6}$/)"
+      },
+      "name": {
+       ".validate": "newData.isString() && newData.val().matches(/^[A-Z][a-z]{1,9}$/) && !newData.val().toLowerCase().matches(/^.*(f+u+c+k+|f+u+k+|s+h+i+t+|s+h+y+t+|b+i+t+c+h+|c+u+n+t+|n+i+g+g+|n+i+g+r+|f+a+g+g+|w+h+o+r+e+|s+l+u+t+|p+e+n+i+s+|v+a+g+i+n+a+|h+i+t+l+e+r+|p+o+r+n+|d+i+l+d+o+|b+a+s+t+a+r+d+|p+u+s+s+y+|w+a+n+k+|t+w+a+t+|d+i+c+k+h+e+a+d+|a+s+s+h+o+l+e+|b+o+l+l+o+c+k+|s+e+x+y+|s+t+u+p+i+d+|i+d+i+o+t+|r+e+t+a+r+d+|m+o+r+o+n+|k+k+k+|n+u+d+e+|n+a+k+e+d+|s+u+c+k+|n+i+p+p+l+e+|o+r+g+a+s+m+|e+r+o+t+i+c+|m+o+l+e+s+t+|p+a+e+d+o+|p+e+d+o+|t+e+r+r+o+r+|s+u+i+c+i+d+e+|k+i+l+l+e+r+).*$/) && !newData.val().toLowerCase().matches(/^(a+s+s+|a+r+s+e+|d+i+c+k+|c+o+c+k+|c+u+m+|s+e+x+|t+i+t+|t+i+t+s+|b+o+o+b+|b+o+o+b+s+|b+u+t+t+|b+u+m+|p+o+o+|p+o+o+p+|f+a+r+t+|p+i+s+s+|c+r+a+p+|d+a+m+n+|h+e+l+l+|a+n+u+s+|r+a+p+e+|n+a+z+i+|j+e+r+k+|d+u+m+b+|l+o+s+e+r+|u+g+l+y+|f+a+t+|h+a+t+e+|k+i+l+l+|d+i+e+|d+e+a+d+|d+r+u+n+k+|s+t+f+u+|w+t+f+|g+a+y+|f+a+g+|h+o+e+|h+o+|p+e+e+|w+e+e+)$/)"
       },
       "slot": {
        ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3"
@@ -152,6 +161,16 @@
      },
      "$other": {
       ".validate": false
+     }
+    },
+    "series": {
+     ".read": "auth != null && root.child('rooms').child($code).child('players').child(auth.uid).exists() && root.child('rooms').child($code).child('meta/touched').val() > now - 1800000",
+     ".write": "auth != null && root.child('rooms').child($code).child('meta/touched').val() > now - 1800000 && root.child('rooms').child($code).child('meta/host').val() === auth.uid",
+     "$uid": {
+      ".validate": "$uid.matches(/^[A-Za-z0-9]{1,64}$/) && newData.isNumber() && newData.val() >= 0 && newData.val() <= 40",
+      "$other": {
+       ".validate": false
+      }
      }
     },
     "kick": {
