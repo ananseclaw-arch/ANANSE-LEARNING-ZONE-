@@ -3388,7 +3388,7 @@ function gpnCss(){gpCss();if($("gpnCss"))return;const s=document.createElement("
 .gpn-picked{display:flex;align-items:center;gap:12px;background:#2d1254;border-radius:14px;overflow:hidden}.gpn-picked img{width:124px;height:72px;object-fit:cover}.gpn-picked b{font-size:17px}.gpn-picked small{display:block;color:#d9cdf2;font-weight:600}
 .gpn-chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.gpn-chips button{min-height:48px;min-width:56px;padding:0 12px;border-radius:12px;border:3px solid #4b2a80;background:#2d1254;font-weight:800;font-size:15px}.gpn-chips button.on{background:#ffd600;border-color:#ffd600;color:#120626}.gpn-chips span{font-size:14px;color:#d9cdf2;margin-left:6px}
 .gpn-cta{margin-top:auto;position:sticky;bottom:8px;z-index:3}
-.gpn-sheet{position:fixed;inset:0;z-index:50;background:rgba(10,3,24,.86);display:flex;align-items:flex-end;justify-content:center;animation:gpnFade .15s}@keyframes gpnFade{from{opacity:0}}
+.gpn.gpn-sheet{position:fixed;inset:0;z-index:50;background:rgba(10,3,24,.86);display:flex;flex-direction:row;gap:0;align-items:flex-end;justify-content:center;animation:gpnFade .15s}@keyframes gpnFade{from{opacity:0}}
 .gpn-sheet>div{width:100%;max-width:760px;max-height:84dvh;overflow:auto;background:#1c0b3a;border-radius:22px 22px 0 0;padding:14px;box-sizing:border-box;animation:gpnUp .22s cubic-bezier(.2,.9,.3,1)}@keyframes gpnUp{from{transform:translateY(40px)}}
 .gpn-sheet .row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.gpn-sheet h2{font-size:20px}
 .gpn-pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}.gpn-pick button{border-radius:14px;border:3px solid #4b2a80;background:#2d1254;padding:6px;font-size:13px;font-weight:700;min-height:84px;color:#fff}.gpn-pick button.on{border-color:#00ff66}.gpn-pick i{display:block;height:48px;background:center/contain no-repeat var(--pic)}
@@ -3401,7 +3401,7 @@ function gpnCss(){gpCss();if($("gpnCss"))return;const s=document.createElement("
 function gpnShell(title,back,body){return'<div class="fadein gpn" id="gpnScr"><div class="gpn-top"><h1>'+esc(title)+'</h1><button class="gpn-x" onclick="'+back+'">⟵ Back</button></div>'+body+'</div>';}
 function gpnCarPic(id){return'assets/cars3d/thumbs/'+id+'.webp';}
 function gpnFriendErr(e){const c=String(e&&(e.code||e.message)||e);if(/network|timeout|load|unavailable/i.test(c))return"Can't reach the race server. Check the Wi-Fi and try again.";return"Something went wrong. Try again.";}
-function renderOnline(msg){clearTimers();closeOverlay();showAnanseCorner(false);gpStop();gpnCss();gpAudioUnlock();if(GPN)gpnLeave();GPA.init();
+function renderOnline(msg){window.scrollTo(0,0);clearTimers();closeOverlay();showAnanseCorner(false);gpStop();gpnCss();gpAudioUnlock();if(GPN)gpnLeave();GPA.init();
   const c=gpCar(),p=gpnMyPaint();
   app.innerHTML=gpnShell("Race a friend","renderCircuits()",
     '<div class="gpn-mine"><i style="--pic:url('+gpnCarPic(c.id)+')"></i><div><b>'+esc(gpnLabel(c.id,p))+'</b><small>This is your name in the race</small></div><button onclick="renderRace()">Change</button></div>'
@@ -3421,7 +3421,7 @@ async function gpnCreate(){gpnBusy(true,"Making your room…");
     if(!code)throw new Error("no code");
     await F.db.ref("rooms/"+code+"/slots/0").set(uid);await gpnEnter(code,0);gpnRememberRoom(code);}
   catch(e){console.warn("online create",e);GPN=null;gpnBusy(false,gpnFriendErr(e));}}
-function gpnJoinScreen(msg){gpnCss();window._gpnEntry="";
+function gpnJoinScreen(msg){gpnCss();window._gpnEntry="";window.scrollTo(0,0);
   const keys=GPN_ALPHA.split("").map(l=>'<button data-k="'+l+'" onclick="gpnKey(\''+l+'\')">'+l+'</button>').join("");
   app.innerHTML=gpnShell("Join room","renderOnline()",'<p class="gpn-note" style="text-align:center;font-size:17px">Type the 5 letters your friend reads out</p><div class="gpn-cells" id="gpnCells">'+[0,1,2,3,4].map(()=>'<b></b>').join("")+'</div><p class="gpn-err" id="gpnErr">'+esc(msg||"")+'</p><div class="gpn-keys">'+keys+'<button class="wide" onclick="gpnKey(\'back\')">⌫ Delete</button><button class="wide" onclick="gpnKey(\'clear\')">Clear</button></div>');
   gpnCellsDraw();window._gpnKd=e=>{if(!$("gpnCells")){window.removeEventListener("keydown",window._gpnKd);return;}const k=e.key.toUpperCase();if(k==="BACKSPACE")gpnKey("back");else if(k.length===1&&GPN_ALPHA.includes(k))gpnKey(k);};window.addEventListener("keydown",window._gpnKd);}
@@ -3452,7 +3452,7 @@ async function gpnEnter(code,seat){const F=window._gpnFb,uid=F.auth.currentUser.
   sub("cars","child_added",s=>{if(GPN===G)gpnOnCar(s.key,s.val());});sub("cars","child_changed",s=>{if(GPN===G)gpnOnCar(s.key,s.val());});
   sub("kick/"+uid,"value",s=>{if(GPN===G&&s.val()){gpnLeave(true);renderOnline("The host closed your spot in that room.");}});
   G.iv=setInterval(()=>{if(GPN===G)gpnRoomTick();},500);
-  gpnTouch();gpnLobby();}
+  gpnTouch();window.scrollTo(0,0);gpnLobby();}
 function gpnTouch(){if(!GPN)return;GPN.touchT=gpnNow();gpnRef("meta/touched").set(GPN_SV()).catch(()=>{});}
 function gpnPresence(on){const G=GPN;if(!G||!G.leaveArmed)return;if(on){gpnRef("players/"+G.uid+"/on").onDisconnect().set(false);gpnRef("players/"+G.uid+"/on").set(true).catch(()=>{});}}
 /* leave for good: seat and car go; the last one out removes the whole room */
@@ -3466,7 +3466,7 @@ function gpnGone(msg){const G=GPN;if(!G)return;GPN=null;clearInterval(G.iv);G.su
 /* everyone in seat order, each with the paint and label THIS race uses (the same on every screen: a copy of an earlier car gets a spare colour) */
 function gpnRoster(){const G=GPN,used=[],out=[];Object.keys(G.players).map(u=>Object.assign({uid:u},G.players[u])).sort((a,b)=>a.slot-b.slot).forEach(p=>{let pt=p.paint;if(used.includes(p.car+pt)){pt=GPN_SPARE.find(s=>!used.includes(p.car+s)&&gpnColor(s)!==gpnColor(p.paint))||pt;}used.push(p.car+pt);out.push(Object.assign(p,{paint:pt,label:gpnLabel(p.car,pt),me:p.uid===G.uid}));});return out;}
 function gpnOnMeta(m){const G=GPN;if(!m){gpnGone();return;}const prev=G.meta;G.meta=m;
-  if(m.state==="lobby"){if(G.scr!=="lobby"){gpStop();G.race=null;G.scr="lobby";G.finish={};G.order=null;}if(!prev||prev.track!==m.track||prev.laps!==m.laps||prev.pace!==m.pace||prev.host!==m.host||G.scr==="lobby")gpnLobbySoon();return;}
+  if(m.state==="lobby"){if(G.scr!=="lobby"){gpStop();G.race=null;G.scr="lobby";G.finish={};G.order=null;window.scrollTo(0,0);}if(!prev||prev.track!==m.track||prev.laps!==m.laps||prev.pace!==m.pace||prev.host!==m.host||G.scr==="lobby")gpnLobbySoon();return;}
   if(!G.race&&(m.state==="load"||m.state==="count"||m.state==="race")){if(!gpnOnScreen()){gpnLeave();return;}gpnBegin(m);}
   if(R3&&R3.online&&m.goAt&&!R3.netGo&&G.race&&G.race.run===m.run){gpnSetGo(m.goAt);}
   if(G.scr==="race"||G.scr==="done")gpnPanelSoon();}
