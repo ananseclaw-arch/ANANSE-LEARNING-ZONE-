@@ -1702,7 +1702,7 @@ function gpDesertWorld(D){const {T,scene,C,samples,M,W,ds,groundAt,dummy,rnd,rib
    Every animal is one merged mesh + one small wave shader, so a whole animal is one draw call. ---------- */
 const GP_DEEP={
   env:{fog:"#0a86c6",near:10,far:235,top:"#7be6ff",mid:"#159fdc",hor:"#0a86c6",sun:0.8,hemi:0.92,hemiSky:"#a6ecff",hemiGnd:"#1c6f9c"},
-  hit:{normal:0.6,gentle:0.74,floor:0.3,safe:1.5},pay:0.07,
+  hit:{normal:0.6,gentle:0.74,floor:0.3,safe:1.5,slowS:1.5,slowN:0.66,slowE:0.8},pay:0.07,
   kinds:{
     whale:{n:"WHALE",e:"🐋",say:"the whale",s:1.4,a:11.4,b:3.3,y:4.3,top:8.4,span:72,P:18},
     turtle:{n:"TURTLES",e:"🐢",say:"the turtles",s:1.5,a:2.8,b:2.2,y:1.75,top:3.9,span:62,P:10.5},
@@ -1934,10 +1934,10 @@ function gpDeepUpdate(dt,waiting){const R=R3,dp=R.dp,me=R.me,T=R.T,S=dp.y;if(!dp
       const aa=a+(k.S.len||4.4)*0.42,bb=b+(k.S.w||2)*0.42;if((al*al)/(aa*aa)+(ac*ac)/(bb*bb)<1)gpDeepBump(k,A,lat,dd);}
   }
   SH.count=sn;SH.instanceMatrix.needsUpdate=true;
-  R.karts.forEach(k=>{if(k.dpSafe>0)k.dpSafe-=dt;});
+  R.karts.forEach(k=>{if(k.dpSafe>0)k.dpSafe-=dt;if(k.dpSlow>0)k.dpSlow-=dt;});
   if(!waiting&&!R.done)gpDeepCue(dt,tm);}
 /* bump: a shove, a slowdown, a shower of bubbles, a friendly word. No spin, no stop, no game over. A moment of safety after it so a child cannot get stuck on an animal */
-function gpDeepBump(k,A,lat,dd){const R=R3,dp=R.dp,H=GP_DEEP.hit,K=GP_DEEP.kinds[A.kind],pl=k.player;k.dpSafe=pl?H.safe:2.2;A.hitT=0.9;
+function gpDeepBump(k,A,lat,dd){const R=R3,dp=R.dp,H=GP_DEEP.hit,K=GP_DEEP.kinds[A.kind],pl=k.player;k.dpSafe=pl?H.safe:2.2;A.hitT=0.9;k.dpSlow=pl?H.slowS:1.2;k.dpSlowK=pl?(dp.easy?H.slowE:H.slowN):0.82;   // the top speed stays down for a moment: a bump costs real time, so dodging is worth it
   const keep=pl?(dp.easy?H.gentle:H.normal):0.78;const v0=k.speed;k.speed=Math.max(Math.min(v0,k.max*H.floor),k.speed*keep);
   const side=(Math.abs(lat)>0.6?Math.sign(lat):(k.x>0?-1:1));if(pl){k.sv=Math.max(-0.6,Math.min(0.6,(k.sv||0)+side*0.32));k.wobT=Math.max(k.wobT||0,0.65);R.shake=Math.max(R.shake,0.4);k.drift=0;k.loss=null;k.lossA=0;gpChainBreak();GPA.play("boing");gpMsg("Boop! "+(A.kind==="turtle"?"Sorry, turtle!":"Sorry, "+K.n.toLowerCase()+"!"));dp.stats.hits++;A.E.hits[Math.floor(k.lap)]=1;dp.stats.log.push({ev:"bump",kind:A.kind,t:+(R.simT||0).toFixed(2),from:Math.round(v0*3.6),to:Math.round(k.speed*3.6),x:+k.x.toFixed(2)});}
   else{k.bv=(k.bv||0)+side*0.35;}
@@ -3055,7 +3055,7 @@ function gpUpdate(dt,waiting){
     const offroad=Math.abs(kt.x)>1.05&&!kt.jet;
     let draft=false;if(!waiting&&!kt.jet&&kt.speed/kt.max>0.55){draft=karts.some(o=>{if(o===kt)return false;const d=(o.t-kt.t+1)%1;return d>0.003&&d<0.028&&Math.abs(o.x-kt.x)<0.32;});}kt.draft=draft;
     let band=1;if(!kt.player&&!waiting)band=gpBand(kt);
-    const maxNow=waiting?0:kt.max*band*(draft?1.07:1)*(kt.spin>0?0.6:1)*(R3.tw&&R3.tw.zoneAt(i,"ford")?0.9:1)*(offroad?(kt.player?Math.max(0.62,kt.offF):kt.offF):1)*(kt.drift?0.94:1)*(kt.boostT>0?kt.boostMul:1)*(kt.wobT>0?0.84:1)*(kt.player?1+(kt.cu||0):1);
+    const maxNow=waiting?0:kt.max*band*(draft?1.07:1)*(kt.spin>0?0.6:1)*(R3.tw&&R3.tw.zoneAt(i,"ford")?0.9:1)*(offroad?(kt.player?Math.max(0.62,kt.offF):kt.offF):1)*(kt.drift?0.94:1)*(kt.boostT>0?kt.boostMul:1)*(kt.wobT>0?0.84:1)*(kt.dpSlow>0?kt.dpSlowK:1)*(kt.player?1+(kt.cu||0):1);
     const spd0=kt.speed/kt.max,inp=kt.player?(left?-1:0)+(right?1:0):0;
     if(kt.player){
       // steering input eases in and out (two cascaded smoothers = an S-curve over ~0.3 s): a tap never jerks the car
