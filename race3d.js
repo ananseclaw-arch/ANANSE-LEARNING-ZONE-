@@ -3088,7 +3088,7 @@ function gpUpdate(dt,waiting){
       if(waiting)kt.speed=0;else if(kt.jet)gpJetSpeed(kt,dt);else if(kt.air)kt.speed*=1-0.015*dt;else if(kt.brakeOn)kt.speed=Math.max(tgt,kt.speed-26*dt);else kt.speed+=(tgt-kt.speed)*Math.min(1,dt*(kt.speed<tgt?kt.accel/10*(kt.boostT>0?1.8:1):2.2));
     }
     // tyres: lateral load v²/R beyond the grip limit pushes the car to the outside of the bend and scrubs speed
-    const spd=Math.abs(kt.speed)/kt.max;kt.px=kt.x;
+    const spd=Math.abs(kt.speed)/kt.max;kt.px=kt.x;kt.spdV=spd;
     const onDirt=!!(R3.tw&&R3.tw.zoneAt&&R3.tw.zoneAt(i,"dirt"));
     const aLat=kt.speed*kt.speed*Math.abs(kap),grip=R3.grip*(offroad?0.5:1)*(onDirt?0.82*kt.dirtK:1)*(kt.drift?1.6:1)*(kt.player?R3.upGrip:1.06)*kt.gripK*(kt.player&&kt.wet?0.95:1);
     const ratio=aLat/grip,ex=Math.min(2.5,Math.max(0,ratio-1));kt.slip=ex;kt.load=ratio;
@@ -3119,7 +3119,7 @@ function gpUpdate(dt,waiting){
       const crossed=before<=kt.t?(before<tt&&kt.t>=tt):(before<tt||kt.t>=tt);if(crossed){const mph=Math.round(kt.speed*GP_MPH);R3.trapBest=Math.max(R3.trapBest,mph);const r=kt.speed/(kt.max||1);const stars=r>=0.97?"★★★":r>=0.9?"★★":"★";gpMsg("Speed trap "+mph+" mph "+stars);GPA.play("trap");gpSkill("Speed trap",mph*4,true);}}
     if(kt.player&&R3.gates&&!waiting){const G=R3.gates;G.ts.forEach(gt=>{const crossed=before<=kt.t?(before<gt&&kt.t>=gt):(before<gt||kt.t>=gt);if(crossed)G.flash=1;});}
     }
-    const spd=Math.abs(kt.speed)/kt.max;
+    const spd=kt.net?Math.abs(kt.speed)/kt.max:kt.spdV;
     // place the car
     const pos=R3.curve.getPointAt(kt.t),tan=R3.curve.getTangentAt(kt.t).normalize(),nor=new T.Vector3(-tan.z,0,tan.x).normalize();
     pos.addScaledVector(nor,kt.x*(R3.W-1.2));if(kt.net){kt.ry=pos.y;if(kt.air)pos.y=kt.y;else kt.y=pos.y;}else gpVert(kt,pos,dt,waiting);kt.pos.copy(pos);
@@ -3411,8 +3411,8 @@ function renderOnline(msg){clearTimers();closeOverlay();showAnanseCorner(false);
     +'<p class="gpn-note">🔒 Only people you give the code to can join. There is no chat and no strangers. Up to 4 players, each on their own device. Rooms end by themselves after 30 minutes with nothing going on.</p>');
   say("Race a friend.");gpnSweepMine();}
 /* the room I made last time, if it was left behind by a crash or a closed tab: the rules let anyone remove a room idle for 30 min */
-function gpnRememberRoom(c){try{if(c)localStorage.setItem("gfgp_room",c);else localStorage.removeItem("gfgp_room");}catch(e){}}
-async function gpnSweepMine(){let c=null;try{c=localStorage.getItem("gfgp_room");}catch(e){}if(!c)return;try{const F=await gpnConnect();await F.db.ref("rooms/"+c).remove();gpnRememberRoom(null);}catch(e){}}
+function gpnRememberRoom(c){try{if(c)localStorage.setItem("gfgp_room",c+"|"+Date.now());else localStorage.removeItem("gfgp_room");}catch(e){}}
+async function gpnSweepMine(){let v=null;try{v=localStorage.getItem("gfgp_room");}catch(e){}if(!v)return;const q=v.split("|");if(Date.now()-(+q[1]||0)<31*60000)return;gpnRememberRoom(null);try{const F=await gpnConnect();await F.db.ref("rooms/"+q[0]).remove();}catch(e){}}
 function gpnBusy(on,msg){["gpnCreate","gpnJoin"].forEach(i=>{const b=$(i);if(b)b.disabled=!!on;});const e=$("gpnErr");if(e)e.textContent=msg||"";}
 async function gpnCreate(){gpnBusy(true,"Making your room…");
   try{const F=await gpnConnect(),uid=F.auth.currentUser.uid;let code=null;
