@@ -14,6 +14,8 @@ self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
+  // Race a friend: live game traffic must never be answered from a cache.
+  if (/\.(firebaseio\.com|firebasedatabase\.app|googleapis\.com)$/.test(url.hostname)) return;
   // The tutor address changes; never serve it from cache.
   if (/\/(tutor|focus|flashcards)\.json$/.test(url.pathname)) return;   // focus.json = school focus, always fresh
   // Videos stream straight from the network (Safari needs real 206 range replies, and the
