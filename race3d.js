@@ -3434,8 +3434,10 @@ async function gpnJoin(code){window._gpnJoining=true;const er=$("gpnErr");if(er)
   try{const F=await gpnConnect(),uid=F.auth.currentUser.uid;let m=null;
     try{m=(await F.db.ref("rooms/"+code+"/meta").once("value")).val();}catch(e){if(/denied/i.test(String(e.code||e.message)))return gpnBad(none);throw e;}   // an expired room is simply gone
     if(!m)return gpnBad(none);
+    if(m.locked)return gpnBad("That room is locked. Ask the host to open it.");
     if(m.state!=="lobby")return gpnBad("That race has already started. Ask them to tap Race again, then join.");
-    let seat=-1;for(let n=0;n<GPN_MAX&&seat<0;n++){try{await F.db.ref("rooms/"+code+"/slots/"+n).set(uid);seat=n;}catch(e){if(!/denied/i.test(String(e.code||e.message)))throw e;}}
+    let seat=-1;try{const mine=(await F.db.ref("rooms/"+code+"/players/"+uid).once("value")).val();if(mine)seat=mine.slot;}catch(e){}   // back after a page refresh: same seat
+    for(let n=0;n<GPN_MAX&&seat<0;n++){try{await F.db.ref("rooms/"+code+"/slots/"+n).set(uid);seat=n;}catch(e){if(!/denied/i.test(String(e.code||e.message)))throw e;}}
     if(seat<0)return gpnBad("That room is full (4 players), or the host closed your spot.");
     await gpnEnter(code,seat);window._gpnJoining=false;}
   catch(e){console.warn("online join",e);GPN=null;gpnBad(gpnFriendErr(e));}}
@@ -3443,10 +3445,11 @@ async function gpnJoin(code){window._gpnJoining=true;const er=$("gpnErr");if(er)
 async function gpnEnter(code,seat){const F=window._gpnFb,uid=F.auth.currentUser.uid,c=gpCar();
   GPN={code,uid,seat,meta:null,players:{},finish:{},order:null,race:null,scr:"lobby",iv:null,subs:[],offT:{},sendL:0,inflight:0,sent:0};
   const G=GPN;await gpnRef("players/"+uid).set({car:c.id,paint:gpnMyPaint(),slot:seat,on:true,ready:-1,load:-1});
-  gpnRef("players/"+uid+"/on").onDisconnect().set(false);G.leaveArmed=true;
+  gpnRef("players/"+uid).onDisconnect().update({on:false,offAt:GPN_SV()});G.leaveArmed=true;
   const sub=(path,ev,fn)=>{const r=gpnRef(path),cb=r.on(ev,fn,()=>{if(GPN===G&&(path==="meta"||path===""))gpnGone();});G.subs.push(()=>r.off(ev,cb));};
   sub("meta","value",s=>{if(GPN===G)gpnOnMeta(s.val());});
   sub("players","value",s=>{if(GPN===G)gpnOnPlayers(s.val()||{});});
+  sub("slots","value",s=>{if(GPN===G)G.slots=s.val()||{};});
   sub("finish","value",s=>{if(GPN===G)gpnOnFinish(s.val()||{});});
   sub("order","value",s=>{if(GPN===G)gpnOnOrder(s.val());});
   sub("cars","child_added",s=>{if(GPN===G)gpnOnCar(s.key,s.val());});sub("cars","child_changed",s=>{if(GPN===G)gpnOnCar(s.key,s.val());});
@@ -3454,11 +3457,11 @@ async function gpnEnter(code,seat){const F=window._gpnFb,uid=F.auth.currentUser.
   G.iv=setInterval(()=>{if(GPN===G)gpnRoomTick();},500);
   gpnTouch();window.scrollTo(0,0);gpnLobby();}
 function gpnTouch(){if(!GPN)return;GPN.touchT=gpnNow();gpnRef("meta/touched").set(GPN_SV()).catch(()=>{});}
-function gpnPresence(on){const G=GPN;if(!G||!G.leaveArmed)return;if(on){gpnRef("players/"+G.uid+"/on").onDisconnect().set(false);gpnRef("players/"+G.uid+"/on").set(true).catch(()=>{});}}
+function gpnPresence(on){const G=GPN;if(!G||!G.leaveArmed)return;if(on){gpnRef("players/"+G.uid).onDisconnect().update({on:false,offAt:GPN_SV()});gpnRef("players/"+G.uid+"/on").set(true).catch(()=>{});}}
 /* leave for good: seat and car go; the last one out removes the whole room */
 function gpnLeave(quiet){const G=GPN;if(!G)return;GPN=null;clearInterval(G.iv);G.subs.forEach(f=>{try{f();}catch(e){}});
   const F=window._gpnFb,R="rooms/"+G.code+"/",u=G.uid;if(!F)return;const db=F.db,others=Object.keys(G.players).filter(k=>k!==u&&G.players[k].on!==false);
-  try{db.ref(R+"players/"+u+"/on").onDisconnect().cancel();
+  try{db.ref(R+"players/"+u).onDisconnect().cancel();
     const rm=()=>Promise.all([db.ref(R+"players/"+u).remove(),db.ref(R+"cars/"+u).remove(),db.ref(R+"slots/"+G.seat).remove()]);
     if(!others.length){const amHost=G.meta&&G.meta.host===u;(amHost?Promise.resolve():db.ref(R+"meta/host").set(u)).then(()=>db.ref("rooms/"+G.code).remove()).then(()=>gpnRememberRoom(null)).catch(()=>rm().catch(()=>{}));}
     else rm().catch(()=>{});}catch(e){}}
@@ -3466,8 +3469,8 @@ function gpnGone(msg){const G=GPN;if(!G)return;GPN=null;clearInterval(G.iv);G.su
 /* everyone in seat order, each with the paint and label THIS race uses (the same on every screen: a copy of an earlier car gets a spare colour) */
 function gpnRoster(){const G=GPN,used=[],out=[];Object.keys(G.players).map(u=>Object.assign({uid:u},G.players[u])).sort((a,b)=>a.slot-b.slot).forEach(p=>{let pt=p.paint;if(used.includes(p.car+pt)){pt=GPN_SPARE.find(s=>!used.includes(p.car+s)&&gpnColor(s)!==gpnColor(p.paint))||pt;}used.push(p.car+pt);out.push(Object.assign(p,{paint:pt,label:gpnLabel(p.car,pt),me:p.uid===G.uid}));});return out;}
 function gpnOnMeta(m){const G=GPN;if(!m){gpnGone();return;}const prev=G.meta;G.meta=m;
-  if(m.state==="lobby"){if(G.scr!=="lobby"){gpStop();G.race=null;G.scr="lobby";G.finish={};G.order=null;window.scrollTo(0,0);}if(!prev||prev.track!==m.track||prev.laps!==m.laps||prev.pace!==m.pace||prev.host!==m.host||G.scr==="lobby")gpnLobbySoon();return;}
-  if(!G.race&&(m.state==="load"||m.state==="count"||m.state==="race")){if(!gpnOnScreen()){gpnLeave();return;}gpnBegin(m);}
+  if(m.state==="lobby"){if(G.scr!=="lobby"){gpStop();G.race=null;G.scr="lobby";G.finish={};G.order=null;window.scrollTo(0,0);gpnLobby();return;}gpnLobbySoon();return;}
+  if((!G.race||G.race.run!==m.run)&&(m.state==="load"||m.state==="count"||m.state==="race")){if(!gpnOnScreen()){gpnLeave();return;}gpnBegin(m);}
   if(R3&&R3.online&&m.goAt&&!R3.netGo&&G.race&&G.race.run===m.run){gpnSetGo(m.goAt);}
   if(G.scr==="race"||G.scr==="done")gpnPanelSoon();}
 function gpnOnPlayers(v){const G=GPN;G.players=v;const u=G.uid;
@@ -3487,7 +3490,7 @@ function gpnLobby(){const G=GPN;if(!G||G.scr!=="lobby"||!app)return;gpnCss();con
   const seats=[0,1,2,3].map(n=>ros.find(r=>r.slot===n)||null);
   const prevScroll=(()=>{const t=document.querySelector(".gpn-tr");return t?t.scrollLeft:0;})();
   const tracks=isHost?'<p class="gpn-h">PICK THE TRACK</p><div class="gpn-tr">'+GP_TRACK_ORDER().map(i=>{const c=GP_CIRCUITS[i];return'<button class="'+(c.id===m.track?"on":"")+'" data-id="'+c.id+'" onclick="gpnSet(\'track\',\''+c.id+'\')"><img src="assets/tracks/'+c.id+'.webp?v=1" alt="" loading="lazy"><b>'+esc(c.name)+'</b></button>';}).join("")+'</div>'
-    +'<div class="gpn-chips">'+[1,2,3].map(n=>'<button class="'+(m.laps===n?"on":"")+'" onclick="gpnSet(\'laps\','+n+')">'+n+' lap'+(n>1?"s":"")+'</button>').join("")+'<button class="'+(m.pace==="gentle"?"on":"")+'" onclick="gpnSet(\'pace\',\'gentle\')">🐢 Easy</button><button class="'+(m.pace==="normal"?"on":"")+'" onclick="gpnSet(\'pace\',\'normal\')">🚗 Normal</button></div>'
+    +'<div class="gpn-chips">'+[1,2,3].map(n=>'<button class="'+(m.laps===n?"on":"")+'" onclick="gpnSet(\'laps\','+n+')">'+n+' lap'+(n>1?"s":"")+'</button>').join("")+'<button class="'+(m.pace==="gentle"?"on":"")+'" onclick="gpnSet(\'pace\',\'gentle\')">🐢 Easy</button><button class="'+(m.pace==="normal"?"on":"")+'" onclick="gpnSet(\'pace\',\'normal\')">🚗 Normal</button><button id="gpnLock" class="'+(m.locked?"on":"")+'" onclick="gpnSet(\'locked\','+(m.locked?"false":"true")+')">'+(m.locked?"🔒 Locked":"🔓 Open")+'</button></div>'
     :'<p class="gpn-h">THE TRACK</p><div class="gpn-picked" id="gpnPicked"><img src="assets/tracks/'+C.id+'.webp?v=1" alt=""><div><b>'+esc(C.name)+'</b><small>'+m.laps+' lap'+(m.laps>1?"s":"")+' · '+(m.pace==="normal"?"Normal":"Easy")+'</small></div></div>';
   const others=ros.filter(r=>!r.me&&r.on!==false).length;
   const hint=others?(rdy?"Waiting for everyone to tap Ready":"Tap when you're ready. The race starts when everyone is"):"Read the code out to a friend";
@@ -3499,7 +3502,7 @@ function gpnLobby(){const G=GPN;if(!G||G.scr!=="lobby"||!app)return;gpnCss();con
   const t2=document.querySelector(".gpn-tr");if(t2&&prevScroll)t2.scrollLeft=prevScroll;}
 function gpnSet(k,v){const G=GPN;if(!G||!G.meta||G.meta.host!==G.uid||G.meta.state!=="lobby")return;if(k==="track")window._gpnTrack=v;if(typeof sfx==="function")sfx("tick");gpnRef("meta").update({[k]:v,touched:GPN_SV()}).catch(e=>console.warn(e));}
 function gpnReady(){const G=GPN;if(!G||!G.meta)return;GPA.init();if(typeof sfx==="function")sfx("tick");const me=G.players[G.uid];if(!me)return;gpnRef("players/"+G.uid+"/ready").set(me.ready===G.meta.run?-1:G.meta.run).catch(e=>console.warn(e));gpnTouch();}
-function gpnKick(uid){const G=GPN;if(!G||G.meta.host!==G.uid||uid===G.uid)return;const p=G.players[uid];if(!p)return;Promise.all([gpnRef("kick/"+uid).set(true),gpnRef("slots/"+p.slot).remove(),gpnRef("players/"+uid).remove(),gpnRef("cars/"+uid).remove()]).catch(e=>console.warn(e));}
+function gpnKick(uid){const G=GPN;if(!G||G.meta.host!==G.uid||uid===G.uid)return;const p=G.players[uid];if(!p)return;Promise.all([gpnRef("meta/locked").set(true),gpnRef("kick/"+uid).set(true),gpnRef("slots/"+p.slot).remove(),gpnRef("players/"+uid).remove(),gpnRef("cars/"+uid).remove()]).catch(e=>console.warn(e));}
 function gpnCarSheet(){const sel=gpCar().id,h='<div class="gpn gpn-sheet" id="gpnSheet" style="max-width:none;min-height:0;padding:0;background:rgba(10,3,24,.86);border-radius:0"><div><div class="row"><h2>Choose your car</h2><button class="gpn-x" onclick="$(\'gpnSheet\').remove()">Close</button></div><div class="gpn-pick">'+GP_CARS.map(c=>'<button class="'+(c.id===sel?"on":"")+'" data-car="'+c.id+'" onclick="gpnPickCar(\''+c.id+'\')"><i style="--pic:url('+gpnCarPic(c.id)+')"></i>'+esc(c.n)+'</button>').join("")+'</div></div></div>';document.body.insertAdjacentHTML("beforeend",h);}
 function gpnPickCar(id){const sh=$("gpnSheet");if(sh)sh.remove();gpPickCar(id);const G=GPN;if(G)gpnRef("players/"+G.uid).update({car:gpCar().id,paint:gpnMyPaint()}).catch(e=>console.warn(e));}
 /* ---------- the room's heartbeat: the host's device moves the state on ---------- */
@@ -3508,12 +3511,14 @@ function gpnRoomTick(){const G=GPN,m=G.meta;if(!gpnOnScreen()){gpnLeave();return
   if(m.touched&&now-m.touched>GPN_IDLE){gpnGone("That room ended after 30 minutes with nothing going on.");return;}
   const on=ros.filter(r=>r.on!==false);
   // the host has gone: the player in the lowest seat takes over, after a short grace
-  const H=G.players[m.host];if(m.host!==u&&(!H||H.on===false)){if(!G.hostOff)G.hostOff=now;if(now-G.hostOff>2500&&on.length&&on[0].uid===u){gpnRef("meta/host").set(u).catch(()=>{});G.hostOff=0;}}else G.hostOff=0;
+  const H=G.players[m.host],stale=m.state!=="lobby"&&m.state!=="done"&&now-m.touched>120000;   // gone, or still connected but its timers have stopped (a tab in the background) so nothing moves on
+  if(m.host!==u&&(!H||H.on===false||stale)){if(!G.hostOff)G.hostOff=now;if(now-G.hostOff>11000&&on.length&&on[0].uid===u){gpnRef("meta/host").set(u).catch(()=>{});G.hostOff=0;}}else G.hostOff=0;
   if(m.host!==u)return;
-  if(m.state!=="lobby"&&(!G.touchT||now-G.touchT>60000))gpnTouch();
+  if(m.state!=="lobby"&&m.state!=="done"&&!(m.goAt&&now-m.goAt>GPN_IDLE)&&(!G.touchT||now-G.touchT>60000))gpnTouch();
   if(m.state==="lobby"){
     ros.forEach(r=>{if(r.on===false&&G.offT[r.uid]&&now-G.offT[r.uid]>20000){gpnRef("players/"+r.uid).remove();gpnRef("slots/"+r.slot).remove();gpnRef("cars/"+r.uid).remove();}});
-    if(on.length>=2&&on.every(r=>r.ready===m.run)&&!G.starting){G.starting=true;G.loadAt=now;gpnRef("meta").update({state:"load",run:m.run+1,touched:GPN_SV()}).catch(e=>console.warn(e)).then(()=>{G.starting=false;});}}
+    const SL=G.slots||{},emp=G.emptyS||(G.emptyS={});Object.keys(SL).forEach(n=>{const u=SL[n];if(!u||G.players[u]){delete emp[n];return;}if(!emp[n])emp[n]=now;else if(now-emp[n]>15000){delete emp[n];gpnRef("slots/"+n).remove().catch(()=>{});}});   // a seat claimed with no player in it (crash mid-join) frees itself
+    if(on.length>=2&&on.every(r=>r.ready===m.run)&&!G.starting){G.starting=true;G.loadAt=now;gpnRef("meta").update({state:"load",run:(m.run+1)%9000,touched:GPN_SV()}).catch(e=>console.warn(e)).then(()=>{G.starting=false;});}}
   else if(m.state==="load"){const need=(G.race?G.race.roster:on).filter(r=>{const p=G.players[r.uid];return p&&p.on!==false;});const all=need.every(r=>G.players[r.uid].load===m.run);if(!G.loadAt)G.loadAt=now;
     if(all||now-G.loadAt>25000){G.loadAt=0;gpnRef("meta").update({state:"count",goAt:now+4300,touched:GPN_SV()}).catch(e=>console.warn(e));}}
   else if(m.state==="count"){if(m.goAt&&now>m.goAt)gpnRef("meta/state").set("race").catch(()=>{});}
@@ -3526,7 +3531,7 @@ function gpnHostOrder(m,on,now){const G=GPN,list=gpnSortFinish(G,m.run);if(!list
   gpnRef("order").set(o).then(()=>{if(fin)gpnRef("meta/state").set("done").catch(()=>{});}).catch(e=>console.warn(e));}
 function gpnAgain(){const G=GPN;if(!G||G.meta.host!==G.uid)return;G.finSeq={};Promise.all([gpnRef("order").remove(),gpnRef("finish").remove(),gpnRef("cars").remove()]).then(()=>gpnRef("meta").update({state:"lobby",goAt:null,touched:GPN_SV()})).catch(e=>console.warn(e));}
 /* ---------- into the race ---------- */
-function gpnBegin(m){const G=GPN;G.race={run:m.run,track:m.track,laps:m.laps,pace:m.pace,roster:gpnRoster().filter(r=>r.on!==false)};G.scr="race";G.finish={};G.order=null;G.finSeq={};G.firstFin=0;G.orderKey="";G.loadAt=gpnNow();const sh=$("gpnSheet");if(sh)sh.remove();startRace3D(m.track);}
+function gpnBegin(m){const G=GPN;G.race={run:m.run,track:m.track,laps:m.laps,pace:m.pace,roster:gpnRoster().filter(r=>r.on!==false)};G.scr="race";G.finSeq={};G.firstFin=0;G.orderKey="";G.loadAt=gpnNow();const sh=$("gpnSheet");if(sh)sh.remove();startRace3D(m.track);}
 function gpnBuilt(){const G=GPN,R=R3;if(!G||!R)return;R.online=true;R.netGo=0;const T=R.T;R.karts.forEach(k=>{if(!k.net)return;k.netBuf=[];k.netJit=0;k.netOff=null;k.netOffW=[];k.netDelay=130;k.netSt=null;k.netLast=performance.now();
     // the label over a friend's car: drawn here, from the car and its colour; nothing typed ever reaches it
     const tex=gpCanvasTex(340,76,(x,w,h)=>{x.clearRect(0,0,w,h);x.fillStyle="rgba(18,6,38,.82)";x.beginPath();x.moveTo(20,3);x.arcTo(w-3,3,w-3,h-3,18);x.arcTo(w-3,h-3,3,h-3,18);x.arcTo(3,h-3,3,3,18);x.arcTo(3,3,w-3,3,18);x.fill();x.font="800 40px system-ui,sans-serif";x.textAlign="center";x.textBaseline="middle";x.fillStyle="#fff";x.fillText(k.racer.n,w/2,h/2+2);});
@@ -3534,6 +3539,7 @@ function gpnBuilt(){const G=GPN,R=R3;if(!G||!R)return;R.online=true;R.netGo=0;co
   const w=$("gp3");if(w)w.insertAdjacentHTML("beforeend",'<div class="gpn-wait" id="gpnWait">Waiting for your friends…</div>');
   if(G.meta&&G.meta.goAt)gpnSetGo(G.meta.goAt);
   gpnRef("players/"+G.uid+"/load").set(G.race.run).catch(()=>{});
+  if(G.order&&G.order.run===G.race.run&&G.order.final)setTimeout(()=>{if(GPN===G&&R3===R&&!R.done)gpFinish();},0);   // built so late the race is already over
 }
 function gpnSetGo(goAt){const R=R3;R.netGo=performance.now()+(goAt-gpnNow());const e=$("gpnWait");if(e)e.remove();}
 function gpnOnCar(uid,v){const G=GPN;if(!G||uid===G.uid||!v)return;const L=window.__gpnLag;if(L){const d=L[0]+Math.random()*(L[1]-L[0]);setTimeout(()=>gpnInCar(G,uid,v),d);return;}gpnInCar(G,uid,v);}

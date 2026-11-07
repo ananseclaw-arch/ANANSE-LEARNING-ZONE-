@@ -25,12 +25,14 @@ rules = {"rules": {
       ".validate": f"$code.matches(/^[{CODE}]{{5}}$/)",
       "meta": {
         ".read": f"auth != null && data.child('touched').val() > now - {IDLE}",
-        ".write": "auth != null && newData.exists() && ((!data.exists() && newData.child('host').val() === auth.uid) || data.child('host').val() === auth.uid)",
+        ".write": f"auth != null && newData.exists() && ((!data.exists() && newData.child('host').val() === auth.uid) || (data.child('host').val() === auth.uid && data.child('touched').val() > now - {IDLE}))",
         ".validate": "newData.hasChildren(['host','track','laps','pace','state','run','touched'])",
         "host": {
           # the host dropped out: another player in the room may take over (and only give it to themselves)
-          ".write": f"{SEEN} && newData.val() === auth.uid && {ROOM}.child('players').child(data.val()).child('on').val() !== true",
-          ".validate": "newData.isString() && newData.val().length <= 64"},
+          # (their row is gone, or they dropped over 10 s ago, or a race has sat still for 2 minutes because their tab stopped)
+          ".write": f"{SEEN} && newData.val() === auth.uid && (!{ROOM}.child('players').child(data.val()).exists() || ({ROOM}.child('players').child(data.val()).child('on').val() === false && {ROOM}.child('players').child(data.val()).child('offAt').val() < now - 10000) || ({ROOM}.child('meta/state').val() !== 'lobby' && {ROOM}.child('meta/state').val() !== 'done' && {ROOM}.child('meta/touched').val() < now - 120000))",
+          ".validate": f"newData.isString() && newData.val().matches(/^[A-Za-z0-9]{{1,64}}$/) && (newData.val() === auth.uid || {ROOM}.child('players').child(newData.val()).exists())"},
+        "locked": {".validate": "newData.isBoolean()"},
         "track": {".validate": "newData.isString() && newData.val().matches(/^(" + "|".join(tracks) + ")$/)"},
         "laps": {".validate": "newData.isNumber() && (newData.val() === 1 || newData.val() === 2 || newData.val() === 3)"},
         "pace": {".validate": "newData.isString() && newData.val().matches(/^(gentle|normal)$/)"},
@@ -44,12 +46,12 @@ rules = {"rules": {
         # four numbered seats, one claim each: this is what caps a room at 4 players
         ".read": SEEN,
         "$n": {
-          ".write": f"auth != null && {FRESH} && ((!data.exists() && newData.val() === auth.uid && {ROOM}.child('meta/state').val() === 'lobby' && !{ROOM}.child('kick').child(auth.uid).exists()) || (data.val() === auth.uid && !newData.exists()) || ({HOST} && !newData.exists()))",
+          ".write": f"auth != null && {FRESH} && ((!data.exists() && newData.val() === auth.uid && {ROOM}.child('meta/state').val() === 'lobby' && {ROOM}.child('meta/locked').val() !== true && !{ROOM}.child('kick').child(auth.uid).exists() && {ROOM}.child('slots/0').val() !== auth.uid && {ROOM}.child('slots/1').val() !== auth.uid && {ROOM}.child('slots/2').val() !== auth.uid && {ROOM}.child('slots/3').val() !== auth.uid) || (data.val() === auth.uid && !newData.exists()) || ({HOST} && !newData.exists()))",
           ".validate": "$n.matches(/^[0-3]$/) && newData.isString() && newData.val().length <= 64"}},
       "players": {
         ".read": SEEN,
         "$uid": {
-          ".write": f"auth != null && {FRESH} && ((auth.uid === $uid && (!newData.exists() || {ROOM}.child('slots').child(newData.child('slot').val() + '').val() === auth.uid)) || ({HOST} && !newData.exists()))",
+          ".write": f"auth != null && {FRESH} && ((auth.uid === $uid && (!newData.exists() || ({ROOM}.child('slots').child(newData.child('slot').val() + '').val() === auth.uid && !{ROOM}.child('kick').child(auth.uid).exists()))) || ({HOST} && !newData.exists()))",
           ".validate": "newData.hasChildren(['car','paint','slot','on','ready','load'])",
           "car": {".validate": "newData.isString() && newData.val().matches(/^(" + "|".join(cars) + ")$/)"},
           "paint": {".validate": "newData.isString() && newData.val().matches(/^#[0-9a-f]{6}$/)"},
@@ -57,6 +59,7 @@ rules = {"rules": {
           "on": {".validate": "newData.isBoolean()"},
           "ready": num(-1, 9999),  # the run this player is ready for: a new race never starts on an old "ready"
           "load": num(-1, 9999),
+          "offAt": {".validate": "newData.val() === now || newData.val() === data.val()"},  # server clock only
           "$other": NO}},
       "cars": {
         ".read": SEEN,
@@ -72,15 +75,15 @@ rules = {"rules": {
         ".write": f"auth != null && {HOST} && !newData.exists()",
         "$uid": {
           ".write": f"auth != null && {FRESH} && ((auth.uid === $uid && {MEMBER}) || ({HOST} && !newData.exists()))",
-          ".validate": "newData.hasChildren(['ms','run'])",
-          "ms": num(0, 7200000), "run": num(0, 9999), "$other": NO}},
+          ".validate": f"newData.hasChildren(['ms','run']) && newData.child('run').val() === {ROOM}.child('meta/run').val() && ({ROOM}.child('meta/state').val() === 'race' || {ROOM}.child('meta/state').val() === 'count')",
+          "ms": num(5000, 7200000), "run": num(0, 9999), "$other": NO}},
       "order": {
         ".read": SEEN,
         # the host alone writes the agreed finish order
         ".write": f"auth != null && {FRESH} && {HOST}",
         ".validate": "newData.hasChildren(['run','final'])",
         "run": num(0, 9999), "final": {".validate": "newData.isBoolean()"},
-        "list": {"$i": {".validate": "$i.matches(/^[0-3]$/) && newData.isString() && newData.val().length <= 64"}},
+        "list": {".validate": "newData.hasChildren()", "$i": {".validate": "$i.matches(/^[0-3]$/) && newData.isString() && newData.val().matches(/^[A-Za-z0-9]{1,64}$/)"}},
         "$other": NO},
       "kick": {
         # the host can remove a player from the lobby; that player cannot come back into this room
