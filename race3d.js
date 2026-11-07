@@ -2022,14 +2022,14 @@ async function startRace3D(cid){
   clearTimers();closeOverlay();showAnanseCorner(false);gpStop();
   GPA.init(); // inside the tap on a route card, which is what iOS needs to allow sound
   const C0=GP_CIRCUITS.find(c=>c.id===cid)||GP_CIRCUITS[0],C=Object.assign({},C0,{laps:gpLaps()});   // laps come from Options (1-3)
-  app.innerHTML='<div class="fadein center" style="padding-top:20vh"><div class="ananse-wrap">'+ananseSVG(100,"idle")+'</div><h2 style="color:#fff">'+({city:"Heading downtown…",accra:"Akwaaba! Heading to Accra…",coast:"Heading to the coast…",desert:"Heading into the desert…",deep:"Diving into the deep…"}[C.theme]||"Heading to Japan…")+'</h2><p class="muted" style="color:#ffd2e6">Loading '+esc(C.name)+'…</p></div>';
+  app.innerHTML='<div class="fadein center" id="gpnLoad" style="padding-top:20vh"><div class="ananse-wrap">'+ananseSVG(100,"idle")+'</div><h2 style="color:#fff">'+({city:"Heading downtown…",accra:"Akwaaba! Heading to Accra…",coast:"Heading to the coast…",desert:"Heading into the desert…",deep:"Diving into the deep…"}[C.theme]||"Heading to Japan…")+'</h2><p class="muted" style="color:#ffd2e6">Loading '+esc(C.name)+'…</p></div>';
   const fb=()=>startRace2D(cid==="kawaguchi"?"accra":(cid==="tokyo"?"nebula":"skybridge"));
   const intro=(GPN&&GPN.race)?null:gpIntro(false);   // started inside the tap so iOS lets it play with sound
   try{await loadThree();}catch(e){document.querySelectorAll(".fz-intro").forEach(e=>e.remove());if(GPN&&GPN.race){renderOnline("The 3D game couldn't load on this device. Check the Wi-Fi and try again.");return;}toast("3D engine could not load — using the classic racer");fb();return;}
   // car pictures load lazily here (a slow network never holds the race more than a few seconds: cars without a picture use the 3D model)
   if(!gpStory()){try{await Promise.race([Promise.all([gpLoadPics(gpRacePicIds(C.id).filter(id=>!GP_GLB[id])),gpLoadGlb(gpRacePicIds(C.id)),gpLoadWorld(),C.traffic&&C.theme&&(gpTrafficOn()||C.theme==="accra")?gpLoadTraffic():null]),new Promise(r=>setTimeout(r,7000))]);}catch(e){}}
   await intro;
-  if(!app.querySelector("h2"))return;   // the player left while the intro was playing
+  if(!app.querySelector("h2")||(GPN&&GPN.race&&!$("gpnLoad")))return;   // the player left while the intro was playing
   try{gpBuild(C);}catch(e){console.error(e);gpStop();if(GPN&&GPN.race){renderOnline("The 3D game hit a problem on this device.");return;}toast("3D racer hit a problem — using the classic racer");fb();}
 }
 function gpBuild(C){
@@ -3462,7 +3462,7 @@ function gpnLeave(quiet){const G=GPN;if(!G)return;GPN=null;clearInterval(G.iv);G
     const rm=()=>Promise.all([db.ref(R+"players/"+u).remove(),db.ref(R+"cars/"+u).remove(),db.ref(R+"slots/"+G.seat).remove()]);
     if(!others.length){const amHost=G.meta&&G.meta.host===u;(amHost?Promise.resolve():db.ref(R+"meta/host").set(u)).then(()=>db.ref("rooms/"+G.code).remove()).then(()=>gpnRememberRoom(null)).catch(()=>rm().catch(()=>{}));}
     else rm().catch(()=>{});}catch(e){}}
-function gpnGone(msg){const G=GPN;if(!G)return;GPN=null;clearInterval(G.iv);G.subs.forEach(f=>{try{f();}catch(e){}});gpStop();renderOnline(msg||"That room has ended.");}
+function gpnGone(msg){const G=GPN;if(!G)return;GPN=null;clearInterval(G.iv);G.subs.forEach(f=>{try{f();}catch(e){}});gpnRememberRoom(null);try{window._gpnFb.db.ref("rooms/"+G.code).remove().catch(()=>{});}catch(e){}gpStop();renderOnline(msg||"That room has ended.");}   // the rules only allow that removal if the room really has expired
 /* everyone in seat order, each with the paint and label THIS race uses (the same on every screen: a copy of an earlier car gets a spare colour) */
 function gpnRoster(){const G=GPN,used=[],out=[];Object.keys(G.players).map(u=>Object.assign({uid:u},G.players[u])).sort((a,b)=>a.slot-b.slot).forEach(p=>{let pt=p.paint;if(used.includes(p.car+pt)){pt=GPN_SPARE.find(s=>!used.includes(p.car+s)&&gpnColor(s)!==gpnColor(p.paint))||pt;}used.push(p.car+pt);out.push(Object.assign(p,{paint:pt,label:gpnLabel(p.car,pt),me:p.uid===G.uid}));});return out;}
 function gpnOnMeta(m){const G=GPN;if(!m){gpnGone();return;}const prev=G.meta;G.meta=m;
@@ -3503,9 +3503,9 @@ function gpnKick(uid){const G=GPN;if(!G||G.meta.host!==G.uid||uid===G.uid)return
 function gpnCarSheet(){const sel=gpCar().id,h='<div class="gpn gpn-sheet" id="gpnSheet" style="max-width:none;min-height:0;padding:0;background:rgba(10,3,24,.86);border-radius:0"><div><div class="row"><h2>Choose your car</h2><button class="gpn-x" onclick="$(\'gpnSheet\').remove()">Close</button></div><div class="gpn-pick">'+GP_CARS.map(c=>'<button class="'+(c.id===sel?"on":"")+'" data-car="'+c.id+'" onclick="gpnPickCar(\''+c.id+'\')"><i style="--pic:url('+gpnCarPic(c.id)+')"></i>'+esc(c.n)+'</button>').join("")+'</div></div></div>';document.body.insertAdjacentHTML("beforeend",h);}
 function gpnPickCar(id){const sh=$("gpnSheet");if(sh)sh.remove();gpPickCar(id);const G=GPN;if(G)gpnRef("players/"+G.uid).update({car:gpCar().id,paint:gpnMyPaint()}).catch(e=>console.warn(e));}
 /* ---------- the room's heartbeat: the host's device moves the state on ---------- */
-function gpnOnScreen(){const G=GPN;return G.scr==="lobby"?!!$("gpnScr"):(!!R3||!!app.querySelector("h2"));}   // false once the kid went somewhere else (Learning Zone Home button, say)
+function gpnOnScreen(){const G=GPN;return G.scr==="lobby"?!!$("gpnScr"):(!!R3||!!$("gpnLoad"));}   // false once the kid went somewhere else (Learning Zone Home button, say)
 function gpnRoomTick(){const G=GPN,m=G.meta;if(!gpnOnScreen()){gpnLeave();return;}if(!m)return;const now=gpnNow(),u=G.uid,ros=gpnRoster();
-  if(m.touched&&now-m.touched>GPN_IDLE){const c=G.code;gpnRememberRoom(null);gpnGone("That room ended after 30 minutes with nothing going on.");try{window._gpnFb.db.ref("rooms/"+c).remove().catch(()=>{});}catch(e){}return;}
+  if(m.touched&&now-m.touched>GPN_IDLE){gpnGone("That room ended after 30 minutes with nothing going on.");return;}
   const on=ros.filter(r=>r.on!==false);
   // the host has gone: the player in the lowest seat takes over, after a short grace
   const H=G.players[m.host];if(m.host!==u&&(!H||H.on===false)){if(!G.hostOff)G.hostOff=now;if(now-G.hostOff>2500&&on.length&&on[0].uid===u){gpnRef("meta/host").set(u).catch(()=>{});G.hostOff=0;}}else G.hostOff=0;
