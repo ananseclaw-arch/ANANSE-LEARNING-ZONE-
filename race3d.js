@@ -3897,7 +3897,7 @@ function gpFzSky(T,renderer,L,sunDir,C){try{
      "vec3 shade=mix(mid,top,0.35)*0.72,bright=mix(vec3(1.0),glow,0.55);vec3 cl=mix(shade,bright,lit*(0.55+0.45*h));cl+=glow*pow(s,5.0)*0.35*(1.0-cv*0.5);cl*=1.0-night*0.25;"+
      "cv*=smoothstep(0.0,0.1,d.y);c=mix(c,cl,cv*0.93);"+
      "c+=glow*smoothstep(0.9990,0.9996,s)*(1.0-cv)*1.2;"+
-     "float hz=exp(-max(d.y,0.0)*11.0);c=mix(c,mix(hor,glow,0.25+0.5*pow(s,3.0)),hz*0.72);if(d.y<0.0)c=mix(hor,glow,0.2);gl_FragColor=vec4(c,1.0);}"});
+     "float hz=exp(-max(d.y,0.0)*11.0);c=mix(c,mix(hor,glow,0.15+0.35*pow(s,3.0)),hz*0.7);if(d.y<0.0)c=mix(hor,glow,0.2);gl_FragColor=vec4(c,1.0);}"});
   const q=new T.Mesh(new T.PlaneGeometry(2,2),bake);q.frustumCulled=false;const sc=new T.Scene();sc.add(q);const cam=new T.OrthographicCamera(-1,1,1,-1,0,1);
   const tm=renderer.toneMapping;renderer.toneMapping=T.NoToneMapping;renderer.setRenderTarget(rt);renderer.render(sc,cam);renderer.setRenderTarget(null);renderer.toneMapping=tm;bake.dispose();q.geometry.dispose();
   const mat=new T.ShaderMaterial({side:T.BackSide,depthWrite:false,fog:false,uniforms:{map:{value:rt.texture}},
