@@ -129,6 +129,29 @@
       }
      }
     },
+    "bump": {
+     ".read": "auth != null && root.child('rooms').child($code).child('players').child(auth.uid).exists() && root.child('rooms').child($code).child('meta/touched').val() > now - 1800000",
+     ".write": "auth != null && root.child('rooms').child($code).child('meta/host').val() === auth.uid && !newData.exists()",
+     "$uid": {
+      ".write": "auth != null && root.child('rooms').child($code).child('meta/touched').val() > now - 1800000 && ((auth.uid === $uid && root.child('rooms').child($code).child('players').child(auth.uid).exists()) || (root.child('rooms').child($code).child('meta/host').val() === auth.uid && !newData.exists()))",
+      ".validate": "newData.hasChildren(['to','s','i','n'])",
+      "to": {
+       ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9]{1,64}$/) && root.child('rooms').child($code).child('players').child(newData.val()).exists()"
+      },
+      "s": {
+       ".validate": "newData.isNumber() && (newData.val() === 1 || newData.val() === -1)"
+      },
+      "i": {
+       ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9"
+      },
+      "n": {
+       ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 90000000000000.0"
+      },
+      "$other": {
+       ".validate": false
+      }
+     }
+    },
     "finish": {
      ".read": "auth != null && root.child('rooms').child($code).child('players').child(auth.uid).exists() && root.child('rooms').child($code).child('meta/touched').val() > now - 1800000",
      ".write": "auth != null && root.child('rooms').child($code).child('meta/host').val() === auth.uid && !newData.exists()",

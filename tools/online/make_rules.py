@@ -80,6 +80,16 @@ rules = {"rules": {
           ".validate": "newData.hasChildren(['t','l','x','y','a','v','f','n'])",
           "t": num(0, 1), "l": num(-1, 9), "x": num(-99, 99), "y": num(-1000, 3000), "a": num(-7, 7), "v": num(-200, 400),
           "f": num(0, 1023), "n": num(0, 1e9), "$other": NO}},
+      "bump": {
+        # a knock between two cars: my device tells the other car's device (numbers and a player id only)
+        ".read": SEEN,
+        ".write": f"auth != null && {HOST} && !newData.exists()",
+        "$uid": {
+          ".write": f"auth != null && {FRESH} && ((auth.uid === $uid && {MEMBER}) || ({HOST} && !newData.exists()))",
+          ".validate": "newData.hasChildren(['to','s','i','n'])",
+          "to": {".validate": f"newData.isString() && newData.val().matches(/^[A-Za-z0-9]{{1,64}}$/) && {ROOM}.child('players').child(newData.val()).exists()"},
+          "s": {".validate": "newData.isNumber() && (newData.val() === 1 || newData.val() === -1)"},
+          "i": num(0, 9), "n": num(0, 9e13), "$other": NO}},
       "finish": {
         ".read": SEEN,
         ".write": f"auth != null && {HOST} && !newData.exists()",
