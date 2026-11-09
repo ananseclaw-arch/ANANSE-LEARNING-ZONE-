@@ -3446,7 +3446,7 @@ const GPN_RUDE_RE=(()=>{const ex=s=>s.split("").map(c=>c+"+").join("");return{su
 function gpnNameOk(n){return typeof n==="string"&&/^[A-Z][a-z]{1,9}$/.test(n)&&!GPN_RUDE_RE.sub.test(n.toLowerCase())&&!GPN_RUDE_RE.ex.test(n.toLowerCase());}
 /* anything a kid (or a profile) has typed -> a clean racing name, or "" if it can't be one */
 function gpnNameClean(s){let t=String(s==null?"":s);try{t=t.normalize("NFD").replace(/[̀-ͯ]/g,"");}catch(e){}const w=t.split(/[^A-Za-z]+/).filter(Boolean)[0]||"";const n=w?w.charAt(0).toUpperCase()+w.slice(1,10).toLowerCase():"";return gpnNameOk(n)?n:"";}
-function gpnProfileName(){return gpnNameClean(P&&P.name);}
+function gpnProfileName(){const n=gpnNameClean(P&&P.name);return /^test$/i.test(n)?"":n;}   // the preview link's throwaway "Test" profile never shows on cars or boards
 function gpnMyName(){return typeof window._gpnName==="string"?window._gpnName:gpnProfileName();}
 function gpnMyPaint(){const c=gpCar(),p=String(gpGlbPaintFor(c,true)||c.paint||"#d1121c").toLowerCase();return /^#[0-9a-f]{6}$/.test(p)?p:"#d1121c";}
 function gpnLoadSdk(){if(window._gpnSdk)return window._gpnSdk;
