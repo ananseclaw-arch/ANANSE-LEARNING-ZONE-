@@ -22,7 +22,7 @@
       ".validate": "newData.isString() && newData.val().matches(/^(real|story)$/)"
      },
      "track": {
-      ".validate": "newData.isString() && newData.val().matches(/^(kawaguchi|hakone|tokyo|city|accra|coast|desert|deep|inaka)$/)"
+      ".validate": "newData.isString() && newData.val().matches(/^(kawaguchi|hakone|tokyo|city|accra|coast|desert|inaka|dakar|deep)$/)"
      },
      "laps": {
       ".validate": "newData.isNumber() && (newData.val() === 1 || newData.val() === 2 || newData.val() === 3)"
