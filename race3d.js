@@ -638,7 +638,7 @@ function gpCss(){if(document.getElementById("gpV4Css")){gpStoryFont();return;}co
 .fz-fin-t{font-size:30px}.fz-res{font-size:12px}.gp3-wrap.v3 .gp3-finish .btn{padding:8px 12px;font-size:14px}
 .fz-song{font-size:12px;padding:2px 6px}.fz-song i{width:8px;height:8px}
 }
-@media (max-height:520px){.gp3-wrap.v3{--tach:84px;--ped:96px;--pad:58px}.fz-skill{top:46%}.fz-pos{font-size:30px}.gp3-wrap.v3 .gp3-map{width:70px;top:calc(96px + env(safe-area-inset-top))}}
+@media (max-height:520px){.gp3-wrap.v3{--tach:84px;--ped:96px;--pad:64px}.fz-skill{top:46%}.fz-pos{font-size:30px}.gp3-wrap.v3 .gp3-map{width:70px;top:calc(96px + env(safe-area-inset-top))}}
 @media (orientation:portrait) and (max-width:600px){.fz-skill{top:32%}.gp3-wrap.v3 .gp3-finish .btn-row{flex-direction:column;gap:8px}}
 /* ---- storybook (ink & wash) modifier ---- */
 .fz-shell.story,.gp3-wrap.v3.story{font-family:"Patrick Hand","Chalkboard SE","Comic Sans MS",system-ui,sans-serif}
@@ -2632,7 +2632,7 @@ function gpFlameBuild(kt){if(kt.flm!==undefined)return kt.flm;kt.flm=null;const 
     const o=new T.Mesh(R3.flameGeo,R3.flameMat[0]),c=new T.Mesh(R3.flameGeo,R3.flameMat[1]),s=new T.Sprite(R3.flameGlow);s.scale.set(0.9,0.9,1);g.add(o);g.add(c);g.add(s);g.visible=false;kt.body.add(g);return{g,o,c,s};});
   kt.flm={list,a:0};return kt.flm;}
 function gpFlameUpdate(kt,dt){const want=kt.boostT>0?1:0;if(!want&&!kt.flm)return;const F=gpFlameBuild(kt);if(!F)return;F.a+=(want-F.a)*Math.min(1,dt*(want?14:6));const vis=F.a>0.03;
-  F.list.forEach(f=>{if(f.g.visible!==vis)f.g.visible=vis;if(!vis)return;const fl=0.75+Math.random()*0.5,L=(kt.player?1.9:1.0)*F.a*fl,wd=kt.player?0.19:0.15;f.o.scale.set(wd*F.a,wd*F.a,L);f.c.scale.set(wd*0.55*F.a,wd*0.55*F.a,L*0.6);f.s.material.opacity=0.8*F.a;if(kt.player){const gs=1.1+fl*0.5;f.s.scale.set(gs,gs,1);}});}
+  F.list.forEach(f=>{if(f.g.visible!==vis)f.g.visible=vis;if(!vis)return;const fl=0.75+Math.random()*0.5,big=kt.player&&!kt.jet&&!kt.air,L=(big?1.9:(kt.player?1.25:0.9))*F.a*fl,wd=big?0.19:0.15;f.o.scale.set(wd*F.a,wd*F.a,L);f.c.scale.set(wd*0.55*F.a,wd*0.55*F.a,L*0.6);f.s.material.opacity=0.8*F.a;{const gs=big?1.1+fl*0.5:0.9;if(kt.player)f.s.scale.set(gs,gs,1);}});}
 function gpCycleCam(){if(!R3||R3.me.jet)return;const L=GP_VIEWS;R3.camMode=L[(L.indexOf(R3.camMode)+1)%L.length];R3.camLog=(R3.camLog||[]).concat([R3.camMode]);gpSetOpt("gpCam",R3.camMode);gpCamApply();gpMsg({chase:"Chase cam",far:"Far chase cam",hood:"Hood cam",bumper:"Bumper cam",cockpit:"Cockpit cam"}[R3.camMode]);sfx("tick");}
 /* a few boxes merged into one geometry, [w,h,d,cx,cy,cz] */
 function gpBoxesGeo(T,L){const P=[],N=[];L.forEach(b=>{const[w,h,d,cx,cy,cz]=b,x=w/2,y=h/2,z=d/2,fa=(nx,ny,nz,v)=>{v.forEach(q=>{P.push(cx+q[0]*x,cy+q[1]*y,cz+q[2]*z);N.push(nx,ny,nz);});};
