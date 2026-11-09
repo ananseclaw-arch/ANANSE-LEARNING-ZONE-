@@ -4666,7 +4666,7 @@ function renderRace(){
    +gpHead("Japan · choose your car",GP_WORLD.title,"center 44%")
    +'<div class="fz-gtabs" role="tablist">'+GP_GROUPS.map(g=>'<button role="tab" class="'+(g[0]===grp?'on':'')+'" data-grp="'+g[0]+'" aria-selected="'+(g[0]===grp)+'" onclick="gpPickGrp(\''+g[0]+'\')"><i>'+g[1]+'</i><b>'+g[2]+'</b><small>'+GP_CARS.filter(c=>(c.grp||"racers")===g[0]).length+' cars</small></button>').join('')+'</div>'
    +'<div class="fz-cars">'+cards+'</div>'
-   +(GP_GLB[sel]?'<div class="fz-paint-note">🎨 Win races to unlock new paint and stickers for every car.</div>':'<div class="fz-paints">'+sw+'</div><div class="fz-paint-note">🎨 New paint colours come from race upgrades.</div>')+gpGarageHtml()
+   +(sel==="falcon"?'<div class="fz-paint-note" style="font-size:12px;opacity:.72">3D car shape made with Meshy (CC BY 4.0)</div>':'')+(GP_GLB[sel]?'<div class="fz-paint-note">🎨 Win races to unlock new paint and stickers for every car.</div>':'<div class="fz-paints">'+sw+'</div><div class="fz-paint-note">🎨 New paint colours come from race upgrades.</div>')+gpGarageHtml()
    +'<div class="center" style="margin-top:14px"><button class="btn big" onclick="renderCircuits()">Next: choose a route ▶</button></div>'
    +'<div class="btn-row" style="margin-top:12px"><button class="btn secondary" onclick="'+(P?'renderHome()':'renderProfiles()')+'">⟵ Back</button><button class="btn secondary" style="font-size:14px" onclick="renderRace2D()">Classic 2D racer</button></div><div class="spacer"></div></div>';
   gpDrawPreviews();
@@ -4868,7 +4868,7 @@ function gpBuildCar(T,car,paint,shared){
    steer about y), wheel_XX (spin about x), caliper_XX (stay still). Materials are swapped by name so paint, brake lights and the number
    decal are ours to drive. A model that fails to load leaves that car on its picture sprite. */
 const GP_GLB={   // every car is a real 3D model (tools/cars3d/build_car.py + build_fleet.py; numbers from assets/cars3d/fleet.json; eye = cockpit eye point, exh = exhaust tips for the boost flames, [x,y,z,1] = a stack pointing up)
- falcon:{src:"assets/cars3d/falcon.glb?v=4",tyreX:0.865,xr:-1.42,tail:-2.3,pivotY:0.32,twF:0.3,twR:0.38,S:{len:4.65,w:2.14,rad:0.37,radR:0.39,xf:1.45,xr:-1.42},sticker:[0.6,1.272,-2.02,-1.6708],glows:[[0.6,0.745,0.66,0.3],[-0.6,0.745,0.66,0.3],[0,0.6,0.36,0.26],[0.3,0.785,0.6,0.16],[-0.3,0.785,0.6,0.16]],eye:[0.36,0.95,-0.25],exh:[[0.11,0.4,-2.41],[-0.11,0.4,-2.41]],nose:2.35,roofY:1.095,ride:0.11},
+ falcon:{src:"assets/cars3d/falcon.glb?v=5",tyreX:0.845,xr:-1.351,tail:-2.164,pivotY:0.3,twF:0.31,twR:0.31,S:{len:4.65,w:2.15,rad:0.385,radR:0.385,xf:1.351,xr:-1.351},sticker:[0.6,1.236,-1.95,-1.6708],glows:[[0.63,0.745,0.62,0.2],[-0.63,0.745,0.62,0.2]],eye:[0.36,0.98,-0.1],exh:[[0.42,0.37,-2.13],[-0.42,0.37,-2.13]],nose:2.486,roofY:1.23,ride:0.11,plate:{sy:0.52,sz:-0.26,sw:1.08,ry:0.585,rw:0.9},blur:{col:0x6a6d74,max:0.34},tailCol:"#c4060e",matSet:{paint:1,stripe:1,carbon:1,rim:"#b2b6bd",spoke:"#b4b8bf",caliper:"#c8101a"}},   // Meshy-shape car, painted by script (tools/cars3d/build_meshy_falcon.py); shape CC BY 4.0
  arrow:{src:"assets/cars3d/arrow.glb?v=1",tyreX:0.845,xr:-1.38,tail:-2.293,pivotY:0.28,twF:0.28,twR:0.36,S:{len:4.64,w:2.11,rad:0.35,radR:0.36,xf:1.42,xr:-1.38},sticker:[0.5,0.865,-1.75,-1.6543],glows:[[-0.5,0.67,0.7,0.16],[0.0,0.67,0.7,0.16],[0.5,0.67,0.7,0.16]],eye:[0.34,0.929,-0.15],exh:[[0.22,0.21,-2.28],[-0.22,0.21,-2.28]],nose:2.35,roofY:1.067,ride:0.09},
  shogun:{src:"assets/cars3d/shogun.glb?v=1",tyreX:0.835,xr:-1.36,tail:-2.287,pivotY:0.32,twF:0.28,twR:0.34,S:{len:4.62,w:2.07,rad:0.34,radR:0.35,xf:1.38,xr:-1.36},sticker:[0.5,1.226,-2.02,-1.6508],glows:[[-0.4,0.86,0.41,0.37],[0.4,0.86,0.41,0.37],[-0.7,0.86,0.41,0.37],[0.7,0.86,0.41,0.37]],eye:[0.36,1.16,-0.2],exh:[[-0.5,0.36,-2.37],[0.5,0.36,-2.37]],nose:2.33,roofY:1.3,ride:0.12},
  rally:{src:"assets/cars3d/rally.glb?v=1",tyreX:0.82,xr:-1.27,tail:-2.018,pivotY:0.45,twF:0.27,twR:0.27,S:{len:4.13,w:1.97,rad:0.34,radR:0.34,xf:1.27,xr:-1.27},sticker:[0.5,1.466,-1.86,-1.6908],glows:[[-0.68,0.88,0.38,0.42],[0.68,0.88,0.38,0.42]],eye:[0.36,1.276,0.0],exh:[[-0.55,0.36,-2.14]],nose:2.115,roofY:1.43,ride:0.2},
@@ -4920,20 +4920,25 @@ function gpGlbShared(T,shared){if(shared.glb)return shared.glb;
 function gpGlbPaintFor(car,player){const u=player&&gpUp().paint;return(u&&/^#[0-9a-f]{6}$/i.test(u))?u:car.paint;}   // model cars keep their own colour unless a paint upgrade was picked
 function gpUp(){const u=P&&P.gpUp;return(u&&typeof u==="object")?u:(window._gpUp||{});}
 function gpGlbPaint(paint){const m=new THREE.MeshPhysicalMaterial({color:gpLin(paint).multiplyScalar(0.8),metalness:0.05,roughness:0.38,clearcoat:1,clearcoatRoughness:0.08,envMapIntensity:0.6});m.userData.lin=1;return m;}
+function gpGlbCarMat(T,SM,cid,nm,base,val,own){   // per-car material: the model's baked shading map on paint/stripe/carbon, or a colour override. Shared materials are cloned once per car; the paint is already per racer
+  const k=cid+"|"+nm;SM.carMats=SM.carMats||{};const map=own&&own.map;
+  if(nm==="paint"){if(map)base.map=map,base.needsUpdate=true;return base;}
+  if(!SM.carMats[k]){const m=base.clone();if(val===1){if(map)m.map=map;}else m.color.copy(gpLin(val));m.userData.lin=1;SM.carMats[k]=m;}
+  return SM.carMats[k];}
 function gpBuildGlbCar(T,car,src,paint,shared){
   const D=GP_GLB[car.id],S=Object.assign({},GP_SHAPE[car.type]||GP_SHAPE.super,D.S||{}),SM=gpGlbShared(T,shared),g=new T.Group(),root=src.clone(true);g.add(root);
   const paintM=gpGlbPaint(paint);let stripe=SM.stripe;if(gpUpLight(paint)){stripe=SM.stripe.clone();stripe.color.copy(gpLin("#d1121c"));stripe.userData.lin=1;}
-  const tail=new T.MeshStandardMaterial({color:gpLin("#5a0004"),emissive:gpLin("#ff0d06"),emissiveIntensity:0.55,roughness:0.3});tail.userData.lin=1;tail.toneMapped=false;   // stays RED when lit (tone mapping turned it orange)
+  const tail=new T.MeshStandardMaterial({color:gpLin(D.tailCol||"#5a0004"),emissive:gpLin("#ff0d06"),emissiveIntensity:0.55,roughness:0.3});tail.userData.lin=1;tail.toneMapped=false;   // stays RED when lit (tone mapping turned it orange)
   let body=null;const hubs={},wh={};
   root.traverse(o=>{if(o.name==="body")body=o;else if(/^hub_/.test(o.name))hubs[o.name.slice(4)]=o;else if(/^wheel_/.test(o.name))wh[o.name.slice(6)]=o;
     if(!o.isMesh)return;const nm=o.material&&o.material.name;
     if(nm==="decal"){SM.decals=SM.decals||{};SM.decal=SM.decals[car.id]||null;if(!SM.decal){const d=o.material;d.alphaTest=0.5;d.transparent=false;d.polygonOffset=true;d.polygonOffsetFactor=-2;d.polygonOffsetUnits=-2;d.roughness=0.35;d.metalness=0;d.userData.lin=1;SM.decal=d;SM.decals[car.id]=d;}o.material=SM.decal;o.castShadow=false;return;}
-    o.material=nm==="paint"?paintM:nm==="tail"?tail:nm==="stripe"?stripe:(SM[nm]||o.material);if(!o.material.userData.lin)o.material.userData.lin=1;
+    const baseMt=nm==="paint"?paintM:nm==="tail"?tail:nm==="stripe"?stripe:(SM[nm]||o.material);o.material=(D.matSet&&D.matSet[nm]!==undefined)?gpGlbCarMat(T,SM,car.id,nm,baseMt,D.matSet[nm],o.material):baseMt;if(!o.material.userData.lin)o.material.userData.lin=1;
     o.castShadow=nm!=="glass"&&!/^(wheel|caliper|hub)_/.test(o.parent&&o.parent.name||o.name);o.receiveShadow=false;});   // wheels skip the shadow pass (draw calls); the body shadow + soft footprint ground them
   if(!body)body=root;
   const wheels=[],steers=[],blurs=[];if(!SM.blurGeo)SM.blurGeo=new T.CircleGeometry(1,28);
   ["FL","FR","RL","RR"].forEach(k=>{const w=wh[k];if(!w)return;const rad=k[0]==="F"?S.rad:S.radR,tw=k[0]==="F"?(D.twF||0.3):(D.twR||0.38),sd=hubs[k]&&hubs[k].position.x<0?-1:1;w.userData.rad=rad;wheels.push(w);if(k[0]==="F"&&hubs[k])steers.push(hubs[k]);
-    const bm=new T.MeshBasicMaterial({map:SM.blurTex,transparent:true,opacity:0,depthWrite:false});bm.userData.lin=1;const b=new T.Mesh(SM.blurGeo,bm);b.scale.setScalar(rad*0.6);b.position.x=sd*(tw/2-0.02);b.rotation.y=sd*Math.PI/2;b.visible=false;b.renderOrder=2;w.add(b);w.userData.blur=b;blurs.push(b);});
+    const bm=new T.MeshBasicMaterial({map:SM.blurTex,transparent:true,opacity:0,depthWrite:false});if(D.blur&&D.blur.col!=null)bm.color.setHex(D.blur.col);bm.userData.lin=1;const b=new T.Mesh(SM.blurGeo,bm);b.scale.setScalar(rad*0.6);b.position.x=sd*(tw/2-0.02);b.rotation.y=sd*Math.PI/2;b.visible=false;b.renderOrder=2;w.add(b);w.userData.blur=b;blurs.push(b);});
   // brake lights: soft additive glows over the LED clusters and the rain light, faded in on the brake (plus the emissive lamp material)
   const glows=(D.glows||[]).map(q=>{const m=new T.SpriteMaterial({map:SM.glowTex,color:0xff1606,transparent:true,opacity:0,depthWrite:false,blending:T.AdditiveBlending});m.toneMapped=false;m.userData.lin=1;
     const s=new T.Sprite(m);s.position.set(q[0],q[1],D.tail-0.08);s.scale.set(q[2],q[3],1);s.visible=false;body.add(s);return s;});
@@ -4951,7 +4956,7 @@ function gpBuildGlbCar(T,car,src,paint,shared){
   return{lod,casters,lodFar:false,carId:car.id,g,body,wheels,steers,hubs:Object.values(hubs),shadows:[blob,contacts],tailMat:tail,bodyMat:paintM,stripeMat:stripe,S,xr:D.xr||S.xr,hw:z=>S.w/2,tyreX:D.tyreX,glb:{glows,blurs,glow:0,rollV:0,pitchV:0,heave:0,heaveV:0,pivotY:D.pivotY||0.3}};}
 /* per frame for model cars: brake glow fade (the springs for lean / dive / squat run in gpUpdate) */
 function gpGlbUpdate(kt,dt){const G=kt.glb;G.glow+=((kt.brakeOn?1:0)-G.glow)*Math.min(1,dt*(kt.brakeOn?18:7));
-  const om=Math.abs(kt.speed)/Math.max(0.1,kt.S.radR),bo=Math.max(0,Math.min(0.88,(om-18)/34));G.blurs.forEach(b=>{const v=bo>0.02&&!kt.lodFar;if(b.visible!==v)b.visible=v;if(v)b.material.opacity=bo;});
+  const blD=(kt.carId&&GP_GLB[kt.carId]&&GP_GLB[kt.carId].blur)||null,om=Math.abs(kt.speed)/Math.max(0.1,kt.S.radR),bo=Math.max(0,Math.min(blD&&blD.max||0.88,(om-18)/34));G.blurs.forEach(b=>{const v=bo>0.02&&!kt.lodFar;if(b.visible!==v)b.visible=v;if(v)b.material.opacity=bo;});
   kt.tailMat.emissiveIntensity=0.5+G.glow*1.9;G.glows.forEach(s=>{const v=G.glow>0.02;if(s.visible!==v)s.visible=v;if(v)s.material.opacity=G.glow*0.7;});}
 /* ---------- the racing name ON the car (job 1107-0258): a livery plate on both doors and one across the back ----------
    Only ever drawn from a name that passed gpnNameOk (2-10 letters, rude-word filter). The plates sit on the sprung body so they lean with
@@ -4970,11 +4975,11 @@ function gpNameLivery(T,m,text,paint){if(!text||!gpnNameOk(text)||!m||!m.g||!m.b
   const g=m.g;g.updateMatrixWorld(true);const skin=[];m.g.traverse(o=>{if(!o.isMesh||!o.material||o.material.transparent||o.material.opacity<1)return;const nm=o.material.name||"";if(/^(glass|decal|lamp)$/.test(nm))return;for(let q=o;q&&q!==g;q=q.parent)if(/^(wheel|hub|caliper)_/.test(q.name||""))return;skin.push(o);});
   const rc=new T.Raycaster(),hit=(o,d)=>{const wo=g.localToWorld(new T.Vector3(o[0],o[1],o[2])),wd=new T.Vector3(d[0],d[1],d[2]).transformDirection(g.matrixWorld);rc.set(wo,wd);rc.far=12;const h=rc.intersectObjects(skin,false)[0];return h?g.worldToLocal(h.point.clone()):null;};
   const bodyIn=v=>m.body.worldToLocal(g.localToWorld(v.clone()));
-  const y=roofY*0.5,yr=roofY*0.62,sw=Math.min(1.7,Math.max(1.15,S.len*0.3)),sh=sw*0.27,rw=Math.min(1.5,Math.max(0.9,S.w*0.64)),rh=rw*0.25;
+  const PL=D.plate||{},y=PL.sy||roofY*0.5,yr=PL.ry||roofY*0.62,zs=PL.sz==null?0.05:PL.sz,sw=PL.sw||Math.min(1.7,Math.max(1.15,S.len*0.3)),sh=sw*0.27,rw=PL.rw||Math.min(1.5,Math.max(0.9,S.w*0.64)),rh=rw*0.25;
   const sideTex=gpNamePlate(text,paint,512,138),rearTex=gpNamePlate(text,paint,512,128);
   const mk=(tex,w,h)=>{const mt=new T.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-6,polygonOffsetUnits:-6,toneMapped:false});mt.userData.lin=1;const mesh=new T.Mesh(new T.PlaneGeometry(w,h),mt);mesh.renderOrder=3;mesh.userData.liv=1;return mesh;};
   const out=[];
-  [1,-1].forEach(sd=>{let p=hit([sd*3,y,0.0],[-sd,0,0]);const x=p?p.x:sd*S.w*0.46;const pl=mk(sideTex,sw,sh);const v=bodyIn(new T.Vector3(x+sd*0.012,y,0.05));pl.position.copy(v);pl.rotation.y=sd*Math.PI/2;m.body.add(pl);out.push(pl);});
+  [1,-1].forEach(sd=>{let p=hit([sd*3,y,zs],[-sd,0,0]);const x=p?p.x:sd*S.w*0.46;const pl=mk(sideTex,sw,sh);const v=bodyIn(new T.Vector3(x+sd*0.012,y,zs));pl.position.copy(v);pl.rotation.y=sd*Math.PI/2;m.body.add(pl);out.push(pl);});
   {const p=hit([0,yr,tail-3],[0,0,1]);const z=p?p.z:tail;const pl=mk(rearTex,rw,rh);pl.position.copy(bodyIn(new T.Vector3(0,yr,z-0.012)));pl.rotation.y=Math.PI;m.body.add(pl);out.push(pl);}
   m.livery=out;}
 /* ---------- pick-an-upgrade after each race ----------
