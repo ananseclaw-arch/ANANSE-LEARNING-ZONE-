@@ -456,7 +456,7 @@ function gpCss(){if(document.getElementById("gpV4Css")){gpStoryFont();return;}co
 @keyframes fzBoostNo{0%,100%{transform:translateX(0)}30%{transform:translateX(-5px)}70%{transform:translateX(5px)}}
 .gp3-wrap.v3.done .fz-boost,.gp3-wrap.v3.done .fz-cam,.gp3-wrap.v3.done .fz-trick,.gp3-wrap.v3.done .fz-nitro{display:none}
 .gp3-wrap.v3:not(.done){touch-action:none}
-/* JET MODE: fuel + rings top centre, the UP/DOWN rocker where GAS was, an arrow back to the course */
+/* JET MODE: fuel + rings top centre, the UP/DOWN rocker in the LEFT cluster with the arrows and BOOST (GAS and BRAKE stay on the right), an arrow back to the course */
 .gp3-wrap.v3 .fz-jhud{position:absolute;z-index:7;left:50%;top:calc(10px + env(safe-area-inset-top));transform:translate(-50%,-140%);opacity:0;display:flex;align-items:center;gap:10px;padding:7px 14px;border-radius:15px;border:3px solid #00F0FF;background:rgba(13,17,39,.82);box-shadow:0 5px 0 rgba(13,17,39,.8),0 0 18px rgba(0,240,255,.5);transition:transform .22s cubic-bezier(.25,1.5,.5,1),opacity .15s;pointer-events:none;color:#fff;white-space:nowrap}
 .gp3-wrap.v3.jet .fz-jhud{transform:translate(-50%,0);opacity:1}
 .fz-jl{font-weight:900;font-style:italic;font-size:clamp(15px,1.9vw,21px);letter-spacing:.06em;color:#FF2A85;text-shadow:0 2px 0 #0D1127}
@@ -467,18 +467,19 @@ function gpCss(){if(document.getElementById("gpV4Css")){gpStoryFont();return;}co
 @keyframes fzFuel{from{opacity:1}to{opacity:.45}}
 .fz-jr{display:inline-flex;align-items:center;gap:5px;font-weight:900;font-size:clamp(14px,1.8vw,20px)}.fz-jr em{font-style:normal;color:#FFDD00;font-size:1.15em;line-height:1}.fz-jr b{font-weight:900;font-variant-numeric:tabular-nums;display:inline-block}.fz-jr b.hit{animation:fzRingHit .28s ease-out}
 @keyframes fzRingHit{0%{transform:scale(1.55);color:#FFDD00}100%{transform:scale(1);color:#fff}}
-.gp3-wrap.v3 .fz-pitch{position:absolute;z-index:8;right:calc(14px + env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom));width:clamp(124px,13.5vw,164px);height:calc(var(--ped) + 34px);display:flex;flex-direction:column;gap:6px;opacity:0;pointer-events:none;transition:opacity .12s;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;cursor:pointer}
-.gp3-wrap.v3.jet .fz-pitch{opacity:1;pointer-events:auto}
+.gp3-wrap.v3 .fz-pitch{--pitchB:max(72px,calc(var(--pad)*.82));position:absolute;z-index:8;left:calc(14px + clamp(84px,8.4vw,104px) + 12px);bottom:calc(12px + var(--pad) + 14px);width:max(78px,var(--pad));height:calc(var(--pitchB)*2 + 6px);display:flex;flex-direction:column;gap:6px;opacity:0;pointer-events:none;transition:opacity .12s;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;cursor:pointer}
+.gp3-wrap.v3.jet .fz-pitch,.gp3-wrap.v3.bigair .fz-pitch{opacity:1;pointer-events:auto}
 .fz-pitch span{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:15px;border:4px solid #00F0FF;background:rgba(13,17,39,.72);color:#fff;font-weight:900;font-style:italic;box-shadow:0 5px 0 rgba(13,17,39,.8),0 0 14px rgba(0,240,255,.45);transition:transform .06s,background .06s;pointer-events:none}
-.fz-pitch span i{font-style:normal;color:#00F0FF;font-size:clamp(20px,2.5vw,30px);line-height:1}.fz-pitch span b{font-size:clamp(14px,1.7vw,20px);letter-spacing:.05em}
+.fz-pitch span{flex-direction:column;gap:1px}.fz-pitch span i{font-style:normal;color:#00F0FF;font-size:clamp(20px,2.5vw,30px);line-height:1}.fz-pitch span b{font-size:clamp(14px,1.7vw,20px);letter-spacing:.05em}
 .fz-pitch.up .u,.fz-pitch.dn .d{background:#00F0FF;color:#0D1127;transform:translateY(3px);box-shadow:0 2px 0 rgba(13,17,39,.8),0 0 26px rgba(0,240,255,.95)}.fz-pitch.up .u i,.fz-pitch.dn .d i{color:#0D1127}
-.gp3-wrap.v3.jet .fz-pedal.gas{opacity:0;pointer-events:none}
 .gp3-wrap.v3.jet .fz-pedal.brake b{color:#FFDD00}
 .fz-jback{position:absolute;z-index:6;left:50%;top:clamp(62px,12vh,100px);transform:translate(-50%,0) scale(.7);opacity:0;display:flex;align-items:center;gap:10px;padding:6px 14px;border-radius:13px;background:#FFDD00;color:#0D1127;border:3px solid #0D1127;font-weight:900;font-style:italic;font-size:clamp(14px,1.9vw,21px);white-space:nowrap;pointer-events:none;transition:transform .14s cubic-bezier(.25,1.6,.5,1),opacity .12s}
 .fz-jback.on{opacity:1;transform:translate(-50%,0) scale(1)}.fz-jback i{font-style:normal;font-size:1.5em;line-height:1}.fz-jback.l i{animation:fzBackL .4s ease-in-out infinite alternate}.fz-jback.r i{animation:fzBackR .4s ease-in-out infinite alternate}
 @keyframes fzBackL{to{transform:translateX(-7px)}}@keyframes fzBackR{to{transform:translateX(7px)}}
 .gp3-wrap.v3.done .fz-jhud,.gp3-wrap.v3.done .fz-pitch,.gp3-wrap.v3.done .fz-jback{display:none}
-@media (max-height:520px),(orientation:portrait) and (max-width:600px){.gp3-wrap.v3 .fz-pitch{right:calc(10px + env(safe-area-inset-right));bottom:calc(10px + env(safe-area-inset-bottom));width:84px}.fz-fuel{width:clamp(92px,28vw,150px)}.gp3-wrap.v3 .fz-jhud{gap:7px;padding:5px 9px;border-width:2px;top:calc(62px + env(safe-area-inset-top))}}
+@media (orientation:portrait) and (max-width:600px){.gp3-wrap.v3 .fz-pitch{left:calc(10px + env(safe-area-inset-left) + 90px);bottom:calc(10px + env(safe-area-inset-bottom) + var(--pad) + 12px)}}
+@media (max-height:520px){.gp3-wrap.v3 .fz-pitch{left:calc(10px + env(safe-area-inset-left) + var(--pad)*2 + 18px);bottom:calc(10px + env(safe-area-inset-bottom))}}
+@media (max-height:520px),(orientation:portrait) and (max-width:600px){.fz-fuel{width:clamp(92px,28vw,150px)}.gp3-wrap.v3 .fz-jhud{gap:7px;padding:5px 9px;border-width:2px;top:calc(62px + env(safe-area-inset-top))}}
 /* TRICK: only there while the car flies; big, chunky, pulsing */
 .gp3-wrap.v3 .fz-trick{position:absolute;z-index:8;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));width:clamp(112px,12vw,140px);height:clamp(112px,12vw,140px);margin-left:calc(clamp(112px,12vw,140px)/-2);border-radius:50%;border:5px solid #1A0B36;background:radial-gradient(circle at 50% 32%,#ff7ab5,#FF2A85 62%,#d40f63);color:#fff;box-shadow:0 8px 0 #1A0B36,0 0 34px rgba(255,42,133,.85);display:none;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:0;cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;font-family:inherit}
 .gp3-wrap.v3 .fz-trick.on{display:flex;animation:fzTrick .42s ease-in-out infinite}
@@ -501,6 +502,7 @@ function gpCss(){if(document.getElementById("gpV4Css")){gpStoryFont();return;}co
 .gp3-wrap.v3 .fz-boost.fill .core{opacity:1;animation:fzFill .3s ease-in-out infinite alternate}
 @keyframes fzFill{from{box-shadow:0 5px 0 #2F4F4F,0 0 8px rgba(0,240,255,.5);transform:scale(1)}to{box-shadow:0 5px 0 #2F4F4F,0 0 34px rgba(0,240,255,1);transform:scale(1.09)}}
 @media (max-height:520px),(orientation:portrait) and (max-width:600px){.gp3-wrap.v3 .fz-cam{top:calc(8px + env(safe-area-inset-top));right:calc(56px + env(safe-area-inset-right));width:68px;height:68px}.gp3-wrap.v3 .fz-boost{--bst:80px;left:calc(10px + env(safe-area-inset-left));bottom:calc(10px + env(safe-area-inset-bottom) + var(--pad) + 12px)}.gp3-wrap.v3 .fz-trick{width:92px;height:92px;margin-left:-46px;left:41%;bottom:calc(var(--ped) + 26px + env(safe-area-inset-bottom))}.gp3-wrap.v3 .fz-trick i{font-size:30px}.gp3-wrap.v3 .fz-trick b{font-size:17px}}
+@media (orientation:portrait) and (max-width:600px){.gp3-wrap.v3 .fz-trick{left:60%}.gp3-wrap.v3 .fz-jhud{top:calc(84px + env(safe-area-inset-top))}}
 @media (orientation:portrait) and (min-width:601px){.gp3-wrap.v3 .fz-cam{right:calc(10px + var(--tach) + 10px)}}
 .fz-route{display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:16px;border:2px solid rgba(255,255,255,.14);background:linear-gradient(160deg,#1c2238,#0b0f1e);color:#fff;font-family:inherit;cursor:pointer;text-align:left}
 .fz-route:hover{border-color:#ff2d87}
@@ -2924,7 +2926,7 @@ function gpJetLand(kt){const J=kt.jet,R=R3;if(!J||J.ph!=="fly")return false;cons
 /* speed in the air: the car settles at its cruising speed; afterburner on top; on the way down, no faster than the next bends allow */
 function gpJetSpeed(kt,dt){R3.frameDt=dt;const J=kt.jet;if(J.ph==="hop"){const left=J.T-J.t;if(left<1.2&&kt.speed>J.safe)kt.speed=Math.max(J.safe,kt.speed-16*dt);else kt.speed*=1-0.015*dt;return;}
   if(J.ph==="land"){J.safe=gpJetSafe(kt,Math.max(0,kt.speed*(J.lT-J.lt)));const tg=Math.min(J.safe,Math.max(kt.speed,J.vc));if(kt.speed>tg)kt.speed=Math.max(tg,kt.speed-Math.max(10,(kt.speed-tg)/Math.max(0.3,J.lT-J.lt))*dt);return;}
-  const tg=J.vc*(kt.boostT>0?1.26:1)*(1+(kt.cu||0)*0.5);kt.speed+=(tg-kt.speed)*Math.min(1,dt*(kt.speed<tg?1.5:1.6));}
+  const tg=J.vc*(kt.boostT>0?1.26:1)*(1+(kt.cu||0)*0.5)*(kt.player&&gpPace()!=="gentle"&&!R3.autoGas&&!R3.gas?0.94:1)*(1+(J.sg||0));kt.speed+=(tg-kt.speed)*Math.min(1,dt*(kt.speed<tg?1.5:1.6));}
 /* across the road and along it: returns how fast the car moves along the road's centre line (true curved-road geometry, so an outside line is really longer) */
 function gpJetMove(kt,inp,kap,dt,i){const J=kt.jet,R=R3,XS=R.W-1.2,M=R.M;if(J.ph==="hop")return kt.speed;
   J.kap=(J.kap==null?kap:J.kap+(kap-J.kap)*Math.min(1,dt*5));const k=J.kap,xm=kt.x*XS,v=Math.max(10,kt.speed);
@@ -2977,7 +2979,7 @@ function gpJetTrail(dt){const R=R3,Tr=R.jetTrail;if(!Tr)return;const me=R.me,J=m
       P1[o++]=x-sx;P1[o++]=y-sy;P1[o++]=z-sz;P1[o++]=x+sx;P1[o++]=y+sy;P1[o++]=z+sz;const dc=Math.hypot(vx,vy,vz),br=f*f*0.6*Tr.life*Math.max(0,Math.min(1,(dc-7)/16));for(let e=0;e<2;e++){C1[c++]=br*0.9;C1[c++]=br;C1[c++]=br;}}}
   Tr.g.attributes.position.needsUpdate=true;Tr.g.attributes.color.needsUpdate=true;}
 function gpJetHudOff(){const H=R3.jh;if(!H)return;H.on=false;const w=$("gp3");if(w)w.classList.remove("jet","jetlow");if(H.back)H.back.classList.remove("on");const b=$("rcB");if(b){const t=b.querySelector("b");if(t)t.textContent="BRAKE";}}
-function gpJetHud(dt){const R=R3,H=R.jh;if(!H)return;const me=R.me,J=me.jet,fly=!!(J&&J.ph==="fly"&&!R.done);if(fly!==H.on){H.on=fly;const w=$("gp3");if(w)w.classList.toggle("jet",fly);const b=$("rcB");if(b){const t=b.querySelector("b");if(t)t.textContent=fly?"LAND":"BRAKE";}if(!fly){if(w)w.classList.remove("jetlow");if(H.back)H.back.classList.remove("on");}}
+function gpJetHud(dt){const R=R3,H=R.jh;if(!H)return;const me=R.me,J=me.jet,fly=!!(J&&J.ph==="fly"&&!R.done);{const on=!!(me.air&&!J&&!R.dp&&!R.done&&(H.big||gpAirLeft(me)>0.45));if(on!==!!H.big){H.big=on;const w0=$("gp3");if(w0)w0.classList.toggle("bigair",on);}}if(fly!==H.on){H.on=fly;const w=$("gp3");if(w)w.classList.toggle("jet",fly);const b=$("rcB");if(b){const t=b.querySelector("b");if(t)t.textContent=fly?"LAND":"BRAKE";}if(!fly){if(w)w.classList.remove("jetlow");if(H.back)H.back.classList.remove("on");}}
   if(!fly)return;const f=Math.max(0,J.fuel/J.fuel0),q=Math.round(f*200);if(q!==H.q){H.q=q;H.fill.style.transform="scaleX("+f.toFixed(3)+")";const low=f<0.28;if(low!==H.low){H.low=low;$("gp3").classList.toggle("jetlow",low);if(low)GPA.play("fuel");}}
   const rt=J.hit+" / "+J.rings.length;if(rt!==H.rt){H.rt=rt;H.rings.textContent=rt;H.rings.classList.remove("hit");void H.rings.offsetWidth;if(J.hit)H.rings.classList.add("hit");}
   const m=me.x*(R.W-1.2),off=Math.abs(m)>GP_JET.xArrow;if(off!==H.off){H.off=off;H.back.classList.toggle("on",off);}if(off){const dir=m>0?"l":"r";if(dir!==H.dir){H.dir=dir;H.back.className="fz-jback on "+dir;H.back.innerHTML=dir==="l"?"<i>◀</i><b>BACK TO THE TRACK</b>":"<b>BACK TO THE TRACK</b><i>▶</i>";(R.jetLog=R.jetLog||[]).push({ev:"arrow",x:+me.x.toFixed(2)});}}}
@@ -3021,7 +3023,7 @@ function gpVert(kt,pos,dt,waiting){if(kt.jet){gpJetVert(kt,pos,dt,waiting);retur
   if(!kt.air){const g=gpNearJump(kt)?GP_G:GP_G+0.0045*kt.speed*kt.speed,yb=kt.y+kt.vy*dt-0.5*g*dt*dt;   // downforce keeps the car on the road over ordinary crests
     if(yb>ry+0.04&&kt.speed>14){kt.air=true;kt.airT=0;kt.airPeak=0;kt.y=yb;kt.vy-=GP_G*dt;kt.takeoff={v:Math.round(kt.speed*3.6),vy:+kt.vy.toFixed(2),f:R3.frameN};}
     else{kt.y=ry;kt.vy=rv;}}
-  else{kt.airT+=dt;const inW=R3.dp&&kt.y<R3.dp.y;kt.vy-=(inW?GP_G*0.46:GP_G)*dt;if(inW)kt.vy*=Math.exp(-1.5*dt);kt.y+=kt.vy*dt;kt.airPeak=Math.max(kt.airPeak,kt.y-ry);
+  else{kt.airT+=dt;const inW=R3.dp&&kt.y<R3.dp.y,gm=(kt.player&&!R3.dp&&R3.pitchIn)?(R3.pitchIn>0?0.62:1.55):1;kt.vy-=(inW?GP_G*0.46:GP_G*gm)*dt;if(inW)kt.vy*=Math.exp(-1.5*dt);kt.y+=kt.vy*dt;kt.airPeak=Math.max(kt.airPeak,kt.y-ry);
     if(kt.y-(kt.airT>0.3&&kt.vy<0?Math.min(0.9,tilt):0)<=ry){   // touches down on its lowest tyre (nose-low after a long flight), then pivots onto the road
       const imp=Math.max(0,rv-kt.vy);kt.y=ry;kt.vy=rv;kt.air=false;gpTrickLand(kt);gpLand(kt,imp);}}
   pos.y=kt.air?kt.y:kt.y+tilt;}   // on the ground the car rides on whichever tyre is lowest while its pitch catches up with the road
@@ -3136,7 +3138,7 @@ function gpCountTick(now){const R=R3;
   if(R.phase==="count")R.countdown=Math.max(0.001,3-e);}
 function gpUpdate(dt,waiting){
   const {karts,samples,M,len,T,me}=R3;
-  const k=R3.keys;const left=k["arrowleft"]||k["a"]||R3.touchDir<0,right=k["arrowright"]||k["d"]||R3.touchDir>0,gas=R3.autoGas||k["arrowup"]||k["w"]||R3.gas||(me.jetGas>0&&me.speed<R3.vProf[Math.floor(me.t*R3.M)%R3.M])||(!me.jet&&R3.ctl&&R3.ctl.pitch&&R3.ctl.pitch.size>0),driftKey=k[" "]||k["x"];let brake=k["arrowdown"]||k["s"]||R3.brake;
+  const k=R3.keys;const left=k["arrowleft"]||k["a"]||R3.touchDir<0,right=k["arrowright"]||k["d"]||R3.touchDir>0,gas=R3.autoGas||k["arrowup"]||k["w"]||R3.gas||(me.jetGas>0&&me.speed<R3.vProf[Math.floor(me.t*R3.M)%R3.M]),driftKey=k[" "]||k["x"];let brake=k["arrowdown"]||k["s"]||R3.brake;
   if(me.jetGas>0)me.jetGas-=dt;if(R3.jetBrakeLock){if(!me.jet&&!brake)R3.jetBrakeLock=false;else brake=false;}   // a thumb or key still down from flying (DOWN, LAND) doesn't slam the brakes at touchdown
   gpBoostTick(dt,waiting);gpPack(dt,waiting);
   const V=R3.tmpV,sk=R3.sk;R3.bumpT+=dt;if(!waiting){R3.simT=(R3.simT||0)+dt;if(R3.relFrame==null)R3.relFrame=R3.frameN;}
@@ -3546,7 +3548,7 @@ function gpnCss(){gpCss();if($("gpnCss"))return;const s=document.createElement("
 .gp3-wrap.v3.net .gp3-plate .fz-pedal.gas{grid-column:4;grid-row:1/3}.gp3-wrap.v3.net .gp3-plate .fz-pedal.brake{grid-column:3;grid-row:1/3}
 .gp3-wrap.v3.net .gp3-plate .fz-pedal b{top:46%;font-size:15px}
 .gp3-wrap.v3.net .gp3-plate .fz-boost{position:absolute;right:auto;left:calc(10px + env(safe-area-inset-left));bottom:calc(100% + 10px);width:84px;height:84px;--bst:84px;pointer-events:auto}
-.gp3-wrap.v3.net .fz-trick{left:auto;right:calc(10px + (100% - 20px)*0.5);bottom:calc(var(--plate) - 4px);margin:0;z-index:8;width:96px;height:96px}
+.gp3-wrap.v3.net .fz-pitch{left:calc(10px + env(safe-area-inset-left) + 94px);bottom:calc(var(--plate) + 10px)}.gp3-wrap.v3.net .fz-trick{left:auto;right:calc(10px + 44px);bottom:calc(var(--plate) - 4px);margin:0;z-index:8;width:96px;height:96px}
 .gp3-wrap.v3.net .fz-trick.on{bottom:calc(var(--plate) + 8px)}
 .gp3-wrap.v3.net .fz-tach{display:none}
 .gp3-wrap.v3.net .fz-cam{display:flex;top:calc(140px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right));width:68px;height:68px}
