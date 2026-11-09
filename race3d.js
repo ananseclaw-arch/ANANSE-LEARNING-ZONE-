@@ -194,7 +194,7 @@ const GP_MEGA_H=4;
 function gpJumpShape(J){return J[2]==="leap"?{ra:62,fb:15,p:1.6}:J[2]==="mega"?{ra:44,fb:16,p:2}:{ra:26+4*J[1],fb:10+1.5*J[1],p:1.7};}
 function gpHillsRaw(C,d){const K=C.ekeys;for(let k=1;k<K.length;k++){if(d<=K[k][0]){const a=K[k-1],b=K[k],t=(d-a[0])/Math.max(1e-6,b[0]-a[0]);return a[1]+(b[1]-a[1])*(0.5-0.5*Math.cos(Math.PI*t));}}return 0;}
 /* Dakar Desert: a whole dune under the road - a long windward climb (6.5 m of road per metre of height), the crest, a shorter lee slope down */
-function gpDuneShape(H,u){const up=H*6.5,dn=H*4;return(u<=-up||u>=dn)?0:H*(u<0?0.5-0.5*Math.cos(Math.PI*(1+u/up)):0.5+0.5*Math.cos(Math.PI*u/dn));}
+function gpDuneShape(H,u){const up=H*6.5,dn=H*5;return(u<=-up||u>=dn)?0:H*(u<0?0.5-0.5*Math.cos(Math.PI*(1+u/up)):0.5+0.5*Math.cos(Math.PI*u/dn));}
 function gpDuneBody(C,d){if(!C.dnl)return 0;let y=0;for(const q of C.dnl){let u=d-q[0];if(u>C.lapM/2)u-=C.lapM;else if(u<-C.lapM/2)u+=C.lapM;y+=gpDuneShape(q[1],u);}return y;}
 function gpElevAt(C,d){const L=C.lapM;d=((d%L)+L)%L;
   if(!C.eprof){const n=Math.ceil(L/2),raw=new Float32Array(n),o=new Float32Array(n),r=30;for(let i=0;i<n;i++)raw[i]=gpHillsRaw(C,i*L/n);   // hills blurred over ~60 m: rolling, never a kink that throws the car
@@ -2234,7 +2234,7 @@ function gpBuild(C){
     let duneK=new Float32Array(M),wadi=new Float32Array(M);for(let i=0;i<M;i++){duneK[i]=zin(i,"dunes")?1:(zin(i,"wadi")?0.3:(zin(i,"rocks")?0.2:0.07));wadi[i]=zin(i,"wadi")?1:0;}
     duneK=blur(blur(duneK,Math.round(40/ds)),Math.round(40/ds));wadi=blur(blur(wadi,Math.round(24/ds)),Math.round(24/ds));for(let i=0;i<M;i++)flatW[i]+=wadi[i]*13;
     const ridges=(C.dnl||[]).map((q,k)=>{const i=Math.round(q[0]/C.lapM*M)%M,s=samples[i],tl=Math.hypot(s.tan.x,s.tan.z)||1,J=(C.jumps||[]).find(j=>Math.abs(j[0]-q[0])<1&&!j[2]),sh=J?gpJumpShape(J):null;
-      return{x:s.pos.x,z:s.pos.z,tx:s.tan.x/tl,tz:s.tan.z/tl,H:q[1],up:q[1]*6.5,dn:q[1]*4,J:J?J[1]:0,ra:sh?sh.ra:1,fb:sh?sh.fb:1,p:sh?sh.p:1,bow:(k%2?1:-1)/(520+k*70),ph:k*1.7};});
+      return{x:s.pos.x,z:s.pos.z,tx:s.tan.x/tl,tz:s.tan.z/tl,H:q[1],up:q[1]*6.5,dn:q[1]*5,J:J?J[1]:0,ra:sh?sh.ra:1,fb:sh?sh.fb:1,p:sh?sh.p:1,bow:(k%2?1:-1)/(520+k*70),ph:k*1.7};});
     const AF=new Float32Array(FN*FN),st=Math.max(2,Math.round(8/ds));for(let a=0;a<FN;a++)for(let b=0;b<FN;b++){const x=F0x+a*FG,z=F0z+b*FG;let bd=1e12,bi=0;for(let i=0;i<M;i+=st){const p=samples[i].pos,d=(p.x-x)*(p.x-x)+(p.z-z)*(p.z-z);if(d<bd){bd=d;bi=i;}}const d=Math.sqrt(bd);AF[a*FN+b]=(duneK[bi]+(1-duneK[bi])*sst(150,330,d))*sst(11,58,d);}
     const Aat=(x,z)=>{const fx=Math.max(0,Math.min(FN-1.001,(x-F0x)/FG)),fz=Math.max(0,Math.min(FN-1.001,(z-F0z)/FG)),a=Math.floor(fx),b=Math.floor(fz),u=fx-a,v=fz-b;return (AF[a*FN+b]*(1-u)+AF[(a+1)*FN+b]*u)*(1-v)+(AF[a*FN+b+1]*(1-u)+AF[(a+1)*FN+b+1]*u)*v;};
     DK={duneK,wadi,ridges,zin,sst,at(x,z){let h=gpDakarDune(x,z)*Aat(x,z);for(const r of ridges){const dx=x-r.x,dz=z-r.z,v=dz*r.tx-dx*r.tz,av=Math.abs(v);if(av>330)continue;const u=dx*r.tx+dz*r.tz+r.bow*v*v+8*Math.sin(v*0.027+r.ph)*Math.min(1,av/50);if(u<=-r.up||u>=r.dn)continue;
@@ -3359,7 +3359,7 @@ function gpUpdate(dt,waiting){
         if(onDirt&&Math.random()<(kt.player?0.9:0.5))R3.dust.emit(V.x,V.y+0.1,V.z,-tan.x*kt.speed*0.12+(Math.random()-0.5)*2.5,0.6+Math.random()*1.4,-tan.z*kt.speed*0.12+(Math.random()-0.5)*2.5,0.62,0.47,0.3,1.4);
         if(inFord&&R3.splash)for(let q=0;q<(kt.player?3:1);q++)R3.splash.emit(V.x+(Math.random()-0.5)*0.6,V.y,V.z+(Math.random()-0.5)*0.6,sd*(1.5+Math.random()*2.5)*Math.abs(tan.z)+(Math.random()-0.5)*2+tan.x*kt.speed*0.2,2.5+Math.random()*3.5,sd*(1.5+Math.random()*2.5)*Math.abs(tan.x)+(Math.random()-0.5)*2+tan.z*kt.speed*0.2,0.86,0.93,1,0.6);});}}
     // desert: every car pulls a sandy dust trail; much bigger off the road
-    if(R3.C.theme==="dakar"){if(near&&!waiting&&!kt.jet&&!kt.air&&spd>0.2&&Math.random()<(kt.player?1:0.6)){kt.g.updateMatrixWorld(true);const soft=offroad||(R3.tw&&R3.tw.zoneAt(i,"dirt")),big=(offroad?1.5:1)*(soft?1.15:0.8)*(0.6+0.6*spd),cr=0.74+Math.random()*0.08;   // Dakar: a tall golden plume off both rear wheels, biggest in the soft sand
+    if(R3.C.theme==="dakar"){if(near&&!waiting&&!kt.jet&&!kt.air&&spd>0.2&&Math.random()<(kt.player?1:0.85)){kt.g.updateMatrixWorld(true);const soft=offroad||(R3.tw&&R3.tw.zoneAt(i,"dirt")),big=(offroad?1.5:1)*(soft?1.15:0.8)*(0.6+0.6*spd),cr=0.74+Math.random()*0.08;   // Dakar: a tall golden plume off both rear wheels, biggest in the soft sand
         for(let q=0;q<(kt.player?2:1);q++){const sd=q?1:-1;V.set(sd*(kt.tyreX||kt.S.w/2-0.04)*(kt.player?1:Math.random()*2-1),0.15,kt.xr-0.3);kt.g.localToWorld(V);R3.dust.emit(V.x,V.y+0.15,V.z,-tan.x*kt.speed*0.16+(Math.random()-0.5)*2.6*big,0.9+Math.random()*2.3*big,-tan.z*kt.speed*0.16+(Math.random()-0.5)*2.6*big,cr,cr*0.7,cr*0.4,(1.1+Math.random()*0.7)*big);}}}
     else if(R3.C.theme==="desert"&&near&&!waiting&&!kt.jet&&spd>0.25&&Math.random()<(offroad?0.95:(kt.player?0.55:0.3))){kt.g.updateMatrixWorld(true);const sd=Math.random()<0.5?-1:1;V.set(sd*(kt.tyreX||kt.S.w/2-0.04),0.15,kt.xr);kt.g.localToWorld(V);const big=offroad?1.9:1;
       for(let q=0;q<(offroad?2:1);q++)R3.dust.emit(V.x,V.y+0.1,V.z,-tan.x*kt.speed*0.1+(Math.random()-0.5)*2.2*big,0.5+Math.random()*1.3*big,-tan.z*kt.speed*0.1+(Math.random()-0.5)*2.2*big,0.8,0.66,0.46,1.2*big);}
