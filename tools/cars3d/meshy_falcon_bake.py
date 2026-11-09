@@ -1,0 +1,81 @@
+# bakes one greyscale map (ambient occlusion x shut lines) onto paint/stripe/carbon. exec'd from build_meshy_falcon.py.
+import numpy as np
+bpy.context.view_layer.objects.active = ob
+for o_ in bpy.data.objects: o_.select_set(False)
+ob.select_set(True)
+bpy.ops.object.mode_set(mode="EDIT"); bpy.ops.mesh.select_all(action="SELECT")
+bpy.ops.uv.smart_project(angle_limit=math.radians(58), island_margin=.003, area_weight=.3, correct_aspect=True, scale_to_bounds=False)
+bpy.ops.object.mode_set(mode="OBJECT")
+# decal faces keep their planar panel UV
+uvd = m.uv_layers["UVMap"].data; zs_ = [p[0] for p in NUM_RECT]; ys_ = [p[1] for p in NUM_RECT]
+z0_, z1_, y0_, y1_ = min(zs_), max(zs_), min(ys_), max(ys_); dec_idx = [x.name if x else "" for x in m.materials].index("decal")
+for p in m.polygons:
+    if p.material_index != dec_idx: continue
+    for li in p.loop_indices:
+        v_ = m.vertices[m.loops[li].vertex_index].co; g_ = (v_.x, v_.z, -v_.y); u_ = (g_[2] - z0_) / (z1_ - z0_)
+        if p.normal.x > 0: u_ = 1 - u_
+        uvd[li].uv = (u_, (g_[1] - y0_) / (y1_ - y0_))
+# shut lines: drawn into 2 projected images (side z/y, top x/z); value 1 = no line
+def draw_lines(w_, h_, segs, fw):
+    arr = np.ones((h_, w_), dtype=np.float32)
+    for (x0_, y0_), (x1_, y1_) in segs:
+        d_ = max(abs(x1_ - x0_), abs(y1_ - y0_)); n_ = max(2, int(d_ * 2))
+        for t_ in np.linspace(0, 1, n_):
+            x_ = int(round(x0_ + (x1_ - x0_) * t_)); y_ = int(round(y0_ + (y1_ - y0_) * t_))
+            arr[max(0, y_ - fw):min(h_, y_ + fw + 1), max(0, x_ - fw):min(w_, x_ + fw + 1)] = .32
+    return arr
+SW, SH = 2600, 700   # side: z -2.6..2.6, y 0..1.4 (2mm/px)
+ssp = lambda z_, y_: (SW * (z_ + 2.6) / 5.2, SH * (1 - y_ / 1.4))
+TW, TH = 1300, 2600   # top: x -1.3..1.3, z -2.6..2.6 (2mm/px)
+tsp = lambda x_, z_: (TW * (x_ + 1.3) / 2.6, TH * (1 - (z_ + 2.6) / 5.2))
+def poly(pts, f_): return [(f_(*pts[i]), f_(*pts[i + 1])) for i in range(len(pts) - 1)]
+side_lines = poly([(.92, .79), (.945, .4), (.88, .27), (-.2, .27), (-.34, .34), (-.42, .72), (-.46, .9)], ssp) + poly([(.02, .76), (.02, .74)], ssp) + poly([(2.02, .63), (1.86, .71), (1.76, .74)], ssp) + poly([(-1.42, .66), (-1.72, .6), (-2.0, .58)], ssp) + poly([(-.05, .73), (.2, .73)], ssp)
+top_lines = []
+for s_ in (1, -1):
+    top_lines += poly([(s_ * .55, 1.33), (s_ * .63, 1.55), (s_ * .68, 1.8), (s_ * .62, 2.05), (s_ * .42, 2.27), (0, 2.33)], tsp)
+top_lines += poly([(-.55, 1.33), (.55, 1.33)], tsp)
+import zlib, struct
+def write_png(path, arr):
+    """8-bit grey PNG with no extra deps (a GENERATED Blender image loses pixels written from Python when saved or sampled by Cycles)"""
+    h_, w_ = arr.shape; raw = b"".join(b"\x00" + bytes(row) for row in np.clip(arr * 255, 0, 255).astype(np.uint8))
+    def ch(t, d): return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xffffffff)
+    open(path, "wb").write(b"\x89PNG\r\n\x1a\n" + ch(b"IHDR", struct.pack(">IIBBBBB", w_, h_, 8, 0, 0, 0, 0)) + ch(b"IDAT", zlib.compress(raw, 6)) + ch(b"IEND", b""))
+for name_, (w_, h_, segs, fw_) in {"pl_side": (SW, SH, side_lines, 1), "pl_top": (TW, TH, top_lines, 1)}.items():
+    path_ = os.path.join(WORK, name_ + ".png"); write_png(path_, draw_lines(w_, h_, segs, fw_))
+    img = bpy.data.images.load(path_, check_existing=False); img.name = name_; img.colorspace_settings.name = "Non-Color"
+# bake on a temporary single-material copy (AO x lines, emission pass)
+dup = ob.copy(); dup.data = m.copy(); bpy.context.scene.collection.objects.link(dup)
+bk = bpy.data.materials.new("bk"); bk.use_nodes = True; nt_ = bk.node_tree
+for n_ in list(nt_.nodes): nt_.nodes.remove(n_)
+out_ = nt_.nodes.new("ShaderNodeOutputMaterial"); em_ = nt_.nodes.new("ShaderNodeEmission"); ao_ = nt_.nodes.new("ShaderNodeAmbientOcclusion"); ao_.samples = 24; ao_.inputs["Distance"].default_value = .5
+geo_ = nt_.nodes.new("ShaderNodeNewGeometry"); sep_ = nt_.nodes.new("ShaderNodeSeparateXYZ"); nt_.links.new(geo_.outputs["Position"], sep_.inputs[0])
+def proj_img(name_, uexpr):
+    tx_ = nt_.nodes.new("ShaderNodeTexImage"); tx_.image = bpy.data.images[name_]; tx_.interpolation = "Linear"; tx_.extension = "EXTEND"
+    cmb_ = nt_.nodes.new("ShaderNodeCombineXYZ")
+    for ax_, (src_, mul_, add_) in zip("XY", uexpr):
+        mth_ = nt_.nodes.new("ShaderNodeMath"); mth_.operation = "MULTIPLY_ADD"; mth_.inputs[1].default_value = mul_; mth_.inputs[2].default_value = add_
+        nt_.links.new(sep_.outputs[src_], mth_.inputs[0]); nt_.links.new(mth_.outputs[0], cmb_.inputs[ax_])
+    nt_.links.new(cmb_.outputs[0], tx_.inputs[0]); return tx_
+ps_ = proj_img("pl_side", [("Y", -1 / 5.2, .5), ("Z", 1 / 1.4, 0.)])      # game z = -blender y
+pt_ = proj_img("pl_top", [("X", 1 / 2.6, .5), ("Y", -1 / 5.2, .5)])       # top: x, game z = -blender y -> v = 1 - (z+2.6)/5.2 = (-z ... )
+mul1 = nt_.nodes.new("ShaderNodeMath"); mul1.operation = "MULTIPLY"; mul2 = nt_.nodes.new("ShaderNodeMath"); mul2.operation = "MULTIPLY"
+map_ = nt_.nodes.new("ShaderNodeMapRange"); map_.inputs["From Min"].default_value = 0; map_.inputs["From Max"].default_value = 1; map_.inputs["To Min"].default_value = .25; map_.inputs["To Max"].default_value = 1
+nt_.links.new(ao_.outputs["Color"], map_.inputs["Value"]); nt_.links.new(map_.outputs[0], mul1.inputs[0]); nt_.links.new(ps_.outputs["Color"], mul1.inputs[1])
+nt_.links.new(mul1.outputs[0], mul2.inputs[0]); nt_.links.new(pt_.outputs["Color"], mul2.inputs[1]); nt_.links.new(map_.outputs[0] if os.environ.get("NO_LINES") else mul2.outputs[0], em_.inputs["Color"]); nt_.links.new(em_.outputs[0], out_.inputs[0])
+dup.data.materials.clear(); dup.data.materials.append(bk)
+target = bpy.data.images.new("bodyao", BAKE_SIZE, BAKE_SIZE, float_buffer=False, alpha=False); target.colorspace_settings.name = "sRGB"
+ti_ = nt_.nodes.new("ShaderNodeTexImage"); ti_.image = target; nt_.nodes.active = ti_; ti_.select = True
+sc_ = bpy.context.scene; sc_.render.engine = "CYCLES"; sc_.cycles.samples = 16; sc_.cycles.use_denoising = False; sc_.cycles.bake_type = "EMIT"
+sc_.render.bake.use_selected_to_active = False; sc_.render.bake.margin = 8; sc_.render.bake.use_clear = True
+for o_ in bpy.data.objects: o_.select_set(False)
+dup.select_set(True); bpy.context.view_layer.objects.active = dup
+ob.hide_render = True   # the copy must be alone, or every AO ray hits the identical original at t=0 (black map)
+log("baking", BAKE_SIZE); bpy.ops.object.bake(type="EMIT"); ob.hide_render = False; target.save(filepath=os.path.join(WORK, "bodyao.png"), quality=95); log("baked")
+tmp_ = dup.data; bpy.data.objects.remove(dup); bpy.data.meshes.remove(tmp_)
+target.filepath_raw = os.path.join(WORK, "bodyao.png"); target.file_format = "PNG"; target.save()
+for n_ in ("paint", "stripe", "carbon"):
+    mt_ = MATS[n_]; bs_ = mt_.node_tree.nodes["Principled BSDF"]; tc_ = bs_.inputs["Base Color"].default_value[:]
+    mx_ = mt_.node_tree.nodes.new("ShaderNodeMix"); mx_.data_type = "RGBA"; mx_.blend_type = "MULTIPLY"; mx_.inputs[0].default_value = 1.
+    tx_ = mt_.node_tree.nodes.new("ShaderNodeTexImage"); tx_.image = target; tx_.interpolation = "Linear"
+    mx_.inputs["B"].default_value = tc_; mt_.node_tree.links.new(tx_.outputs["Color"], mx_.inputs["A"]); mt_.node_tree.links.new(mx_.outputs["Result"], bs_.inputs["Base Color"])
+log("baked map on paint/stripe/carbon")
