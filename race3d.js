@@ -638,7 +638,7 @@ function gpCss(){if(document.getElementById("gpV4Css")){gpStoryFont();return;}co
 .fz-fin-t{font-size:30px}.fz-res{font-size:12px}.gp3-wrap.v3 .gp3-finish .btn{padding:8px 12px;font-size:14px}
 .fz-song{font-size:12px;padding:2px 6px}.fz-song i{width:8px;height:8px}
 }
-@media (max-height:520px){.gp3-wrap.v3{--tach:84px;--ped:96px;--pad:64px}.fz-skill{top:46%}.fz-pos{font-size:30px}.gp3-wrap.v3 .gp3-map{width:70px;top:calc(96px + env(safe-area-inset-top))}}
+@media (max-height:520px){.gp3-wrap.v3{--tach:84px;--ped:96px;--pad:58px}.fz-skill{top:46%}.fz-pos{font-size:30px}.gp3-wrap.v3 .gp3-map{width:70px;top:calc(96px + env(safe-area-inset-top))}}
 @media (orientation:portrait) and (max-width:600px){.fz-skill{top:32%}.gp3-wrap.v3 .gp3-finish .btn-row{flex-direction:column;gap:8px}}
 /* ---- storybook (ink & wash) modifier ---- */
 .fz-shell.story,.gp3-wrap.v3.story{font-family:"Patrick Hand","Chalkboard SE","Comic Sans MS",system-ui,sans-serif}
