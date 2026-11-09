@@ -6488,8 +6488,8 @@ function gpBuild(C){
     pe.addEventListener("pointerdown",ev=>{ev.preventDefault();ev.stopPropagation();GPA.init();if(!R3||!R3.flyUi)return;try{pe.setPointerCapture(ev.pointerId);}catch(e){}ptr.fly.set(ev.pointerId,dirOf(ev));syncCtl();});
     pe.addEventListener("pointermove",ev=>{if(!R3||!ptr.fly.has(ev.pointerId))return;const d=dirOf(ev);if(!same(ptr.fly.get(ev.pointerId),d)){ptr.fly.set(ev.pointerId,d);syncCtl();}});
     ["pointerup","pointercancel","lostpointercapture"].forEach(t=>pe.addEventListener(t,ev=>{if(!ptr.fly.has(ev.pointerId))return;ptr.fly.delete(ev.pointerId);syncCtl();}));
-    R3.flyEnd=()=>{if(!R3)return;for(const id of ptr.fly.keys()){try{pe.releasePointerCapture(id);}catch(e){}}ptr.fly.clear();R3.pitchIn=0;syncCtl();};}}
-  R3.flySync=syncCtl;
+    R3.flyEnd=()=>{if(!R3)return;if(!ptr.fly.size){R3.pitchIn=0;return;}for(const id of ptr.fly.keys()){try{pe.releasePointerCapture(id);}catch(e){}}ptr.fly.clear();syncCtl();};}}
+  R3.flySync=()=>{const fe=$("gp3Fly");if(fe&&R3){fe.classList.toggle("l",R3.touchDir<0);fe.classList.toggle("r",R3.touchDir>0);}};
   R3.ctl=ptr;
   $("gp3Mute").addEventListener("click",ev=>{ev.preventDefault();gpToggleMute();});
   // camera + boost react to their own pointer (pointerdown/up), not "click": iOS drops the click of a tap made while the other thumb holds GAS
@@ -7519,7 +7519,7 @@ function gpnCss(){gpCss();if($("gpnCss"))return;const s=document.createElement("
 .gp3-wrap.v3.net .gp3-plate .fz-pedal.gas{grid-column:4;grid-row:1/3}.gp3-wrap.v3.net .gp3-plate .fz-pedal.brake{grid-column:3;grid-row:1/3}
 .gp3-wrap.v3.net .gp3-plate .fz-pedal b{top:46%;font-size:15px}
 .gp3-wrap.v3.net .gp3-plate .fz-boost{position:absolute;right:auto;left:calc(10px + env(safe-area-inset-left));bottom:calc(100% + 10px);width:84px;height:84px;--bst:84px;pointer-events:auto}
-.gp3-wrap.v3.net .fz-jhud{top:calc(218px + env(safe-area-inset-top))}.gp3-wrap.v3.net .fz-trick{left:auto;right:calc(10px + 44px);bottom:calc(var(--plate) - 4px);margin:0;z-index:8;width:96px;height:96px}
+.gp3-wrap.v3.net .fz-jhud{top:calc(116px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left));max-width:calc(100% - 92px);transform:translateY(-140%);box-sizing:border-box}.gp3-wrap.v3.net.jet .fz-jhud{transform:none}.gp3-wrap.v3.net .fz-trick{left:auto;right:calc(10px + 44px);bottom:calc(var(--plate) - 4px);margin:0;z-index:8;width:96px;height:96px}
 .gp3-wrap.v3.net .fz-trick.on{bottom:calc(var(--plate) + 8px)}
 .gp3-wrap.v3.net .fz-tach{display:none}
 .gp3-wrap.v3.net .fz-cam{display:flex;top:calc(140px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right));width:68px;height:68px}
