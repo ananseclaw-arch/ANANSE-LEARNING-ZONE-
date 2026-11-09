@@ -3916,7 +3916,7 @@ function gpFzRoad(T,mat,C,L,rnd,pic){
       x.fillStyle="rgba(244,148,32,.96)";x.fillRect(w/2-9,0,6,h);x.fillRect(w/2+3,0,6,h);   // double orange centre line
       x.fillStyle="rgba(236,236,230,.9)";[0.25,0.75].forEach(u=>{[0.06,0.56].forEach(v=>x.fillRect(w*u-3,h*v,6,h*0.2));});   // lane dashes
       for(let i=0;i<5000;i++){x.fillStyle="rgba(40,41,45,.5)";x.fillRect(rnd()*w,rnd()*h,2,1);}},true);
-    t.repeat.set(1,pic?1:0.5);mat.map=t;mat.roughness=0.5;mat.metalness=0.0;mat.envMapIntensity=0.55;}
+    t.repeat.set(1,pic?1:0.5);mat.map=t;mat.roughness=0.6;mat.metalness=0.0;mat.envMapIntensity=0.3;}
   else{mat.color=new T.Color(0.82,0.82,0.84);mat.roughness=Math.min(mat.roughness,0.62);mat.envMapIntensity=0.5;}
   const sk=new T.Color(L.hor).lerp(new T.Color(L.mid),0.35).lerp(new T.Color(L.glow),0.25);mat.userData.fzSheen={value:sk};mat.userData.fzWet={value:C.theme==="inaka"?0.27:(C.theme==="desert"?0.14:0.3)};
   mat.onBeforeCompile=sh=>{sh.uniforms.fzSheen=mat.userData.fzSheen;sh.uniforms.fzWet=mat.userData.fzWet;
@@ -3943,7 +3943,7 @@ function gpFzInit(T,renderer,phone){try{
 }catch(e){R3.fz=null;}}
 function gpFzRender(dt,spd,cmode){const R=R3,F=R.fz,r=R.renderer;
   if(!F||!F.on){r.render(R.scene,R.camera);return;}
-  const me=R.me,bk=R.bk||0,want=R.countdown>0?0:Math.max(0,Math.min(1,(spd-0.62)/0.38))*0.34+bk*0.3+(me.jet?0.12:0);
+  const me=R.me,bk=R.bk||0,want=R.countdown>0?0:Math.max(0,Math.min(1,(spd-0.62)/0.38))*0.28+bk*0.3+(me.jet?0.12:0);
   F.blur+=(want-F.blur)*Math.min(1,dt*4);const U=F.mat.uniforms;U.uBlur.value=window.__gpNoBlur?0:F.blur;U.uBoost.value=bk;U.uT.value=(R.frameN||0)%97;
   U.uC.value.set(0.5,cmode==="chase"?(R.camera.aspect<1?0.36:0.4):0.5);
   r.setRenderTarget(F.rt);r.render(R.scene,R.camera);r.setRenderTarget(null);r.render(F.scene,F.cam);}
@@ -3971,7 +3971,7 @@ function gpInakaWorld(X){const {T,scene,C,samples,M,W,ds,nearest,groundAt,dummy,
       const wm=story?new T.MeshLambertMaterial({map:rice}):new T.MeshStandardMaterial({map:rice,roughness:0.42,metalness:0.0,envMapIntensity:0.32});const tm=new T.Mesh(gpMerge(T,tops),wm);tm.receiveShadow=true;scene.add(tm);
       const bm=new T.Mesh(gpMerge(T,skirts),new T.MeshLambertMaterial({color:0x6f7a4c}));bm.receiveShadow=true;scene.add(bm);out.paddies=tops.length;}}
   // ---- houses: timber and plaster walls under dark tiled gable roofs, with a lower porch roof on the two-storey ones ----
-  const houses=[];{const addH=(i,sd,off,big)=>{if(run(i,sd)||inStands(i))return;const w=big?9+rnd()*3:7+rnd()*3,d=6+rnd()*2,p=sidePt(i,sd*(off+d/2));if(!free(p.x,p.z,w*0.62)||nearest(p.x,p.z)[1]<off+d/2-2.5)return;const y=groundAt(p.x,p.z);take(p.x,p.z,w*0.62);houses.push({x:p.x,y,z:p.z,yaw:yawAt(i)+Math.PI/2+(sd<0?Math.PI:0),w,d,h:big?5.4:3.1,big,k:houses.length});};
+  const houses=[];{const addH=(i,sd,off,big)=>{if(run(i,sd))return;if(inStands(i))off=Math.max(off,W+13.5);const w=big?9+rnd()*3:7+rnd()*3,d=6+rnd()*2,p=sidePt(i,sd*(off+d/2));if(!free(p.x,p.z,w*0.62)||nearest(p.x,p.z)[1]<off+d/2-2.5)return;const y=groundAt(p.x,p.z);take(p.x,p.z,w*0.62);houses.push({x:p.x,y,z:p.z,yaw:yawAt(i)+Math.PI/2+(sd<0?Math.PI:0),w,d,h:big?5.4:3.1,big,k:houses.length});};
     for(let i=0;i<M;i+=step(13)){if(inZ(i,"village")){[-1,1].forEach(sd=>{if(rnd()<0.82)addH(i+Math.round((rnd()-0.5)*step(4)),sd,rOff(i,sd)+6.5+rnd()*3,rnd()<0.42);if(rnd()<0.5)addH(i,sd,rOff(i,sd)+21+rnd()*6,rnd()<0.5);});}
       else if(inZ(i,"paddy")&&rnd()<0.2){const sd=rnd()<0.5?-1:1;addH(i,sd,W+62+rnd()*14,rnd()<0.5);}else if(inZ(i,"sakura")&&rnd()<0.18){const sd=rnd()<0.5?-1:1;addH(i,sd,rOff(i,sd)+12+rnd()*5,false);}}
     const wallT=gpCanvasTex(256,128,(x,w,h)=>{x.fillStyle="#e9e3d4";x.fillRect(0,0,w,h);x.fillStyle="#3b2c22";x.fillRect(0,h*0.56,w,h*0.44);for(let k=0;k<=8;k++)x.fillRect(k*32-2,0,4,h);x.fillRect(0,0,w,6);x.fillRect(0,h*0.52,w,6);
@@ -4001,8 +4001,8 @@ function gpInakaWorld(X){const {T,scene,C,samples,M,W,ds,nearest,groundAt,dummy,
     const st=gpCanvasTex(128,64,(x,w,h)=>{x.fillStyle="#8a8a84";x.fillRect(0,0,w,h);for(let r=0;r<4;r++)for(let c=0;c<5;c++){const v=110+rnd()*50|0;x.fillStyle="rgb("+v+","+v+","+(v-8)+")";x.fillRect(c*26+(r%2)*13-12,r*16+1,24,14);}},true);
     IM(new T.BoxGeometry(8.2,0.85,0.5).translate(0,0.4,0),new T.MeshLambertMaterial({map:st}),wall,(v,k,m)=>m.setMatrixAt(k,put(v[0],v[1],v[2],v[3])),true);out.vending=vend[0].length+vend[1].length;}
   // ---- utility poles down one side with three sagging wires, crossing the road now and then (the look of every Japanese lane) ----
-  {const poles=[],wv=[];let sd=1,prev=null,cnt=0;for(let i=step(12);i<M;i+=step(31)){if(inStands(i)){prev=null;continue;}if(cnt%14===13){sd=-sd;}cnt++;if(run(i,sd)){prev=null;continue;}
-      const p=sidePt(i,sd*(rOff(i,sd)+1.35)),y=groundAt(p.x,p.z),yaw=yawAt(i);const s=samples[wrapI(i)],cur={x:p.x,y,z:p.z,nx:s.nor.x,nz:s.nor.z};poles.push([p.x,y,p.z,yaw]);
+  {const poles=[],wv=[];let sd=1,prev=null,cnt=0;for(let i=step(12);i<M;i+=step(31)){if(cnt%14===13){sd=-sd;}cnt++;if(run(i,sd)){prev=null;continue;}
+      const p=sidePt(i,sd*(inStands(i)?W+11.8:rOff(i,sd)+1.35)),y=groundAt(p.x,p.z),yaw=yawAt(i);const s=samples[wrapI(i)],cur={x:p.x,y,z:p.z,nx:s.nor.x,nz:s.nor.z};poles.push([p.x,y,p.z,yaw]);
       if(prev){[[-0.95,8.5],[0.95,8.5],[0,7.75]].forEach(q=>{const a=[prev.x+prev.nx*q[0],prev.y+q[1],prev.z+prev.nz*q[0]],b=[cur.x+cur.nx*q[0],cur.y+q[1],cur.z+cur.nz*q[0]];const N=7;for(let k=0;k<N;k++){const t0=k/N,t1=(k+1)/N,sg=t=>-1.1*4*t*(1-t);wv.push(a[0]+(b[0]-a[0])*t0,a[1]+(b[1]-a[1])*t0+sg(t0),a[2]+(b[2]-a[2])*t0,a[0]+(b[0]-a[0])*t1,a[1]+(b[1]-a[1])*t1+sg(t1),a[2]+(b[2]-a[2])*t1);}});}
       prev=cur;}
     const pg=gpMerge(T,[{g:new T.CylinderGeometry(0.13,0.17,9.2,7).translate(0,4.6,0)},{g:new T.BoxGeometry(2.2,0.11,0.11).translate(0,8.5,0)},{g:new T.BoxGeometry(1.2,0.1,0.1).translate(0,7.75,0)},{g:new T.CylinderGeometry(0.22,0.22,0.7,8).translate(0.42,7.0,0),c:lin("#5b6168")},{g:new T.BoxGeometry(0.5,0.12,0.5).translate(0,0.06,0)}]);
@@ -4010,11 +4010,11 @@ function gpInakaWorld(X){const {T,scene,C,samples,M,W,ds,nearest,groundAt,dummy,
     if(wv.length){const g=new T.BufferGeometry();g.setAttribute("position",new T.Float32BufferAttribute(wv,3));const lm=new T.LineBasicMaterial({color:0x1c1e22,transparent:true,opacity:0.85});const ls=new T.LineSegments(g,lm);ls.frustumCulled=false;scene.add(ls);}out.poles=poles.length;}
   // ---- trees: cedar walls in the forest, a cherry-blossom avenue, lone maples in the village, cedars on every hill behind ----
   {const BB=[],fb={cedar:[],cherry:[]},ok=(x,z,o)=>nearest(x,z)[1]>=o&&free(x,z,1.5),add=(type,x,z,sc,flip)=>{const y=groundAt(x,z);if(y<0.5)return;BB.push([type,x,y,z,sc,flip]);(type[1]==="h"?fb.cherry:fb.cedar).push([x,y,z,sc]);};
-    for(let i=0;i<M;i+=step(4.2)){if(inStands(i))continue;const F=inZ(i,"forest"),S=inZ(i,"sakura"),V=inZ(i,"village"),PZ=inZ(i,"paddy");[-1,1].forEach(sd=>{if(run(i,sd))return;const o=rOff(i,sd);
+    for(let i=0;i<M;i+=step(4.2)){const F=inZ(i,"forest"),S=inZ(i,"sakura"),V=inZ(i,"village"),PZ=inZ(i,"paddy");[-1,1].forEach(sd=>{if(run(i,sd))return;const o=inStands(i)?W+10.5:rOff(i,sd);
         if(F){[[3.2,0.8],[7.5,1.0],[13,1.15],[21,1.3],[31,1.4],[44,1.5]].forEach((r,ri)=>{if(rnd()<(ri?0.2:0.35))return;const p=sidePt(i+Math.round((rnd()-0.5)*step(3)),sd*(o+r[0]+rnd()*3.5));if(ok(p.x,p.z,o+2.4))add(rnd()<0.5?"cedarA":"cedarB",p.x,p.z,r[1]*(0.8+rnd()*0.45),rnd()<0.5);});}
         else if(S){if(i%(2*step(4.2))<step(4.2)){const p=sidePt(i,sd*(o+3.4+rnd()*1.5));if(ok(p.x,p.z,o+2.6))add(["cherryM","cherryL","cherryS"][(i+sd+9)%3],p.x,p.z,0.85+rnd()*0.35,rnd()<0.5);}
           if(rnd()<0.5){const p=sidePt(i,sd*(o+14+rnd()*22));if(ok(p.x,p.z,o+9))add(rnd()<0.35?"cherryL":(rnd()<0.5?"cedarA":"cedarB"),p.x,p.z,0.9+rnd()*0.4,rnd()<0.5);}}
-        else if(V){if(rnd()<0.16){const p=sidePt(i,sd*(o+4+rnd()*28));if(ok(p.x,p.z,o+3))add(rnd()<0.4?"maple":(rnd()<0.5?"cherryM":"cedarB"),p.x,p.z,0.7+rnd()*0.4,rnd()<0.5);}}
+        else if(V){if(rnd()<(inStands(i)?0.3:0.16)){const p=sidePt(i,sd*(o+4+rnd()*28));if(ok(p.x,p.z,o+3))add(rnd()<0.4?"maple":(rnd()<0.5?"cherryM":"cedarB"),p.x,p.z,0.7+rnd()*0.4,rnd()<0.5);}}
         else if(PZ){if(rnd()<0.2){const p=sidePt(i,sd*(W+64+rnd()*40));if(ok(p.x,p.z,W+50))add(rnd()<0.5?"cedarA":"cedarB",p.x,p.z,0.9+rnd()*0.5,rnd()<0.5);}}
         if(!F&&rnd()<0.34){const p=sidePt(i,sd*(W+78+rnd()*70));if(ok(p.x,p.z,W+66))add(rnd()<0.85?(rnd()<0.5?"cedarA":"cedarB"):"maple",p.x,p.z,1.1+rnd()*0.6,rnd()<0.5);}});}
     for(let k=0;k<900;k++){const a=rnd()*6.283,r=120+rnd()*560,x=X.cx+Math.cos(a)*r,z=X.cz+Math.sin(a)*r;if(nearest(x,z)[1]<W+46||!free(x,z,2))continue;const y=groundAt(x,z);if(y<9&&rnd()<0.8)continue;add(rnd()<0.92?(rnd()<0.5?"cedarA":"cedarB"):"maple",x,z,1.0+rnd()*0.7,rnd()<0.5);}   // the hills wear forest, the flat valley stays open
@@ -4023,6 +4023,10 @@ function gpInakaWorld(X){const {T,scene,C,samples,M,W,ds,nearest,groundAt,dummy,
       IM(new T.IcosahedronGeometry(3.3,1).translate(0,5.2,0),new T.MeshLambertMaterial({color:0xf3a9c7}),fb.cherry,(v,k,m)=>m.setMatrixAt(k,put(v[0],v[1],v[2],0,v[3],v[3]*0.8,v[3])),true);
       IM(new T.CylinderGeometry(0.2,0.3,3.4,6).translate(0,1.7,0),new T.MeshLambertMaterial({color:0x5a4030}),fb.cherry,(v,k,m)=>m.setMatrixAt(k,put(v[0],v[1],v[2],0,v[3],v[3],v[3])));}
     out.trees=BB.length;}
+  // ---- roadside undergrowth: low bushes just behind the rail wherever there is no house, wall or run-off (the near layer that rushes past) ----
+  {const bush=[];for(let i=0;i<M;i+=step(5.5)){if(inStands(i)||inZ(i,"village"))continue;[-1,1].forEach(sd=>{if(run(i,sd)||rnd()<0.42)return;const o=rOff(i,sd)+1.6+rnd()*2.6,p=sidePt(i,sd*o);if(nearest(p.x,p.z)[1]<o-0.6||!free(p.x,p.z,0.4))return;bush.push([p.x,groundAt(p.x,p.z),p.z,rnd()*6.28,0.7+rnd()*0.9,rnd()]);});}
+    const bg=new T.IcosahedronGeometry(1,1);bg.scale(1.25,0.72,1.0);bg.translate(0,0.45,0);const cols=[0x3d5a2c,0x4a6a33,0x587838,0x34502a,0x6a7f3c];
+    IM(bg,new T.MeshLambertMaterial({color:0xffffff,flatShading:true}),bush,(v,k,m)=>{m.setMatrixAt(k,put(v[0],v[1],v[2],v[3],v[4],v[4]*(0.8+v[5]*0.5),v[4]));m.setColorAt(k,lin(cols[k%cols.length]));},true);out.bushes=bush.length;}
   // ---- three rings of far hills beyond the valley: forest green near, blue-grey and pale behind (the haze does the rest) ----
   {let R0=0;C.pts.forEach(p=>{R0=Math.max(R0,Math.hypot(p[0]-X.cx,p[1]-X.cz));});const hg=new T.SphereGeometry(1,14,8,0,Math.PI*2,0,Math.PI/2),hills=[];
     [[240,0x4f6a4c,14,60,120],[520,0x5f7870,13,110,190],[860,0x7f9296,12,170,300]].forEach((r,ri)=>{for(let k=0;k<r[2];k++){const a=k/r[2]*6.283+rnd()*0.3+ri,d=R0+r[0]+rnd()*120;hills.push([X.cx+Math.cos(a)*d,X.cz+Math.sin(a)*d,190+rnd()*170+ri*70,r[3]+rnd()*(r[4]-r[3]),r[1],rnd()*3]);}});
@@ -4071,6 +4075,7 @@ function gpFzCss(){if(document.getElementById("gpFzCss"))return;const s=document
 .gp3-wrap.v3.fzh .fz-cue{background:rgba(18,19,24,.5);border:0;border-bottom:3px solid #ff3b30;border-radius:3px;box-shadow:none;color:#fff;-webkit-text-stroke:0;text-shadow:0 2px 8px rgba(0,0,0,.6);font-size:clamp(16px,2.3vw,27px);letter-spacing:.1em;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
 .gp3-wrap.v3.fzh .fz-cue i{-webkit-text-stroke:0;color:#ff8c00}
 .gp3-wrap.v3.fzh .fz-nitro{mix-blend-mode:screen}
+.gp3-wrap.v3.fzh .fz-air b{color:#fff;-webkit-text-stroke:0;text-shadow:0 2px 12px rgba(0,0,0,.7);font-weight:800;letter-spacing:.1em;font-size:clamp(20px,3vw,36px)}
 `;document.head.appendChild(s);}
 /* the dial: a thin white rev arc with a short red zone, the gear in a ring, big slanted speed digits - nothing else */
 function gpFzTach(x,S,mph,gear,rf){const c=S/2,r=S*0.40,a0=Math.PI*0.75,a1=Math.PI*2.25,ang=v=>a0+(a1-a0)*v,bk=(R3&&R3.bk)||0,v=Math.max(0.01,Math.min(1,rf));
