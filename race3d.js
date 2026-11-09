@@ -724,7 +724,7 @@ function gpStoryFont(){if(gpStory()&&!document.getElementById("gpFont")){const l
 
 /* ---------- menus: car select → route select → race ---------- */
 function gpStop(){
-  gpStopVideos();
+  gpStopVideos();gpFzTurnStop();
   document.querySelectorAll(".fz-intro").forEach(e=>{try{const v=e.querySelector("video");if(v){v.pause();v.removeAttribute("src");v.load();}}catch(x){}e.remove();});
   if(window._gpPrev){try{window._gpPrev.r.dispose();window._gpPrev.r.forceContextLoss();}catch(e){}window._gpPrev=null;}
   if(!R3)return;
@@ -749,7 +749,7 @@ function gpCardPic(c){const D=GP_PICS[c.id];if(!D)return'<canvas width="480" hei
   if(D.hero)return'<span class="fz-pic shot" style="--bg:url('+D.hero+')"></span>';   // a real hero shot when one exists
   return'<span class="fz-pic hero" style="--bg:url('+GP_WORLD.card+')">'+gpThumb(c.id,"position:absolute;left:50%;transform:translateX(-50%)")+'</span>';}
 function gpHead(sub,bg,pos){return '<div class="fz-head" style="background-image:url('+(bg||GP_WORLD.hero)+')'+(pos?';background-position:'+pos:'')+'"><img class="fz-logo" src="'+GP_WORLD.logo+'" alt="Grand Fable Horizon" decoding="async"><div class="fz-sub">'+sub+'</div></div>';}
-function gpShellClass(){return "fadein fz-shell"+(gpStory()?" story":"");}
+function gpShellClass(){return "fadein fz-shell"+(gpStory()?" story":" fzm");}
 function renderRace(){
   if(GPN)gpnLeave();clearTimers();closeOverlay();defocus();showAnanseCorner(false);gpStop();
   if(typeof kdWebgl==="function"&&!kdWebgl()){renderRace2D();return;}
@@ -764,20 +764,20 @@ function renderRace(){
     +seg("Speed",c.speed,"sp")+seg("Grip",c.grip||c.handle,"gr")+seg("Accel",c.accel,"ac")+'<small>'+esc(c.bio)+'</small></button>').join("");
   const sw=GP_PAINTS.map(h=>'<button class="fz-sw'+(h===paint?" on":"")+'" style="background:'+h+'" data-paint="'+h+'" onclick="gpPickPaint(\''+h+'\')" aria-label="Paint colour"></button>').join("");
   app.innerHTML='<div class="'+gpShellClass()+(GP_PICS[sel]?" pic":"")+'" id="fzShell" style="max-width:980px;margin:0 auto;padding:0 8px">'
-   +gpHead("Japan · choose your car",GP_WORLD.title,"center 44%")
+   +gpHead("Festival garage · choose your car",GP_WORLD.title,"center 44%")+gpFzStageHtml()
    +'<div class="fz-gtabs" role="tablist">'+GP_GROUPS.map(g=>'<button role="tab" class="'+(g[0]===grp?'on':'')+'" data-grp="'+g[0]+'" aria-selected="'+(g[0]===grp)+'" onclick="gpPickGrp(\''+g[0]+'\')"><i>'+g[1]+'</i><b>'+g[2]+'</b><small>'+GP_CARS.filter(c=>(c.grp||"racers")===g[0]).length+' cars</small></button>').join('')+'</div>'
    +'<div class="fz-cars">'+cards+'</div>'
    +(GP_MESHY.has(sel)?'<div class="fz-paint-note" style="font-size:12px;opacity:.72">3D car shape made with Meshy (CC BY 4.0)</div>':'')+(GP_GLB[sel]?'<div class="fz-paint-note">🎨 Win races to unlock new paint and stickers for every car.</div>':'<div class="fz-paints">'+sw+'</div><div class="fz-paint-note">🎨 New paint colours come from race upgrades.</div>')+gpGarageHtml()
    +'<div class="center" style="margin-top:14px"><button class="btn big" onclick="renderCircuits()">Next: choose a route ▶</button></div>'
    +'<div class="btn-row" style="margin-top:12px"><button class="btn secondary" onclick="'+(P?'renderHome()':'renderProfiles()')+'">⟵ Back</button><button class="btn secondary" style="font-size:14px" onclick="renderRace2D()">Classic 2D racer</button></div><div class="spacer"></div></div>';
-  gpDrawPreviews();
-  loadThree().then(gpDrawPreviews).catch(()=>{});
+  gpDrawPreviews();gpFzStageSync();
+  loadThree().then(()=>{gpDrawPreviews();gpFzStageSync();}).catch(()=>{});
   say("Grand Fable Horizon! Choose your car.");
 }
 function gpDrawPreviews(){if(!window.THREE)return;const pc=gpCar().id,pp=gpPaint();document.querySelectorAll("canvas[data-prev]").forEach(cv=>{const c=GP_CARS.find(x=>x.id===cv.dataset.prev);if(c)gpCarDraw(cv,c,c.id===pc?pp:c.paint);});}
 const GP_GROUPS=[["racers","🏁","RACERS"],["exotics","💎","EXOTICS"],["trucks","🛻","TRUCKS"]];
 function gpPickGrp(g){window._gpGrp=g;document.querySelectorAll(".fz-gtabs button").forEach(b=>{const on=b.dataset.grp===g;b.classList.toggle("on",on);b.setAttribute("aria-selected",on);});document.querySelectorAll(".fz-car.v4").forEach(b=>{b.hidden=b.dataset.grp!==g;});sfx("tick");}
-function gpPickCar(id){if(P){P.gpCar=id;save();}else window._gpCar=id;document.querySelectorAll(".fz-car").forEach(b=>b.classList.toggle("on",b.dataset.car===id));const sh=$("fzShell");if(sh)sh.classList.toggle("pic",!!GP_PICS[id]);gpDrawPreviews();sfx("tick");}
+function gpPickCar(id){if(P){P.gpCar=id;save();}else window._gpCar=id;document.querySelectorAll(".fz-car").forEach(b=>b.classList.toggle("on",b.dataset.car===id));const sh=$("fzShell");if(sh)sh.classList.toggle("pic",!!GP_PICS[id]);gpDrawPreviews();gpFzStageSync();sfx("tick");}
 function gpPickPaint(h){if(P){P.gpPaint=h;save();}else window._gpPaint=h;document.querySelectorAll(".fz-sw").forEach(b=>b.classList.toggle("on",b.dataset.paint===h));gpDrawPreviews();sfx("tick");}
 function gpPickRacer(id){gpPickCar(GP_CARS.some(c=>c.id===id)?id:"falcon");}
 function gpMode(){if(GPN&&GPN.race)return"race";return (P&&P.gpMode)||window._gpMode||"free";}
@@ -801,7 +801,7 @@ const GP_TAG={inaka:["NEW · JAPAN","#ff8c00"],deep:["UNDERWATER","#00d2ff"],des
 function gpStars(n){let h="";for(let i=0;i<3;i++)h+='<i class="'+(i<n?"on":"")+'">★</i>';return'<span class="fz-stars" aria-label="'+n+' of 3 stars">'+h+'</span>';}
 function gpTrackCard(c,i,best){const tg=GP_TAG[c.id]||["ROUTE","#fff"],b=best[c.id]||{},gh=c.special==="gh";
   return'<button class="fz-track'+(gh?" gh":"")+'" data-id="'+c.id+'" onclick="startRace3D(\''+c.id+'\')">'
-   +'<span class="fz-tpic"><img src="assets/tracks/'+c.id+'.webp?v=1" alt="" loading="lazy" decoding="async" onerror="this.remove()"><canvas id="gpMini'+i+'" width="160" height="110"></canvas>'
+   +'<span class="fz-tpic"><img src="assets/tracks/'+((!gpStory()&&GP_POSTERS[c.id])?'posters/':'')+c.id+'.webp?v=1" alt="" loading="lazy" decoding="async" onerror="if(this.src.indexOf(\'posters/\')>0)this.src=this.src.replace(\'posters/\',\'\');else this.remove()"><canvas id="gpMini'+i+'" width="160" height="110"></canvas>'
    +'<em class="fz-tag" style="--tg:'+tg[1]+'">'+tg[0]+'</em>'+(gh?'<em class="fz-gh"><i class="fz-flag"></i>🚐 trotro + taxis</em>':(c.traffic&&c.traffic.length?'<em class="fz-gh">🚕 traffic</em>':''))+'</span>'
    +(gh?'<span class="fz-kente"></span>':'')
    +'<b>'+esc(c.name)+'</b><span class="fz-trow">'+gpStars(c.stars||1)+'<span class="fz-km">'+c.km.toFixed(1)+' km</span></span>'
@@ -809,7 +809,7 @@ function gpTrackCard(c,i,best){const tg=GP_TAG[c.id]||["ROUTE","#fff"],b=best[c.
 function gpOptRow(k,label,opts,cur){return'<div class="fz-opt" data-k="'+k+'"><span class="fz-ol">'+label+'</span><div>'+opts.map(o=>'<button data-v="'+o[0]+'" class="'+(String(cur)===String(o[0])?"on":"")+'" onclick="gpPickOpt(\''+k+'\','+JSON.stringify(o[0]).replace(/"/g,"'")+')">'+o[1]+'</button>').join("")+'</div></div>';}
 function GP_TRACK_ORDER(){const first=["inaka","deep","desert","accra","city","coast"];return GP_CIRCUITS.map((c,i)=>i).sort((a,b)=>{const fa=first.indexOf(GP_CIRCUITS[a].id),fb=first.indexOf(GP_CIRCUITS[b].id);return (fa<0?9+a:fa)-(fb<0?9+b:fb);});}   // the new courses lead the picker
 function renderCircuits(tab){
-  if(GPN)gpnLeave();clearTimers();closeOverlay();showAnanseCorner(false);gpStop();gpCss();gpAudioUnlock();
+  if(GPN)gpnLeave();clearTimers();closeOverlay();showAnanseCorner(false);gpStop();gpCss();gpFzMenuCss();gpAudioUnlock();
   tab=tab==="opts"?"opts":"tracks";window._gpTab=tab;
   const best=P&&P.race?P.race:{};
   const tracks='<button class="gpn-entry" id="gpnEntry" onclick="renderOnline()"><b>👫 Race a friend</b><small>Each on your own device, with a private code</small></button><div class="fz-mode fz-m"><button data-m="race" class="'+(gpMode()==="race"?"on":"")+'" onclick="gpPickMode(\'race\')">🏁 Race: beat 4 rivals</button><button data-m="free" class="'+(gpMode()==="free"?"on":"")+'" onclick="gpPickMode(\'free\')">🎵 Free drive: collect the music</button></div>'
@@ -4082,3 +4082,73 @@ function gpFzTach(x,S,mph,gear,rf){const c=S/2,r=S*0.40,a0=Math.PI*0.75,a1=Math.
   x.lineWidth=S*0.008;x.strokeStyle="rgba(255,255,255,.85)";x.beginPath();x.arc(c,c-S*0.085,S*0.075,0,7);x.stroke();x.fillStyle="#fff";x.font="italic 800 "+(S*0.1)+"px system-ui";x.fillText(String(gear),c-S*0.004,c-S*0.08);
   x.shadowColor="rgba(0,0,0,.7)";x.shadowBlur=S*0.03;x.textAlign="right";x.font="italic 800 "+(S*0.235)+"px system-ui";x.fillStyle="#fff";{const tx=String(Math.round(mph)),pad="0".repeat(Math.max(0,3-tx.length)),w=x.measureText(tx).width;x.fillText(tx,c+S*0.36,c+S*0.19);if(pad){x.fillStyle="rgba(255,255,255,.28)";x.shadowBlur=0;x.fillText(pad,c+S*0.36-w,c+S*0.19);}}
   x.shadowBlur=0;x.font="700 "+(S*0.052)+"px system-ui";x.fillStyle="rgba(255,255,255,.75)";x.fillText("MPH",c+S*0.36,c+S*0.335);x.textAlign="center";}
+/* ---------- festival menus (Realistic look): the car turns on a lit stage, the six festival cars sit in a strip under it, tracks are big posters ---------- */
+const GP_POSTERS={inaka:1,kawaguchi:1,hakone:1,tokyo:1,city:1,accra:1,coast:1,desert:1,deep:1};
+function gpFzMenuCss(){if(document.getElementById("gpFzMenuCss"))return;const s=document.createElement("style");s.id="gpFzMenuCss";s.textContent=`
+.fz-shell.fzm{background:linear-gradient(175deg,#1a1d29,#111219 55%,#1d1712);border-color:rgba(255,255,255,.1)}
+.fz-shell.fzm .fz-head{padding:16px 8px 10px}
+.fzs{position:relative;margin:4px 0 14px;border-radius:22px;overflow:hidden;background:radial-gradient(ellipse at 50% 96%,rgba(255,150,40,.42),transparent 60%),linear-gradient(180deg,#232a3c 0%,#2c2533 46%,#14141a 100%);border:1px solid rgba(255,255,255,.12);box-shadow:0 18px 40px rgba(0,0,0,.45)}
+.fzs canvas{display:block;width:100%;height:clamp(220px,40vw,400px);touch-action:pan-y;cursor:grab}
+.fzs-info{position:absolute;left:16px;top:12px;right:16px;color:#fff;pointer-events:none;text-shadow:0 2px 12px rgba(0,0,0,.65);display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.fzs-info em{display:inline-block;font-style:normal;font-weight:800;font-size:12px;letter-spacing:.16em;background:#ff8c00;color:#15151c;padding:2px 8px;border-radius:3px;text-shadow:none}
+.fzs-info b{display:block;font-size:clamp(24px,5.2vw,52px);font-weight:900;font-style:italic;text-transform:uppercase;line-height:1;margin-top:6px;letter-spacing:-.01em}
+.fzs-info span.k{display:block;margin-top:4px;font-size:clamp(11px,1.5vw,14px);letter-spacing:.16em;text-transform:uppercase;opacity:.82}
+.fzs-bars{display:grid;gap:5px;min-width:clamp(104px,20vw,190px);margin-top:2px}
+.fzs-bars i{display:flex;align-items:center;justify-content:flex-end;gap:7px;font-style:normal;font-size:clamp(10px,1.3vw,12px);font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.fzs-bars s{display:flex;gap:3px;text-decoration:none}.fzs-bars s u{width:clamp(11px,2.1vw,22px);height:6px;border-radius:2px;background:rgba(255,255,255,.22);text-decoration:none}.fzs-bars s u.on{background:#ff8c00}
+.fzs-six{display:flex;gap:9px;padding:10px 12px 12px;overflow-x:auto;scroll-snap-type:x proximity;background:linear-gradient(rgba(0,0,0,0),rgba(0,0,0,.5));-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.fzs-six::-webkit-scrollbar{display:none}
+.fzs-chip{position:relative;flex:1 0 clamp(96px,15vw,140px);min-height:68px;aspect-ratio:3/2;border-radius:14px;border:2px solid rgba(255,255,255,.22);background:#22242c center/cover no-repeat;scroll-snap-align:center;cursor:pointer;padding:0;overflow:hidden;font:inherit;color:#fff;transition:transform .14s,border-color .14s}
+.fzs-chip b{position:absolute;left:0;right:0;bottom:0;padding:12px 6px 5px;font-size:clamp(10px,1.3vw,12px);font-weight:800;font-style:italic;letter-spacing:.06em;text-transform:uppercase;text-align:center;background:linear-gradient(rgba(0,0,0,0),rgba(0,0,0,.78))}
+.fzs-chip.on{border-color:#ff8c00;box-shadow:0 0 0 3px rgba(255,140,0,.32);transform:translateY(-2px)}
+.fzs-chip:active{transform:scale(.96)}
+.fz-shell.fzm .fz-gtabs button.on{background:linear-gradient(90deg,#ff8c00,#ff5a1f);border-color:transparent}
+.fz-shell.fzm .fz-car.v4.on{border-color:#ff8c00;box-shadow:0 0 0 3px rgba(255,140,0,.28)}
+.fz-shell.fzm .fz-mode button.on,.fz-shell.fzm .fz-tabs button.on{background:linear-gradient(90deg,#ff8c00,#ff5a1f);border-color:transparent}
+.fz-shell.fzm .fz-tracks{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.fz-shell.fzm .fz-track{aspect-ratio:2/3;justify-content:flex-end;padding:12px 12px 12px;border-radius:20px;overflow:hidden;border:2px solid rgba(255,255,255,.14);background:#15151c;box-shadow:0 14px 30px rgba(0,0,0,.45);gap:3px}
+.fz-shell.fzm .fz-track.gh{border-color:rgba(252,209,22,.7);box-shadow:0 14px 30px rgba(0,0,0,.45)}
+.fz-shell.fzm .fz-track .fz-tpic{position:absolute;inset:0;aspect-ratio:auto;border-radius:0;background:#1b1d26}
+.fz-shell.fzm .fz-track .fz-tpic::after{content:"";position:absolute;left:0;right:0;bottom:0;height:52%;background:linear-gradient(rgba(12,12,18,0),rgba(12,12,18,.9) 58%,rgba(12,12,18,.97))}
+.fz-shell.fzm .fz-track .fz-tpic canvas{right:8px;bottom:auto;top:25%;width:26%;z-index:1;opacity:.9}
+.fz-shell.fzm .fz-track .fz-tpic .fz-tag{top:27%;left:10px}.fz-shell.fzm .fz-track .fz-tpic .fz-gh{top:auto;bottom:calc(52% + 4px);left:10px;right:auto}
+.fz-shell.fzm .fz-track>b,.fz-shell.fzm .fz-track>.fz-trow,.fz-shell.fzm .fz-track>small{position:relative;z-index:2;text-shadow:0 2px 8px rgba(0,0,0,.7)}
+.fz-shell.fzm .fz-track>b{font-size:clamp(17px,2.1vw,23px)}
+.fz-shell.fzm .fz-track>small{color:rgba(255,255,255,.8)}
+.fz-shell.fzm .fz-track:hover{border-color:#ff8c00;transform:translateY(-3px)}
+@media (max-width:640px){.fz-shell.fzm .fz-tracks{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;margin:0 -12px;padding:4px 14% 14px;-webkit-overflow-scrolling:touch;scrollbar-width:none}.fz-shell.fzm .fz-tracks::-webkit-scrollbar{display:none}.fz-shell.fzm .fz-track{flex:0 0 72%;scroll-snap-align:center}}
+@media (prefers-reduced-motion:reduce){.fzs-chip,.fz-shell.fzm .fz-track{transition:none}}
+`;document.head.appendChild(s);}
+function gpFzStageHtml(){if(gpStory())return"";gpFzMenuCss();const sel=gpCar().id;
+  return'<div class="fzs" id="fzStage"><canvas id="fzTurn" width="640" height="360" role="img" aria-label="Your car on the festival turntable"></canvas><div class="fzs-info" id="fzsInfo"></div>'
+   +'<div class="fzs-six" role="list" aria-label="Festival cars">'+GP_CARS.filter(c=>GP_MESHY.has(c.id)).map(c=>'<button class="fzs-chip'+(c.id===sel?" on":"")+'" role="listitem" data-chip="'+c.id+'" style="background-image:url(assets/cars/cards/'+c.id+'.webp)" onclick="gpPickGrp(\''+(c.grp||"racers")+'\');gpPickCar(\''+c.id+'\')" aria-label="'+esc(c.n)+'"><b>'+esc(c.n)+'</b></button>').join("")+'</div></div>';}
+function gpFzStageSync(){const e=$("fzsInfo");if(!e)return;const c=gpCar(),bar=(k,v)=>'<i>'+k+'<s>'+[1,2,3,4,5].map(q=>'<u class="'+(q<=v?"on":"")+'"></u>').join("")+'</s></i>';
+  e.innerHTML='<div><em>'+esc(c.cls||"A")+' · '+(c.pi||800)+'</em><b>'+esc(c.n)+'</b><span class="k">'+esc(c.kind||c.type)+'</span></div><div class="fzs-bars">'+bar("Speed",c.speed)+bar("Grip",c.grip||c.handle)+bar("Accel",c.accel)+'</div>';
+  document.querySelectorAll(".fzs-chip").forEach(b=>b.classList.toggle("on",b.dataset.chip===c.id));gpFzTurn();}
+/* the turntable: its own small renderer; drag to spin; stops by itself when the screen changes */
+function gpFzTurnStop(){const S=window._gpTurn;if(!S)return;window._gpTurn=null;try{cancelAnimationFrame(S.raf);S.scene.traverse(o=>{if(o.geometry)o.geometry.dispose();});if(S.env)S.env.dispose();S.r.dispose();S.r.forceContextLoss();}catch(e){}}
+function gpFzTurn(){const cv=$("fzTurn");if(!cv||!window.THREE)return;const T=THREE;let S=window._gpTurn;
+  if(S&&S.cv!==cv){gpFzTurnStop();S=null;}
+  if(!S){try{const r=new T.WebGLRenderer({canvas:cv,antialias:true,alpha:true});r.setPixelRatio(Math.min(window.devicePixelRatio||1,2));if(T.sRGBEncoding)r.outputEncoding=T.sRGBEncoding;r.toneMapping=T.ACESFilmicToneMapping;r.toneMappingExposure=0.96;r.shadowMap.enabled=true;r.shadowMap.type=T.PCFSoftShadowMap;
+      const scene=new T.Scene();scene.add(new T.HemisphereLight(0xdfe6f2,0x3a2c20,0.55));
+      const key=new T.DirectionalLight(0xffe2b8,1.3);key.position.set(5,7,4);key.castShadow=true;key.shadow.mapSize.set(1024,1024);const sc=key.shadow.camera;sc.left=-5;sc.right=5;sc.top=5;sc.bottom=-5;sc.near=1;sc.far=24;key.shadow.bias=-0.0005;scene.add(key);
+      const rim=new T.DirectionalLight(0xff9440,1.1);rim.position.set(-6,3,-6);scene.add(rim);const fill=new T.DirectionalLight(0x9db8ff,0.35);fill.position.set(-4,2,6);scene.add(fill);
+      let env=null;try{const pm=new T.PMREMGenerator(r);const eq=gpCanvasTex(256,128,(x,w,h)=>{const g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,"#56709c");g.addColorStop(0.36,"#c9d3de");g.addColorStop(0.5,"#f6dcae");g.addColorStop(0.53,"#3a3028");g.addColorStop(1,"#141318");x.fillStyle=g;x.fillRect(0,0,w,h);
+          [[40,34,60,10],[150,26,80,8],[215,40,36,7]].forEach(q=>{x.fillStyle="rgba(255,255,255,.9)";x.fillRect(q[0],q[1],q[2],q[3]);});const sg=x.createRadialGradient(190,60,0,190,60,34);sg.addColorStop(0,"rgba(255,225,170,1)");sg.addColorStop(1,"rgba(255,200,120,0)");x.fillStyle=sg;x.fillRect(0,0,w,h);});eq.mapping=T.EquirectangularReflectionMapping;env=pm.fromEquirectangular(eq);pm.dispose();eq.dispose();scene.environment=env.texture;}catch(e){}
+      const spin=new T.Group();scene.add(spin);
+      const deck=new T.Mesh(new T.CylinderGeometry(3.25,3.4,0.2,72),new T.MeshStandardMaterial({color:0x0c0d11,roughness:0.5,metalness:0.2,envMapIntensity:0.35}));deck.position.y=-0.1;deck.receiveShadow=true;spin.add(deck);
+      const marks=new T.Mesh(new T.RingGeometry(2.72,2.8,72,1),new T.MeshBasicMaterial({color:0x4a4d58}));marks.rotation.x=-Math.PI/2;marks.position.y=0.004;spin.add(marks);
+      for(let k=0;k<12;k++){const t=new T.Mesh(new T.PlaneGeometry(0.06,0.34),new T.MeshBasicMaterial({color:0x6a6d78}));t.rotation.x=-Math.PI/2;t.rotation.z=k*Math.PI/6;t.position.set(Math.sin(k*Math.PI/6)*3.0,0.005,Math.cos(k*Math.PI/6)*3.0);spin.add(t);}
+      const ringM=new T.MeshBasicMaterial({color:0xff8c00});ringM.toneMapped=false;const ring=new T.Mesh(new T.TorusGeometry(3.42,0.035,8,96),ringM);ring.rotation.x=Math.PI/2;ring.position.y=-0.03;scene.add(ring);
+      const base=new T.Mesh(new T.CylinderGeometry(3.7,3.9,0.16,72),new T.MeshStandardMaterial({color:0x101116,roughness:0.5,metalness:0.5}));base.position.y=-0.28;scene.add(base);
+      const cam=new T.PerspectiveCamera(30,16/9,0.1,80);
+      S=window._gpTurn={r,scene,cam,cv,spin,env,shared:gpCarShared(T),cur:null,id:null,last:performance.now(),w:0,h:0,drag:null,vel:0.42};
+      cv.addEventListener("pointerdown",ev=>{S.drag={x:ev.clientX};try{cv.setPointerCapture(ev.pointerId);}catch(e){}});cv.addEventListener("pointermove",ev=>{if(!S.drag)return;const dx=ev.clientX-S.drag.x;S.drag.x=ev.clientX;spin.rotation.y+=dx*0.012;S.vel=Math.max(-3,Math.min(3,dx*0.6));});
+      ["pointerup","pointercancel","lostpointercapture"].forEach(t=>cv.addEventListener(t,()=>{S.drag=null;}));
+      const loop=now=>{if(window._gpTurn!==S)return;if(!cv.isConnected){gpFzTurnStop();return;}const dt=Math.min(0.05,(now-S.last)/1000);S.last=now;const w=cv.clientWidth,h=cv.clientHeight;
+        if(w&&h&&(w!==S.w||h!==S.h)){S.w=w;S.h=h;r.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();const d=cam.aspect<1.25?11.6:(cam.aspect<1.7?9.6:8.8);cam.position.set(d*0.62,d*0.25,d*0.74);cam.lookAt(0,0.62,0);}
+        if(!S.drag){S.vel+=(0.42-S.vel)*Math.min(1,dt*1.5);spin.rotation.y+=S.vel*dt;}r.render(scene,cam);S.frames=(S.frames||0)+1;S.raf=requestAnimationFrame(loop);};S.raf=requestAnimationFrame(loop);}catch(e){window._gpTurn=null;return;}}
+  const car=gpCar(),id=car.id,key=id+"|"+gpPaint();if(S.id===key)return;S.id=key;
+  const show=()=>{if(window._gpTurn!==S||S.id!==key)return;try{if(S.cur){S.spin.remove(S.cur.g);}const src=(window._gpGlb||{})[id];const m=(GP_GLB[id]&&src)?gpBuildGlbCar(T,car,src,gpGlbPaintFor(car,true),S.shared):gpBuildCar(T,car,gpPaint(),S.shared);
+      m.g.traverse(o=>{if(o.isMesh){o.castShadow=true;}});m.g.position.set(0,0,0);m.g.rotation.set(0,0,0);S.spin.add(m.g);S.cur=m;S.car=id;S.built=(GP_GLB[id]&&src)?"glb":"drawn";}catch(e){}};
+  if(GP_GLB[id]&&!(window._gpGlb||{})[id])gpLoadGlb([id]).then(show,show);else show();}
