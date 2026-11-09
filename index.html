@@ -7029,7 +7029,7 @@ function gpContacts(dt,waiting){if(waiting)return 0;const B=R3.bodies,L=R3.len,X
         A.x-=nu*pen*wA/XS;C.x+=cu*pen*wC/XS;A._mv=C._mv=1;gpShiftT(A,-nv*pen*wA/L,waiting);gpShiftT(C,cv*pen*wC/L,waiting);
         // closing speed along the normal (m/s): A's velocity in its frame vs C's velocity turned into A's frame
         const aU=gpLatV(A)*XS,aV=A.speed,cU0=gpLatV(C)*XS,cV0=C.speed,cU=cU0*ct+cV0*st,cV=-cU0*st+cV0*ct,vrel=Math.max((A.net||C.net)?-2.5:((A.air||C.air||gpPace()==="gentle")?-4:-6),(cU-aU)*nu+(cV-aV)*nv);   // < 0: closing (online: a capped, gentle knock, since the other car is a moment old)
-        const airSoft=(A.air||C.air)&&gpPace()==="gentle"?0.55:1;let impact=0;if(vrel<0){impact=-vrel;const e=impact>2.5?0.2:0;   // a real knock bounces softly; a slow push is a plain push (no frame-to-frame ping-pong)
+        const airSoft=(A.air||C.air)&&gpPace()==="gentle"?0.55:1;const bc=A._bc||(A._bc=new Map()),tn=R3.simT||0,hard=-vrel>2.5||!!(A.air||C.air),cool=hard&&tn-(bc.get(C)==null?-9:bc.get(C))<0.35;let impact=0;if(vrel<0&&!cool){impact=-vrel;if(hard)bc.set(C,tn);const e=impact>2.5?0.2:0;   // a real knock bounces softly; a slow push is a plain push (no frame-to-frame ping-pong)
           const j=-(1+e)*vrel/(1/mA+1/mC)*airSoft;gpAddLatV(A,-j*nu/mA/XS);A.speed-=j*nv/mA;gpAddLatV(C,j*cu/mC/XS);C.speed+=j*cv/mC;
           if(impact>0.8){const loss=Math.min(0.03,0.004*impact);A.speed*=1-loss;C.speed*=1-loss;}}   // the small speed loss is shared
         if(Math.abs(nv)>0.7){const sx=u>=0?1:-1,nud=0.04+Math.min(0.08,impact*0.006);gpAddLatV(A,-sx*nud);gpAddLatV(C,sx*nud);}   // nose to tail: a gentle sideways ease so the pair slides apart instead of sticking
