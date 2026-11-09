@@ -18,6 +18,9 @@
      "locked": {
       ".validate": "newData.isBoolean()"
      },
+     "look": {
+      ".validate": "newData.isString() && newData.val().matches(/^(real|story)$/)"
+     },
      "track": {
       ".validate": "newData.isString() && newData.val().matches(/^(kawaguchi|hakone|tokyo|city|accra|coast|desert|deep)$/)"
      },

@@ -218,7 +218,7 @@ function gpLin(c){return new THREE.Color(c).convertSRGBToLinear();}
 function gpNum(n){return Math.round(n).toLocaleString("en-US");}
 function gpCar(){const id=(P&&P.gpCar)||window._gpCar||"falcon";return GP_CARS.find(c=>c.id===id)||GP_CARS[0];}
 function gpPaint(){const p=(P&&P.gpPaint)||window._gpPaint;return (p&&/^#[0-9a-f]{6}$/i.test(p))?p:gpCar().paint;}
-function gpLook(){return (P&&P.gpLook)||window._gpLook||"real";}
+function gpLook(){if(GPN&&GPN.look)return GPN.look;return (P&&P.gpLook)||window._gpLook||"real";}   // in a Race-a-friend room the host's look wins for everyone; the player's own saved Look is never touched, so it is simply back when they leave
 function gpStory(){return gpLook()==="story";}
 function gpStats(car){const g=car.grip||car.handle;return{max:44+car.speed*3.6,accel:9+car.accel*2.2,steer:1.4+car.handle*0.28,offF:car.type==="truck"?0.74:(car.type==="rally"||car.type==="suv"?0.62:0.45),gripK:0.9+g*0.04,dirtK:car.type==="truck"?1.35:(car.type==="rally"||car.type==="suv"?1.25:1)};}   // v4 (job 1104-2330): ~30% more top speed; grip differs per car
 /* ---------- ink & wash post-process (one full-screen pass) ---------- */
@@ -322,7 +322,7 @@ const GPA={ctx:null,master:null,eng:null,muted:false,
 /* first tap anywhere on the racer screens wakes the game audio (iPad keeps WebAudio asleep until a gesture), so the first countdown beep is on time */
 function gpAudioUnlock(){if(window._gpAU)return;window._gpAU=true;const f=()=>{GPA.init();if(GPA.ctx&&GPA.ctx.state==="running")["pointerdown","touchend","click","keydown"].forEach(t=>document.removeEventListener(t,f,true));};["pointerdown","touchend","click","keydown"].forEach(t=>document.addEventListener(t,f,true));}
 /* ---------- one-time CSS: Horizon look (default) + storybook modifier ---------- */
-function gpCss(){if(document.getElementById("gpV4Css"))return;const s=document.createElement("style");s.id="gpV4Css";s.textContent=`
+function gpCss(){if(document.getElementById("gpV4Css")){gpStoryFont();return;}const s=document.createElement("style");s.id="gpV4Css";s.textContent=`
 .gpn-entry{display:block;width:100%;min-height:68px;margin:0 0 10px;padding:9px 14px;border:0;border-bottom:5px solid #00a93f;border-radius:16px;background:#00ff66;color:#061a10;cursor:pointer;font-family:inherit;text-align:center}.gpn-entry b{display:block;font-size:22px;font-weight:900}.gpn-entry small{font-size:14px;font-weight:600}.gpn-entry:active{transform:translateY(3px);border-bottom-width:2px}
 .fz-pic{position:relative;display:block;width:100%;aspect-ratio:2.4;overflow:hidden;border-radius:10px;background:linear-gradient(#5f8fd0,#c9dcf0 55%,#4a5a3c 56%,#2b3524)}
 .fz-pic.hero{background:#0a0d18 var(--bg) center/cover no-repeat}
@@ -688,7 +688,8 @@ function gpCss(){if(document.getElementById("gpV4Css"))return;const s=document.c
 .fz-gp,.fz-gs{width:44px;height:44px;border-radius:50%;border:3px solid rgba(253,240,213,.35);cursor:pointer;display:grid;place-items:center;font-size:22px;background:#0D1B2A;color:#FDF0D5}
 .fz-gp{background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.5),rgba(255,255,255,0) 45%),var(--p)}
 .fz-gp.on,.fz-gs.on{border-color:#F4A261;box-shadow:0 0 0 3px rgba(244,162,97,.45)}
-`;document.head.appendChild(s);if(gpStory()&&!document.getElementById("gpFont")){const l=document.createElement("link");l.id="gpFont";l.rel="stylesheet";l.href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap";document.head.appendChild(l);}}
+`;document.head.appendChild(s);gpStoryFont();}
+function gpStoryFont(){if(gpStory()&&!document.getElementById("gpFont")){const l=document.createElement("link");l.id="gpFont";l.rel="stylesheet";l.href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap";document.head.appendChild(l);}}
 
 /* ---------- menus: car select → route select → race ---------- */
 function gpStop(){
@@ -1120,7 +1121,8 @@ function gpGarageSet(k,v){const u=gpUpState();u[k]=v||null;gpUpSave(u);sfx("tick
 function gpRivalCars(cid){const mine=gpCar(),others=GP_CARS.filter(c=>c.id!==mine.id),k=Math.max(0,GP_CIRCUITS.findIndex(c=>c.id===cid));const out=[];
   if(cid==="desert"){const tr=others.filter(c=>c.grp==="trucks"),ot=others.filter(c=>c.grp!=="trucks");return[ot[2],tr[0],ot[9]||ot[0],tr[2]||tr[1]];}   // desert: two trucks on the grid
   for(let q=0;q<4;q++)out.push(others[(k*3+q*Math.max(1,Math.floor(others.length/4)))%others.length]);return out;}
-function gpRacePicIds(cid){if(GPN&&GPN.race)return GPN.race.roster.map(r=>GP_CARS.find(c=>c.id===r.car)||GP_CARS[0]);return[gpCar()].concat(gpRivalCars(cid)).map(c=>c.id);}
+function gpRacePicIds(cid){if(GPN&&GPN.race)return GPN.race.roster.map(r=>(GP_CARS.find(c=>c.id===r.car)||GP_CARS[0]).id);   // ids, like the single-player branch (it returned car objects, so no friend's 3D model was ever preloaded)
+  return[gpCar()].concat(gpRivalCars(cid)).map(c=>c.id);}
 function gpLoadPics(ids){
   if(!window.THREE)return Promise.resolve({});
   const T=THREE;window._gpPics=window._gpPics||{};const L=new T.TextureLoader(),want=[...new Set(ids||Object.keys(GP_PICS))].filter(id=>GP_PICS[id]);
@@ -3321,6 +3323,7 @@ function gpRender(dt){
   R3.sky.position.copy(R3.camera.position);if(R3.band)R3.band.position.set(R3.camera.position.x,R3.band.userData.y,R3.camera.position.z);R3.glare.position.copy(R3.camera.position).addScaledVector(R3.sunDir,1500);
   R3.sun.position.copy(me.pos).add(R3.sunOff);R3.sun.target.position.copy(me.pos);if(me.jet){const dh=me.pos.y-me.ry;R3.sun.position.y-=dh;R3.sun.target.position.y-=dh;}R3.sun.target.updateMatrixWorld();
   if(R3.dp)gpDeepRender(dt);
+  if(R3.online)gpnLabels();
   R3.renderer.info.reset();if(cmode==="cockpit")gpCockpit();
   const pp=R3.post;if(pp){pp.mat.uniforms.t.value=performance.now()/1000;R3.renderer.setRenderTarget(pp.rt);R3.renderer.render(R3.scene,R3.camera);R3.renderer.setRenderTarget(null);R3.renderer.render(pp.scene,pp.cam);}else{R3.renderer.render(R3.scene,R3.camera);if(cmode==="cockpit")gpMirror();gpSpeedFx(R3.countdown>0?0:spd+(R3.bk||0)*0.4,me.drift);}
   if(pp&&(me.jet||R3.fxOn||(R3.online&&me.drG>0.04))){R3.fxOn=!!me.jet||(R3.online&&me.drG>0.04);gpSpeedFx(me.jet?Math.max(spd,0.95)+(R3.bk||0)*0.4:0,0);}
@@ -3465,6 +3468,9 @@ function gpnCss(){gpCss();if($("gpnCss"))return;const s=document.createElement("
 .gpn-podc span{font-size:28px;line-height:1}.gpn-podc b{font:400 15px "GPN Bungee",system-ui,sans-serif;max-width:100%;overflow:hidden;text-overflow:ellipsis}.gpn-podc i{font:700 13px system-ui,sans-serif;font-style:normal;color:#00ff66}.gpn-podc u{display:block;width:100%;margin-top:4px;background:#4b2a80}
 .gpn-podc .p1 u{height:46px;background:#ffd600}.gpn-podc .p2 u{height:28px;background:#c9ced6}.gpn-podc .p3 u{height:16px;background:#cd8a4b}
 /* live position board: 1st-4th with names and the gap to the car in front */
+.gpn-tags{position:absolute;left:0;top:0;width:0;height:0;z-index:3;pointer-events:none}.gpn-tag{position:absolute;left:0;top:0;white-space:nowrap;padding:.2em .7em .22em;border-radius:.7em;background:rgba(18,6,38,.9);border:.17em solid #00E5FF;color:#fff;font:800 16px system-ui,sans-serif;letter-spacing:.02em;box-shadow:0 2px 6px rgba(0,0,0,.45);will-change:transform}.gpn-tag:after{content:"";position:absolute;left:50%;bottom:-.5em;margin-left:-.32em;border:.32em solid transparent;border-top:.38em solid #00E5FF;border-bottom:0}
+.gp3-wrap.v3.story .gpn-tag{background:#fff8e6;border-color:#2b2735;color:#2b2735;font-family:"Patrick Hand","Chalkboard SE","Comic Sans MS",system-ui,sans-serif;box-shadow:0 2px 0 #2b2735}.gp3-wrap.v3.story .gpn-tag:after{border-top-color:#2b2735}
+.gpn-look{margin:8px 0 4px;padding:8px 12px;border-radius:14px;background:#2d1254;border:3px solid #4b2a80;color:#fff;font:700 16px system-ui,sans-serif;text-align:center}.gpn-look b{color:#ffd600;font-family:"GPN Bungee",system-ui,sans-serif;font-weight:400}.gpn-look small{display:block;font-size:13px;color:#e8e0f7;font-weight:600;margin-top:2px}
 .gpn-board{position:absolute;z-index:4;left:14px;top:calc(clamp(118px,13.5vw,146px) + 112px);width:clamp(150px,15vw,200px);display:flex;flex-direction:column;gap:3px;pointer-events:none;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 .gpn-board div{display:flex;align-items:center;gap:6px;height:28px;padding:0 9px 0 4px;border-radius:15px;background:rgba(18,22,32,.72);color:#fff;font-weight:800;font-size:14px;line-height:1;box-sizing:border-box;border:2px solid transparent}
 .gpn-board div.me{border-color:#00E5FF;box-shadow:0 0 12px rgba(0,229,255,.45)}.gpn-board em{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:#fff;color:#121620;font-style:normal;font-size:12px;font-weight:900}.gpn-board div:first-child em{background:#FFD700}
@@ -3517,7 +3523,8 @@ function gpnBusy(on,msg){["gpnCreate","gpnJoin"].forEach(i=>{const b=$(i);if(b)b
 async function gpnCreate(){gpnBusy(true,"Making your room…");
   try{const F=await gpnConnect(),uid=F.auth.currentUser.uid;let code=null;
     for(let i=0;i<6&&!code;i++){const c=gpnNewCode();   // the rules only let a room be made where nothing exists, so a code in use (or an expired room) just refuses: try another
-      try{await F.db.ref("rooms/"+c+"/meta").set({host:uid,track:window._gpnTrack||"deep",laps:2,pace:"gentle",state:"lobby",run:0,touched:GPN_SV()});code=c;}catch(e){if(!/denied/i.test(String(e.code||e.message)))throw e;}}
+      const meta={host:uid,track:window._gpnTrack||"deep",laps:2,pace:"gentle",state:"lobby",run:0,touched:GPN_SV()};if(!window._gpnNoLook)meta.look=gpLook();
+      try{await F.db.ref("rooms/"+c+"/meta").set(meta);code=c;}catch(e){if(!/denied/i.test(String(e.code||e.message)))throw e;if(meta.look){window._gpnNoLook=true;i--;}}}   // a database that doesn't know "look" yet refuses it: make the room without (everyone then keeps their own Look), rather than not at all
     if(!code)throw new Error("no code");
     await F.db.ref("rooms/"+code+"/slots/0").set(uid);await gpnEnter(code,0);gpnRememberRoom(code);}
   catch(e){console.warn("online create",e);GPN=null;gpnBusy(false,gpnFriendErr(e));}}
@@ -3569,7 +3576,7 @@ function gpnLeave(quiet){const G=GPN;if(!G)return;GPN=null;clearInterval(G.iv);G
 function gpnGone(msg){const G=GPN;if(!G)return;GPN=null;clearInterval(G.iv);G.subs.forEach(f=>{try{f();}catch(e){}});gpnRememberRoom(null);try{window._gpnFb.db.ref("rooms/"+G.code).remove().catch(()=>{});}catch(e){}gpStop();renderOnline(msg||"That room has ended.");}   // the rules only allow that removal if the room really has expired
 /* everyone in seat order, each with the paint and label THIS race uses (the same on every screen: a copy of an earlier car gets a spare colour) */
 function gpnRoster(){const G=GPN,used=[],names=[],out=[];Object.keys(G.players).map(u=>Object.assign({uid:u},G.players[u])).sort((a,b)=>a.slot-b.slot).forEach(p=>{let pt=p.paint;if(used.includes(p.car+pt)){pt=GPN_SPARE.find(s=>!used.includes(p.car+s)&&gpnColor(s)!==gpnColor(p.paint))||pt;}used.push(p.car+pt);const label=gpnLabel(p.car,pt),nm=gpnNameOk(p.name)?p.name:"",dup=!!nm&&names.includes(nm.toLowerCase());if(nm&&!dup)names.push(nm.toLowerCase());out.push(Object.assign(p,{paint:pt,label,name:dup?"":nm,dup,disp:(nm&&!dup)?nm:label,me:p.uid===G.uid}));});return out;}
-function gpnOnMeta(m){const G=GPN;if(!m){gpnGone();return;}const prev=G.meta;G.meta=m;
+function gpnOnMeta(m){const G=GPN;if(!m){gpnGone();return;}const prev=G.meta;G.meta=m;G.look=(m.look==="story"||m.look==="real")?m.look:null;
   if(m.state==="lobby"){if(G.scr!=="lobby"){gpStop();G.race=null;G.scr="lobby";G.finish={};G.order=null;window.scrollTo(0,0);gpnLobby();return;}gpnLobbySoon();return;}
   if((!G.race||G.race.run!==m.run)&&(m.state==="load"||m.state==="count"||m.state==="race")){if(!gpnOnScreen()){gpnLeave();return;}gpnBegin(m);}
   if(R3&&R3.online&&m.goAt&&!R3.netGo&&G.race&&G.race.run===m.run){gpnSetGo(m.goAt);}
@@ -3593,12 +3600,15 @@ function gpnLobby(){const G=GPN;if(!G||G.scr!=="lobby"||!app)return;gpnCss();con
   const tracks=isHost?'<p class="gpn-h">PICK THE TRACK</p><div class="gpn-tr">'+GP_TRACK_ORDER().map(i=>{const c=GP_CIRCUITS[i];return'<button class="'+(c.id===m.track?"on":"")+'" data-id="'+c.id+'" onclick="gpnSet(\'track\',\''+c.id+'\')"><img src="assets/tracks/'+c.id+'.webp?v=1" alt="" loading="lazy"><b>'+esc(c.name)+'</b></button>';}).join("")+'</div>'
     +'<div class="gpn-chips">'+[1,2,3].map(n=>'<button class="'+(m.laps===n?"on":"")+'" onclick="gpnSet(\'laps\','+n+')">'+n+' lap'+(n>1?"s":"")+'</button>').join("")+'<button class="'+(m.pace==="gentle"?"on":"")+'" onclick="gpnSet(\'pace\',\'gentle\')">🐢 Easy</button><button class="'+(m.pace==="normal"?"on":"")+'" onclick="gpnSet(\'pace\',\'normal\')">🚗 Normal</button><button id="gpnLock" class="'+(m.locked?"on":"")+'" onclick="gpnSet(\'locked\','+(m.locked?"false":"true")+')">'+(m.locked?"🔒 Locked":"🔓 Open")+'</button></div>'
     :'<p class="gpn-h">THE TRACK</p><div class="gpn-picked" id="gpnPicked"><img src="assets/tracks/'+C.id+'.webp?v=1" alt=""><div><b>'+esc(C.name)+'</b><small>'+m.laps+' lap'+(m.laps>1?"s":"")+' · '+(m.pace==="normal"?"Normal":"Easy")+'</small></div></div>';
+  const hostR=ros.find(r=>r.uid===m.host),curLook=G.look||gpLook(),
+    lookLine=!G.look?"":'<p class="gpn-look" id="gpnLook">🖌️ Look: <b>'+(curLook==="story"?"Storybook":"Realistic")+'</b>, picked by '+(isHost?"you":esc(hostR?hostR.disp:"the host"))+'<small>Everyone races with this look</small></p>'
+     +(isHost?'<div class="gpn-chips" id="gpnLookChips"><button class="'+(curLook==="real"?"on":"")+'" data-look="real" onclick="gpnSet(\'look\',\'real\')">🗻 Realistic</button><button class="'+(curLook==="story"?"on":"")+'" data-look="story" onclick="gpnSet(\'look\',\'story\')">🖌️ Storybook</button></div>':"");
   const others=ros.filter(r=>!r.me&&r.on!==false).length;
   const taken=!!(me&&me.dup),hint=taken?"Someone here already has your name. Tap Change name":(others?(rdy?"Waiting for everyone to tap Ready":"Tap when you're ready. The race starts when everyone is"):"Read the code out to a friend");
   app.innerHTML='<div class="gpn" id="gpnScr"><div class="gpn-top"><h1>Grand Fable GP</h1><button class="gpn-x" id="gpnExit" onclick="renderOnline()">Exit</button></div>'
    +'<div class="gpn-lob"><div><div class="gpn-code" id="gpnCode" aria-label="Room code '+G.code.split("").join(" ")+'"><small>ROOM CODE · read it out to your friends</small><span class="gpn-big">'+G.code+'</span></div>'
    +'<div class="gpn-grid" id="gpnSeats">'+seats.map((r,i)=>gpnSlotHtml(r,i,G,isHost)).join("")+'</div></div>'
-   +'<div>'+(m.n>0?'<p class="gpn-h" id="gpnSer">SERIES · RACE '+Math.min(GPN_RACES,(m.n|0)+1)+' OF '+GPN_RACES+' · points carry over</p>':'')+tracks
+   +'<div>'+(m.n>0?'<p class="gpn-h" id="gpnSer">SERIES · RACE '+Math.min(GPN_RACES,(m.n|0)+1)+' OF '+GPN_RACES+' · points carry over</p>':'')+tracks+lookLine
    +'<div class="gpn-mine" style="padding:6px 12px"><small>Your racing name<b id="gpnMyName" style="display:block;font-size:19px;color:#fff;font-family:\'GPN Bungee\',system-ui,sans-serif;font-weight:400">'+esc(me?me.disp:"")+'</b></small><button id="gpnNameBtn" onclick="gpnNameSheet()"'+(rdy?" disabled":"")+'>✏️ Change name</button></div>'
    +'<div class="gpn-mine" style="padding:6px 12px"><small>Your car: <b style="display:inline;font-size:15px;color:#fff">'+esc(me?me.label:"")+'</b></small><button id="gpnCarBtn" onclick="gpnCarSheet()"'+(rdy?" disabled":"")+'>🚗 Change car</button></div>'
    +'<div class="gpn-cta"><button class="gpn-act'+(rdy?" off":"")+'" id="gpnReady" onclick="gpnReady()"'+(taken?" disabled":"")+'>'+(rdy?"Ready ✓<small>"+hint+"</small>":"Ready to race!<small>"+hint+"</small>")+'</button></div></div></div></div>';
@@ -3654,9 +3664,9 @@ function gpnAgain(){const G=GPN;if(!G||G.meta.host!==G.uid)return;G.finSeq={};co
 /* ---------- into the race ---------- */
 function gpnBegin(m){const G=GPN;G.race={run:m.run,no:(m.n|0)+1,shift:(m.n|0),track:m.track,laps:m.laps,pace:m.pace,roster:gpnRoster().filter(r=>r.on!==false)};G.scr="race";G.finSeq={};G.firstFin=0;G.orderKey="";G.pfShown=0;G.panelKey="";G.loadAt=gpnNow();const sh=$("gpnSheet");if(sh)sh.remove();startRace3D(m.track);}
 function gpnBuilt(){const G=GPN,R=R3;if(!G||!R)return;R.online=true;R.netGo=0;const T=R.T;R.karts.forEach(k=>{if(!k.net)return;k.netBuf=[];k.netJit=0;k.netOff=null;k.netOffW=[];k.netDelay=130;k.netSt=null;k.netLast=performance.now();
-    // the label over a friend's car: drawn here, from the car and its colour; nothing typed ever reaches it
-    const tex=gpCanvasTex(340,76,(x,w,h)=>{x.clearRect(0,0,w,h);x.fillStyle="rgba(18,6,38,.82)";x.beginPath();x.moveTo(20,3);x.arcTo(w-3,3,w-3,h-3,18);x.arcTo(w-3,h-3,3,h-3,18);x.arcTo(3,h-3,3,3,18);x.arcTo(3,3,w-3,3,18);x.fill();x.strokeStyle="#00E5FF";x.lineWidth=5;x.stroke();let fs=44;x.font="800 "+fs+"px system-ui,sans-serif";const mw=x.measureText(k.racer.n).width;if(mw>w-44){fs=Math.floor(fs*(w-44)/mw);x.font="800 "+fs+"px system-ui,sans-serif";}x.textAlign="center";x.textBaseline="middle";x.fillStyle="#fff";x.fillText(k.racer.n,w/2,h/2+2);});
-    const sp=new T.Sprite(new T.SpriteMaterial({map:tex,transparent:true,depthWrite:false,fog:false}));sp.scale.set(3.3,0.74,1);sp.position.y=k.racer.car.grp==="trucks"?3.7:2.2;sp.renderOrder=5;k.g.add(sp);k.netTag=sp;});
+    // the label over a friend's car: a plain on-screen label (not a picture inside the 3D scene), so the Storybook ink filter and the distance can't wash it out; it is made from the player's name only
+    const el=document.createElement("div");el.className="gpn-tag";el.textContent=k.racer.n;el.style.display="none";k.netTag=el;});
+  {const w0=$("gp3");if(w0){const bx=document.createElement("div");bx.className="gpn-tags";bx.id="gpnTags";bx.setAttribute("aria-hidden","true");R.karts.forEach(k=>{if(k.netTag)bx.appendChild(k.netTag);});w0.appendChild(bx);R.nlBox=bx;}}
   const w=$("gp3");if(w)w.insertAdjacentHTML("beforeend",'<div class="gpn-board" id="gpnBoard" aria-label="Race positions"></div><div class="gpn-wait" id="gpnWait">Waiting for your friends…</div>');
   if(G.meta&&G.meta.goAt)gpnSetGo(G.meta.goAt);
   gpnRef("players/"+G.uid+"/load").set(G.race.run).catch(()=>{});
@@ -3683,6 +3693,12 @@ function gpnDraft(kt,dt,waiting){const R=R3,XS=R.W-1.2,L=R.len;let on=false,who=
 function gpnCatchUp(dt){const R=R3,me=R.me;let want=0;
   if(GPN&&GPN.race&&GPN.race.pace==="gentle"&&me.started&&R.board&&R.board.length>1&&R.board[R.board.length-1]===me){const ahead=R.board[R.board.length-2],g=((ahead.lap+ahead.t)-(me.lap+me.t))*R.len;want=GPN_CATCH*Math.max(0,Math.min(1,(g-25)/75));}
   me.cuT=(me.cuT||0)+(want-(me.cuT||0))*Math.min(1,dt*1.5);if(want>0.001)R.cuLog=Math.max(R.cuLog||0,me.cuT);return me.cuT;}
+/* a friend's name over their car, every frame: projected from the car's spot; bigger and crisper near, never smaller than a phone can read; hidden when the car is behind you */
+function gpnLabels(){const R=R3;if(!R||!R.online||!R.nlBox)return;const cam=R.camera,cv=R.renderer.domElement,cw=cv.clientWidth,ch=cv.clientHeight;if(!cw||!ch)return;cam.updateMatrixWorld(true);const V=R.nlV||(R.nlV=new THREE.Vector3());
+  R.karts.forEach(k=>{const el=k.netTag;if(!el)return;let on=false;if(k.net&&k.g.visible&&!k.netGone){V.set(k.g.position.x,k.g.position.y+(k.racer.car.grp==="trucks"?3.7:2.5),k.g.position.z);const d=V.distanceTo(cam.position);V.project(cam);
+      if(V.z<1&&Math.abs(V.x)<1.1&&V.y>-1&&V.y<1.1){on=true;const px=Math.max(14,Math.min(20,21-d*0.04)),x=cv.offsetLeft+(V.x*0.5+0.5)*cw,y=cv.offsetTop+(-V.y*0.5+0.5)*ch;
+        if(el.style.display!=="block")el.style.display="block";if(el._px!==Math.round(px)){el._px=Math.round(px);el.style.fontSize=el._px+"px";}el.style.transform="translate3d("+x.toFixed(1)+"px,"+y.toFixed(1)+"px,0) translate(-50%,-100%)";}}
+    if(!on&&el.style.display!=="none")el.style.display="none";});}
 /* live position board: 1st-4th, name, and the gap (seconds) to the car in front. Refreshed ~6 times a second from the same positions the race uses */
 function gpnBoard(dt){const R=R3;R.bdT=(R.bdT||0)-dt;if(R.bdT>0)return;R.bdT=0.16;const el=$("gpnBoard");if(!el||!R.board)return;
   const html=R.board.map((k,i)=>{let g="";if(i>0){const a=R.board[i-1],d=((a.lap+a.t)-(k.lap+k.t))*R.len,sec=d/Math.max(25,k.speed||0);g='<u>+'+Math.max(0,sec).toFixed(1)+'s</u>';}else g='<u class="l">LEAD</u>';

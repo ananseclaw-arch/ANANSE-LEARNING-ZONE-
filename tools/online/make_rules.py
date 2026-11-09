@@ -39,6 +39,7 @@ rules = {"rules": {
           ".write": f"{SEEN} && newData.val() === auth.uid && (!{ROOM}.child('players').child(data.val()).exists() || ({ROOM}.child('players').child(data.val()).child('on').val() === false && {ROOM}.child('players').child(data.val()).child('offAt').val() < now - 10000) || ({ROOM}.child('meta/state').val() !== 'lobby' && {ROOM}.child('meta/state').val() !== 'done' && {ROOM}.child('meta/touched').val() < now - 120000))",
           ".validate": f"newData.isString() && newData.val().matches(/^[A-Za-z0-9]{{1,64}}$/) && (newData.val() === auth.uid || {ROOM}.child('players').child(newData.val()).exists())"},
         "locked": {".validate": "newData.isBoolean()"},
+        "look": {".validate": "newData.isString() && newData.val().matches(/^(real|story)$/)"},   # the host's Look (Realistic / Storybook): everyone in the room races with it
         "track": {".validate": "newData.isString() && newData.val().matches(/^(" + "|".join(tracks) + ")$/)"},
         "laps": {".validate": "newData.isNumber() && (newData.val() === 1 || newData.val() === 2 || newData.val() === 3)"},
         "pace": {".validate": "newData.isString() && newData.val().matches(/^(gentle|normal)$/)"},
