@@ -15,6 +15,17 @@ for p in m.polygons:
         v_ = m.vertices[m.loops[li].vertex_index].co; g_ = (v_.x, v_.z, -v_.y); u_ = (g_[2] - z0_) / (z1_ - z0_)
         if p.normal.x > 0: u_ = 1 - u_
         uvd[li].uv = (u_, (g_[1] - y0_) / (y1_ - y0_))
+# glass keeps planar UVs into meshy_glass.png: windscreen (top-left of the image), side glass (top-right), rear louvres (bottom-left), lamp housings (dark corner)
+gl_idx = [x.name if x else "" for x in m.materials].index("glass")
+for p in m.polygons:
+    if p.material_index != gl_idx: continue
+    cz = sum(-m.vertices[i].co.y for i in p.vertices) / len(p.vertices); side = abs(p.normal.x) > .55
+    for li in p.loop_indices:
+        v_ = m.vertices[m.loops[li].vertex_index].co; x_, y_, z_ = v_.x, v_.z, -v_.y
+        if cz > 1.75: uvd[li].uv = (.97, .03)
+        elif side: uvd[li].uv = (.5 + .5 * max(0, min(1, (z_ + .5) / 1.42)), .5 + .5 * max(0, min(1, (y_ - .78) / .44)))
+        elif cz > 0: uvd[li].uv = (.5 * max(0, min(1, (x_ + .72) / 1.44)), .5 + .5 * max(0, min(1, 1 - (z_ - .44) / .9)))
+        else: uvd[li].uv = (.5 * max(0, min(1, (x_ + .46) / .92)), .5 * max(0, min(1, (z_ + .96) / .56)))
 # shut lines: drawn into 2 projected images (side z/y, top x/z); value 1 = no line
 def draw_lines(w_, h_, segs, fw):
     arr = np.ones((h_, w_), dtype=np.float32)
@@ -22,7 +33,7 @@ def draw_lines(w_, h_, segs, fw):
         d_ = max(abs(x1_ - x0_), abs(y1_ - y0_)); n_ = max(2, int(d_ * 2))
         for t_ in np.linspace(0, 1, n_):
             x_ = int(round(x0_ + (x1_ - x0_) * t_)); y_ = int(round(y0_ + (y1_ - y0_) * t_))
-            arr[max(0, y_ - fw):min(h_, y_ + fw + 1), max(0, x_ - fw):min(w_, x_ + fw + 1)] = .32
+            arr[max(0, y_ - fw):min(h_, y_ + fw + 1), max(0, x_ - fw):min(w_, x_ + fw + 1)] = .2
     return arr
 SW, SH = 2600, 700   # side: z -2.6..2.6, y 0..1.4 (2mm/px)
 ssp = lambda z_, y_: (SW * (z_ + 2.6) / 5.2, SH * (1 - y_ / 1.4))
@@ -40,7 +51,7 @@ def write_png(path, arr):
     h_, w_ = arr.shape; raw = b"".join(b"\x00" + bytes(row) for row in np.clip(arr * 255, 0, 255).astype(np.uint8))
     def ch(t, d): return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xffffffff)
     open(path, "wb").write(b"\x89PNG\r\n\x1a\n" + ch(b"IHDR", struct.pack(">IIBBBBB", w_, h_, 8, 0, 0, 0, 0)) + ch(b"IDAT", zlib.compress(raw, 6)) + ch(b"IEND", b""))
-for name_, (w_, h_, segs, fw_) in {"pl_side": (SW, SH, side_lines, 1), "pl_top": (TW, TH, top_lines, 1)}.items():
+for name_, (w_, h_, segs, fw_) in {"pl_side": (SW, SH, side_lines, 2), "pl_top": (TW, TH, top_lines, 2)}.items():
     path_ = os.path.join(WORK, name_ + ".png"); write_png(path_, draw_lines(w_, h_, segs, fw_))
     img = bpy.data.images.load(path_, check_existing=False); img.name = name_; img.colorspace_settings.name = "Non-Color"
 # bake on a temporary single-material copy (AO x lines, emission pass)

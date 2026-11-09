@@ -16,7 +16,7 @@ SRC, OUT = a[0], a[1]
 RENDER = a[2] if len(a) > 2 and a[2] != "-" else None
 WORK = a[3] if len(a) > 3 else os.path.dirname(os.path.abspath(OUT))
 HERE = os.path.dirname(os.path.abspath(__file__))
-BODY_TARGET = 17000
+BODY_TARGET = 19500
 BAKE = os.environ.get("BAKE", "1") == "1"
 BAKE_SIZE = int(os.environ.get("BAKE_SIZE", "1024"))
 t0 = time.time()
@@ -64,6 +64,7 @@ MATS = {n: mat(n, *v[:2], **(v[2] if len(v) > 2 else {})) for n, v in {
     "lamp": (srgb("#ffffff"), .12, dict(emit=(1, .97, .9), es=2.)),
     "tail": (srgb("#7a0208"), .2, dict(emit=(1, .05, .03), es=.8)),
     "exhaust": (srgb("#232326"), .4, dict(metal=.7)),
+    "taillens": (srgb("#3e0408"), .08, dict(metal=.2, coat=1.)),
     "tyre": (srgb("#131315"), .9, {}),
     "tyrewall": (srgb("#232327"), .7, {}),
     "rim": (srgb("#c9ccd2"), .25, dict(metal=.9)),
@@ -73,7 +74,9 @@ MATS = {n: mat(n, *v[:2], **(v[2] if len(v) > 2 else {})) for n, v in {
     "caliper": (srgb("#c8101a"), .4, dict(metal=.1)),
 }.items()}
 # number panel: the decal texture is drawn in the panel step below
-MIDX = {n: i for i, n in enumerate(["paint", "stripe", "carbon", "glass", "lamp", "tail", "exhaust", "tyre", "decal"])}
+MIDX = {n: i for i, n in enumerate(["paint", "stripe", "carbon", "glass", "lamp", "tail", "taillens", "rim", "exhaust", "tyre", "decal"])}
+glass_img = bpy.data.images.load(os.path.join(HERE, "meshy_glass.png")); gb_ = MATS["glass"].node_tree; gt_ = gb_.nodes.new("ShaderNodeTexImage"); gt_.image = glass_img
+gb_.links.new(gt_.outputs["Color"], gb_.nodes["Principled BSDF"].inputs["Base Color"])
 
 # ---------------------------------------------------- 1) coarse decimate, cut the wheels out
 md = ob.modifiers.new("d", "DECIMATE"); md.ratio = .4; apply(md); log("decimate 1", len(m.polygons))
@@ -211,8 +214,8 @@ zone("glass", "xz", WIND_F, lambda f, c, n, g: n.z > .3 and g[1] > .8)
 REAR_S = [(0, -.42), (.24, -.43), (.4, -.5), (.44, -.82), (.36, -.92), (0, -.94), (-.36, -.92), (-.44, -.82), (-.4, -.5), (-.24, -.43)]
 zone("glass", "xz", REAR_S, lambda f, c, n, g: n.z > .3 and g[1] > .85)
 for s in (1, -1):   # thin dark trims on the arch edges, where the Meshy flare meets the cut
-    zone("carbon", "zy", [(.905, .27), (.998, .27), (1.0, .5), (.98, .66), (.9, .735), (.84, .74), (.94, .6)], lambda f, c, n, g, s=s: g[0] * s > .1 and n.x * s > .1)
-    zone("carbon", "zy", [(-.905, .27), (-.998, .27), (-1.0, .5), (-.98, .66), (-.9, .735), (-.84, .74), (-.94, .6)], lambda f, c, n, g, s=s: g[0] * s > .1 and n.x * s > .1)
+    zone("carbon", "zy", [(.905, .27), (.998, .27), (1.0, .5), (.97, .62), (.91, .62)], lambda f, c, n, g, s=s: g[0] * s > .1 and n.x * s > .1)
+    zone("carbon", "zy", [(-.905, .27), (-.998, .27), (-1.0, .5), (-.97, .6), (-.905, .6)], lambda f, c, n, g, s=s: g[0] * s > .1 and n.x * s > .1)
 # bonnet vents and cowl: black
 for s in (1, -1):
     zone("carbon", "xz", [(s * .22, 1.66), (s * .3, 1.6), (s * .39, 1.65), (s * .405, 1.8), (s * .33, 1.87), (s * .25, 1.84)], lambda f, c, n, g, s=s: n.z > .15 and g[0] * s > 0)
@@ -223,11 +226,12 @@ for s in (1, -1):
 zone("carbon", "xy", [(-.16, .19), (.16, .19), (.16, .41), (-.16, .41)], lambda f, c, n, g: g[2] > 1.6 and n.y < .6, smooth=False)
 for s in (1, -1):   # headlamps: slanted shapes on the front corners (top projection), dark surround first then bright lamp inside
     zone("glass", "xz", [(s * .56, 2.24), (s * .76, 2.13), (s * .93, 1.96), (s * .95, 1.87), (s * .82, 1.98), (s * .62, 2.1)], lambda f, c, n, g, s=s: n.z > 0 and g[0] * s > 0)
-    zone("lamp", "xz", [(s * .64, 2.18), (s * .77, 2.09), (s * .88, 1.97), (s * .9, 1.92), (s * .78, 2.02), (s * .66, 2.11)], lambda f, c, n, g, s=s: n.z > 0 and g[0] * s > 0)
+    zone("rim", "xz", [(s * .715, 2.075), (s * .755, 2.06), (s * .77, 2.02), (s * .74, 2.0), (s * .7, 2.02), (s * .69, 2.055)], lambda f, c, n, g, s=s: n.z > 0 and g[0] * s > 0)
+    zone("lamp", "xz", [(s * .63, 2.19), (s * .77, 2.11), (s * .89, 1.98), (s * .905, 1.94), (s * .79, 2.05), (s * .65, 2.15)], lambda f, c, n, g, s=s: n.z > 0 and g[0] * s > 0)
 # tail: lights, plate recess and exhaust surrounds (x/y seen from the back)
 for s in (1, -1):
-    zone("carbon", "xy", [(s * .36, .73), (s * .54, .802), (s * .73, .824), (s * .87, .79), (s * .885, .7), (s * .7, .66), (s * .48, .67)], lambda f, c, n, g, s=s: g[2] < -1.6 and n.y > .15 and g[0] * s > 0)
-    zone("tail", "xy", [(s * .44, .735), (s * .57, .779), (s * .72, .797), (s * .83, .77), (s * .835, .715), (s * .7, .69), (s * .52, .7)], lambda f, c, n, g, s=s: g[2] < -1.6 and n.y > .15 and g[0] * s > 0)
+    zone("taillens", "xy", [(s * .39, .732), (s * .54, .796), (s * .73, .816), (s * .86, .785), (s * .875, .705), (s * .7, .67), (s * .5, .68)], lambda f, c, n, g, s=s: g[2] < -1.6 and n.y > .15 and g[0] * s > 0)
+    zone("tail", "xy", [(s * .46, .752), (s * .57, .783), (s * .72, .799), (s * .835, .775), (s * .84, .751), (s * .72, .768), (s * .58, .755), (s * .49, .735)], lambda f, c, n, g, s=s: g[2] < -1.6 and n.y > .15 and g[0] * s > 0)
     zone("exhaust", "xy", [(s * .27, .29), (s * .32, .44), (s * .47, .475), (s * .58, .4), (s * .62, .29), (s * .46, .26)], lambda f, c, n, g, s=s: g[2] < -1.7 and g[0] * s > 0)
 zone("carbon", "xy", [(-.24, .5), (.24, .5), (.24, .62), (-.24, .62)], lambda f, c, n, g: g[2] < -1.7 and n.y > .1, smooth=False)
 log("zones", len(ZONES))
@@ -265,7 +269,7 @@ for x_ in (STR_IN, STR_OUT, -STR_IN, -STR_OUT):
     geom = list({e for f in sel for e in f.edges}) + sel + list({v for f in sel for v in f.verts})
     bmesh.ops.bisect_plane(bm, geom=geom, dist=.0005, plane_co=B(x_, 0, 0), plane_no=Vector((1, 0, 0)))
 # skirts, splitter, diffuser, wing are height/position cuts
-for y_, zlo, zhi in ((.262, -.99, .99), (.25, 1.6, 3.), (.3, -3., -1.44)):
+for y_, zlo, zhi in ((.262, -.99, .99), (.25, 1.6, 3.), (.3, -3., -1.44), (.462, -3., -1.72)):
     sel = [f for f in bm.faces if f.is_valid and zlo < G(f.calc_center_median())[2] < zhi and min(G(v.co)[1] for v in f.verts) < y_ + .002 and max(G(v.co)[1] for v in f.verts) > y_ - .002 and f.material_index != liner_idx]
     geom = list({e for f in sel for e in f.edges}) + sel + list({v for f in sel for v in f.verts})
     bmesh.ops.bisect_plane(bm, geom=geom, dist=.0005, plane_co=B(0, y_, 0), plane_no=Vector((0, 0, 1)))
@@ -294,7 +298,8 @@ for f in bm.faces:
         if flt(f, c, n, g) and inpoly(proj(c, ax), poly): f.material_index = IDX(name)
     if g[1] < .262 and -.97 < g[2] < .97 and abs(g[0]) > .3: f.material_index = IDX("carbon")          # side skirts
     if g[2] > 1.6 and g[1] < .25: f.material_index = IDX("carbon")                                                   # splitter
-    if g[2] < -1.44 and g[1] < .3: f.material_index = IDX("carbon")                                                     # diffuser
+    if g[2] < -1.44 and g[1] < .3: f.material_index = IDX("carbon")
+    if g[2] < -1.72 and g[1] < .462 and abs(g[0]) < .78 and f.material_index != IDX("exhaust"): f.material_index = IDX("carbon")   # GT-style black diffuser panel over the rough lower bumper                                                     # diffuser
     if g[2] < -1.66 and (g[1] > .955 or (.24 < abs(g[0]) < .44 and g[1] > .9)): f.material_index = IDX("carbon")                                                  # wing, endplates, uprights
     if abs(g[0]) < .2 and -2. < g[2] < -1.5 and g[1] > .92 and n.z < .3: f.material_index = IDX("carbon")
 # number panel: own material + planar uv
@@ -344,12 +349,13 @@ def wheel_geo(r, tw, seg=26):
     lathe(vs, fs, ms, [(hw - .012, r - .012), (hw - .05, r), (-hw + .05, r), (-hw + .012, r - .012)], seg, "tyre", True)
     lathe(vs, fs, ms, [(-hw + .012, r - .012), (-hw - .012, r - .045), (-hw - .018, rr + .05), (-hw, rr * 1.02)], seg, "tyrewall", True)
     # rim barrel + outer lip
-    lathe(vs, fs, ms, [(hw + .008, rr * 1.04), (hw + .004, rr), (hw - .03, rr - .012), (hw - .05, rr - .03), (-hw + .03, rr - .03), (-hw + .03, rr * .55)], seg, "rim", False)
+    lathe(vs, fs, ms, [(hw + .008, rr * 1.04), (hw + .004, rr), (hw - .03, rr - .012)], seg, "rim", False)
+    lathe(vs, fs, ms, [(hw - .03, rr - .012), (hw - .05, rr - .03), (-hw + .03, rr - .03), (-hw + .03, rr * .55)], seg, "rimdark", False)
     # brake disc (behind spokes)
     lathe(vs, fs, ms, [(hw * .1, rr * .86), (hw * .1, rr * .26)], seg, "disc", False)
     lathe(vs, fs, ms, [(hw * .1 + .012, rr * .86), (hw * .1 + .012, rr * .26)], seg, "disc", True)
     # spokes: 10 split spokes, each a bent prism from hub to lip, set back from the outer face
-    N = 10; xf_ = hw - .035; xb_ = hw - .1; r0 = rr * .19; r1 = rr * .985
+    N = 10; xf_ = hw - .05; xb_ = hw - .125; r0 = rr * .19; r1 = rr * .985
     for i in range(N):
         an = 2 * math.pi * i / N
         for sgn in (-1, 1):
