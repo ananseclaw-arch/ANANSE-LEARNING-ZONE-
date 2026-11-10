@@ -830,7 +830,7 @@ function renderCircuits(tab){
    +gpOptRow("gpCam","🎥 Camera",[["chase","🚗 Chase"],["far","🔭 Far"],["hood","🏁 Hood"],["bumper","📷 Bumper"],["cockpit","🎛️ Cockpit"]],gpCamMode())
    +gpOptRow("gpTraffic","🚕 Traffic in town",[[true,"On"],[false,"Off"]],gpTrafficOn())
    +gpOptRow("gpLaps","🔁 Laps",[[1,"1"],[2,"2"],[3,"3"]],gpLaps())
-   +gpOptRow("gpPace","⭐ Difficulty",[["gentle","🐢 Easy"],["normal","🚗 Normal"]],gpPace())
+   +gpOptRow("gpPace","⭐ Difficulty",[["gentle","🐢 Easy"],["normal","🚗 Normal"],["hard","🔥 Hard"]],gpPace())
    +gpOptRow("gpAuto","🦶 Pedals",[[false,"Gas + brake"],[true,"✨ Auto gas"]],gpAuto())
    +gpOptRow("gpLook","🖌️ Look",[["real","🗻 Realistic"],["story","🖌️ Storybook"]],gpLook())
    +'<div class="fz-garage-row"><button class="btn big" onclick="renderRace()">🚗 Garage: '+esc(gpCar().n)+' ▶</button></div>'+gpGarageHtml()
@@ -2529,8 +2529,8 @@ function gpBuild(C){
   const pics=story?{}:(window._gpPics||{});   // the storybook look keeps the drawn 3D cars (the ink filter buries a photo)
   const glbs=story?{}:(window._gpGlb||{});   // real 3D models (GLB) win over the photo sprites when they loaded
   const pace=gpPaceMul();const karts=racers.map((r,i)=>{const m=(GP_GLB[r.car.id]&&glbs[r.car.id])?gpBuildGlbCar(T,r.car,glbs[r.car.id],r.netPaint||gpGlbPaintFor(r.car,r.player),shared):(GP_PICS[r.car.id]&&pics[r.car.id])?gpBuildPicCar(T,r.car,pics[r.car.id],shared):gpBuildCar(T,r.car,r.css,shared);scene.add(m.g);gpNameLivery(T,m,r.livery,r.netPaint||(r.player?gpGlbPaintFor(r.car,true):r.css),shared);const st=gpStats(NET?GPN_STD:r.car);st.max*=pace;st.accel*=0.75;if(r.player&&gpMode()==="race"){const U=gpUpState();if(!NET){st.max*=1+0.02*U.speed;st.accel*=1+0.06*U.launch;}gpUpFit(T,m,true,shared);}   // online: everyone races on the car's own numbers, upgrades are looks only
-    return{racer:r,player:r.player,net:NET&&!r.player,netUid:r.netUid,...m,...st,t:0,x:0,px:0,speed:0,lap:0,spin:0,drift:0,off:0,hop:0,roll:0,pitch:0,steerVis:0,st1:0,steerIn:0,sv:0,dHold:0,wasBrake:false,lockT:0,gasT:0,wallT:0,knock:0,headA:0,headV:0,wallRec:0,leanT:0,liftT:0,chatter:0,yaw:null,lastSpeed:0,wheelPhase:0,wheelRadius:m.S.radR,travel:0,skidD:0,ahead:true,started:false,pos:new T.Vector3(),draft:false,brakeOn:false,load:0,squeal:0,loss:null,lossA:0,lossCool:0,overT:0,air:false,airT:0,vy:null,y:0,ry:null,sq:0,sqV:0,hang:0,pS:null,aiSkill:(r.player?1:(0.95+(i%3)*0.025+r.car.handle*0.006)*(gpPace()!=="gentle"?1:0.97)*((GP_PACK[gpPace()]||GP_PACK.normal).skill||1))};});
-  {const me0=karts.find(k=>k.player);karts.forEach(k=>{if(!k.player)k.max=Math.min(k.max,me0.max*(gpPace()==="gentle"?0.97:1.05));});}   // kid-fair: a rival's top speed never runs away from Prince's car (Easy: a touch under it)
+    return{racer:r,player:r.player,net:NET&&!r.player,netUid:r.netUid,...m,...st,t:0,x:0,px:0,speed:0,lap:0,spin:0,drift:0,off:0,hop:0,roll:0,pitch:0,steerVis:0,st1:0,steerIn:0,sv:0,dHold:0,wasBrake:false,lockT:0,gasT:0,wallT:0,knock:0,headA:0,headV:0,wallRec:0,leanT:0,liftT:0,chatter:0,yaw:null,lastSpeed:0,wheelPhase:0,wheelRadius:m.S.radR,travel:0,skidD:0,ahead:true,started:false,pos:new T.Vector3(),draft:false,brakeOn:false,load:0,squeal:0,loss:null,lossA:0,lossCool:0,overT:0,air:false,airT:0,vy:null,y:0,ry:null,sq:0,sqV:0,hang:0,pS:null,aiSkill:(r.player?1:(0.95+(i%3)*0.025+r.car.handle*0.006)*(gpPace()!=="gentle"?1:0.97)*(gpPK().skill||1)*(NET||r.player?1:gpRivK(C.id)))};});
+  {const me0=karts.find(k=>k.player),PK=gpPK(),RK=gpRivK(C.id);if(!NET)karts.forEach(k=>{if(!k.player)k.max=Math.max(me0.max*(PK.capLo||0.9),Math.min(k.max,me0.max*(PK.cap||1.05)))*RK;});}   // every rival's top speed sits in a tight band around the player's car (so no race is won or lost on the car draw), times the track's measured pace number
   const rows=karts.length,pitch=8/(len/M);karts.forEach((k,i)=>{const row=NET?(k.racer.rank+(GPN.race.shift||0))%rows:(k.player?rows-1:i-1);k.t=((M-5-row*pitch)/M)%1;k.x=(row%2?0.4:-0.4)*(rows>1?1:0);k.px=k.x;});
   const TR=(TH&&!story&&(gpTrafficOn()||!!(TW&&TW.parked&&TW.parked.length)))?gpTrafficBuild(T,scene,window._gpTraffic,C,karts,len,karts.find(k=>k.player),shared0,{moving:gpTrafficOn(),parked:(TW&&TW.parked)||[]}):null;   // traffic cars (street + coast courses, Options: traffic on)
   if(gpMode()==="race"){const boxTex=gpCanvasTex(128,256,(x,w,h)=>{x.clearRect(0,0,w,h);x.strokeStyle="rgba(255,255,255,.9)";x.lineWidth=10;x.strokeRect(6,6,w-12,h-12);});
@@ -2634,10 +2634,10 @@ function gpCamApply(){if(!R3)return;const w=$("gp3");if(w)w.classList.toggle("ck
    small camera pull. One burst costs a third of the meter; the race starts with half a meter; it refills slowly by itself and faster
    from drifting, jumps (air time) and clean fast driving. Not during the countdown; 1.2 s cool-down between bursts. Grip is NOT
    boosted, so boosting into a tight bend can still slide wide (the Easy slide assist still caps it). Rivals take an occasional
-   modest burst (+8%, Easy +5%) on long straights; on Easy a rival that is already ahead of Prince never boosts. */
+   burst (Normal +12%, Hard +16%, Easy +5%) from their own meter on a clear straight, to attack the car ahead or hold off the car behind; on Easy a rival that is already ahead of Prince never boosts. */
 const GP_BOOST={burst:2.6,cost:0.34,cool:1.2,mul:1.22,start:0.5};
 function gpBoostInit(){const R=R3;R.boost={q:GP_BOOST.start,cool:0,easy:gpPace()==="gentle",uses:0,ring:$("gp3BoostRing"),btn:$("gp3Boost"),pips:$("gp3BoostN"),key:""};R.boostLog=[];
-  R.karts.forEach(k=>{k.boostT=0;k.boostMul=1;k.bNext=k.player?0:12+Math.random()*16;});}
+  R.karts.forEach(k=>{k.boostT=0;k.boostMul=1;k.bq=GP_BOOST.start;k.bNext=k.player?0:6+Math.random()*6;});}
 function gpBoost(){const R=R3;if(!R||!R.boost)return false;const B=R.boost,me=R.me;
   if(R.done||R.phase!=="race"||R.countdown>0.5||(me.boostT>0&&!(me.jet&&me.boostMul<GP_BOOST.mul))||B.cool>0||B.q<GP_BOOST.cost-1e-6){if(B.btn){B.btn.classList.remove("no");void B.btn.offsetWidth;B.btn.classList.add("no");}return false;}
   B.q-=GP_BOOST.cost;B.uses++;me.boostT=GP_BOOST.burst;me.boostMul=GP_BOOST.mul;GPA.play("boost");gpMsg("BOOST!");R.boostLog.push({t:+(R.simT||0).toFixed(2),mph:Math.round(me.speed*GP_MPH)});return true;}
@@ -2647,8 +2647,12 @@ function gpBoostTick(dt,waiting){const R=R3;if(!R.boost)gpBoostInit();const B=R.
   if(!waiting&&!R.done){const spd=me.speed/me.max,off=Math.abs(me.x)>1.05&&!me.jet;let r=B.easy?0.03:0.018;   // on its own: a full meter in ~35-55 s
     if(me.drift&&spd>0.35&&!off)r+=0.11;if(me.air)r+=0.08;if(!off&&spd>0.55&&R.bumpT>2&&!me.loss)r+=B.easy?0.03:0.02;
     if(me.boostT<=0)B.q=Math.min(1,B.q+r*dt);
-    R.karts.forEach(k=>{if(k.player||k.net||k.boostT>0)return;k.bNext-=dt;if(k.bNext>0)return;const i=Math.floor(k.t*R.M)%R.M,clear=R.vProf[(i+Math.round(40/(R.len/R.M)))%R.M]>=k.max*0.98&&R.vProf[i]>=k.max*0.98;
-      if(!clear){k.bNext=0.7;return;}if(B.easy&&(k.lap+k.t)>(me.lap+me.t)){k.bNext=5;return;}k.boostT=1.8;k.boostMul=B.easy?1.05:1.08;k.bNext=(B.easy?28:18)+Math.random()*14;});}
+    const PK=gpPK();R.karts.forEach(k=>{if(k.player||k.net)return;k.bq=Math.min(1,(k.bq==null?GP_BOOST.start:k.bq)+PK.bq*dt);if(k.boostT>0||k.jet||k.air)return;k.bNext-=dt;if(k.bNext>0||k.bq<GP_BOOST.cost)return;
+      const i=Math.floor(k.t*R.M)%R.M,clear=R.vProf[(i+Math.round(40/(R.len/R.M)))%R.M]>=k.max*0.98&&R.vProf[i]>=k.max*0.98;
+      if(!clear){k.bNext=0.5;return;}if(B.easy&&(k.lap+k.t)>(me.lap+me.t)){k.bNext=5;return;}
+      let ah=1e9,bh=1e9;const p=k.lap+k.t;for(const o of R.karts){if(o===k)continue;const d=((o.lap+o.t)-p)*R.len;if(d>0)ah=Math.min(ah,d);else bh=Math.min(bh,-d);}
+      if(!((ah>5&&ah<70)||bh<22||k.bq>0.97)){k.bNext=0.5;return;}   // attack the car ahead, hold off the car behind, or never sit on a full meter
+      k.bq-=GP_BOOST.cost;k.boostT=2.2;k.boostMul=PK.bmul;k.bNext=1.5+Math.random()*2.5;(R.rivBoost=R.rivBoost||[]).push({t:+(R.simT||0).toFixed(1),why:ah<70?"attack":bh<22?"defend":"full"});});}
   const ready=!waiting&&!R.done&&R.phase==="race"&&B.q>=GP_BOOST.cost&&B.cool<=0&&me.boostT<=0,on=me.boostT>0,key=Math.round(B.q*100)+"|"+ready+"|"+on;
   if(key!==B.key&&B.btn){B.key=key;B.ring.setAttribute("stroke-dashoffset",(276.5*(1-B.q)).toFixed(1));B.btn.classList.toggle("ready",ready);B.btn.classList.toggle("on",on);
     const n=Math.floor(B.q/GP_BOOST.cost+1e-6);B.pips.textContent=n?"●".repeat(n):"○";B.btn.setAttribute("aria-label","Boost - "+n+" ready");}}
@@ -2844,11 +2848,22 @@ function gpWallHit(kt,sd,vOut,dt,inp){const XS=R3.W-1.2,V=R3.tmpV,vF=Math.max(0,
 function gpWallFx(kt,sd,n){const V=R3.tmpV,R=R3,tn=R.curve.getTangentAt(kt.t),sandy=gpSandy(R.C);kt.g.updateMatrixWorld(true);V.set(sd*-(kt.S.w/2),0.35,0.4);kt.g.localToWorld(V);
   for(let q=0;q<n;q++){if(sandy)R.dust.emit(V.x,V.y,V.z,tn.x*kt.speed*0.3+(Math.random()-0.5)*3,0.8+Math.random()*1.6,tn.z*kt.speed*0.3+(Math.random()-0.5)*3,0.8,0.66,0.46,1.0);
     else R.sparks.emit(V.x,V.y,V.z,tn.x*kt.speed*0.55+(Math.random()-0.5)*4,1+Math.random()*2.5,tn.z*kt.speed*0.55+(Math.random()-0.5)*4,1,0.75,0.3,0.35);}}
-/* ---------- a tight pack (quiet, never shown) ----------
-   Rivals: within 15 m of Prince they race him for real; further ahead they ease off a little, further behind they push a little (full effect 130 m away).
-   Prince: behind the leader by more than 12 m he gets a quiet top-speed and pick-up bonus that grows with the gap (full effect at 150 m) and fades as he closes in,
-   plus a short extra after a wall hit or a slide; nothing at all once he leads. Grip is never touched, so corners stay his to get right. */
-const GP_PACK={gentle:{ahead:0.08,behind:0.13,me:0.12,hit:0.05,skill:1.015},normal:{ahead:0.04,behind:0.11,me:0.1,hit:0.03,skill:1.02}};
+/* ---------- the pack: real racing (jobs 1109-1803 / 1109-1919) ----------
+   Normal and Hard: NO help of any kind. Rivals never ease off when they lead (ahead 0), never get pushed when they trail (behind 0), and Prince gets no
+   top-speed or pick-up bonus (me 0, hit 0). Rivals race on their own pace (skill), all in cars within a few percent of the player's top speed (capLo..cap),
+   carry a real boost meter (bq = refill per second, bmul = burst) that they spend to attack or defend, cover the inside once when a car closes from behind (def),
+   and now and then make a driver's mistake (err = average seconds between them).
+   Easy keeps a small, quiet version of the old help so a young driver still finishes near the front: rivals further ahead than 15 m ease off up to 2%, rivals
+   further behind push up to 4%, and Prince, when more than 12 m behind the leader, gets up to +3.5% (plus 3% for a few seconds after a wall hit or a slide);
+   nothing once he leads. Grip is never touched, so corners stay his to get right. */
+const GP_PACK={gentle:{ahead:0.02,behind:0.04,me:0.035,hit:0.03,skill:1.015,cap:0.97,capLo:0.9,err:24,bq:0.016,bmul:1.05,def:0},
+  normal:{ahead:0,behind:0,me:0,hit:0,skill:1.03,cap:1.03,capLo:0.97,err:45,bq:0.03,bmul:1.12,def:0.7},
+  hard:{ahead:0,behind:0,me:0,hit:0,skill:1.04,cap:1.05,capLo:0.99,err:90,bq:0.04,bmul:1.16,def:1}};
+function gpPK(){return GP_PACK[gpPace()]||GP_PACK.normal;}
+/* rival pace per track (1 = as built): measured with the test drivers so a clean lap beats the best rival by about the same margin on every track
+   (flight ramps help the player, town corners and the sea help the rivals, so one number for all tracks left some unwinnable and some a walkover) */
+const GP_RIVK={kawaguchi:[1.05,0.982],hakone:[1.03,0.914],tokyo:[1.05,0.995],city:[1.045,0.915],accra:[1.02,1.04],coast:[1.085,1.018],desert:[1.09,1.08],inaka:[1.045,1.007],dakar:[1.072,1.01],deep:[1.0,0.95]};   // [Easy, Normal+Hard]
+function gpRivK(id){const k=GP_RIVK[id];return k?k[gpPace()==="gentle"?0:1]:1;}
 function gpBand(kt){const R=R3,me=R.me,K=GP_PACK[gpPace()]||GP_PACK.normal,g=((kt.lap+kt.t)-(me.lap+me.t))*R.len,u=Math.min(1,Math.max(0,(Math.abs(g)-15)/115)),e=u*u*(3-2*u);return g>0?1-K.ahead*e:1+(K.behind+(me.jet?GP_JET.pull[gpPace()==="gentle"?"gentle":"normal"]:0))*e;}
 function gpPack(dt,waiting){const R=R3,me=R.me;if(R.online&&!waiting&&R.mode==="race"&&!R.done){me.cu=gpnCatchUp(dt);return;}if(waiting||R.mode!=="race"||R.done||R.online){me.cu=0;return;}const K=GP_PACK[gpPace()]||GP_PACK.normal;let top=-1e9;for(const k of R.karts)if(!k.player)top=Math.max(top,k.lap+k.t);
   const gap=top<-1e8?0:(top-(me.lap+me.t))*R.len,u=Math.min(1,Math.max(0,(gap-12)/138));R.recB=me.loss||me.wobT>0||me.wallRec>0.5?1:Math.max(0,(R.recB||0)-dt/4);
@@ -2908,7 +2923,7 @@ function gpTrickHud(dt){const R=R3,K=R.tk;if(!K)return;const me=R.me,show=!!me.a
    -> land (fuel out, or BRAKE: wings fold, a glide onto the road AHEAD: never off it, never into a wall, never backwards, speed kept down to what the next bends allow).
    Rivals fly the same gates with their own lines and misses (first car through a gate takes its full worth, the next ones half). Easy: more fuel, bigger rings, autopilot towards the next ring, a softer bump in the air. */
 const GP_JET={out:0.3,fuel:{normal:7,gentle:9.5},h0:7,hMax:26,xArrow:24,xSoft:28,xHard:36,rings:{normal:10,gentle:12},ringR:{normal:5.8,gentle:8},ringGap:0.62,
-  climb:11,minSpeed:24,cruise:{normal:1.04,gentle:1.04},cruiseMin:0.48,cruiseK:1.0,ringQ:0.035,ringMs:200,sgAdd:0.03,sgMax:0.09,sgFade:0.05,aiHit:{normal:0.74,gentle:0.45},aiV:{normal:0.93,gentle:0.92},aiSg:{normal:0.45,gentle:0.3},landQ:[0.1,0.25],hopT:[2.6,3.4],hopH:[7,12],pull:{normal:0.24,gentle:0.26},trickDur:{roll:0.78,flip:1.15,spin:0.78}};
+  climb:11,minSpeed:24,cruise:{normal:1.04,gentle:1.04},cruiseMin:0.48,cruiseK:1.0,ringQ:0.035,ringMs:200,sgAdd:0.03,sgMax:0.09,sgFade:0.05,aiHit:{normal:0.74,gentle:0.45},aiV:{hard:0.99,normal:0.97,gentle:0.92},aiSg:{normal:0.45,gentle:0.3},landQ:[0.1,0.25],hopT:[2.6,3.4],hopH:[7,12],pull:{normal:0.24,gentle:0.26},trickDur:{roll:0.78,flip:1.15,spin:0.78}};
 /* the sky floor: the highest solid thing near the road at every sample, from the real scene (buildings, trees, hills, tunnels, gantries), so a flight clears all of it on every track */
 function gpJetFloor(){const R=R3,T=R.T,M=R.M,S=R.samples,ds=R.len/M,t0=performance.now(),CELL=8,key=(x,z)=>Math.floor(x/CELL)*200003+Math.floor(z/CELL),top=new Map(),corr=new Set(),st=Math.max(1,Math.round(5/ds));
   for(let i=0;i<M;i+=st){const s=S[i];for(let d=-44;d<=44;d+=6)corr.add(key(s.pos.x+s.nor.x*d,s.pos.z+s.nor.z*d));}
@@ -2985,7 +3000,7 @@ function gpJetCruise(kt,fuel){const R=R3,M=R.M,ds=R.len/M,i0=Math.floor(kt.t*M)%
 /* lift-off */
 function gpJetStart(kt,ry,how){const R=R3,easy=gpPace()==="gentle";if(kt.jet)return;const Q=gpJetGear(kt);Q.want=1;kt.air=true;kt.airT=0;kt.airPeak=0;kt.y=ry;kt.ry=ry;kt.loss=null;kt.lossA=0;kt.drift=0;kt.wobT=0;kt.takeoff={v:Math.round(kt.speed*3.6),vy:0,f:R.frameN,kind:how};
   if(!kt.player&&Math.abs(((kt.lap+kt.t)-(R.me.lap+R.me.t))*R.len)>170){const r=Math.random(),gapB=Math.max(0,((R.me.lap+R.me.t)-(kt.lap+kt.t))*R.len);kt.jet={ph:"hop",t:0,T:GP_JET.hopT[0]+r*(GP_JET.hopT[1]-GP_JET.hopT[0])+Math.min(3.5,gapB/70),H:GP_JET.hopH[0]+r*(GP_JET.hopH[1]-GP_JET.hopH[0]),hdg:0,roll:0,pitch:0,safe:0};kt.jet.safe=gpJetSafe(kt,kt.speed*kt.jet.T);kt.vy=6;if(Math.random()<0.3)gpTrickStart(kt,Math.random()<0.6?"roll":"spin",Math.random()<0.5?-1:1);(R.jetHops=R.jetHops||[]).push({car:kt.racer.car.id,t:+(R.simT||0).toFixed(2)});return;}
-  if(!kt.player){const r=Math.random(),fuelR=GP_JET.fuel[easy?"gentle":"normal"]*(0.72+r*0.18),vcR=gpJetCruise(kt,fuelR)*GP_JET.aiV[easy?"gentle":"normal"];kt.jet={ph:"fly",ai:1,t:0,fuel:fuelR,fuel0:fuelR,h:GP_JET.h0,vh:0,hdg:0,roll:0,pitch:0,yOff:0,vc:vcR,how,hit:0,lt:0,lT:1.6,speed0:kt.speed,streak:0,pHit:GP_JET.aiHit[easy?"gentle":"normal"]*(0.85+0.15*Math.min(1,kt.aiSkill||1))};kt.jet.yOff=ry-(gpJetF(kt.t)+kt.jet.h);kt.jet.rings=gpJetRingsMake(kt,kt.jet);gpJetReach(kt,kt.jet);kt.vy=6;(R.jetHops=R.jetHops||[]).push({car:kt.racer.car.id,t:+(R.simT||0).toFixed(2)});return;}
+  if(!kt.player){const r=Math.random(),fuelR=GP_JET.fuel[easy?"gentle":"normal"]*(0.72+r*0.18),vcR=gpJetCruise(kt,fuelR)*(GP_JET.aiV[gpPace()]||GP_JET.aiV.normal);kt.jet={ph:"fly",ai:1,t:0,fuel:fuelR,fuel0:fuelR,h:GP_JET.h0,vh:0,hdg:0,roll:0,pitch:0,yOff:0,vc:vcR,how,hit:0,lt:0,lT:1.6,speed0:kt.speed,streak:0,pHit:GP_JET.aiHit[easy?"gentle":"normal"]*(0.85+0.15*Math.min(1,kt.aiSkill||1))};kt.jet.yOff=ry-(gpJetF(kt.t)+kt.jet.h);kt.jet.rings=gpJetRingsMake(kt,kt.jet);gpJetReach(kt,kt.jet);kt.vy=6;(R.jetHops=R.jetHops||[]).push({car:kt.racer.car.id,t:+(R.simT||0).toFixed(2)});return;}
   const fuel0v=GP_JET.fuel[easy?"gentle":"normal"],vc=gpJetCruise(kt,fuel0v),fuel=GP_JET.fuel[easy?"gentle":"normal"];
   const J=kt.jet={ph:"fly",t:0,fuel,fuel0:fuel,h:GP_JET.h0,vh:0,hdg:0,roll:0,pitch:0,yOff:0,vc,how,hit:0,lt:0,lT:1.6,brk:!!(R.brake||R.keys["s"]||R.keys[" "]),speed0:kt.speed,streak:0};J.yOff=ry-(gpJetF(kt.t)+J.h);
   J.rings=gpJetRingsMake(kt,J);gpJetReach(kt,J);gpJetRingsShow(J.rings);kt.sv=0;kt.headV=0;R.jetBrakeLock=true;R.jetCount=(R.jetCount||0)+1;kt.boostT=Math.max(kt.boostT||0,0.9);kt.boostMul=Math.max(kt.boostMul||1,1.12);
@@ -3090,9 +3105,12 @@ function gpFlightT(L,v,vy,y0){const R=R3,M=R.M,S=R.samples,ds=R.len/M,i0=Math.ro
 function gpLaunch(kt,L,ry){if(kt.speed<(L.kind==="mega"?8:15))return false;if(L.kind==="leap")return gpDeepLeap(kt,L,ry);const mega=L.kind==="mega",toJet=mega&&!!R3.jetF&&kt.speed>=Math.max(GP_JET.minSpeed,kt.max*0.32);
   if(mega){const v0=kt.speed;kt.speed=Math.max(kt.speed*1.05,Math.min(kt.max*0.86,kt.speed+30));if(kt.boostT!==undefined){kt.boostT=Math.max(kt.boostT,0.9);kt.boostMul=Math.max(kt.boostMul||1,1.12);}if(kt.player){GPA.play("boost");if(!toJet)gpMsg("MEGA RAMP!");}}
   if(toJet){gpJetStart(kt,ry,"ramp");return true;}
-  const v=kt.speed,tMax=Math.min(mega?1.55:1.2,Math.max(0.62,(L.room-(mega?14:8))/Math.max(10,v)));let vy=Math.min(Math.max(L.slope,mega?0.16:0.09)*v,mega?7.6:6.5);
-  for(let n=0;n<5&&gpFlightT(L,v,vy,ry)>tMax;n++)vy*=0.86;   // the real flight over the real road ahead (a hillside can fall away under the car): never longer than the room allows
+  const dune=!mega&&!!R3.C.dnl,v=kt.speed,tMax=dune?Math.min(GP_DUNE_AIR.tMax,Math.max(0.62,(L.room-GP_DUNE_AIR.keep)/Math.max(10,v))):Math.min(mega?1.55:1.2,Math.max(0.62,(L.room-(mega?14:8))/Math.max(10,v)));let vy=Math.min(Math.max(L.slope,mega?0.16:0.09)*v,dune?GP_DUNE_AIR.vy:(mega?7.6:6.5));
+  for(let n=0;n<(dune?9:5)&&gpFlightT(L,v,vy,ry)>tMax;n++)vy*=dune?0.92:0.86;
+  if(dune&&v>22&&(kt.player||kt.pos.distanceToSquared(R3.me.pos)<8100)){const tn=R3.curve.getTangentAt(kt.t),P=kt.pos;for(let q=0;q<(kt.player?16:8);q++)R3.dust.emit(P.x+(Math.random()-0.5)*2.2,ry+0.2,P.z+(Math.random()-0.5)*2.2,tn.x*v*0.5+(Math.random()-0.5)*7,2.5+Math.random()*4.5,tn.z*v*0.5+(Math.random()-0.5)*7,0.86,0.64,0.38,1.25);}   // sand thrown off the crest   // the real flight over the real road ahead (a hillside can fall away under the car): never longer than the room allows
   const over=Math.max(0,((kt.t-L.t+1.5)%1-0.5)*R3.len);kt.air=true;kt.airT=0;kt.airPeak=0;kt.y=Math.max(ry,L.y+vy*over/Math.max(10,v));kt.vy=vy;kt.takeoff={v:Math.round(v*3.6),vy:+vy.toFixed(2),f:R3.frameN,kind:L.kind};kt.lipT=R3.simT||0;gpRivalTrick(kt,vy);return true;}
+/* Dakar dunes (job 1109-1803): off a dune crest the car is thrown UP (climb rate up to vy m/s) and may fly up to tMax seconds, always landing at least `keep` metres before the next bend */
+const GP_DUNE_AIR={vy:8.5,tMax:2.0,keep:48};
 function gpVert(kt,pos,dt,waiting){if(kt.jet){gpJetVert(kt,pos,dt,waiting);return;}const ry=pos.y;
   if(kt.vy==null||waiting||kt.ry==null||dt<=0){kt.y=ry;kt.vy=0;kt.ry=ry;kt.air=false;kt.airT=0;kt.tPrev=kt.t;return;}
   if(Math.abs(ry-kt.ry)>0.6+Math.abs(kt.speed)*dt*0.35){kt.y=ry;kt.vy=0;kt.ry=ry;kt.air=false;kt.airT=0;kt.tPrev=kt.t;kt.trick=null;pos.y=ry;return;}   // a placement jump (grid, test hook), not motion
@@ -3189,7 +3207,10 @@ function gpRivalSteer(kt,i,waiting){const XS=R3.W-1.2,L=R3.len,me=R3.me,hw=kt.S.
     const l=blk.x-need,r=blk.x+need,lo=free(l),ro=free(r);
     if(lo||ro)target=lo&&ro?(Math.abs(l-target)<Math.abs(r-target)?l:r):(lo?l:r);
     if(Math.abs(blk.x-kt.x)<(hw+blk.S.w/2+0.3)/XS&&bd<12+Math.max(0,kt.speed-blk.speed)*0.8)kt.capSpd=Math.max(0,blk.speed*0.97-(bd<kt.S.len?2:0));}
-  const dzp=((me.t-kt.t+1.5)%1-0.5)*L;if(dzp>-9&&dzp<6&&!me.jet){const gap=(hw+me.S.w/2+1.0)/XS;if(Math.abs(me.x-kt.x)<gap){const sd=kt.x>=me.x?1:-1,want=me.x+sd*gap;target=Math.abs(want)<=0.98?want:me.x-sd*gap;}}
+  const dzp=((me.t-kt.t+1.5)%1-0.5)*L,DEF=gpPK().def||0,side=(kt.S.len+me.S.len)/2+1.2;
+  if(!me.jet&&(DEF?(dzp>-side&&dzp<side):(dzp>-9&&dzp<6))){const gap=(hw+me.S.w/2+1.0)/XS;if(Math.abs(me.x-kt.x)<gap){const sd=kt.x>=me.x?1:-1,want=me.x+sd*gap;target=Math.abs(want)<=0.98?want:me.x-sd*gap;}}
+  else if(DEF&&!me.jet&&!blk&&!kt.air&&dzp<=-side&&dzp>-24&&me.speed>kt.speed-1.5&&kt.speed>kt.max*0.4){const now=R3.simT||0;   // defending: cover the side he is coming up on (one move, held ~1.8 s: no weaving)
+    if(!(kt.defU>now)){kt.defX=Math.max(-0.82,Math.min(0.82,target+(me.x-target)*DEF*0.85));kt.defU=now+1.8;(R3.defLog=R3.defLog||[]).push(+now.toFixed(1));}target=kt.defX;}
   const gain=1.1+kt.racer.car.handle*0.18,vmax=0.42;return Math.max(-vmax,Math.min(vmax,(target-kt.x)*gain));}
 /* put cars that a contact moved back on the road this same frame (the view never shows the overlap that was just removed) */
 function gpPlaceAll(){const XS=R3.W-1.2,T=R3.T;R3.karts.forEach(kt=>{if(!kt._mv)return;kt._mv=0;const pos=R3.curve.getPointAt(kt.t),tan=R3.curve.getTangentAt(kt.t);const nx=-tan.z,nz=tan.x,nl=Math.hypot(nx,nz)||1;
@@ -3252,8 +3273,10 @@ function gpUpdate(dt,waiting){
         kt.speed+=(maxNow-kt.speed)*Math.min(1,dt*(kt.speed<maxNow?kt.accel/10*launch*(kt.boostT>0?2.4:1)*(1+(kt.cu||0)*1.5):(offroad?1.1:2.2)));}
       else{kt.speed=Math.max(0,kt.speed-(2.5+0.06*kt.speed)*dt);if(kt.speed>maxNow)kt.speed+=(maxNow-kt.speed)*Math.min(1,dt*(offroad?1.1:2.2));}   // coasting
     }else{
-      // rivals follow the speed profile (real braking points for every corner), with a little driver variety and the rubber band
-      const tgt=kt.testHold?kt.testHold.speed:Math.min(maxNow,R3.vProf[(i+3)%M]*kt.aiSkill*band*(kt.boostT>0?kt.boostMul:1),kt.capSpd!=null?kt.capSpd:1e9);
+      // rivals follow the speed profile (real braking points for every corner), with a little driver variety, the odd mistake, and (Easy only) the quiet pack help
+      const tgt0=kt.testHold?kt.testHold.speed:Math.min(maxNow,R3.vProf[(i+3)%M]*kt.aiSkill*band*(kt.boostT>0?kt.boostMul:1),kt.capSpd!=null?kt.capSpd:1e9);
+      if(!waiting&&!kt.testHold&&!kt.jet){const now=R3.simT||0,PK=gpPK();if(kt.errN==null)kt.errN=now+PK.err*(0.5+Math.random()*1.2);if(now>kt.errN&&!kt.air){kt.errT=0.8+Math.random()*0.9;kt.errK=0.84+Math.random()*0.09;kt.errN=now+PK.err*(0.5+Math.random());(R3.errLog=R3.errLog||[]).push(+now.toFixed(1));}}
+      let tgt=tgt0;if(kt.errT>0){kt.errT-=dt;tgt=tgt0*kt.errK;if(!kt.air)kt.x+=(Math.sign(kap)||(kt.x>=0?1:-1))*0.16*dt;}
       kt.brakeOn=!waiting&&kt.speed>tgt+0.8;
       if(waiting)kt.speed=0;else if(kt.jet)gpJetSpeed(kt,dt);else if(kt.air)kt.speed*=1-0.015*dt;else if(kt.brakeOn)kt.speed=Math.max(tgt,kt.speed-26*dt);else kt.speed+=(tgt-kt.speed)*Math.min(1,dt*(kt.speed<tgt?kt.accel/10*(kt.boostT>0?1.8:1):2.2));
     }
@@ -3434,12 +3457,13 @@ function gpRender(dt){
     R3.camYaw=gpWrapAng(R3.camYaw);{const M=0.38,L=gpWrapAng(R3.camYaw-tgtYaw),w=gpWrapAng(tgtYaw+M*Math.tanh(L/M));if(R3.camYawS==null||jt)R3.camYawS=w;else{const d=gpWrapAng(w-R3.camYawS),m=1.8*dt;R3.camYawS=gpWrapAng(R3.camYawS+Math.max(-m,Math.min(m,d)));}}   // the lens turns at a capped rate, so a knock against a wall cannot snap the view
     R3.camX+=(me.x-R3.camX)*Math.min(1,dt*4);R3.camBack+=(Math.max(0,spd)*1.15-R3.camBack)*Math.min(1,dt*1.5);
     const nor=R3.tmpV3.set(-flat.z,0,flat.x),foc=me.pos.clone().addScaledVector(nor,(R3.camX-me.x)*(R3.W-1.2)*0.45);
-    const vw0=R3.countdown<=0.5?R3.camMode:"chase",far=vw0==="far",cc=me.racer.car.cam||{},dir=R3.tmpV4.set(Math.sin(R3.camYawS),0,Math.cos(R3.camYawS));R3.airK=(R3.airK||0)+(((me.air&&me.airT>0.1)?1:0)-(R3.airK||0))*Math.min(1,dt*(me.air?2.6:3.5));const back=rig.back+R3.camBack+(cc.back||0)+(far?(tall?5:4.5):0)+(R3.bk||0)*1.1+R3.airK*2.2+jk*(tall?2.4:3.2);
-    target=foc.clone().addScaledVector(dir,-back).add(new T.Vector3(0,rig.up+R3.camBack*0.3+(cc.up||0)+(far?2.2:0)-(R3.bk||0)*0.25+R3.airK*0.9+jk*1.3,0));
+    {const hN=(R3.C.dnl&&me.air&&!me.jet&&me.ry!=null)?Math.max(0,me.y-me.ry):0,w=Math.min(1,Math.max(0,(hN-1.2)/6));R3.airH=(R3.airH||0)+(w-(R3.airH||0))*Math.min(1,dt*(w>(R3.airH||0)?3.2:2.2));R3.airHm=hN;}   // high over the sand off a dune: the lens lifts and drops back so the gap under the car and its shadow on the sand stay in the picture
+    const vw0=R3.countdown<=0.5?R3.camMode:"chase",far=vw0==="far",cc=me.racer.car.cam||{},dir=R3.tmpV4.set(Math.sin(R3.camYawS),0,Math.cos(R3.camYawS));R3.airK=(R3.airK||0)+(((me.air&&me.airT>0.1)?1:0)-(R3.airK||0))*Math.min(1,dt*(me.air?2.6:3.5));const back=rig.back+R3.camBack+(cc.back||0)+(far?(tall?5:4.5):0)+(R3.bk||0)*1.1+R3.airK*2.2+jk*(tall?2.4:3.2)+(R3.airH||0)*(tall?2.0:2.8);
+    target=foc.clone().addScaledVector(dir,-back).add(new T.Vector3(0,rig.up+R3.camBack*0.3+(cc.up||0)+(far?2.2:0)-(R3.bk||0)*0.25+R3.airK*0.9+jk*1.3+(R3.airH||0)*2.3,0));
     target.y=Math.max(target.y,me.pos.y+(tall?3.4:1.4)+(cc.up||0));
     {let gy=R3.groundAt?Math.max(R3.groundAt(target.x,target.z),R3.curve.getPointAt(((me.t-back/R3.len)%1+1)%1).y):-1e9,want=Math.max(target.y,gy+1.4)+((R3.dp&&me.air)?1.6:0);if(R3.dp){const WL=R3.dp.y;if(me.y<WL-0.15)want=Math.min(want,WL-0.5);else if(me.y>WL+0.15)want=Math.max(want,WL+0.7);}   // the lens stays on the car's side of the water: no looking at a ghost through the surface   // a lagging height: the car visibly rises off a crest, and the camera never dips into the hill behind
       if(R3.camYs==null)R3.camYs=want;R3.camYs+=(want-R3.camYs)*Math.min(1,dt*(me.jet?6:(me.air?(R3.dp?9:4.5):8)));target.y=Math.max(R3.camYs,gy+1.2);}
-    look=foc.clone().addScaledVector(jt?dir:new T.Vector3(tan.x*0.42+dir.x*0.58,tan.y,tan.z*0.42+dir.z*0.58),rig.ahead+jk*8).add(new T.Vector3(0,rig.ly+(cc.up||0)*0.45-(jt&&jt.pitch?jt.pitch*5:0)*jk,0));
+    look=foc.clone().addScaledVector(jt?dir:new T.Vector3(tan.x*0.42+dir.x*0.58,tan.y,tan.z*0.42+dir.z*0.58),rig.ahead+jk*8).add(new T.Vector3(0,rig.ly+(cc.up||0)*0.45-(jt&&jt.pitch?jt.pitch*5:0)*jk-(R3.airH||0)*Math.min(7,(R3.airHm||0)*0.55),0));
     R3.camPos.copy(target);const cm=window.__gp.cam;cm.lagDeg=gpWrapAng(R3.camYawS-roadYaw)*57.3;cm.back=back;}
   const vw=R3.countdown<=0.5?R3.camMode:"chase",cmode=vw==="far"?"chase":vw;if(cmode!=="chase"){me.g.updateMatrixWorld(true);   // bumper: low on the nose; hood: above the bonnet (car visible); cockpit: driver's eye. All ride the car's heading (not its body roll)
     const GD=GP_GLB[me.racer.car.id]||{},E=GD.eye||[0,1.04,-0.35],nz=GD.nose||(me.S.len/2),rY=GD.roofY||1.1;
@@ -3826,18 +3850,15 @@ function gpnInCar(G,uid,v){if(GPN!==G||!R3||!R3.online)return;const k=R3.karts.f
   B.push(v);if(B.length>48)B.shift();if(k.netOffS&&!(!G.players[uid]||G.players[uid].on===false))k.netGone=false;}
 /* ---------- fair racing online (job 1107-0258) ----------
    Slipstream: sit 3.5-26 m behind another car (and within 2.6 m of its line) and, after about a second, the air in front lets you go up to
-   +5% faster than the top speed everyone has (it builds over 1 s, fades over 0.6 s; wind lines show it). Catch-up: only when the room is on
-   Easy, only for the player in LAST place, and only when the car in front is more than 25 m away: +0% at 25 m rising to +4% at 100 m, never more.
-   The leader and the middle of the pack get nothing. Each device works out its own bonus from the same shared positions. */
-const GPN_DRAFT=0.05,GPN_CATCH=0.04;
+   +3% faster than the top speed everyone has (it builds over 1 s, fades over 0.6 s; wind lines show it). There is NO catch-up bonus on any pace
+   (job 1109-1803 removed the Easy last-place +4%): nobody is helped for being behind. Each device works out its own bonus from the same shared positions. */
+const GPN_DRAFT=0.03,GPN_CATCH=0;   // job 1109-1803: skill decides - the catch-up bonus is gone on every pace, and the tow is +3% (was +5%)
 function gpnDraft(kt,dt,waiting){const R=R3,XS=R.W-1.2,L=R.len;let on=false,who=null;
   if(!waiting&&!R.done&&!kt.jet&&!kt.air&&kt.speed>0.5*kt.max){for(let i=0;i<R.karts.length;i++){const o=R.karts[i];if(o===kt||o.netGone||!o.started||o.net&&!o.netBuf)continue;const d=((o.t-kt.t+1)%1)*L;if(d<3.5||d>26||Math.abs(o.x-kt.x)*XS>2.6)continue;on=true;who=o;break;}}
   kt.drT=on?Math.min(1.5,(kt.drT||0)+dt):Math.max(0,(kt.drT||0)-dt/0.6);const k=Math.min(1,kt.drT);kt.drG=k*k*(3-2*k);kt.drWho=on?who:null;
   if(on&&kt.drG>0.2){R.drLog=R.drLog||{t:0,max:0};R.drLog.t+=dt;R.drLog.max=Math.max(R.drLog.max,kt.drG*GPN_DRAFT);}
   return kt.drG;}
-function gpnCatchUp(dt){const R=R3,me=R.me;let want=0;
-  if(GPN&&GPN.race&&GPN.race.pace==="gentle"&&me.started&&R.board&&R.board.length>1&&R.board[R.board.length-1]===me){const ahead=R.board[R.board.length-2],g=((ahead.lap+ahead.t)-(me.lap+me.t))*R.len;want=GPN_CATCH*Math.max(0,Math.min(1,(g-25)/75));}
-  me.cuT=(me.cuT||0)+(want-(me.cuT||0))*Math.min(1,dt*1.5);if(want>0.001)R.cuLog=Math.max(R.cuLog||0,me.cuT);return me.cuT;}
+function gpnCatchUp(dt){R3.me.cuT=0;return 0;}   // no help for whoever is behind: same car numbers, same boost meter, same grip for everyone in the room
 /* a friend's name over their car, every frame: projected from the car's spot; bigger and crisper near, never smaller than a phone can read; hidden when the car is behind you */
 function gpnLabels(){const R=R3;if(!R||!R.online||!R.nlBox)return;const cam=R.camera,cv=R.renderer.domElement,cw=cv.clientWidth,ch=cv.clientHeight;if(!cw||!ch)return;cam.updateMatrixWorld(true);const V=R.nlV||(R.nlV=new THREE.Vector3());
   R.karts.forEach(k=>{const el=k.netTag;if(!el)return;let on=false;if(k.net&&k.g.visible&&!k.netGone){V.set(k.g.position.x,k.g.position.y+(k.racer.car.grp==="trucks"?3.7:2.5),k.g.position.z);const d=V.distanceTo(cam.position);V.project(cam);
