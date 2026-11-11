@@ -99,6 +99,24 @@ T(typeof ctx.wbReasonOK==="undefined"&&vm.runInContext("typeof wbReasonOK",ctx)=
   const parts=vm.runInContext("wbExplainParts",ctx)(p,Object.assign({},p.answer.f,Object.fromEntries(rk.map(k=>[k,"  Because It's EVEN!! "]))));
   if(parts.reason!=="  Because It's EVEN!! ")fail(id+": reason not kept exactly as typed");if(/\{|because/i.test(parts.answer))fail(id+": answer text wrong: "+parts.answer);}
  T(explains>20,"explain questions found ("+explains+")");}
+// "Which reason is best?" (Eb 2026-11-05): every generated Explain variant has 3 distinct, short, clean reasons + a why line
+{ctx.app=ctx.app||{innerHTML:""};ctx.toast=()=>{};const wbPickSet=run("wbPickSet");let n=0;const kinds=new Set();
+ for(const id of ids)for(let r=0;r<6;r++)for(const p of wb.gen(id,60)){if(!(p.type==="form"&&(p.checks||[]).some(c=>c.t==="reason")))continue;n++;
+  const s=wbPickSet(p);if(!s){fail(id+": Explain question without a reason set: "+p.q.slice(0,60));continue;}
+  const all=[s.best].concat(s.wrong);kinds.add(id+"|"+s.best.replace(/\d+/g,"#"));
+  if(new Set(all.map(x=>x.toLowerCase())).size!==3)fail(id+": reasons not distinct "+all.join(" | "));
+  for(const t of all.concat([s.why])){if(!t||/undefined|NaN|null/.test(t))fail(id+": bad reason text "+t);if(/Prince/i.test(t))fail(id+": real name in reason");}
+  for(const t of all)if(t.length>60)fail(id+": reason too long ("+t.length+"): "+t);
+  if(/remember \d+ × 10/.test(p.q)&&!/double/.test(s.best))fail(id+": a × 5 -> a × 10 question got the wrong reason set: "+s.best);
+  if(/remember \d+ × 5\?/.test(p.q)&&!/order/.test(s.best))fail(id+": 5 × a -> a × 5 question got the wrong reason set: "+s.best);}
+ T(n>100,"explain variants checked ("+n+", "+kinds.size+" reason kinds)");
+ // tapping a reason saves picked/pickOk/choices on the P.explains record; one try only; the answer mark is unchanged
+ ctx.P.explains=[];const exs=[];for(const id of ["4-2","4-5"])for(const p of wb.gen(id,40))if(p.type==="form"&&(p.checks||[]).some(c=>c.t==="reason"))exs.push(p);
+ run("wbStart")("4-5",{reveal:true});
+ [true,false].forEach((wantBest,j)=>{const p=exs[j],WB=run("WB");run("wbLoadProblem")(p,false);for(const f of p.fields)WB.fields[f.key]=p.answer.f[f.key];WB.drew=true;run("wbSubmit")();
+   const k=run("WB")._pick,i=k.choices.findIndex(c=>c.best===wantBest);run("wbPickTap")(i);run("wbPickTap")(k.choices.findIndex(c=>c.best!==wantBest));
+   const rec=ctx.P.explains[ctx.P.explains.length-1];
+   T(rec&&rec.ok===true&&rec.pickOk===wantBest&&Array.isArray(rec.choices)&&rec.choices.length===3&&rec.picked===k.choices[i].t&&rec.pickBest===k.set.best,"pick saved ("+(wantBest?"best":"wrong")+" pick, one try only, answer still right)");});}
 T(wbYN("Yes it is")==="yes"&&wbYN("nope")==="no"&&wbYN("maybe")===null,"yn parse");
 // no pick-the-reason (multiple choice) allowed outside lettered multi: no problem has p.options unless type multi
 for(const id of ids)for(const p of wb.gen(id,40)){if(p.options&&p.type!=="multi")fail(id+": options on non-multi");if(p.type==="form"&&p.fields.length<1)fail("form without fields");}
@@ -113,7 +131,7 @@ for(const id of ids){
     const WB=run("WB"),p=WB.cur;
     if(!/wb-problem/.test(ctx.app.innerHTML))fail(id+": problem not rendered");
     if(run("wbCanSubmit")())fail(id+": submit enabled before answering ("+p.type+")");
-    if(p.type==="form"){for(const f of p.fields)WB.fields[f.key]=p.answer.f[f.key];if(p.fields.some(f=>f.kind==="num")&&!/inputmode="numeric"/.test(ctx.app.innerHTML))fail("num input missing");if(!/<input class="wb-in/.test(ctx.app.innerHTML))fail("form inputs missing");}
+    if(p.type==="form"){for(const f of p.fields)WB.fields[f.key]=p.answer.f[f.key];if(p.fields.some(f=>f.kind==="num")&&!/inputmode="none" data-lzpad="num"/.test(ctx.app.innerHTML))fail("num input missing (in-app keypad field expected)");if(!/<input class="wb-in/.test(ctx.app.innerHTML))fail("form inputs missing");}
     else if(p.type==="fill")WB.fields.ans=String(p.answer);
     else if(p.type==="multi")WB.selected=p.answer.slice();
     else if(p.type==="who"){WB.person=(p.answer&&p.answer.person!=null)?p.answer.person:p.answer;if(p.valueAnswer!=null)WB.fields.ans=String(p.valueAnswer);}
@@ -126,7 +144,7 @@ for(const id of ids){
     if(!run("wbCanSubmit")()){fail(id+": submit disabled after filling ("+p.type+") "+p.q.slice(0,50));}
     run("wbSubmit")();
     if(!/wb-feedback/.test(ctx.app.innerHTML))fail(id+": no feedback screen");
-    if(!/wb-teach|lzt-model/.test(ctx.app.innerHTML))fail(id+": explanation not shown");if(p.type==="form"&&(p.checks||[]).some(c=>c.t==="reason")&&!/Nice thinking! Here’s another way to say it:/.test(ctx.app.innerHTML))fail(id+": Explain model line missing");
+    if(!/wb-teach|lzt-model/.test(ctx.app.innerHTML+((run("WB")._pick&&run("WB")._pick.p===p)?run("WB")._pick.tail:"")))fail(id+": explanation not shown");if(p.type==="form"&&(p.checks||[]).some(c=>c.t==="reason")){const k=run("WB")._pick;if(!/class="lzp-btn"/.test(ctx.app.innerHTML)||(ctx.app.innerHTML.match(/class="lzp-btn"/g)||[]).length!==3)fail(id+": reason pick not shown");if(!k||!/Nice thinking! Here’s another way to say it:/.test(k.tail))fail(id+": Explain model line missing after the pick");if(/Next problem|See my score/.test(ctx.app.innerHTML))fail(id+": Next shown before the pick");}
     if(!/wb-feedback good/.test(ctx.app.innerHTML))fail(id+": canonical answer marked wrong via UI ("+p.type+") "+p.q.slice(0,60));
     run("wbContinue")();
   }
@@ -135,9 +153,21 @@ for(const id of ids){
   done=null;
 }
 // wrong answer via UI shows twin option and does not crash
-run("wbStart")("4-5",{reveal:true});{const WB=run("WB");const p=WB.cur;for(const f of p.fields)WB.fields[f.key]="zz";run("wbSubmit")();if(!/Try one like it/.test(ctx.app.innerHTML))fail("twin offer missing after miss");run("wbTryTwin")();if(!run("WB").isTwin)fail("twin not loaded");}
+run("wbStart")("4-5",{reveal:true});{const WB=run("WB");const p=WB.cur;for(const f of p.fields)WB.fields[f.key]="zz";run("wbSubmit")();if(!/Try one like it/.test(ctx.app.innerHTML+((run("WB")._pick||{}).tail||"")))fail("twin offer missing after miss");run("wbTryTwin")();if(!run("WB").isTwin)fail("twin not loaded");}
 if(!/class="wb-review"/.test(wb.review("4-3"))||/Prince/.test(wb.review("4-3")))fail("review html");
 console.log("UI flow: rendered+submitted "+ids.length+" lessons in reveal mode, hooks wbRevealDone/wbRevealExit ok");
+// iPad keyboard fix (2026-11-11): the in-app keypad types "×", "÷", "−" with spaces; marking must stay exactly as before
+{const P=run("wbEqParse");const T=(s,want)=>{let r;try{r=P(s);}catch(e){fail("wbEqParse threw on "+s);return;}if(!!r.ok!==want)fail("wbEqParse("+s+").ok should be "+want);};
+ T("8 × 9 = 72",true);T("9 + 9 = 18",true);T("2 + 2 + 2 = 6",true);T("8 ÷ 2 = 4",false);T("9 − 1 = 8",false);T("8 × 9 = ",false);
+ // every equation box of a twoEq/oneEq form is a keypad field; number boxes too; the "because" box keeps the keyboard (predictions off)
+ let eqSeen=0,numSeen=0,becSeen=0;for(const id of ["4-1","4-2","4-3","4-4","4-5","3-7"])for(let k=0;k<30;k++)for(const p of wb.gen(id,10)){if(p.type!=="form")continue;
+   ctx.WB=run("WB")||{};run("WB={fields:{}}");const h=run("wbFormHTML")(p);
+   const g=p.group;(g&&(g.kind==="twoEq"||g.kind==="oneEq")?g.keys:[]).forEach(k2=>{eqSeen++;if(!new RegExp('data-k="'+k2+'"[^>]*readonly inputmode="none" data-lzpad="eq"').test(h))fail("equation box "+k2+" is not an eq keypad field ("+id+")");});
+   p.fields.filter(f=>f.kind==="num").forEach(f=>{numSeen++;if(!new RegExp('data-k="'+f.key+'"[^>]*data-lzpad="num"').test(h))fail("number box "+f.key+" is not a num keypad field");});
+   if(/wb-because/.test(h)){becSeen++;if(/wb-because[^>]*data-lzpad/.test(h)||!/wb-because[^>]*autocorrect="off" autocapitalize="off" spellcheck="false"/.test(h))fail("because box must keep the keyboard with predictions off");}
+   (h.match(/<input[^>]*>/g)||[]).forEach(t=>{if(!/autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/.test(t))fail("form input without predictions-off attributes");});}
+ if(!eqSeen||!numSeen||!becSeen)fail("keypad markup test saw no equation/number/because boxes");
+ console.log("Keypad markup: "+eqSeen+" equation boxes, "+numSeen+" number boxes, "+becSeen+" because boxes checked");}
 // report
 console.log("\nPer-lesson summary ("+SESSIONS+" sessions each):");
 for(const id of ids){const s=summary[id];console.log(" "+id+" size="+s.size+" problems="+s.probs+" types="+JSON.stringify(s.types)+" formWrongTested="+s.wrongTested);}

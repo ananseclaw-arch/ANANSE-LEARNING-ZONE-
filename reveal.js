@@ -175,15 +175,31 @@ function revealDefaultLesson(profile){
 function revealNextInUnit(id){const L=revealLesson(id);if(!L)return null;const ls=REVEAL_LESSONS.filter(l=>l.u===L.u);return ls[ls.indexOf(L)+1]||null;}
 /* ---------- Big Back button (Eb 2026-11-04): top-left, 64px+, on every lesson-flow screen ----------
    Call lzBack(fn,label) right AFTER a screen sets app.innerHTML. Any other screen replacing #app hides it again. */
-let _lzBackFn=null,_lzBackFor=null,_lzBackObs=null;
-function lzBack(fn,label){
+let _lzBackFn=null,_lzBackFor=null,_lzBackObs=null,_lzBackConfirm=null;
+function lzBack(fn,label,opts){ // opts.exit (Eb 2026-11-05): inside a lesson test it is a slim "✕ Exit lesson" chip, so "Back" only means "previous question"
   if(typeof document==="undefined")return;const b=document.getElementById("lzBackBtn"),a=document.getElementById("app");if(!b||!a)return;
-  _lzBackFn=fn;_lzBackFor=a.firstElementChild;b.hidden=false;const lb=b.querySelector(".lzb-to");if(lb)lb.textContent=label||"";
-  document.body.classList.add("lz-back");
+  _lzBackFn=fn;_lzBackFor=a.firstElementChild;b.hidden=false;_lzBackConfirm=opts&&opts.exit?(opts.confirm||{title:"Leave the lesson?",body:"Your progress is saved."}):null;const lb=b.querySelector(".lzb-to");if(lb)lb.textContent=label||"";
+  const ex=!!(opts&&opts.exit),ar=b.querySelector(".lzb-ar");if(ar)ar.textContent=ex?"✕":"←";if(b.classList)b.classList.toggle("lzb-exit",ex);
+  b.setAttribute("aria-label",ex?"Exit lesson. Your answers are saved.":"Back");b.title=ex?"Exit lesson (your answers are saved)":"Back";
+  document.body.classList.add("lz-back");document.body.classList.toggle("lz-exit",ex);
   if(!_lzBackObs&&typeof MutationObserver!=="undefined"){_lzBackObs=new MutationObserver(()=>{if(a.firstElementChild!==_lzBackFor)lzBackHide();});_lzBackObs.observe(a,{childList:true});}
 }
-function lzBackHide(){const b=typeof document!=="undefined"&&document.getElementById("lzBackBtn");if(b)b.hidden=true;_lzBackFn=null;_lzBackFor=null;if(typeof document!=="undefined")document.body.classList.remove("lz-back");}
-function lzBackGo(){const f=_lzBackFn;if(typeof f==="function"){try{if(typeof stopRecorded==="function")stopRecorded();}catch(e){}f();}else if(typeof renderHome==="function")renderHome();}
+function lzBackHide(){const b=typeof document!=="undefined"&&document.getElementById("lzBackBtn");if(b)b.hidden=true;_lzBackFn=null;_lzBackFor=null;_lzBackConfirm=null;if(typeof document!=="undefined")document.body.classList.remove("lz-back","lz-exit");}
+function lzBackLeave(f){if(typeof f==="function"){try{if(typeof stopRecorded==="function")stopRecorded();}catch(e){}f();}else if(typeof renderHome==="function")renderHome();}
+/* ✕ Exit lesson asks first (Eb 2026-11-05): "Leave the lesson? Your progress is saved" - Stay / Leave */
+function lzBackGo(){const f=_lzBackFn,c=_lzBackConfirm;if(c&&typeof lzDialog==="function"){lzDialog({title:c.title,body:'<p>'+esc(c.body)+'</p>',buttons:[{label:"Leave",cls:"ghost",id:"lzdLeave",fn:()=>lzBackLeave(f)},{label:"Stay",cls:"go",id:"lzdStay",focus:true}]});return;}lzBackLeave(f);}
+/* Small kid-friendly dialog (exit confirm, look back at the last answer). buttons: {label,cls:"go"|"ghost",id,fn,keep,focus} */
+function lzDialog(o){
+  if(typeof document==="undefined")return;lzDialogClose();
+  const d=document.createElement("div");d.id="lzDlg";d.className="lzd-wrap";d.setAttribute("role","presentation");
+  d.innerHTML='<div class="lzd" role="dialog" aria-modal="true" aria-labelledby="lzdT"><h2 class="lzd-t" id="lzdT">'+esc(o.title||"")+'</h2><div class="lzd-b">'+(o.body||"")+'</div><div class="lzd-btns">'
+    +(o.buttons||[]).map((b,i)=>'<button type="button" class="lzd-btn '+(b.cls||"ghost")+'" id="'+(b.id||("lzdB"+i))+'" data-i="'+i+'">'+esc(b.label)+'</button>').join("")+'</div></div>';
+  d.addEventListener("click",e=>{if(e.target===d){lzDialogClose();return;}const t=e.target.closest&&e.target.closest(".lzd-btn");if(!t)return;const b=o.buttons[+t.getAttribute("data-i")];if(!b||!b.keep)lzDialogClose();if(b&&typeof b.fn==="function")b.fn();});
+  d.addEventListener("keydown",e=>{if(e.key==="Escape")lzDialogClose();});
+  document.body.appendChild(d);document.body.classList.add("lzd-open");
+  const f=d.querySelector(".lzd-btn.go")||d.querySelector(".lzd-btn");try{if(f)f.focus({preventScroll:true});}catch(e){}
+}
+function lzDialogClose(){if(typeof document==="undefined")return;const d=document.getElementById("lzDlg");if(d)d.remove();if(document.body)document.body.classList.remove("lzd-open");}
 const revealProgressionPublic={unit4Ids:REVEAL_UNIT4_IDS.slice(),flex:REVEAL_FLEX.slice(),isPrince:revealProfileIsPrince,recordPassed:revealRecordPassed,profilePassed:revealProfilePassed,migrate:revealPassMigrate,init:revealProgressInit,gate:revealUnit4Gate,nextId:revealUnit4NextId};
 if(typeof window!=="undefined")window.__revealProgression=revealProgressionPublic;else if(typeof globalThis!=="undefined")globalThis.__revealProgression=revealProgressionPublic;
 /* Review cards — the book's "Review" box, in Ananse's words */
@@ -493,13 +509,13 @@ function renderReveal(){
     const ls=REVEAL_LESSONS.filter(l=>l.u==u);const done=ls.filter(l=>revealProfilePassed(P,l.id)).length;
     return '<button class="opt" style="display:flex;justify-content:space-between;align-items:center;gap:10px" onclick="renderRevealUnit('+u+')"><span style="text-align:left"><b>Unit '+u+' · '+esc(REVEAL_UNITS[u].t)+'</b><br><span class="muted" style="font-size:13px">'+ls.length+' lessons</span></span><span class="lvl-badge" style="background:'+(done===ls.length?"#2f8f4e":(done?"#f5a623":"#6f88ad"))+'">'+done+'/'+ls.length+' ★</span></button>';
   }).join("");
-  app.innerHTML='<div class="fadein" style="max-width:680px;margin:0 auto">'
+  app.innerHTML='<div class="fadein pit-stage pit-hub" style="max-width:680px;margin:0 auto">'
    +'<div class="center"><h1>📘 Reveal Math · Grade 3</h1><p class="muted">The same units and lessons as your Reveal Math practice book, with fresh problems every time. Each lesson: Review, then the problems. Get every problem right (fix the ones you miss) to earn a ★.</p></div>'
    +'<div class="kente-strip" style="margin:14px 0 10px"></div>'
    +(cur?'<div class="card gold" style="margin-bottom:12px"><b>📍 '+(princePath?'Your Unit 4 next lesson:':'Where the class is:')+'</b> Lesson '+esc(cur.id)+' · '+esc(cur.t)+'<div class="btn-row" style="justify-content:flex-start;margin-top:8px"><button class="btn" onclick="renderRevealLesson(\''+cur.id+'\')">Practice this lesson ▶</button></div></div>':'<p class="muted center" style="margin-bottom:10px">Tip: a parent can set "where the class is" in the Parent Portal so today\'s lesson shows up here first.</p>')
    +'<div class="opts">'+units+'</div>'
-   +'<div class="btn-row" style="margin-top:18px"><button class="btn" onclick="renderHome()">⟵ Back to Adventure</button></div><div class="spacer"></div></div>';
-  lzBack(()=>renderHome(),"Home");
+   +'<div class="spacer"></div></div>';
+  lzBack(()=>renderHome(),"Home");if(typeof pitNav==="function")pitNav("lessons");
   say("Reveal Math practice, "+P.name+". Pick a unit, or practice the lesson your class is on.");
 }
 /* Unit screen look (Eb's Gemini design, 2026-11-03): current lesson = big blue card with picture tiles + green Start,
@@ -527,19 +543,19 @@ function renderRevealUnit(u){
       +'<button class="s4-start" onclick="event.stopPropagation();'+go+'">Start Lesson →</button></span></div></div>'+coach;
     const fx=!star&&typeof lztStatus==="function"?lztStatus(l.id):null;
     const st=star?'done':(!gate.allowed?'lock':(fx||r?'tried':'new'));
-    const badge=st==='done'?'<span class="s4-badge s4-b-done"><b>★</b>'+(seq?'Passed':'Mastered')+'<br>'+(r?r.best+'/'+r.total:'saved')+'</span>'
+    const badge=st==='done'?'<span class="s4-badge s4-b-done"><b>★</b>Passed<br>'+(r?r.best+'/'+r.total:'saved')+'</span>'
       :st==='tried'?(fx?'<span class="s4-badge s4-b-tried"><b>✎</b>'+(fx.phase==='fix'?'Fix '+fx.left+'<br>to pass':'On '+fx.at+'<br>of '+fx.total)+'</span>':'<span class="s4-badge s4-b-tried"><b>✎</b>Practiced<br>'+r.best+'/'+r.total+'</span>')
       :st==='lock'?'<span class="s4-badge s4-b-lock"><b>🔒</b>Finish '+esc(gate.prerequisite)+'<br>first</span>'
       :'<span class="s4-badge s4-b-new"><b>○</b>Not<br>started</span>';
     return '<button class="s4-card s4-'+st+'" onclick="'+go+'"'+(st==='lock'?' aria-disabled="true"':'')+'><span class="s4-t">Lesson '+esc(l.id)+' • '+esc(l.t)+here+'</span>'+badge+'</button>';}).join("");
-  app.innerHTML='<div class="fadein s4" style="max-width:680px;margin:0 auto">'
+  app.innerHTML='<div class="fadein s4 pit-stage" style="max-width:680px;margin:0 auto">'
    +'<div class="hud"><span class="pill">📘 <b>Reveal Math</b></span><span class="pill">Unit '+u+'</span></div>'
    +'<h1 class="s4-h1">Unit '+u+': '+esc(REVEAL_UNITS[u].t)+'</h1>'
    +'<div class="s4-list">'+cards+'</div>'
    +'<div class="card s4-home"><b>🏠 Math @ Home</b><p class="muted" style="margin-top:6px">'+esc(REVEAL_UNITS[u].home)+'</p></div>'
-   +'<div class="btn-row" style="margin-top:14px"><button class="btn secondary" onclick="renderReveal()">⟵ All units</button></div><div class="spacer"></div>'
+   +'<div class="btn-row" style="margin-top:14px"><button class="btn secondary" onclick="renderReveal()">All units</button></div><div class="spacer"></div>'
    +'</div>';
-  lzBack(()=>renderHome(),"Home");
+  lzBack(()=>renderHome(),"Home");if(typeof pitNav==="function")pitNav("lessons");
 }
 function renderRevealLockedLesson(id,gate){
   const prior=revealLesson(gate.prerequisite),L=revealLesson(id),u=L?L.u:4,next=revealNextInUnit(prior.id);
@@ -551,12 +567,12 @@ function renderRevealLockedLesson(id,gate){
   else if(st){msg='Finish Lesson '+prior.id+' to unlock '+unlock+'. You are on question '+st.at+' of '+st.total+', and your answers are saved.';btn='Keep going ▶';go='lztStart(\''+prior.id+'\')';}
   else{msg=(flex?'Do Lesson '+prior.id+' and get every question right to unlock '+unlock+'. Any you miss, you fix with a tip.':'Pass Lesson '+prior.id+' to unlock '+unlock+'.');btn='Go to Lesson '+prior.id+' ▶';go='renderRevealLesson(\''+prior.id+'\')';}
   if(st&&typeof lztDotsHTML==="function")dots=lztDotsHTML(st.dots,false);
-  app.innerHTML='<div class="fadein lzt-screen" style="max-width:640px;margin:0 auto"><div class="hud"><span class="pill">📘 <b>Reveal Math</b></span><span class="pill">Unit '+u+'</span></div>'
-   +'<section class="lzt-card lzt-lock"><div class="lzt-lockic" aria-hidden="true">🔒</div><h1 class="lzt-h">Lesson '+esc(id)+' is locked</h1>'
+  app.innerHTML='<div class="fadein lzt-screen pit-stage" style="max-width:640px;margin:0 auto"><div class="hud"><span class="pill">📘 <b>Reveal Math</b></span><span class="pill">Unit '+u+'</span></div>'
+   +'<div class="pit-hero">'+(typeof pitLion==="function"?pitLion(104,"mechanic"):'')+'</div><section class="lzt-card lzt-lock"><div class="lzt-lockic" aria-hidden="true">🔒</div><h1 class="lzt-h">Lesson '+esc(id)+' is locked</h1>'
    +'<p class="lzt-big">'+esc(msg)+'</p>'+(later?'<p class="lzt-small">'+esc(later.trim())+'</p>':'')+dots
    +'<div class="lzt-row"><button class="lzt-btn lzt-go" id="lztLockGo" onclick="'+go+'">'+esc(btn)+'</button></div></section>'
    +'<p class="muted center" style="margin-top:12px">Your earlier lessons and other units are still open.</p><div class="spacer"></div></div>';
-  lzBack(()=>renderRevealUnit(u),"Unit "+u);
+  lzBack(()=>renderRevealUnit(u),"Unit "+u);if(typeof pitNav==="function")pitNav("lessons");
   say(msg);
 }
 function renderRevealLesson(id,opts){
@@ -572,9 +588,9 @@ function renderRevealLesson(id,opts){
   const fxCard=fx?'<section class="lzt-card lzt-note"><p class="lzt-big">'+(fx.phase==='fix'?esc('You have '+(fx.left===1?'1 question':fx.left+' questions')+' to fix. Each one comes with a tip.'+(nx&&!revealProfilePassed(P,id)?' Fix '+(fx.left===1?'it':'them')+' to unlock Lesson '+nx.id+'.':'')):esc('You stopped at question '+fx.at+' of '+fx.total+'. Your answers are saved.'))+'</p>'+(typeof lztDotsHTML==="function"?lztDotsHTML(fx.dots,false):'')+'</section>':'';
   const sample=revealGen(L,false,revealTier(L));
   const wbReview=revealUsesWorkbook(id)&&typeof wbRevealReview==="function"?wbRevealReview(id):"";
-  app.innerHTML='<div class="fadein" style="max-width:660px;margin:0 auto">'
-   +'<div class="hud"><span class="pill">📘 <b>Reveal Math</b></span><span class="pill">Lesson '+esc(id)+'</span><span class="lvl-badge">Unit '+L.u+'</span></div>'
-   +'<h1 style="margin-top:10px">'+esc(L.t)+'</h1>'
+  app.innerHTML='<div class="fadein pit-stage pit-lesson" style="max-width:660px;margin:0 auto">'
+   +'<div class="pit-kicker">LESSON '+esc(id)+' · UNIT '+L.u+'</div>'
+   +'<h1 class="pit-h1">'+esc(L.t)+'</h1>'
    +(wbReview||('<div class="card gold" style="margin-top:12px"><h3 style="margin-bottom:8px">Review</h3><p style="font-size:19px;line-height:1.6">'+esc(REVEAL_REVIEW[id]||"")+'</p>'+(id==='4-6'?'<div aria-label="Four groups of eight" style="text-align:center;font-size:21px">[ ● ● ● ● ● ● ● ● ] [ ● ● ● ● ● ● ● ● ]<br>[ ● ● ● ● ● ● ● ● ] [ ● ● ● ● ● ● ● ● ]</div>':'')
    +(id==='5-1'?'<div aria-label="Three rows of four dots split after two columns" style="text-align:center;font-size:23px">● ● │ ● ●<br>● ● │ ● ●<br>● ● │ ● ●</div>':'')
    +(sample.vis&&!["4-6","5-1","5-2"].includes(id)?'<div class="qvis" style="margin-top:10px">'+sample.vis+'</div><p class="muted" style="font-size:14px;margin-top:6px">Example: '+esc(sample.q)+' → '+esc(sample.opts[sample.a])+'</p>':'')+'</div>'))
@@ -582,8 +598,8 @@ function renderRevealLesson(id,opts){
    +fxCard
    +'<div class="center"><div class="spacer"></div><div class="btn-row">'+(fx?'<button class="btn big" id="lztLessonGo" onclick="lztStart(\''+id+'\')">'+(fx.phase==='fix'?'Fix the '+(fx.left===1?'one':fx.left)+' I missed ▶':'▶ Keep going · question '+fx.at)+'</button>':(sKeep?'<button class="btn big" onclick="sessResumeBtn()">▶ Keep going · question '+Math.min((sres.s.n||0)+1,sres.s.total||8)+'</button>':'<button class="btn big" onclick="startReveal(\''+id+'\')">Start practice ▶</button>'))
    +(typeof videoAgainBtn==="function"?videoAgainBtn("reveal:"+id):'')
-   +'<button class="btn secondary" onclick="say(REVEAL_REVIEW[\''+id+'\'])">🔊 Read it to me</button><button class="btn secondary" onclick="renderRevealUnit('+L.u+')">⟵ Unit '+L.u+'</button></div></div></div>';
-  lzBack(()=>renderRevealUnit(L.u),"Unit "+L.u);
+   +'<button class="btn secondary" onclick="say(REVEAL_REVIEW[\''+id+'\'])">🔊 Read it to me</button></div></div></div>';
+  lzBack(()=>renderRevealUnit(L.u),"Unit "+L.u);if(typeof pitNav==="function")pitNav("lessons");
   if(fromTest&&fx)say(fx.phase==='fix'?"Your answers are saved. Tap the button when you are ready to fix them.":"Your answers are saved. Tap keep going when you are ready.");
   else say("Lesson "+id+", "+L.t+". "+(REVEAL_REVIEW[id]||""));
 }
@@ -707,7 +723,7 @@ function workbookMirrorQuestion(id,slot,g,n){
     else if(slot===4){q='There are fewer than ten $5 bills. How much money might there be?';rows=['Dollars: {0}'];expected=[k*5];kind='multiple5';model='For example, '+k+' bills make $'+(k*5)+'.';}
     else if(slot===5){q='Can 17 socks be arranged in pairs with none left over? Explain.';rows=['Answer: {0}','Because {1}'];expected=['no','even'];kind='explain';reason='even';model='No. Pairs make an even number; 17 is odd.';}
     else if(slot===6){q='A packet uses 10 sheets. Fewer than 8 packets are made. How many sheets could be used? Explain.';rows=['Sheets: {0}','Because {1}'];expected=[h*10,'10'];kind='multiple10small';reason='10';model='For example, '+h+' packets use '+(h*10)+' sheets, a multiple of 10.';}
-    else if(slot===7){q='Can a number be a product of 2, 5, and 10? Explain.';rows=['Answer: {0}','Because {1}'];expected=['yes','0'];kind='explain';reason='0';model='Yes. For example, 10 is a product of all three and ends in 0.';}
+    else if(slot===7){q='Can one number show up when you skip count by 2s, by 5s and by 10s? Explain.';rows=['Answer: {0}','Because {1}'];expected=['yes','0'];kind='explain';reason='0';model='Yes. For example, 10 ends in 0, so it shows up when you count by 2s, by 5s and by 10s.';}
     else if(slot===8){q='How much money is in '+k+' nickels?';rows=['Cents: {0}'];expected=[k*5];model=k+' × 5 = '+(k*5)+' cents.';}
     else {q='Write two equations for the same total: a number added to itself and 2 times that number.';rows=['Addition equation: {0}','Multiplication equation: {1}'];expected=[k+' + '+k+' = '+(2*k),'2 × '+k+' = '+(2*k)];kind='twoEquations';model='For example, '+k+' + '+k+' = '+(2*k)+' and 2 × '+k+' = '+(2*k)+'.';}
   }
@@ -744,7 +760,7 @@ function mirrorSession(id){
 function mirrorRows(m){if(!m.split)return m.rows;return [m.g+' × '+m.n+' = {0} × {1} + {2} × {3}',m.g+' × '+m.n+' = {4} + {5}',m.g+' × '+m.n+' = {6}'].concat(m.slot%2?['There are {7} '+m.arrayItem+'.']:[]);}
 function mirrorHTML(q){
   const m=q.mirror; let html='';
-  if(m.kind){const ready=m.expected.every((_,i)=>String(S.mirrorValues[i]||'').trim());return (m.choices?'<p>'+m.choices+'</p>':'')+'<div style="font-size:20px;line-height:2;text-align:center">'+m.rows.map(row=>row.replace(/\{(\d+)\}/g,(_,i)=>'<input aria-label="Answer box '+(Number(i)+1)+'" type="text" value="'+esc(S.mirrorValues[i]||'')+'" oninput="mirrorInput('+i+',this.value)" style="width: min(14em, 75vw); font-size:20px">')).join('<br>')+'</div><div class="center"><button class="btn big" id="mirrorSubmit" '+(ready?'':'disabled')+' onclick="mirrorSubmit()">Check answer ✓</button></div>';}
+  if(m.kind){const ready=m.expected.every((_,i)=>String(S.mirrorValues[i]||'').trim());return (m.choices?'<p>'+m.choices+'</p>':'')+'<div style="font-size:20px;line-height:2;text-align:center">'+m.rows.map(row=>row.replace(/\{(\d+)\}/g,(_,i)=>'<input aria-label="Answer box '+(Number(i)+1)+'" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" value="'+esc(S.mirrorValues[i]||'')+'" oninput="mirrorInput('+i+',this.value)" style="width: min(14em, 75vw); font-size:20px">')).join('<br>')+'</div><div class="center"><button class="btn big" id="mirrorSubmit" '+(ready?'':'disabled')+' onclick="mirrorSubmit()">Check answer ✓</button></div>';}
   if(m.split){
     /* Big array: one tall, tappable gap between every pair of columns (no tiny buttons, no 1-9 row). */
     const dot=Math.max(20,Math.min(40,Math.floor(300/m.g)));
@@ -756,7 +772,7 @@ function mirrorHTML(q){
     html+='<p class="arr-help">Tap the gap between two columns to cut the array into two parts.</p><div class="arr-wrap" role="group" aria-label="'+m.g+' rows of '+m.n+'. '+(S.mirrorCut?'Split after '+S.mirrorCut+' columns.':'Choose a split.')+'"><div class="arr" style="--dot:'+dot+'px;grid-template-columns:repeat('+(2*m.n-1)+',auto);grid-template-rows:repeat('+m.g+',var(--dot))">'+cells+'</div></div>';
   }
   const count=mirrorRows(m).join('').match(/\{\d+\}/g).length, ready=(!m.split||S.mirrorCut)&&Array.from({length:count},(_,i)=>S.mirrorValues[i]).every(Boolean);
-  html+='<div class="mir-lines">'+mirrorRows(m).map(row=>'<div class="mir-line">'+row.replace(/\{(\d+)\}/g,(_,i)=>'<input aria-label="Answer box '+(Number(i)+1)+'" inputmode="numeric" pattern="[0-9]*" type="text" maxlength="3" value="'+(S.mirrorValues[i]||'')+'" oninput="mirrorInput('+i+',this.value)" class="mir-box">')+'</div>').join('')+'</div><div class="center"><button class="btn big" id="mirrorSubmit" '+(ready?'':'disabled')+' onclick="mirrorSubmit()">Check answer ✓</button></div>';
+  html+='<div class="mir-lines">'+mirrorRows(m).map(row=>'<div class="mir-line">'+row.replace(/\{(\d+)\}/g,(_,i)=>'<input aria-label="Answer box '+(Number(i)+1)+'" readonly inputmode="none" data-lzpad="num" type="text" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" value="'+(S.mirrorValues[i]||'')+'" oninput="mirrorInput('+i+',this.value)" class="mir-box">')+'</div>').join('')+'</div><div class="center"><button class="btn big" id="mirrorSubmit" '+(ready?'':'disabled')+' onclick="mirrorSubmit()">Check answer ✓</button></div>';
   return html;
 }
 function mirrorCut(n){S.mirrorCut=n;const e=document.getElementById('mirrorArea');if(e)e.innerHTML=mirrorHTML(S.cur);sessSave();}
