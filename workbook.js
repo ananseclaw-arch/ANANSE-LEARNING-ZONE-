@@ -799,22 +799,38 @@ function lztFirstPassDone(){
   WB.index=WB.st.findIndex(x=>x.s!=="right");WB.introShown=true;lztSave();
   if(typeof syncProgress==="function")syncProgress("finish");lztFixIntro(true);
 }
+/* the tip for question i (lazy, same as the tip card always did): used by the pit stop list AND the tip card */
+function lztEnsureTip(i){const st=WB.st[i],p=WB.problems[i];if(st&&!st.tip){const t=lztTip(p,st.s==="skip"?null:lztParseGiven(p,st.given),st.given);st.tip=t.tip;st.why=t.why;}return st;}
+function lztShort(t,n){t=String(t==null?"":t).replace(/\s+/g," ").trim();if(t.length<=n)return t;const c=t.slice(0,n);const k=c.lastIndexOf(" ");return(k>n*0.6?c.slice(0,k):c).replace(/[,.;:]$/,"")+"…";}
+function lztFirstSentence(t){t=String(t||"").trim();const m=/^(.+?[.!?])(\s|$)/.exec(t);return m?m[1]:t;}
+/* one row of the tune-up list: the question (fill = its equation with an empty orange box) + what he put + the tip's first line */
+function lztFixRowHTML(i){
+  const st=lztEnsureTip(i),p=WB.problems[i]||{};let main;
+  if(p.type==="fill"&&Array.isArray(p.parts))main='<span class="pf-eq">'+p.parts.map(x=>x==="□"?'<i class="pf-box" aria-label="blank"></i>':wbEscape(x)).join(" ")+'</span>';
+  else main='<span class="pf-q">'+wbEscape(lztShort(p.q,46))+'</span>';
+  let put=st.given;if(p.type==="fill"){const g=lztParseGiven(p,st.given);if(g&&Number.isFinite(g.value))put=String(g.value);}
+  put=put?lztShort(put,26):"";const small=st.s==="skip"?"You skipped this one.":((put?"You put "+put+(/[.…]$/.test(put)?" ":". "):"")+lztFirstSentence(st.tip));
+  return'<div class="pf-row"><button type="button" class="pf-fix" onclick="lztJump('+i+')" aria-label="Fix question '+(i+1)+'">Fix</button><div class="pf-txt">'+main+'<small>'+wbEscape(small)+'</small></div></div>';
+}
 function lztFixIntro(afterTest){
   const id=WB.lessonId,right=WB.st.filter(x=>x.s==="right").length,left=WB.st.length-right,next=typeof revealNextInUnit==="function"?revealNextInUnit(id):null;
   const passedAlready=typeof revealProfilePassed==="function"&&revealProfilePassed(P,id);
-  const unlock=next&&!passedAlready?' Fix '+(left===1?'it':'them all')+' to unlock Lesson '+next.id+'.':'';
-  const head=afterTest?'You got '+right+' of '+WB.st.length+' right!':'Let\'s fix the ones you missed';
-  const msg='Now fix the '+lztKid(left)+' you missed. Each one comes with a tip first.'+unlock;
-  app.innerHTML='<div class="fadein wb-shell lzt-test"><div class="wb-page">'+wbPageHead(id)+'<section class="lzt-card lzt-result"><div class="lzt-score"><b>'+right+'</b><span>/'+WB.st.length+'</span></div><h2 class="lzt-h">'+wbEscape(head)+' ⭐</h2><p class="lzt-big">'+wbEscape(msg)+'</p>'+lztDotsHTML(WB.st.map(x=>x.s),false)
-    +'<p class="lzt-small">You only redo these. Everything you got right stays done.</p><div class="lzt-row"><button type="button" class="lzt-btn lzt-go" id="lztFixGo" onclick="lztShow()">Fix '+(left===1?'it':'them')+' now ▶</button></div></section></div></div>';
-  if(typeof lzBack==="function")lzBack(lztExit,"Exit lesson",{exit:true});
+  const L=typeof revealLesson==="function"?revealLesson(id):null,u=L?L.u:4;
+  // Eb 2026-11-11 pit-stop look (his photo): mechanic lion, "6 right first time!", the tune-up list, one big Fix button
+  const head=afterTest?right+' right first time!':(left===1?'1 left to tune up':left+' left to tune up');
+  const sub=left+' to tune up. Each one comes with a tip.'+(next&&!passedAlready?' Fix '+(left===1?'it':'them')+' and Lesson '+next.id+' opens.':'');
+  const rows=WB.st.map((x,i)=>x.s!=="right"?lztFixRowHTML(i):"").join("");
+  app.innerHTML='<div class="fadein wb-shell lzt-test pit-stage pit-stop"><div class="pit-top"><button type="button" class="pit-ic" onclick="lztExit()" aria-label="Back to the lesson page. Your answers are saved.">‹</button><button type="button" class="pit-ic" onclick="lztSave();renderRevealUnit('+u+')" aria-label="Leave to Unit '+u+'. Your answers are saved.">✕</button></div>'
+    +'<div class="pit-hero">'+(typeof pitLion==="function"?pitLion(112,"mechanic"):'')+'<h1 class="pit-big">'+wbEscape(head)+'</h1><div class="pit-kick"><b>PIT STOP</b> · LESSON '+wbEscape(id)+'</div><p class="pit-sub">'+wbEscape(sub)+'</p></div>'
+    +'<section class="pit-card lzt-result">'+lztDotsHTML(WB.st.map(x=>x.s),false)+'<h2 class="pf-title">Your tune-up list</h2><div class="pf-list">'+rows+'</div></section>'
+    +'<div class="pit-cta"><button type="button" class="pit-go" id="lztFixGo" onclick="lztShow()"><span class="pit-go-t">Fix '+(left===1?'it':'them')+' now →</span><span class="pit-go-s">'+(left===1?'You only redo this one.':'You only redo these '+left+'.')+' Everything you got right stays done.</span></button></div></div>';
+  if(typeof pitNav==="function")pitNav("lessons");
   if(typeof say==="function")say((afterTest?"You got "+right+" right! ":"")+"Now let's fix the other "+left+". Each one comes with a tip.");
 }
 function lztFixTip(i){
-  const id=WB.lessonId,st=WB.st[i],p=WB.problems[i];
-  if(!st.tip){const t=lztTip(p,st.s==="skip"?null:lztParseGiven(p,st.given),st.given);st.tip=t.tip;st.why=t.why;}
+  const id=WB.lessonId,st=lztEnsureTip(i),p=WB.problems[i];
   const why=st.s==="skip"?"You skipped this one.":st.like?"This one is like a question you missed last time.":(st.why||"");
-  app.innerHTML='<div class="fadein wb-shell lzq lzt-test"><div class="wb-page">'+wbQHead(id)+lztStripHTML()+'<section class="lzt-card lzt-fix"><div class="lzt-kicker">Let\'s fix question '+(i+1)+'</div><p class="lzt-q">'+wbEscape(p?p.q:"")+'</p>'
+  app.innerHTML='<div class="fadein wb-shell lzq lzt-test"><div class="wb-page">'+wbQHead(id)+lztStripHTML()+'<section class="lzt-card lzt-fix">'+(typeof pitLion==="function"?'<div class="lzt-fixlion">'+pitLion(64,"mechanic")+'</div>':'')+'<div class="lzt-kicker">Let\'s fix question '+(i+1)+'</div><p class="lzt-q">'+wbEscape(p?p.q:"")+'</p>'
     +(st.s==="wrong"&&st.given?'<p class="lzt-you">You answered: <b>'+wbEscape(st.given)+'</b></p>':'')
     +(why?'<p class="lzt-why">'+wbEscape(why)+'</p>':'')+'<p class="lzt-tipline"><b>💡 Tip:</b> '+wbEscape(st.tip)+'</p>'
     +'</section>'+lzqBarHTML(lzqPrimary("lztReady","I\'m ready ▶","lztFixGo()",false,"go"))+'</div></div>';
@@ -831,9 +847,15 @@ function lztPassed(){
   const L=typeof revealLesson==="function"?revealLesson(id):null,u=L?L.u:4,seq=typeof revealProfileIsPrince==="function"&&revealProfileIsPrince(P);
   const nextOpen=next&&(typeof revealUnit4Gate!=="function"||revealUnit4Gate(P,next.id).allowed);
   const msg='Every question is right.'+(next?(nextOpen?(seq?' Lesson '+next.id+' is unlocked!':' Lesson '+next.id+' is next!'):''):' You finished this unit!');
-  app.innerHTML='<div class="fadein wb-shell lzt-test"><div class="wb-page">'+wbPageHead(id)+'<section class="lzt-card lzt-passed"><div class="lzt-burst" aria-hidden="true">⭐</div><h2 class="lzt-h">Lesson '+wbEscape(id)+' passed!</h2><p class="lzt-big">'+wbEscape(msg)+'</p>'+lztDotsHTML(WB.st.map(x=>x.s),false)
-    +'<div class="lzt-row">'+(next&&nextOpen?'<button type="button" class="lzt-btn lzt-go" id="lztNextLesson" onclick="renderRevealLesson(\''+next.id+'\')">Go to Lesson '+next.id+' ▶</button>':'')+'<button type="button" class="lzt-btn lzt-plain" onclick="renderRevealUnit('+u+')">Unit '+u+'</button></div></section></div></div>';
+  const first=WB.st.filter(x=>x.first===true).length,fixed=WB.st.length-first;
+  const uls=typeof REVEAL_LESSONS!=="undefined"?REVEAL_LESSONS.filter(l=>l.u==u):[],udone=uls.filter(l=>typeof revealProfilePassed==="function"&&revealProfilePassed(P,l.id)).length,upct=uls.length?Math.round(udone/uls.length*100):0;
+  app.innerHTML='<div class="fadein wb-shell lzt-test pit-stage pit-stop pit-passed"><div class="pit-hero">'+(typeof pitLion==="function"?pitLion(112):'')+'<div class="pit-kick"><b>LESSON '+wbEscape(id)+'</b>'+(L&&L.t?' · '+wbEscape(L.t):'')+'</div><h1 class="pit-big">Lesson passed!</h1><p class="pit-sub">'+wbEscape(msg)+'</p></div>'
+    +'<section class="pit-card lzt-card lzt-passed"><div class="lzt-burst" aria-hidden="true">⭐</div>'+lztDotsHTML(WB.st.map(x=>x.s),false)
+    +'<div class="pit-earn"><div><b>'+(had?'⭐':'+1 ⭐')+'</b>'+(had?'star already yours':'lesson star')+'</div><div><b>'+first+'</b>right first time</div><div><b>'+fixed+'</b>fixed with a tip</div></div>'
+    +(uls.length?'<div class="pit-ubar" aria-hidden="true"><i style="width:'+upct+'%"></i></div><div class="pit-ulab"><span>Unit '+u+'</span><span>'+udone+' of '+uls.length+' lessons</span></div>':'')+'</section>'
+    +'<div class="pit-cta">'+(next&&nextOpen?'<button type="button" class="pit-go" id="lztNextLesson" onclick="renderRevealLesson(\''+next.id+'\')"><span class="pit-go-t">Go to Lesson '+next.id+' ▶</span></button>':'')+'<button type="button" class="pit-quiet" onclick="renderRevealUnit('+u+')">Unit '+u+'</button></div></div>';
   if(typeof lzBack==="function")lzBack(()=>renderRevealUnit(u),"Unit "+u);
+  if(typeof pitNav==="function")pitNav("lessons");
   if(typeof say==="function")say("Lesson passed! Every question is right."+(next&&nextOpen?" The next lesson is unlocked.":""));
 }
 /* ---- kid-words tips: what went wrong (from HIS answer) + how to get it, never the answer itself ---- */

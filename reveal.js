@@ -509,13 +509,13 @@ function renderReveal(){
     const ls=REVEAL_LESSONS.filter(l=>l.u==u);const done=ls.filter(l=>revealProfilePassed(P,l.id)).length;
     return '<button class="opt" style="display:flex;justify-content:space-between;align-items:center;gap:10px" onclick="renderRevealUnit('+u+')"><span style="text-align:left"><b>Unit '+u+' · '+esc(REVEAL_UNITS[u].t)+'</b><br><span class="muted" style="font-size:13px">'+ls.length+' lessons</span></span><span class="lvl-badge" style="background:'+(done===ls.length?"#2f8f4e":(done?"#f5a623":"#6f88ad"))+'">'+done+'/'+ls.length+' ★</span></button>';
   }).join("");
-  app.innerHTML='<div class="fadein" style="max-width:680px;margin:0 auto">'
+  app.innerHTML='<div class="fadein pit-stage pit-hub" style="max-width:680px;margin:0 auto">'
    +'<div class="center"><h1>📘 Reveal Math · Grade 3</h1><p class="muted">The same units and lessons as your Reveal Math practice book, with fresh problems every time. Each lesson: Review, then the problems. Get every problem right (fix the ones you miss) to earn a ★.</p></div>'
    +'<div class="kente-strip" style="margin:14px 0 10px"></div>'
    +(cur?'<div class="card gold" style="margin-bottom:12px"><b>📍 '+(princePath?'Your Unit 4 next lesson:':'Where the class is:')+'</b> Lesson '+esc(cur.id)+' · '+esc(cur.t)+'<div class="btn-row" style="justify-content:flex-start;margin-top:8px"><button class="btn" onclick="renderRevealLesson(\''+cur.id+'\')">Practice this lesson ▶</button></div></div>':'<p class="muted center" style="margin-bottom:10px">Tip: a parent can set "where the class is" in the Parent Portal so today\'s lesson shows up here first.</p>')
    +'<div class="opts">'+units+'</div>'
-   +'<div class="btn-row" style="margin-top:18px"><button class="btn" onclick="renderHome()">⟵ Back to Adventure</button></div><div class="spacer"></div></div>';
-  lzBack(()=>renderHome(),"Home");
+   +'<div class="spacer"></div></div>';
+  lzBack(()=>renderHome(),"Home");if(typeof pitNav==="function")pitNav("lessons");
   say("Reveal Math practice, "+P.name+". Pick a unit, or practice the lesson your class is on.");
 }
 /* Unit screen look (Eb's Gemini design, 2026-11-03): current lesson = big blue card with picture tiles + green Start,
@@ -543,19 +543,19 @@ function renderRevealUnit(u){
       +'<button class="s4-start" onclick="event.stopPropagation();'+go+'">Start Lesson →</button></span></div></div>'+coach;
     const fx=!star&&typeof lztStatus==="function"?lztStatus(l.id):null;
     const st=star?'done':(!gate.allowed?'lock':(fx||r?'tried':'new'));
-    const badge=st==='done'?'<span class="s4-badge s4-b-done"><b>★</b>'+(seq?'Passed':'Mastered')+'<br>'+(r?r.best+'/'+r.total:'saved')+'</span>'
+    const badge=st==='done'?'<span class="s4-badge s4-b-done"><b>★</b>Passed<br>'+(r?r.best+'/'+r.total:'saved')+'</span>'
       :st==='tried'?(fx?'<span class="s4-badge s4-b-tried"><b>✎</b>'+(fx.phase==='fix'?'Fix '+fx.left+'<br>to pass':'On '+fx.at+'<br>of '+fx.total)+'</span>':'<span class="s4-badge s4-b-tried"><b>✎</b>Practiced<br>'+r.best+'/'+r.total+'</span>')
       :st==='lock'?'<span class="s4-badge s4-b-lock"><b>🔒</b>Finish '+esc(gate.prerequisite)+'<br>first</span>'
       :'<span class="s4-badge s4-b-new"><b>○</b>Not<br>started</span>';
     return '<button class="s4-card s4-'+st+'" onclick="'+go+'"'+(st==='lock'?' aria-disabled="true"':'')+'><span class="s4-t">Lesson '+esc(l.id)+' • '+esc(l.t)+here+'</span>'+badge+'</button>';}).join("");
-  app.innerHTML='<div class="fadein s4" style="max-width:680px;margin:0 auto">'
+  app.innerHTML='<div class="fadein s4 pit-stage" style="max-width:680px;margin:0 auto">'
    +'<div class="hud"><span class="pill">📘 <b>Reveal Math</b></span><span class="pill">Unit '+u+'</span></div>'
    +'<h1 class="s4-h1">Unit '+u+': '+esc(REVEAL_UNITS[u].t)+'</h1>'
    +'<div class="s4-list">'+cards+'</div>'
    +'<div class="card s4-home"><b>🏠 Math @ Home</b><p class="muted" style="margin-top:6px">'+esc(REVEAL_UNITS[u].home)+'</p></div>'
-   +'<div class="btn-row" style="margin-top:14px"><button class="btn secondary" onclick="renderReveal()">⟵ All units</button></div><div class="spacer"></div>'
+   +'<div class="btn-row" style="margin-top:14px"><button class="btn secondary" onclick="renderReveal()">All units</button></div><div class="spacer"></div>'
    +'</div>';
-  lzBack(()=>renderHome(),"Home");
+  lzBack(()=>renderHome(),"Home");if(typeof pitNav==="function")pitNav("lessons");
 }
 function renderRevealLockedLesson(id,gate){
   const prior=revealLesson(gate.prerequisite),L=revealLesson(id),u=L?L.u:4,next=revealNextInUnit(prior.id);
@@ -567,12 +567,12 @@ function renderRevealLockedLesson(id,gate){
   else if(st){msg='Finish Lesson '+prior.id+' to unlock '+unlock+'. You are on question '+st.at+' of '+st.total+', and your answers are saved.';btn='Keep going ▶';go='lztStart(\''+prior.id+'\')';}
   else{msg=(flex?'Do Lesson '+prior.id+' and get every question right to unlock '+unlock+'. Any you miss, you fix with a tip.':'Pass Lesson '+prior.id+' to unlock '+unlock+'.');btn='Go to Lesson '+prior.id+' ▶';go='renderRevealLesson(\''+prior.id+'\')';}
   if(st&&typeof lztDotsHTML==="function")dots=lztDotsHTML(st.dots,false);
-  app.innerHTML='<div class="fadein lzt-screen" style="max-width:640px;margin:0 auto"><div class="hud"><span class="pill">📘 <b>Reveal Math</b></span><span class="pill">Unit '+u+'</span></div>'
-   +'<section class="lzt-card lzt-lock"><div class="lzt-lockic" aria-hidden="true">🔒</div><h1 class="lzt-h">Lesson '+esc(id)+' is locked</h1>'
+  app.innerHTML='<div class="fadein lzt-screen pit-stage" style="max-width:640px;margin:0 auto"><div class="hud"><span class="pill">📘 <b>Reveal Math</b></span><span class="pill">Unit '+u+'</span></div>'
+   +'<div class="pit-hero">'+(typeof pitLion==="function"?pitLion(104,"mechanic"):'')+'</div><section class="lzt-card lzt-lock"><div class="lzt-lockic" aria-hidden="true">🔒</div><h1 class="lzt-h">Lesson '+esc(id)+' is locked</h1>'
    +'<p class="lzt-big">'+esc(msg)+'</p>'+(later?'<p class="lzt-small">'+esc(later.trim())+'</p>':'')+dots
    +'<div class="lzt-row"><button class="lzt-btn lzt-go" id="lztLockGo" onclick="'+go+'">'+esc(btn)+'</button></div></section>'
    +'<p class="muted center" style="margin-top:12px">Your earlier lessons and other units are still open.</p><div class="spacer"></div></div>';
-  lzBack(()=>renderRevealUnit(u),"Unit "+u);
+  lzBack(()=>renderRevealUnit(u),"Unit "+u);if(typeof pitNav==="function")pitNav("lessons");
   say(msg);
 }
 function renderRevealLesson(id,opts){
@@ -588,9 +588,9 @@ function renderRevealLesson(id,opts){
   const fxCard=fx?'<section class="lzt-card lzt-note"><p class="lzt-big">'+(fx.phase==='fix'?esc('You have '+(fx.left===1?'1 question':fx.left+' questions')+' to fix. Each one comes with a tip.'+(nx&&!revealProfilePassed(P,id)?' Fix '+(fx.left===1?'it':'them')+' to unlock Lesson '+nx.id+'.':'')):esc('You stopped at question '+fx.at+' of '+fx.total+'. Your answers are saved.'))+'</p>'+(typeof lztDotsHTML==="function"?lztDotsHTML(fx.dots,false):'')+'</section>':'';
   const sample=revealGen(L,false,revealTier(L));
   const wbReview=revealUsesWorkbook(id)&&typeof wbRevealReview==="function"?wbRevealReview(id):"";
-  app.innerHTML='<div class="fadein" style="max-width:660px;margin:0 auto">'
-   +'<div class="hud"><span class="pill">📘 <b>Reveal Math</b></span><span class="pill">Lesson '+esc(id)+'</span><span class="lvl-badge">Unit '+L.u+'</span></div>'
-   +'<h1 style="margin-top:10px">'+esc(L.t)+'</h1>'
+  app.innerHTML='<div class="fadein pit-stage pit-lesson" style="max-width:660px;margin:0 auto">'
+   +'<div class="pit-kicker">LESSON '+esc(id)+' · UNIT '+L.u+'</div>'
+   +'<h1 class="pit-h1">'+esc(L.t)+'</h1>'
    +(wbReview||('<div class="card gold" style="margin-top:12px"><h3 style="margin-bottom:8px">Review</h3><p style="font-size:19px;line-height:1.6">'+esc(REVEAL_REVIEW[id]||"")+'</p>'+(id==='4-6'?'<div aria-label="Four groups of eight" style="text-align:center;font-size:21px">[ ● ● ● ● ● ● ● ● ] [ ● ● ● ● ● ● ● ● ]<br>[ ● ● ● ● ● ● ● ● ] [ ● ● ● ● ● ● ● ● ]</div>':'')
    +(id==='5-1'?'<div aria-label="Three rows of four dots split after two columns" style="text-align:center;font-size:23px">● ● │ ● ●<br>● ● │ ● ●<br>● ● │ ● ●</div>':'')
    +(sample.vis&&!["4-6","5-1","5-2"].includes(id)?'<div class="qvis" style="margin-top:10px">'+sample.vis+'</div><p class="muted" style="font-size:14px;margin-top:6px">Example: '+esc(sample.q)+' → '+esc(sample.opts[sample.a])+'</p>':'')+'</div>'))
@@ -598,8 +598,8 @@ function renderRevealLesson(id,opts){
    +fxCard
    +'<div class="center"><div class="spacer"></div><div class="btn-row">'+(fx?'<button class="btn big" id="lztLessonGo" onclick="lztStart(\''+id+'\')">'+(fx.phase==='fix'?'Fix the '+(fx.left===1?'one':fx.left)+' I missed ▶':'▶ Keep going · question '+fx.at)+'</button>':(sKeep?'<button class="btn big" onclick="sessResumeBtn()">▶ Keep going · question '+Math.min((sres.s.n||0)+1,sres.s.total||8)+'</button>':'<button class="btn big" onclick="startReveal(\''+id+'\')">Start practice ▶</button>'))
    +(typeof videoAgainBtn==="function"?videoAgainBtn("reveal:"+id):'')
-   +'<button class="btn secondary" onclick="say(REVEAL_REVIEW[\''+id+'\'])">🔊 Read it to me</button><button class="btn secondary" onclick="renderRevealUnit('+L.u+')">⟵ Unit '+L.u+'</button></div></div></div>';
-  lzBack(()=>renderRevealUnit(L.u),"Unit "+L.u);
+   +'<button class="btn secondary" onclick="say(REVEAL_REVIEW[\''+id+'\'])">🔊 Read it to me</button></div></div></div>';
+  lzBack(()=>renderRevealUnit(L.u),"Unit "+L.u);if(typeof pitNav==="function")pitNav("lessons");
   if(fromTest&&fx)say(fx.phase==='fix'?"Your answers are saved. Tap the button when you are ready to fix them.":"Your answers are saved. Tap keep going when you are ready.");
   else say("Lesson "+id+", "+L.t+". "+(REVEAL_REVIEW[id]||""));
 }
