@@ -690,15 +690,14 @@ h2{color:var(--navy);font-weight:700}h3{color:var(--ink);font-weight:700}
 #overlay{background:rgba(16,30,57,.55)}
 #overlay .ov-card{border-radius:24px}
 /* --- 4. two surfaces: the navy "stage" (opt-in with .pit-stage) and the white "paper" --- */
-body.pit-stage,body.learningworld,body.storyworld{background-color:var(--navy);color:var(--cream);
+html body.pit-stage,html body.learningworld,html body.storyworld{background-color:var(--navy);color:var(--cream);
   background-image:radial-gradient(1.6px 1.6px at 22px 34px,rgba(244,231,214,.55) 60%,transparent 62%),radial-gradient(1.2px 1.2px at 130px 90px,rgba(185,200,234,.5) 60%,transparent 62%),radial-gradient(2px 2px at 180px 190px,rgba(120,150,210,.55) 60%,transparent 62%),radial-gradient(1.3px 1.3px at 70px 230px,rgba(244,231,214,.4) 60%,transparent 62%),radial-gradient(160% 70% at 50% 112%,var(--hill) 0 52%,transparent 52.4%),radial-gradient(120% 55% at 50% 0,#1A3263 0,rgba(16,30,57,0) 62%);
   background-size:230px 260px,230px 260px,230px 260px,230px 260px,100% 100%,100% 100%;background-attachment:fixed}
 body.pit-stage:before,body.learningworld:before{display:none}
-body.pit-paper{background:var(--paper);background-image:none}
-body.focus{background:#fff;background-image:none}
+body.pit-paper:not(.storyworld):not(.learningworld):not(.focus){background:var(--paper);background-image:none}
+body.focus:not(.pit-stage){background:#fff;background-image:none}
 body.pit-stage #app,body.learningworld #app{color:var(--cream)}
 body.pit-stage h1,body.pit-stage h2,body.learningworld h1,body.learningworld h2{color:var(--cream)}
-body.pit-stage h3{color:var(--cream)}
 body.pit-stage .muted,body.learningworld .muted{color:var(--sky-ink)}
 body.pit-stage .card,body.learningworld .card,body.storyworld .card{background:#fff;color:var(--ink);border-color:#fff}
 body.pit-stage .card h1,body.pit-stage .card h2,body.pit-stage .card h3{color:var(--navy)}
@@ -866,6 +865,34 @@ body.pit-stage .fd-home{margin-top:18px}
 .pit-stage .opts .opt .muted{color:var(--sky-ink)}
 .pit-stage .lzt-btn.lzt-go{background:var(--orange)!important;color:#fff!important;border:0!important;box-shadow:0 5px 0 var(--orange-deep)!important;font-family:var(--head)}
 .pit-stage .lzt-lock{background:#fff!important}
+/* practice results, workbook finish, reading finish */
+.pit-results{max-width:600px;margin:0 auto;color:var(--cream)}
+.pit-results .pit-hero{margin-top:0}
+.pit-results .ananse-celebrate{display:inline-block}
+.pit-almost{text-align:center;border:3px solid var(--orange)}.pit-almost b{font:700 18px/1.3 var(--head);color:var(--ink)}.pit-almost p{color:var(--soft);margin:6px 0 10px}.pit-almost .pit-go{margin-bottom:12px}
+.pit-earn4{grid-template-columns:repeat(2,1fr);margin-top:0;padding-bottom:12px}
+.pit-trh{color:var(--ink)!important;text-align:center;margin-top:6px}
+.pit-wbfin .wb-page{background:#fff;color:var(--ink);border-radius:26px;box-shadow:0 10px 30px rgba(0,0,0,.28);max-width:640px;margin:10px auto;padding:20px}
+.pit-wbfin .wb-title{color:var(--navy)!important;font-family:var(--head)}
+.pit-wbfin .pit-hero{margin:-6px 0 6px}
+.pit-fdfin{max-width:600px;margin:0 auto;text-align:center;color:var(--cream)}
+.pit-fdfin p{color:var(--cream2)!important}
+.pit-fdfin .fd-card{background:#fff;color:var(--ink);border-radius:26px;border:0;box-shadow:0 10px 30px rgba(0,0,0,.28)}
+.pit-fdfin .fd-btns button{background:var(--orange);color:#fff;border-radius:999px;box-shadow:0 5px 0 var(--orange-deep);font-family:var(--head);border:0}
+.pit-fdfin .fd-btns button.alt{background:rgba(255,255,255,.06);color:var(--cream);border:2px solid var(--line-dk);box-shadow:none}
+/* "Ananse, help me" + scratchpad on white question screens: readable on the new palette */
+.readbtn.helpbtn{background:#FFF1E6!important;color:#9A3412!important;border:2px solid #F3B67A!important;box-shadow:0 3px 0 #F3B67A!important}
+/* trophies, player card, journey on the stage */
+.pit-tcount{margin:6px 0 4px}.pit-tcount div{background:var(--navy3);border:2px solid var(--line-dk);color:var(--sky-ink)}.pit-tcount b{color:var(--cream)}
+.pit-trophies .shelf{background:var(--navy3);border:2px solid var(--line-dk);border-radius:20px;margin-top:12px;box-shadow:none}
+.pit-trophies .shelf-label{color:var(--star)!important;font-family:var(--head);font-weight:700;font-size:15px!important}
+.pit-trophies .trophy{background:#fff;color:var(--ink)}
+.pit-trophies .trophy .t-lb{font-size:13px!important;color:var(--ink)!important;opacity:1}
+.pit-trophies .trophy.silhouette{background:transparent;border:2px dashed #6E8FD0!important;filter:none;opacity:1}
+.pit-trophies .trophy.silhouette .t-ic{opacity:.55;filter:grayscale(1)}
+.pit-trophies .trophy.silhouette .t-lb{color:#C9D7F2!important}
+body.pit-stage .card2k{border-color:var(--line-dk)}
+body.pit-stage .kente-strip{opacity:.7}
 /* --- in-app keypad (#lzk): docks above the fixed question bar; iPad keyboard never opens on [data-lzpad] fields --- */
 #lzk{position:fixed;left:0;right:0;bottom:var(--lzkBottom,0px);z-index:60;margin:0 auto;max-width:560px;background:#EAF1FF;border:2px solid var(--line,#C9D7F2);border-bottom:0;border-radius:22px 22px 0 0;box-shadow:0 -10px 30px rgba(11,27,61,.18);padding:8px 12px calc(10px + env(safe-area-inset-bottom));animation:lzkUp .18s ease-out}
 #lzk[hidden]{display:none!important}
@@ -3255,7 +3282,8 @@ function wbFinish(){
   if(WB.reveal&&typeof sessClear==="function")sessClear();if(typeof save==="function")save();if(typeof syncProgress==="function")syncProgress("finish");if(score>=Math.ceil(size*0.8)&&typeof confetti==="function")confetti();
   const marks=WB.results.map((ok,i)=>'<span class="wb-resultdot '+(ok?'good':'bad')+'">'+(i+1)+' '+(ok?'✓':'✗')+'</span>').join(""),id=WB.lessonId;
   const buttons=WB.reveal?'<button class="wb-primary" onclick="window.wbRevealExit&&window.wbRevealExit(\''+id+'\')">Back to the lesson ▶</button>':'<button class="wb-primary" onclick="wbStart(\''+id+'\')">Play again ↻</button><button class="wb-secondary" onclick="renderHome()">🏠 Home</button><button class="wb-secondary" onclick="renderWorkbookPicker()">📒 Lessons</button>';
-  app.innerHTML='<div class="fadein wb-shell"><div class="wb-page wb-finish"><div class="wb-kicker">Lesson '+wbEscape(id)+' · '+(WB.reveal?'Practice':'Workbook Practice')+'</div><h1 class="wb-title">Practice complete!</h1><div class="wb-score">'+score+' / '+size+'</div><p style="font-size:20px">'+(score===size?'Every problem is correct — excellent explaining and modeling!':score>=size*0.75?'Strong work. Your models are helping your multiplication and division grow.':'You kept showing your thinking. That is how mathematicians learn!')+'</p><div class="wb-resultdots">'+marks+'</div><div class="wb-btnrow">'+buttons+'</div></div></div>';
+  app.innerHTML='<div class="fadein wb-shell pit-stage pit-wbfin"><div class="wb-page wb-finish">'+(typeof pitLion==="function"?'<div class="pit-hero">'+pitLion(96)+'</div>':'')+'<div class="wb-kicker">Lesson '+wbEscape(id)+' · '+(WB.reveal?'Practice':'Workbook Practice')+'</div><h1 class="wb-title">Practice complete!</h1><div class="wb-score">'+score+' / '+size+'</div><p style="font-size:20px">'+(score===size?'Every problem is correct — excellent explaining and modeling!':score>=size*0.75?'Strong work. Your models are helping your multiplication and division grow.':'You kept showing your thinking. That is how mathematicians learn!')+'</p><div class="wb-resultdots">'+marks+'</div><div class="wb-btnrow">'+buttons+'</div></div></div>';
+  if(typeof pitNav==="function")pitNav("lessons");
   if(typeof say==="function")say("Workbook practice complete. You got "+score+" out of "+size+".");
   if(WB.reveal&&typeof window!=="undefined"&&typeof window.wbRevealDone==="function")window.wbRevealDone(id,score,size);
 }
@@ -3990,7 +4018,8 @@ body.lz-exit #topbar .tb-group{align-items:center}
  .wb-shell.lzq .wb-problem:has(.wb-answerarea>.wb-pad) .wb-answerarea>.wb-pad{grid-row:1 / span 2;align-self:center}
 }
 `;
-function lztInstallStyle(){if(typeof document==="undefined")return;let s=document.getElementById("lzt-style");if(!s){s=document.createElement("style");s.id="lzt-style";document.head.appendChild(s);}s.textContent=LZT_CSS;}
+const LZT_PIT_CSS="/* phone: question in the top third (standing rule) - Read it sits to the right of the question instead of on its own row */\n@media(max-width:560px){.wb-shell.lzq .wb-qrow{display:flex!important;flex-direction:row!important;align-items:flex-start!important;gap:8px!important}.wb-shell.lzq .wb-qbody{flex:1 1 auto;min-width:0;order:1}.wb-shell.lzq .wb-read{order:2;flex:none!important;margin:0!important;align-self:flex-start;min-height:44px;padding:0 10px!important}.wb-shell.lzq .wb-problem{padding-top:12px!important}}\n.lzq-check.wait,.lzq-check:disabled{opacity:1!important;color:#334155!important}\n/* Eb 2026-11-11 pit-stop look on the WHITE question screens (sticker-book pick stays white): one key style, orange boxes, orange Check, green Next */\n.wb-shell.lzq,.rvq{font-family:var(--body,system-ui)}\n.wb-qcopy,.rvq .qtext,.lzt-q{font-family:var(--head,system-ui)!important;font-weight:600!important;color:#111B30!important}\n.wb-qhead{font-family:var(--head,system-ui)}\n.wb-key,.ty-key,.hw-number-pad .btn,.lzk-key{background:#fff!important;border:2px solid #C9D7F2!important;box-shadow:0 3px 0 #C9D7F2!important;color:#111B30!important;font-family:system-ui,-apple-system,\"Segoe UI\",sans-serif!important;font-weight:800!important;border-radius:14px!important}\n.wb-key:active,.ty-key:active,.hw-number-pad .btn:active{transform:translateY(3px);box-shadow:none!important}\n.wb-key.action,.ty-key.secondary,.lzk-key.del{background:#DCE7FB!important}\n.wb-key.go,.ty-key.ty-go{background:#FD5500!important;border-color:#B23C00!important;box-shadow:0 3px 0 #B23C00!important;color:#fff!important}\n.wb-num-box,.ty-box{border:4px solid #FD5500!important;background:#FFF7EE!important;border-radius:14px!important;color:#111B30!important;font-family:system-ui,-apple-system,sans-serif!important;font-weight:800!important}\n.wb-num-box.active{box-shadow:0 0 0 4px rgba(253,85,0,.22)!important;background:#fff!important}\n.wb-num-box.empty:after{border-bottom-color:#F3B67A!important}\n.wb-in{border:3px solid #C9D7F2!important;border-radius:14px!important;font-family:system-ui,-apple-system,sans-serif;font-weight:800;color:#111B30}\n.wb-in[data-lzpad]{border-color:#F3B67A!important;background:#FFF7EE!important}\n.wb-in.wb-because{font-family:var(--body,system-ui);font-weight:600;font-size:20px}\n.wb-in:focus{border-color:#FD5500!important;box-shadow:0 0 0 4px rgba(253,85,0,.2)!important}\n.lzq-check{background:#FD5500!important;box-shadow:0 4px 0 #B23C00!important;border-radius:999px!important;font-family:var(--head,system-ui)!important;font-weight:700!important}\n.lzq-check.next,#lztNextBtn:not(.wait),#rvqNext{background:#1F7A4D!important;box-shadow:0 4px 0 #14573A!important}\n.lzq-check.wait,.lzq-check:disabled{background:#E2E8F0!important;color:#475569!important;box-shadow:0 4px 0 #CBD5E1!important}\n.lzq-ghost{border-radius:999px!important;font-family:var(--head,system-ui)}\n.lzt-dot.right .lzt-dc{background:#43AE6F!important;border-color:#2F8F5B!important}\n.lzt-dot.wrong .lzt-dc,.lzt-dot.skip .lzt-dc{background:#FD5500!important;border-color:#B23C00!important;color:#fff!important}\n.lzt-dot.cur .lzt-dc{background:#14223F!important;border-color:#14223F!important;box-shadow:0 0 0 3px #C9D7F2!important}\n.lzt-legend i.wrong,.lzt-legend i.skip{background:#FD5500!important;color:#fff!important}\n.lzt-legend i.right{background:#43AE6F!important}\n.lzt-fixchip{background:#FFF1E6!important;color:#9A3412!important;border-color:#F3B67A!important}\n.lzt-praise{background:#E6F6EC!important;border:2px solid #9ED9B6!important}\n.lzt-praise b{font-family:var(--head,system-ui);font-weight:700}\n.lzt-tip{background:#FFF7EE!important;border:2px solid #F3B67A!important;border-left:6px solid #FD5500!important}\n.lzt-tip h3{font-family:var(--head,system-ui);font-weight:700}\n.lzt-hint{background:#FFF7EE!important;border-color:#F3B67A!important}\n.lzt-card.lzt-fix{border-left-color:#FD5500!important}\n.lzt-kicker{color:#B23C00!important;font-family:var(--head,system-ui)}\n.lzp-btn{border-radius:16px!important;font-family:var(--head,system-ui)}\n.wb-tab.on{background:#14223F!important;color:#fff!important}\n";
+function lztInstallStyle(){if(typeof document==="undefined")return;let s=document.getElementById("lzt-style");if(!s){s=document.createElement("style");s.id="lzt-style";document.head.appendChild(s);}s.textContent=LZT_CSS+LZT_PIT_CSS;}
 lztInstallStyle();
 const wbPublic={lessons:WB_LESSONS,gen:wbGenerate,check:wbCheck,review:wbRevealReview,tenSlot:WB_TEN,resumeSnapshot:wbResumeSnapshot,resumeRestore:wbResumeRestore};
 if(typeof window!=="undefined")window.__wb=wbPublic;else if(typeof globalThis!=="undefined")globalThis.__wb=wbPublic;
@@ -4442,13 +4471,14 @@ function fdFinish(){
   const nx=fdPickNext(P,p.id);
   const praise=correct===total?FD_PRAISE[0]:(correct>=total-1?FD_PRAISE[1]:FD_PRAISE[2]);
   if(correct>=total-1&&typeof confetti==="function")confetti();
-  app.innerHTML='<div class="fd-done fadein"><div style="margin:6px auto">'+(typeof ananseSVG==="function"?ananseSVG(120,correct>=total-1?"party":"idle"):"")+'</div>'
-   +'<h1 style="margin:6px 0">Story complete!</h1>'
+  app.innerHTML='<div class="fd-done fadein pit-stage pit-fdfin"><div style="margin:6px auto">'+(typeof pitLion==="function"?pitLion(112):(typeof ananseSVG==="function"?ananseSVG(120,correct>=total-1?"party":"idle"):""))+'</div>'
+   +'<div class="pit-kick"><b>READING</b> · FIND THE DETAIL</div><h1 class="pit-big" style="margin:6px 0">Story complete!</h1>'
    +'<div class="fd-card"><div class="fd-stat"><span>🔎 First-try details</span><b>'+correct+' / '+total+'</b></div>'
    +'<div class="fd-stat"><span>⚡ XP earned</span><b>+'+xp+'</b></div>'
    +'<div class="fd-stat" style="border:none"><span>📖 Stories done</span><b>'+Object.keys(rec.done).length+' of '+FD_PASSAGES.length+'</b></div></div>'
    +'<p style="font-weight:700;font-size:17px">'+esc(praise)+'</p>'
    +'<div class="fd-btns"><button onclick="fdStart(\''+nx.id+'\')">📖 Another story: '+esc(nx.title)+'</button><button class="alt" onclick="goHome()">Home 🏠</button></div></div>';
+  if(typeof pitNav==="function")pitNav("lessons");
   say(praise);
   const _fs=FDS;FDS=null;void _fs;
 }
@@ -11767,27 +11797,26 @@ function endSession(){
   const mood=earned.length?"party":"idle";
   if(earned.length)confetti();
   const praiseLine=acc>=0.8?"You earned every bit of this with focus and effort.":(acc>=0.5?"You worked hard on tough questions today — that effort is building your brain.":"Tough session — but you kept going, and that is what real training looks like. Tomorrow we grow stronger.");
-  app.innerHTML='<div class="fadein center">'
-   +'<div class="ananse-wrap '+(earned.length?"ananse-celebrate":"")+'">'+ananseSVG(160,mood)+'</div>'
-   +'<h1>'+(!lessonPassed?'Almost there!':(S.lesson?'Lesson Complete!':'Session Complete!'))+'</h1>'
-   +(!lessonPassed?'<div class="card" style="max-width:480px;margin:10px auto;border:3px solid #c62828;color:var(--ink,#222)"><b>You got '+S.correct+' of '+S.total+' right the first time. You need '+passNeed+' to pass.</b><p style="margin-top:6px">Let\'s look at the lesson again, then try a new set.</p>'
-     +'<button class="btn big" style="margin-top:8px" onclick="'+(isRv?'renderRevealLesson(\''+esc(lessonKey.slice(7))+'\')':'renderLesson(\''+esc(lessonKey)+'\')')+'">📘 Learn it again &amp; retry</button></div>':'')
-   +(S.lesson&&S.lesson.indexOf('reveal:')===0?'<p class="muted">📘 Reveal Math · Lesson '+esc(S.lesson.slice(7))+' · '+esc(revealLesson(S.lesson.slice(7)).t)+(S.correct/Math.max(1,S.results.length)>=0.8?' · ★ earned':'')+'</p>':(S.lesson?'<p class="muted">📚 '+esc(lessonById(S.lesson).title)+' · '+esc(lessonById(S.lesson).std)+'</p>':''))
-   +'<div class="speech" style="max-width:480px;margin:14px auto">'+esc(praiseLine)+'</div>'
-   +'<div class="spacer"></div>'
-   +'<div class="card gold" style="max-width:440px;margin:0 auto;text-align:left">'
-   +'<div class="statline"><span>'+SUBJECTS[S.subject].icon+' '+SUBJECTS[S.subject].name+'</span><b>'+S.correct+' / '+S.results.length+'</b></div>'
-   +'<div class="statline"><span>⚡ XP earned</span><b>+'+S.xp+'</b></div>'
-   +'<div class="statline"><span>🔥 Streak</span><b>'+P.streak+'</b></div>'
-   +'<div class="statline" style="border:none"><span>📈 Level now</span><b>'+P.levels[S.subject]+' · '+LEVEL_NAMES[P.levels[S.subject]]+'</b></div>'
-   +'</div>'
-   +(earned.length?'<div class="spacer"></div><h3>🏆 New trophies!</h3><div class="shelf-row" style="justify-content:center;margin-top:10px">'+earned.map(t=>'<div class="trophy" style="border-color:'+t.color+'"><span class="t-ic">'+t.icon+'</span><span class="t-lb">'+esc(t.label)+'</span></div>').join("")+'</div>':"")
-   +'<div class="spacer"></div>'
-   +(lessonPassed&&S.results.length>=S.total?'<div class="btn-row"><button class="btn big" onclick="startHoops()">🏀 Play Rebound Rescue!</button></div><div class="spacer"></div>':"")
-   +'<div class="btn-row"><button class="btn '+(S.results.length>=S.total?"secondary ":"")+'big" onclick="goHome()">Daily Path 🏠</button>'
-   +(earned.length?'<button class="btn secondary big" onclick="renderTrophyRoom()">Trophy Room 🏆</button>':"")
-   +(S.lesson&&S.lesson.indexOf('reveal:')===0?'<button class="btn secondary big" onclick="renderRevealUnit('+revealLesson(S.lesson.slice(7)).u+')">Unit '+revealLesson(S.lesson.slice(7)).u+' 📘</button>':(S.lesson?'<button class="btn secondary big" onclick="renderLessons()">More Lessons 📚</button>':""))
+  const rvL=S.lesson&&S.lesson.indexOf('reveal:')===0?revealLesson(S.lesson.slice(7)):null;
+  const kick=rvL?'LESSON '+esc(rvL.id)+' · '+esc(rvL.t):(S.lesson?esc(lessonById(S.lesson).title):esc(SUBJECTS[S.subject].name)+' practice');
+  app.innerHTML='<div class="fadein pit-stage pit-stop pit-passed pit-results">'
+   +'<div class="pit-hero"><div class="'+(earned.length?"ananse-celebrate":"")+'">'+(lessonPassed?pitLion(112):pitLion(112,"mechanic"))+'</div><div class="pit-kick"><b>'+kick+'</b>'+(rvL&&S.correct/Math.max(1,S.results.length)>=0.8?' · ★ earned':'')+'</div>'
+   +'<h1 class="pit-big">'+(!lessonPassed?'Almost there!':(S.lesson?'Lesson Complete!':'Session Complete!'))+'</h1><p class="pit-sub">'+esc(praiseLine)+'</p></div>'
+   +(!lessonPassed?'<section class="pit-card pit-almost"><b>You got '+S.correct+' of '+S.total+' right the first time. You need '+passNeed+' to pass.</b><p>Let\'s look at the lesson again, then try a new set.</p>'
+     +'<button class="pit-go" onclick="'+(isRv?'renderRevealLesson(\''+esc(lessonKey.slice(7))+'\')':'renderLesson(\''+esc(lessonKey)+'\')')+'"><span class="pit-go-t">📘 Learn it again &amp; retry</span></button></section>':'')
+   +'<section class="pit-card"><div class="pit-earn pit-earn4">'
+   +'<div><b>'+S.correct+' / '+S.results.length+'</b>'+SUBJECTS[S.subject].icon+' '+esc(SUBJECTS[S.subject].name)+'</div>'
+   +'<div><b>+'+S.xp+'</b>⚡ XP earned</div>'
+   +'<div><b>'+P.streak+'</b>🔥 right in a row</div>'
+   +'<div><b>'+P.levels[S.subject]+'</b>📈 level · '+esc(LEVEL_NAMES[P.levels[S.subject]])+'</div></div>'
+   +(earned.length?'<h3 class="pit-trh">🏆 New trophies!</h3><div class="shelf-row" style="justify-content:center;margin-top:10px">'+earned.map(t=>'<div class="trophy" style="border-color:'+t.color+'"><span class="t-ic">'+t.icon+'</span><span class="t-lb">'+esc(t.label)+'</span></div>').join("")+'</div>':"")
+   +'</section><div class="pit-cta">'
+   +(lessonPassed&&S.results.length>=S.total?'<button class="pit-go" onclick="startHoops()"><span class="pit-go-t">🏀 Play Rebound Rescue!</span></button>':"")
+   +(rvL?'<button class="pit-quiet" onclick="renderRevealUnit('+rvL.u+')">Unit '+rvL.u+' 📘</button>':(S.lesson?'<button class="pit-quiet" onclick="renderLessons()">More Lessons 📚</button>':""))
+   +(earned.length?'<button class="pit-quiet" onclick="renderTrophyRoom()">Trophy Room 🏆</button>':"")
+   +'<button class="pit-quiet" onclick="goHome()">Home 🏠</button>'
    +'</div></div>';
+  pitNav("lessons");
   if(!lessonPassed)say("Almost there! You got "+S.correct+" of "+S.total+" right the first time. You need "+passNeed+" to pass. Let's look at the lesson again, then try a new set.");
   else say("Session complete! "+praiseLine+(earned.length?" And you earned a new trophy!":"")+(S.results.length>=S.total?" You also unlocked Rebound Rescue!":""));
   if(isRv&&typeof lzBack==="function"){const _u=revealLesson(S.lesson.slice(7)).u;lzBack(()=>renderRevealUnit(_u),"Unit "+_u);}
@@ -12452,15 +12481,16 @@ function renderTrophyRoom(){
       const sz=t.type==="streak"?(34+(t.size||1)*5):40;
       return '<div class="trophy" style="border-color:'+(t.color||"#b9d4f3")+'" onclick="trophyDetail('+idx+')"><span class="t-ic" style="font-size:'+sz+'px">'+t.icon+'</span><span class="t-lb">'+esc(t.label)+'</span></div>';
     }).join("");
-    const sils=g.sil.map(s=>'<div class="trophy silhouette"><span class="t-ic">'+s+'</span><span class="t-lb">Not yet...</span></div>').join("");
+    const sils=g.sil.map(s=>'<div class="trophy silhouette"><span class="t-ic">'+s+'</span><span class="t-lb">Not yet</span></div>').join("");
     return '<div class="shelf"><div class="shelf-label">'+g.label+'</div><div class="shelf-row">'+cells+sils+'</div></div>';
   }).join("");
-  app.innerHTML='<div class="fadein">'
-   +'<div class="center"><h1>'+esc(P.name)+'\'s Trophy Room</h1>'
-   +'<p class="muted">'+P.trophies.length+' trophies earned · your space, your wins</p></div>'
-   +'<div class="kente-strip" style="margin:14px 0 20px"></div>'
+  const lstars=typeof REVEAL_LESSONS!=="undefined"?REVEAL_LESSONS.filter(l=>revealProfilePassed(P,l.id)).length:0;
+  app.innerHTML='<div class="fadein pit-stage pit-hub pit-trophies">'
+   +'<h1 class="pit-h1">Trophies</h1><p class="ph-sub">Only things you have really earned.</p>'
+   +'<div class="pit-earn pit-tcount"><div><b>⭐ '+lstars+'</b>lesson stars</div><div><b>🏆 '+P.trophies.length+'</b>trophies</div><div><b>🔥 '+(P.streak||0)+'</b>right in a row</div></div>'
    +html
-   +'<div class="center"><div class="btn-row" style="justify-content:center"><button class="btn secondary" onclick="printCertificate()">🖨️ Print my certificate</button><button class="btn secondary" onclick="goHome()">⟵ Back</button></div></div></div>';
+   +'<section class="pit-sec"><div class="pit-list">'+pitRow('🃏','Player Card','Stats and skills','renderStats()')+pitRow('🗺️','My Journey','Levels conquered','renderJourney()')+pitRow('🖨️','Print my certificate','','printCertificate()')+'</div></section></div>';
+  pitNav("trophies");
 }
 function printCertificate(){
   if(typeof sfx==="function")sfx("tick");
@@ -12566,7 +12596,7 @@ function renderStats(){
       +'<span class="s-bar"><i style="width:0%" data-w="'+v+'"></i></span>'
       +'<b class="s-val">'+v+'</b></div>';
   };
-  app.innerHTML='<div class="fadein" style="max-width:560px;margin:0 auto">'
+  app.innerHTML='<div class="fadein pit-stage" style="max-width:560px;margin:0 auto">'
    +'<div class="card2k">'
    +'<div style="display:flex;justify-content:space-between;align-items:center;gap:16px">'
    +'<div><div style="margin-bottom:6px">'+avatarHTML(P,46)+'</div><h2 style="color:#ffffff">'+esc(P.name).toUpperCase()+'</h2><div style="color:#e3ecff;font-size:14px;letter-spacing:2px">LEARNING ZONE · SEASON '+new Date().getFullYear()+'</div></div>'
@@ -12579,7 +12609,8 @@ function renderStats(){
    +'<div class="statline" style="border:none"><span>🎮 Games Played</span><b>'+games+'</b></div>'
    +'</div>'
    +'<p class="muted" style="text-align:center;margin-top:10px">STRATEGY and RECALL grow every time you solve a word problem or remember a story. 💪</p>'
-   +'<div class="center"><div class="spacer"></div><button class="btn secondary" onclick="goHome()">⟵ Back</button></div></div>';
+   +'<div class="center"><div class="spacer"></div><button class="btn secondary" onclick="renderTrophyRoom()">⟵ Trophies</button></div></div>';
+  pitNav("trophies");
   // animate bars filling
   setTimeout(()=>{document.querySelectorAll(".s-bar i").forEach(i=>{i.style.width=(i.getAttribute("data-w")||0)+"%";});},80);
 }
@@ -13693,12 +13724,13 @@ function renderJourney(){
      +'<div class="jz-path">'+steps+'</div></div>';
   }).join("");
   const done=Object.keys(SUBJECTS).reduce((a,s)=>a+((P.levels[s]||1)-1),0);
-  app.innerHTML='<div class="fadein">'
+  app.innerHTML='<div class="fadein pit-stage">'
    +'<div class="center"><h1>🗺️ My Journey</h1><p class="muted">Every gold star is ground you already conquered, '+esc(P.name)+'. The glowing circle is where we are right now.</p></div>'
    +'<div class="kente-strip" style="margin:16px 0 22px"></div>'
    +'<div style="max-width:640px;margin:0 auto">'+cards+'</div>'
-   +'<div class="btn-row" style="margin-top:12px"><button class="btn" onclick="renderHome()">⟵ Back to Adventure</button></div>'
+   +'<div class="btn-row" style="margin-top:12px"><button class="btn secondary" onclick="renderTrophyRoom()">⟵ Trophies</button></div>'
    +'<div class="spacer"></div></div>';
+  pitNav("trophies");
   say(done>0?"Look how far you have come, "+P.name+"! "+done+" level"+(done===1?"":"s")+" conquered already.":"This is your journey map, "+P.name+". Every level you beat turns into a gold star!");
 }
 

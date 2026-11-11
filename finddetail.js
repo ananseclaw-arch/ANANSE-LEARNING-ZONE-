@@ -442,13 +442,14 @@ function fdFinish(){
   const nx=fdPickNext(P,p.id);
   const praise=correct===total?FD_PRAISE[0]:(correct>=total-1?FD_PRAISE[1]:FD_PRAISE[2]);
   if(correct>=total-1&&typeof confetti==="function")confetti();
-  app.innerHTML='<div class="fd-done fadein"><div style="margin:6px auto">'+(typeof ananseSVG==="function"?ananseSVG(120,correct>=total-1?"party":"idle"):"")+'</div>'
-   +'<h1 style="margin:6px 0">Story complete!</h1>'
+  app.innerHTML='<div class="fd-done fadein pit-stage pit-fdfin"><div style="margin:6px auto">'+(typeof pitLion==="function"?pitLion(112):(typeof ananseSVG==="function"?ananseSVG(120,correct>=total-1?"party":"idle"):""))+'</div>'
+   +'<div class="pit-kick"><b>READING</b> · FIND THE DETAIL</div><h1 class="pit-big" style="margin:6px 0">Story complete!</h1>'
    +'<div class="fd-card"><div class="fd-stat"><span>🔎 First-try details</span><b>'+correct+' / '+total+'</b></div>'
    +'<div class="fd-stat"><span>⚡ XP earned</span><b>+'+xp+'</b></div>'
    +'<div class="fd-stat" style="border:none"><span>📖 Stories done</span><b>'+Object.keys(rec.done).length+' of '+FD_PASSAGES.length+'</b></div></div>'
    +'<p style="font-weight:700;font-size:17px">'+esc(praise)+'</p>'
    +'<div class="fd-btns"><button onclick="fdStart(\''+nx.id+'\')">📖 Another story: '+esc(nx.title)+'</button><button class="alt" onclick="goHome()">Home 🏠</button></div></div>';
+  if(typeof pitNav==="function")pitNav("lessons");
   say(praise);
   const _fs=FDS;FDS=null;void _fs;
 }
