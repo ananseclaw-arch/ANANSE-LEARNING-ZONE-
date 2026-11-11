@@ -131,7 +131,7 @@ for(const id of ids){
     const WB=run("WB"),p=WB.cur;
     if(!/wb-problem/.test(ctx.app.innerHTML))fail(id+": problem not rendered");
     if(run("wbCanSubmit")())fail(id+": submit enabled before answering ("+p.type+")");
-    if(p.type==="form"){for(const f of p.fields)WB.fields[f.key]=p.answer.f[f.key];if(p.fields.some(f=>f.kind==="num")&&!/inputmode="numeric"/.test(ctx.app.innerHTML))fail("num input missing");if(!/<input class="wb-in/.test(ctx.app.innerHTML))fail("form inputs missing");}
+    if(p.type==="form"){for(const f of p.fields)WB.fields[f.key]=p.answer.f[f.key];if(p.fields.some(f=>f.kind==="num")&&!/inputmode="none" data-lzpad="num"/.test(ctx.app.innerHTML))fail("num input missing (in-app keypad field expected)");if(!/<input class="wb-in/.test(ctx.app.innerHTML))fail("form inputs missing");}
     else if(p.type==="fill")WB.fields.ans=String(p.answer);
     else if(p.type==="multi")WB.selected=p.answer.slice();
     else if(p.type==="who"){WB.person=(p.answer&&p.answer.person!=null)?p.answer.person:p.answer;if(p.valueAnswer!=null)WB.fields.ans=String(p.valueAnswer);}
@@ -156,6 +156,18 @@ for(const id of ids){
 run("wbStart")("4-5",{reveal:true});{const WB=run("WB");const p=WB.cur;for(const f of p.fields)WB.fields[f.key]="zz";run("wbSubmit")();if(!/Try one like it/.test(ctx.app.innerHTML+((run("WB")._pick||{}).tail||"")))fail("twin offer missing after miss");run("wbTryTwin")();if(!run("WB").isTwin)fail("twin not loaded");}
 if(!/class="wb-review"/.test(wb.review("4-3"))||/Prince/.test(wb.review("4-3")))fail("review html");
 console.log("UI flow: rendered+submitted "+ids.length+" lessons in reveal mode, hooks wbRevealDone/wbRevealExit ok");
+// iPad keyboard fix (2026-11-11): the in-app keypad types "×", "÷", "−" with spaces; marking must stay exactly as before
+{const P=run("wbEqParse");const T=(s,want)=>{let r;try{r=P(s);}catch(e){fail("wbEqParse threw on "+s);return;}if(!!r.ok!==want)fail("wbEqParse("+s+").ok should be "+want);};
+ T("8 × 9 = 72",true);T("9 + 9 = 18",true);T("2 + 2 + 2 = 6",true);T("8 ÷ 2 = 4",false);T("9 − 1 = 8",false);T("8 × 9 = ",false);
+ // every equation box of a twoEq/oneEq form is a keypad field; number boxes too; the "because" box keeps the keyboard (predictions off)
+ let eqSeen=0,numSeen=0,becSeen=0;for(const id of ["4-1","4-2","4-3","4-4","4-5","3-7"])for(let k=0;k<30;k++)for(const p of wb.gen(id,10)){if(p.type!=="form")continue;
+   ctx.WB=run("WB")||{};run("WB={fields:{}}");const h=run("wbFormHTML")(p);
+   const g=p.group;(g&&(g.kind==="twoEq"||g.kind==="oneEq")?g.keys:[]).forEach(k2=>{eqSeen++;if(!new RegExp('data-k="'+k2+'"[^>]*readonly inputmode="none" data-lzpad="eq"').test(h))fail("equation box "+k2+" is not an eq keypad field ("+id+")");});
+   p.fields.filter(f=>f.kind==="num").forEach(f=>{numSeen++;if(!new RegExp('data-k="'+f.key+'"[^>]*data-lzpad="num"').test(h))fail("number box "+f.key+" is not a num keypad field");});
+   if(/wb-because/.test(h)){becSeen++;if(/wb-because[^>]*data-lzpad/.test(h)||!/wb-because[^>]*autocorrect="off" autocapitalize="off" spellcheck="false"/.test(h))fail("because box must keep the keyboard with predictions off");}
+   (h.match(/<input[^>]*>/g)||[]).forEach(t=>{if(!/autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/.test(t))fail("form input without predictions-off attributes");});}
+ if(!eqSeen||!numSeen||!becSeen)fail("keypad markup test saw no equation/number/because boxes");
+ console.log("Keypad markup: "+eqSeen+" equation boxes, "+numSeen+" number boxes, "+becSeen+" because boxes checked");}
 // report
 console.log("\nPer-lesson summary ("+SESSIONS+" sessions each):");
 for(const id of ids){const s=summary[id];console.log(" "+id+" size="+s.size+" problems="+s.probs+" types="+JSON.stringify(s.types)+" formWrongTested="+s.wrongTested);}

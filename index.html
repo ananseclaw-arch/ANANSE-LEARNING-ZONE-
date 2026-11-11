@@ -644,6 +644,33 @@ body.learningworld #app{max-width:1180px}
 @keyframes s4pop{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:none}}
 @media (min-width:700px){.s4-art{grid-template-columns:repeat(2,76px)}.s4-tile{width:76px;height:76px}.s4-now-side{max-width:320px;margin-left:auto}}
 </style>
+<style id="lz-pit">
+/* ===== Learning Zone "pit stop" look (job 1111-1252-5a4e) + in-app maths keypad ===== */
+/* --- in-app keypad (#lzk): docks above the fixed question bar; iPad keyboard never opens on [data-lzpad] fields --- */
+#lzk{position:fixed;left:0;right:0;bottom:var(--lzkBottom,0px);z-index:60;margin:0 auto;max-width:560px;background:#EAF1FF;border:2px solid var(--line,#C9D7F2);border-bottom:0;border-radius:22px 22px 0 0;box-shadow:0 -10px 30px rgba(11,27,61,.18);padding:8px 12px calc(10px + env(safe-area-inset-bottom));animation:lzkUp .18s ease-out}
+#lzk[hidden]{display:none!important}
+@keyframes lzkUp{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+.lzk-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 2px 6px}
+.lzk-hint{font:700 15px/1.2 var(--head,system-ui);color:#3C4E73}
+.lzk-next{min-height:44px;padding:0 14px;border-radius:22px;border:0;background:var(--orange,#FF5B0A);color:#fff;font:700 16px var(--head,system-ui);cursor:pointer;margin-left:auto;box-shadow:0 3px 0 #C2410C}
+.lzk-next[hidden]{display:none}
+.lzk-hint{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
+.lzk-done{min-height:44px;min-width:96px;padding:0 16px;border-radius:22px;border:2px solid var(--line,#C9D7F2);background:#fff;color:var(--ink,#14233F);font:700 16px var(--head,system-ui);cursor:pointer}
+.lzk-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.lzk-grid.lzk-eq{grid-template-columns:repeat(4,1fr)}
+.lzk-key{min-height:52px;border-radius:14px;background:#fff;border:2px solid var(--line,#C9D7F2);box-shadow:0 3px 0 var(--line,#C9D7F2);font:800 26px/1 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink,#14233F);cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.lzk-key:active{transform:translateY(3px);box-shadow:none;background:#EAF1FF}
+.lzk-key.op{background:#FFF3E6;border-color:#F3B67A;box-shadow:0 3px 0 #F3B67A;color:#9A3412}
+.lzk-key.del{background:#DCE7FB;font-size:22px}
+.lzk-key.done{font:700 18px var(--head,system-ui)}
+/* the box being typed into: thick orange border, soft glow, blinking caret bar at the end */
+input.lzk-on,textarea.lzk-on{border-color:var(--orange,#FF5B0A)!important;box-shadow:0 0 0 4px rgba(255,91,10,.22)!important;outline:none;background-image:linear-gradient(var(--orange,#FF5B0A),var(--orange,#FF5B0A));background-repeat:no-repeat;background-position:right 10px center;background-size:3px 55%;padding-right:20px!important;animation:lzkCaret 1s steps(1) infinite}
+@keyframes lzkCaret{50%{background-size:0 55%}}
+input[data-lzpad]{caret-color:transparent;cursor:pointer;-webkit-user-select:none;user-select:none}
+body.lzk-open .wb-page,body.lzk-open .hw-shell,body.lzk-open .focus-wrap{padding-bottom:calc(var(--lzkH,300px) + 24px)!important}
+body.lzk-open .lzq .wb-page{padding-bottom:calc(var(--lzqBar,76px) + var(--lzkH,300px) + 16px)!important}
+@media (prefers-reduced-motion:reduce){#lzk,input.lzk-on{animation:none!important}}
+</style>
 <style id="workbook"></style>
 </head>
 <body>
@@ -2332,7 +2359,7 @@ function mirrorSession(id){
 function mirrorRows(m){if(!m.split)return m.rows;return [m.g+' × '+m.n+' = {0} × {1} + {2} × {3}',m.g+' × '+m.n+' = {4} + {5}',m.g+' × '+m.n+' = {6}'].concat(m.slot%2?['There are {7} '+m.arrayItem+'.']:[]);}
 function mirrorHTML(q){
   const m=q.mirror; let html='';
-  if(m.kind){const ready=m.expected.every((_,i)=>String(S.mirrorValues[i]||'').trim());return (m.choices?'<p>'+m.choices+'</p>':'')+'<div style="font-size:20px;line-height:2;text-align:center">'+m.rows.map(row=>row.replace(/\{(\d+)\}/g,(_,i)=>'<input aria-label="Answer box '+(Number(i)+1)+'" type="text" value="'+esc(S.mirrorValues[i]||'')+'" oninput="mirrorInput('+i+',this.value)" style="width: min(14em, 75vw); font-size:20px">')).join('<br>')+'</div><div class="center"><button class="btn big" id="mirrorSubmit" '+(ready?'':'disabled')+' onclick="mirrorSubmit()">Check answer ✓</button></div>';}
+  if(m.kind){const ready=m.expected.every((_,i)=>String(S.mirrorValues[i]||'').trim());return (m.choices?'<p>'+m.choices+'</p>':'')+'<div style="font-size:20px;line-height:2;text-align:center">'+m.rows.map(row=>row.replace(/\{(\d+)\}/g,(_,i)=>'<input aria-label="Answer box '+(Number(i)+1)+'" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" value="'+esc(S.mirrorValues[i]||'')+'" oninput="mirrorInput('+i+',this.value)" style="width: min(14em, 75vw); font-size:20px">')).join('<br>')+'</div><div class="center"><button class="btn big" id="mirrorSubmit" '+(ready?'':'disabled')+' onclick="mirrorSubmit()">Check answer ✓</button></div>';}
   if(m.split){
     /* Big array: one tall, tappable gap between every pair of columns (no tiny buttons, no 1-9 row). */
     const dot=Math.max(20,Math.min(40,Math.floor(300/m.g)));
@@ -2344,7 +2371,7 @@ function mirrorHTML(q){
     html+='<p class="arr-help">Tap the gap between two columns to cut the array into two parts.</p><div class="arr-wrap" role="group" aria-label="'+m.g+' rows of '+m.n+'. '+(S.mirrorCut?'Split after '+S.mirrorCut+' columns.':'Choose a split.')+'"><div class="arr" style="--dot:'+dot+'px;grid-template-columns:repeat('+(2*m.n-1)+',auto);grid-template-rows:repeat('+m.g+',var(--dot))">'+cells+'</div></div>';
   }
   const count=mirrorRows(m).join('').match(/\{\d+\}/g).length, ready=(!m.split||S.mirrorCut)&&Array.from({length:count},(_,i)=>S.mirrorValues[i]).every(Boolean);
-  html+='<div class="mir-lines">'+mirrorRows(m).map(row=>'<div class="mir-line">'+row.replace(/\{(\d+)\}/g,(_,i)=>'<input aria-label="Answer box '+(Number(i)+1)+'" inputmode="numeric" pattern="[0-9]*" type="text" maxlength="3" value="'+(S.mirrorValues[i]||'')+'" oninput="mirrorInput('+i+',this.value)" class="mir-box">')+'</div>').join('')+'</div><div class="center"><button class="btn big" id="mirrorSubmit" '+(ready?'':'disabled')+' onclick="mirrorSubmit()">Check answer ✓</button></div>';
+  html+='<div class="mir-lines">'+mirrorRows(m).map(row=>'<div class="mir-line">'+row.replace(/\{(\d+)\}/g,(_,i)=>'<input aria-label="Answer box '+(Number(i)+1)+'" readonly inputmode="none" data-lzpad="num" type="text" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" value="'+(S.mirrorValues[i]||'')+'" oninput="mirrorInput('+i+',this.value)" class="mir-box">')+'</div>').join('')+'</div><div class="center"><button class="btn big" id="mirrorSubmit" '+(ready?'':'disabled')+' onclick="mirrorSubmit()">Check answer ✓</button></div>';
   return html;
 }
 function mirrorCut(n){S.mirrorCut=n;const e=document.getElementById('mirrorArea');if(e)e.innerHTML=mirrorHTML(S.cur);sessSave();}
@@ -2749,13 +2776,13 @@ function wbPracticeChrome(){if(WB&&!WB.flex&&typeof lzBack==="function")lzBack(w
    Keyboard open (Eb 2026-11-05): body.lzq-kb collapses the top header to a slim strip; font sizes and the bar never change. */
 const _lzqMaxH={};
 function lzqKbState(){try{const v=window.visualViewport,h=Math.round(v?v.height:innerHeight),w=String(innerWidth);_lzqMaxH[w]=Math.max(_lzqMaxH[w]||0,h,innerHeight);
-  const el=document.activeElement,typing=!!(el&&el.classList&&el.classList.contains("wb-in")&&document.querySelector(".lzq-bar"));
+  const el=document.activeElement,typing=!!(el&&el.classList&&el.classList.contains("wb-in")&&!el.hasAttribute("data-lzpad")&&document.querySelector(".lzq-bar"));
   const kb=typing&&h<_lzqMaxH[w]-120;if(document.body.classList.contains("lzq-kb")!==kb)document.body.classList.toggle("lzq-kb",kb);}catch(e){}}
 function lzqKbFit(){try{lzqKbState();const v=window.visualViewport,b=document.querySelector(".lzq-bar");if(!v||!b)return;const kb=Math.max(0,Math.round(innerHeight-v.offsetTop-v.height));b.style.bottom=kb>60?kb+"px":"";}catch(e){}}
-function lzqKeep(){try{const el=document.activeElement;if(!el||!el.classList||!el.classList.contains("wb-in"))return;lzqKbFit();
+function lzqKeep(){try{const el=document.activeElement;if(!el||!el.classList||!el.classList.contains("wb-in")||el.hasAttribute("data-lzpad"))return;lzqKbFit();
   const v=window.visualViewport,r=el.getBoundingClientRect(),bar=document.querySelector(".lzq-bar"),tb=document.getElementById("topbar"),bh=bar?bar.offsetHeight:0,top=(v?v.offsetTop:0)+(tb?tb.getBoundingClientRect().bottom:60)+12,bottom=(v?v.offsetTop+v.height:innerHeight)-bh-12;
   if(r.bottom>bottom)window.scrollBy(0,Math.min(r.bottom-bottom,r.top-top));else if(r.top<top)window.scrollBy(0,r.top-top);}catch(x){}}
-function lzqFocusIn(e){const el=e&&e.target;lzqKbState();if(el&&el.classList&&el.classList.contains("wb-in"))setTimeout(lzqKeep,320);}
+function lzqFocusIn(e){const el=e&&e.target;if(el&&el.hasAttribute&&el.hasAttribute("data-lzpad"))return;lzqKbState();if(el&&el.classList&&el.classList.contains("wb-in"))setTimeout(lzqKeep,320);}
 function lzqFocusOut(){setTimeout(lzqKbState,60);}
 function lzqResize(){lzqKbFit();setTimeout(lzqKeep,80);}
 if(typeof window!=="undefined"&&!window.__lzqKb){window.__lzqKb=1;try{document.addEventListener("focusin",lzqFocusIn);document.addEventListener("focusout",lzqFocusOut);window.addEventListener("resize",lzqResize);if(window.visualViewport){visualViewport.addEventListener("resize",lzqResize);visualViewport.addEventListener("scroll",lzqKbFit);}}catch(e){}}
@@ -2780,8 +2807,14 @@ function wbFieldButton(k,label){const v=WB.fields[k],cl=v===""?" empty":"";retur
 function wbFillHTML(p){let used=false;return'<div class="wb-eq">'+p.parts.map(x=>{if(x==="□"&&!used){used=true;return wbFieldButton("ans","unknown number");}return'<span>'+wbEscape(x)+'</span>';}).join("")+'</div>';}
 function wbEquationHTML(p){let h='<div class="wb-eq">'+wbFieldButton("e0","first number")+'<span>'+wbEscape(p.eq.op)+'</span>'+wbFieldButton("e1","second number")+'<span>=</span>'+wbFieldButton("e2","answer in equation")+'</div>';if(p.extraEq)h+='<div class="wb-eq">'+wbFieldButton("x0","first number in related equation")+'<span>'+wbEscape(p.extraEq.op)+'</span>'+wbFieldButton("x1","second number in related equation")+'<span>=</span>'+wbFieldButton("x2","answer in related equation")+'</div>';return h;}
 function wbAnswerLine(p){let h='<div class="wb-answer-line">'+wbFieldButton("ans","answer")+' <span>'+wbEscape(p.unit)+'</span>';if(p.answer.remainder!=null)h+=' <span>and</span> '+wbFieldButton("rem","remainder")+' <span>'+wbEscape(p.remainderUnit)+'</span>';return h+'</div>';}
-function wbFormHTML(p){return'<div class="wb-form">'+p.rows.map(r=>'<div class="wb-formrow">'+String(r).split(/(\{[nt]:\w+\})/).map(part=>{const m=/^\{([nt]):(\w+)\}$/.exec(part);if(!m)return part?'<span>'+wbEscape(part)+'</span>':"";const k=m[2],num=m[1]==="n";if(k==="r")return'<textarea class="wb-in wide wb-because" data-k="r" aria-label="because" rows="2" maxlength="120" placeholder="I know that…" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="done" onkeydown="if(event.key===\'Enter\'){event.preventDefault();this.blur();}" oninput="wbFormInput(this)">'+wbEscape(WB.fields[k]||"")+'</textarea>';
-  return'<input class="wb-in '+(num?'num':'text')+'" data-k="'+k+'" aria-label="'+(num?'answer':'type here')+'" '+(num?'inputmode="numeric" pattern="[0-9]*" maxlength="4"':'maxlength="120"')+' autocomplete="off" autocapitalize="none" spellcheck="false" value="'+wbEscape(WB.fields[k]||"")+'" oninput="wbFormInput(this)">';}).join("")+'</div>').join("")+'</div>';}
+/* iPad keyboard fix (Eb 2026-11-11): equation boxes ({t:e}/{t:e1}/{t:e2} in a twoEq/oneEq group) and number boxes ({n:..}) use the
+   in-app keypad (readonly + inputmode="none" + data-lzpad), so the iPad keyboard and its QuickType maths results never open there.
+   Word / yes-no boxes and the "because" box keep the normal keyboard with predictions, autocorrect, capitals and spellcheck off. */
+const WB_NOPRED=' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"';
+function wbFormKind(p,k,num){if(num)return"num";const g=p&&p.group;if(g&&(g.kind==="twoEq"||g.kind==="oneEq")&&(g.keys||[]).indexOf(k)>=0)return"eq";return"text";}
+function wbFormHTML(p){return'<div class="wb-form">'+p.rows.map(r=>'<div class="wb-formrow">'+String(r).split(/(\{[nt]:\w+\})/).map(part=>{const m=/^\{([nt]):(\w+)\}$/.exec(part);if(!m)return part?'<span>'+wbEscape(part)+'</span>':"";const k=m[2],num=m[1]==="n";if(k==="r")return'<textarea class="wb-in wide wb-because" data-k="r" aria-label="because" rows="2" maxlength="120" placeholder="I know that…"'+WB_NOPRED+' enterkeyhint="done" onkeydown="if(event.key===\'Enter\'){event.preventDefault();this.blur();}" oninput="wbFormInput(this)">'+wbEscape(WB.fields[k]||"")+'</textarea>';
+  const kind=wbFormKind(p,k,num),pad=kind!=="text";
+  return'<input class="wb-in '+(num?'num':(kind==="eq"?'text eq':'text'))+'" data-k="'+k+'" aria-label="'+(num?'answer':(kind==="eq"?'equation':'type here'))+'" '+(num?'maxlength="4"':(kind==="eq"?'maxlength="40"':'maxlength="120"'))+(pad?' readonly inputmode="none" data-lzpad="'+kind+'"':'')+WB_NOPRED+' value="'+wbEscape(WB.fields[k]||"")+'" oninput="wbFormInput(this)">';}).join("")+'</div>').join("")+'</div>';}
 function wbFormInput(el){if(!WB||!WB.cur||WB.cur.type!=="form")return;if(el.tagName==="TEXTAREA"&&/[\r\n]/.test(el.value))el.value=el.value.replace(/\s*[\r\n]+\s*/g," ");WB.fields[el.getAttribute("data-k")]=el.value;wbRefreshSubmit();}
 function wbQuestionAnswerHTML(p){if(p.type==="form")return wbFormHTML(p);if(p.type==="fill")return wbFillHTML(p);if(p.type==="picture")return wbEquationHTML(p);if(p.type==="story")return wbEquationHTML(p)+wbAnswerLine(p);if(p.type==="multi")return wbMultiHTML(p);if(p.type==="who")return'<div class="wb-btnrow">'+p.people.map(n=>'<button class="wb-person'+(WB.person===n?' on':'')+'" onclick="wbPickPerson(\''+wbEscape(n)+'\')">'+wbEscape(n)+'</button>').join("")+'</div>'+(p.valueAnswer!=null?'<div class="wb-answer-line"><span>Product:</span>'+wbFieldButton("ans","product")+'</div>':'');if(p.type==="match")return wbMatchHTML(p);if(p.type==="pair")return wbPairAnswerHTML(p);return"";}
 function wbPairAnswerHTML(p){let h="";if(p.equations)h=wbEquationHTML({eq:{op:"×"},extraEq:{op:"×"}});h+='<div class="wb-answer-line"><span>Shared product:</span>'+wbFieldButton("ans","shared product")+'</div>';if(p.people)h+='<div class="wb-answer-line"><span>Who has more?</span></div><div class="wb-btnrow">'+p.people.map(n=>'<button class="wb-person'+(WB.person===n?' on':'')+'" onclick="wbPickPerson(\''+wbEscape(n)+'\')">'+wbEscape(n)+'</button>').join("")+'</div>';return h;}
@@ -10025,9 +10058,9 @@ function renderNewProfile(setup){
    +'<h2>'+(setup?'Step 2 of 3 · Add your learner':'Add a learner')+'</h2>'
    +'<p class="muted">Parents fill this in. Your child picks a secret code they can remember.</p>'
    +'<div class="spacer"></div>'
-   +'<label style="text-align:left;display:block">Child\'s first name</label><input id="pname" value="'+esc(_newName)+'" placeholder="First name" maxlength="20" style="text-align:center;font-size:24px">'
+   +'<label style="text-align:left;display:block">Child\'s first name</label><input id="pname" value="'+esc(_newName)+'" placeholder="First name" maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" style="text-align:center;font-size:24px">'
    +'<label style="text-align:left;display:block;margin-top:12px">Grade</label><div class="grade-chips">'+[3,4,5].map(g=>'<button type="button" class="grade-chip'+(_newGrade===g?" on":"")+'" id="ng'+g+'" onclick="pickNewGrade('+g+')">'+GRADE_NAMES[g]+'</button>').join("")+'</div>'
-   +'<label style="text-align:left;display:block;margin-top:12px">Child\'s secret login code (4 digits)</label><input id="ppin" value="'+esc(_newKidPin)+'" placeholder="0000" maxlength="4" inputmode="numeric" pattern="[0-9]*" style="text-align:center;font-size:24px;letter-spacing:8px">'
+   +'<label style="text-align:left;display:block;margin-top:12px">Child\'s secret login code (4 digits)</label><input id="ppin" value="'+esc(_newKidPin)+'" placeholder="0000" maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="text-align:center;font-size:24px;letter-spacing:8px">'
    +'<p class="muted" style="font-size:14px;margin-top:6px">The child types this to open their profile. Parents can reset it any time.</p>'
    +'<div class="spacer"></div>'
    +'<button class="btn big" onclick="createProfile('+(setup?'true':'false')+')">Save learner ▶</button>'
@@ -10564,6 +10597,100 @@ function oneTryTyped(q){
   if(!q||!q.opts||q.opts.length<2||q.a==null)return false;
   if(/\b(which|true|false|not|best|closest|compare|greater|less|order)\b/i.test(q.q||""))return false;
   return q.opts.every(o=>_tyNum(o)!==null);
+}
+/* ---------- iPad keyboard fix (Eb 2026-11-11: "the iPad gives him the answer when he types 8x9") ----------
+   1) lzHardenInputs: every kid text box gets predictions/autocorrect/capitals/spellcheck OFF (iPadOS QuickType bar).
+   2) LZK in-app keypad: maths boxes are readonly + inputmode="none" + data-lzpad="num|dec|eq", so the iPad keyboard
+      (and its suggestion bar) can never open there. The real <input> keeps its value, oninput and saved-resume logic. */
+const LZ_NOHARDEN={tgToken:1,tgChat:1,tgTime:1,anUrl:1,anKey:1,pnKey:1,kidCodeNew:1,restoreFile:1,voiceRate:1,hwFile:1}; // Parent portal + file pickers: not kid-facing
+function lzHardenOne(el){
+  if(!el||el.nodeType!==1||el.hasAttribute("data-lzh"))return;
+  const tag=el.tagName;if(tag!=="INPUT"&&tag!=="TEXTAREA")return;
+  const ty=(el.getAttribute("type")||"text").toLowerCase();
+  if(tag==="INPUT"&&/^(range|file|time|password|checkbox|radio|color|hidden|button|submit)$/.test(ty))return;
+  if(el.id&&LZ_NOHARDEN[el.id])return;
+  el.setAttribute("autocomplete","off");el.setAttribute("autocorrect","off");el.setAttribute("spellcheck","false");el.setAttribute("data-gramm","false");
+  if(el.id!=="pname")el.setAttribute("autocapitalize","off");
+  el.setAttribute("data-lzh","1");
+}
+function lzHardenInputs(root){try{root=root||document;if(root.nodeType===1&&/^(INPUT|TEXTAREA)$/.test(root.tagName))lzHardenOne(root);if(root.querySelectorAll)root.querySelectorAll("input,textarea").forEach(lzHardenOne);}catch(e){}}
+const LZK={el:null,kind:null};
+const LZK_KEYS={
+  num:["1","2","3","4","5","6","7","8","9","done","0","del"],
+  dec:["1","2","3","4","5","6","7","8","9",".","0","del"],
+  eq:["7","8","9","×","4","5","6","÷","1","2","3","+","0","=","del","−"]};
+function lzkHTML(kind){
+  const lab={del:"⌫",done:"Done"},aria={del:"Delete",done:"Done","×":"times","÷":"divided by","+":"plus","−":"minus","=":"equals",".":"point"};
+  return '<div class="lzk-top"><span class="lzk-hint">'+(kind==="eq"?"Type the equation":"Type your answer")+'</span><button type="button" class="lzk-next" id="lzkNext" hidden>Next box ▸</button><button type="button" class="lzk-done" data-k="done" aria-label="Done, close the keypad">Done ▾</button></div>'
+   +'<div class="lzk-grid lzk-'+kind+'">'+LZK_KEYS[kind].map(k=>'<button type="button" class="lzk-key'+(k==="del"?' del':k==="done"?' done':/^[0-9.]$/.test(k)?'':' op')+'" data-k="'+k+'"'+(aria[k]?' aria-label="'+aria[k]+'"':'')+'>'+(lab[k]||k)+'</button>').join("")+'</div>';
+}
+function lzkPad(){let pad=document.getElementById("lzk");if(!pad){pad=document.createElement("div");pad.id="lzk";pad.setAttribute("role","group");pad.setAttribute("aria-label","Number keypad");pad.hidden=true;document.body.appendChild(pad);}return pad;}
+function lzkOpen(el,fromPointer){
+  if(!el||el.disabled||!el.hasAttribute||!el.hasAttribute("data-lzpad"))return;
+  const kind=el.getAttribute("data-lzpad"),pad=lzkPad();
+  if(LZK.el&&LZK.el!==el)LZK.el.classList.remove("lzk-on");
+  LZK.el=el;LZK.at=Date.now();el.classList.add("lzk-on");
+  if(LZK.kind!==kind||pad.hidden){pad.innerHTML=lzkHTML(kind);LZK.kind=kind;}
+  const bar=document.querySelector(".lzq-bar");
+  document.documentElement.style.setProperty("--lzkBottom",(bar&&getComputedStyle(bar).position==="fixed"?bar.offsetHeight:0)+"px");
+  pad.hidden=false;document.body.classList.add("lzk-open");
+  document.documentElement.style.setProperty("--lzkH",pad.offsetHeight+"px");
+  try{if(document.activeElement&&document.activeElement!==el&&document.activeElement.blur&&/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName))document.activeElement.blur();}catch(e){}
+  const nb=document.getElementById("lzkNext");if(nb)nb.hidden=!lzkNextField();
+  // never scroll while the finger is still down: the tap's own focus/click would land on whatever slid under it (e.g. the "because" box)
+  if(fromPointer)LZK.scrollAfterUp=true;else setTimeout(lzkIntoView,30);
+}
+function lzkFields(){return[...document.querySelectorAll("#app input, #app textarea")].filter(e=>!e.disabled&&e.type!=="range"&&e.type!=="file"&&e.getBoundingClientRect().width>0);}
+function lzkNextField(){const a=lzkFields(),i=a.indexOf(LZK.el);return i>=0&&i<a.length-1?a[i+1]:null;}
+function lzkNext(){const nx=lzkNextField();if(!nx){lzkClose();return;}if(nx.hasAttribute("data-lzpad")){lzkOpen(nx);return;}lzkClose();try{nx.focus();nx.scrollIntoView({block:"center"});}catch(e){}}
+function lzkIntoView(){try{const el=LZK.el,pad=document.getElementById("lzk");if(!el||!pad||pad.hidden)return;
+  const r=el.getBoundingClientRect(),top=innerHeight-(parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--lzkBottom"))||0)-pad.offsetHeight,tb=document.getElementById("topbar"),min=(tb?tb.getBoundingClientRect().bottom:60)+10;
+  if(r.bottom>top-14)window.scrollBy(0,r.bottom-(top-14)+Math.min(80,Math.max(0,(top-min-r.height)/3)));else if(r.top<min)window.scrollBy(0,r.top-min);}catch(e){}}
+function lzkClose(){const pad=document.getElementById("lzk");if(LZK.el)LZK.el.classList.remove("lzk-on");LZK.el=null;if(pad)pad.hidden=true;if(document.body)document.body.classList.remove("lzk-open");}
+const LZK_OPS={"×":1,"÷":1,"+":1,"−":1,"=":1};
+function lzkKey(k){
+  const el=LZK.el;if(!el||!document.contains(el)){lzkClose();return;}
+  if(k==="done"){lzkClose();return;}
+  const kind=LZK.kind,max=+(el.getAttribute("maxlength")||0)||99;let v=String(el.value||"");
+  if(k==="del"){
+    if(kind==="eq"){v=v.replace(/\s+$/,"");v=v.slice(0,-1).replace(/\s+$/,"");if(LZK_OPS[v.slice(-1)])v+=" ";}else v=v.slice(0,-1);
+  }else if(LZK_OPS[k]){
+    if(kind!=="eq")return;v=v.replace(/\s+$/,"");if(!v&&k!=="−")return;if(LZK_OPS[v.slice(-1)])v=v.slice(0,-1).replace(/\s+$/,"");v=(v?v+" ":"")+k+" ";
+  }else if(k==="."){if(kind!=="dec"||v.indexOf(".")>=0)return;v=(v||"0")+".";}
+  else{if(kind==="eq"&&LZK_OPS[v.replace(/\s+$/,"").slice(-1)])v=v.replace(/\s+$/,"")+" "+k;else v+=k;if(kind==="num")v=v.replace(/^0+(?=\d)/,"");}
+  v=v.replace(/ {2,}/g," ");if(v.length>max)return;
+  el.value=v;
+  try{el.dispatchEvent(new Event("input",{bubbles:true}));}catch(e){}
+  if(typeof sfx==="function")try{sfx("tick");}catch(e){}
+}
+function lzkIsField(t){return !!(t&&t.closest&&t.closest("[data-lzpad]"));}
+if(typeof document!=="undefined"&&typeof window!=="undefined"&&!window.__lzkWired){window.__lzkWired=1;
+  const pick=e=>{const t=e.target&&e.target.closest?e.target.closest("[data-lzpad]"):null;if(t){lzkOpen(t,true);return true;}return false;};
+  const up=()=>{if(LZK.scrollAfterUp){LZK.scrollAfterUp=false;setTimeout(lzkIntoView,350);}};document.addEventListener("pointerup",up,true);document.addEventListener("pointercancel",up,true);
+  document.addEventListener("pointerdown",e=>{
+    const key=e.target&&e.target.closest&&e.target.closest("#lzk [data-k]");
+    if(key){e.preventDefault();lzkKey(key.getAttribute("data-k"));return;}
+    if(e.target&&e.target.closest&&e.target.closest("#lzk"))return;
+    pick(e);
+  },true);
+  document.addEventListener("click",e=>{if(e.target&&e.target.closest&&e.target.closest("#lzkNext")){e.preventDefault();lzkNext();}},true);
+  // a tap anywhere else closes the pad AFTER that tap's own click ran (closing on pointerdown would move in-flow buttons under the finger)
+  document.addEventListener("click",e=>{if(!LZK.el||Date.now()-(LZK.at||0)<600)return;const t=e.target;if(t&&t.closest&&(t.closest("#lzk")||t.closest("[data-lzpad]")))return;setTimeout(lzkClose,0);});
+  document.addEventListener("focusin",e=>{const t=e.target;if(lzkIsField(t)){const f=t.closest("[data-lzpad]");if(f!==LZK.el)lzkOpen(f);return;}else if(t&&/^(INPUT|TEXTAREA)$/.test(t.tagName)&&LZK.el)lzkClose();});
+  document.addEventListener("keydown",e=>{
+    const el=LZK.el;if(!el)return;if(!document.contains(el)){lzkClose();return;}
+    if(document.getElementById("kidPinPad")||document.getElementById("parentPinPad"))return;
+    if(e.metaKey||e.ctrlKey||e.altKey)return;
+    const k=e.key,eq=LZK.kind==="eq";let m=null;
+    if(/^[0-9]$/.test(k))m=k;else if(k==="Backspace"||k==="Delete")m="del";else if(k==="Escape")m="done";
+    else if(eq&&(k==="x"||k==="X"||k==="*"))m="×";else if(eq&&k==="/")m="÷";else if(eq&&k==="+")m="+";else if(eq&&k==="-")m="−";else if(eq&&k==="=")m="=";
+    else if(k==="."&&LZK.kind==="dec")m=".";else if(k==="Enter"){lzkClose();return;}else if(k==="Tab"&&!e.shiftKey&&lzkNextField()){e.preventDefault();lzkNext();return;}
+    if(m){e.preventDefault();lzkKey(m);}
+  },true);
+  window.addEventListener("resize",()=>{if(LZK.el){const p=document.getElementById("lzk");if(p&&!p.hidden)document.documentElement.style.setProperty("--lzkH",p.offsetHeight+"px");}});
+  const wire=()=>{try{lzHardenInputs(document);
+    new MutationObserver(ms=>{for(const m of ms)m.addedNodes&&m.addedNodes.forEach(n=>{if(n.nodeType===1)lzHardenInputs(n);});if(LZK.el&&!document.contains(LZK.el))lzkClose();}).observe(document.body,{childList:true,subtree:true});}catch(e){}};
+  if(document.body)wire();else document.addEventListener("DOMContentLoaded",wire);
 }
 function typePadHTML(barCheck){ // barCheck: the Reveal bar's Check is the only submit (no ✓ key)
   const k=d=>'<button class="btn ty-key" onclick="typeKey(\''+d+'\')">'+d+'</button>';
@@ -12831,7 +12958,7 @@ function openAskAnanse(){
    +'<div class="center"><div class="ananse-wrap">'+ananseSVG(90,"teach")+'</div><h2>Ask Ananse anything</h2><p class="muted">What are you curious about today?</p></div>'
    +'<div id="chatMsgs" style="max-height:44vh;overflow-y:auto;margin:14px 0;display:flex;flex-direction:column;gap:10px"></div>'
    +'<div style="display:flex;gap:10px">'
-   +'<input id="chatInput" maxlength="200" placeholder="Type your question…" style="flex:1" autocomplete="off">'
+   +'<input id="chatInput" maxlength="200" placeholder="Type your question…" style="flex:1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">'
    +'<button class="btn" style="padding:12px 20px;font-size:20px" onclick="askSend()">Send 🏀</button>'
    +'</div>'
    +'<div class="btn-row" style="margin-top:14px"><button class="btn secondary" onclick="closeOverlay()">Done ⟵</button></div>'
@@ -13447,13 +13574,13 @@ function hwStep(){
     const opts=(s.options||[]).slice().sort(()=>Math.random()-0.5);
     input='<div class="hw-opts">'+opts.map(o=>'<button class="opt" onclick="hwCheck(this.dataset.v)" data-v="'+esc(o)+'">'+esc(o)+'</button>').join("")+'</div>';
   }else{
-    input='<div class="hw-row"><input id="hwIn" class="hw-in" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="?">'
+    input='<div class="hw-row"><input id="hwIn" class="hw-in" readonly inputmode="none" data-lzpad="dec" maxlength="9" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="?">'
       +'<button class="btn" onclick="hwCheck($(\'hwIn\').value)">Check ✓</button></div>';
   }
   hwCard('<div class="speech hw-speech">'+esc(s.ask)+'</div>'+input
    +'<div id="hwFb" class="hw-fb"></div>'
    +'<div class="btn-row"><button class="btn secondary helpbtn" id="hwHintBtn" onclick="hwHint()">🦁 Give me a hint</button></div>','hwBackStep()');
-  const inp=$("hwIn");if(inp){inp.focus();inp.addEventListener("keydown",e=>{if(e.key==="Enter")hwCheck(inp.value);});}
+  const inp=$("hwIn");if(inp){if(typeof lzkOpen==="function")lzkOpen(inp);else inp.focus();inp.addEventListener("keydown",e=>{if(e.key==="Enter")hwCheck(inp.value);});}
   say(s.ask);
 }
 function hwNorm(v){return String(v||"").replace(/[$,\s]/g,"").toLowerCase();}
@@ -13575,13 +13702,13 @@ function hwPractice(){
   }else if(solo){
     HW.numValue="";HW.numMode="practice";input=hwNumberPad();
   }else{
-    input='<div class="hw-row"><input id="hwIn" class="hw-in" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="?"><button class="btn" onclick="hwPCheck($(\'hwIn\').value)">Check ✓</button></div>';
+    input='<div class="hw-row"><input id="hwIn" class="hw-in" readonly inputmode="none" data-lzpad="dec" maxlength="9" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="?"><button class="btn" onclick="hwPCheck($(\'hwIn\').value)">Check ✓</button></div>';
   }
   app.innerHTML='<div class="fadein hw-shell"><div class="center"><h2>'+(solo?'🌟 Solo challenge':'⭐ Practice '+(HW.pi+1)+' of '+HW.plan.practice.length)+'</h2>'
    +(solo?'<p class="muted" style="font-size:20px">No clues this time — show what you know!</p>':'')+'</div>'
    +'<div class="speech hw-speech">'+esc(q.problem)+'</div>'+input+'<div id="hwFb" class="hw-fb"></div>'
    +'<div class="btn-row" style="margin-top:14px"><button class="btn secondary" onclick="hwPracticeBack()">← Back</button><button class="btn secondary" onclick="hwQuit()">Stop</button></div></div>';
-  const inp=$("hwIn");if(inp){inp.focus();inp.addEventListener("keydown",e=>{if(e.key==="Enter")hwPCheck(inp.value);});}
+  const inp=$("hwIn");if(inp){if(typeof lzkOpen==="function")lzkOpen(inp);else inp.focus();inp.addEventListener("keydown",e=>{if(e.key==="Enter")hwPCheck(inp.value);});}
   say(q.problem);
 }
 function hwPCheck(v){
