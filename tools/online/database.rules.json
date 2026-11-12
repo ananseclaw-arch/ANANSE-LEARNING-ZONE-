@@ -19,7 +19,7 @@
       ".validate": "newData.isBoolean()"
      },
      "look": {
-      ".validate": "newData.isString() && newData.val().matches(/^(real|story)$/)"
+      ".validate": "newData.isString() && newData.val().matches(/^(real|story|toon)$/)"
      },
      "track": {
       ".validate": "newData.isString() && newData.val().matches(/^(kawaguchi|hakone|tokyo|city|accra|coast|desert|inaka|dakar|deep)$/)"

@@ -236,8 +236,12 @@ function gpLin(c){return new THREE.Color(c).convertSRGBToLinear();}
 function gpNum(n){return Math.round(n).toLocaleString("en-US");}
 function gpCar(){const id=(P&&P.gpCar)||window._gpCar||"falcon";return GP_CARS.find(c=>c.id===id)||GP_CARS[0];}
 function gpPaint(){const p=(P&&P.gpPaint)||window._gpPaint;return (p&&/^#[0-9a-f]{6}$/i.test(p))?p:gpCar().paint;}
-function gpLook(){if(GPN&&GPN.look)return GPN.look;return (P&&P.gpLook)||window._gpLook||"real";}   // in a Race-a-friend room the host's look wins for everyone; the player's own saved Look is never touched, so it is simply back when they leave
+const GP_LOOK_DEFAULT="toon";   // Cartoon look for anyone who never picked one (Eb approved 2026-11-11); a saved Look is always respected. Switch back to "real" here if wanted
+const GP_LOOKS=["toon","real","story"];
+function gpLook(){if(GPN&&GPN.look)return GPN.look;const v=(P&&P.gpLook)||window._gpLook;return GP_LOOKS.includes(v)?v:GP_LOOK_DEFAULT;}   // in a Race-a-friend room the host's look wins for everyone; the player's own saved Look is never touched, so it is simply back when they leave
 function gpStory(){return gpLook()==="story";}
+function gpToon(){return gpLook()==="toon";}
+function gpFx(){return gpOpt("gpFx","auto")==="off"?"off":"auto";}   // ✨ Effects option: light rays, sparkle, glow (auto = on, switched off by itself if the frame rate drops)
 function gpStats(car){const g=car.grip||car.handle;return{max:44+car.speed*3.6,accel:9+car.accel*2.2,steer:1.4+car.handle*0.28,offF:car.type==="truck"?0.74:(car.type==="rally"||car.type==="suv"?0.62:0.45),gripK:0.9+g*0.04,dirtK:car.type==="truck"?1.35:(car.type==="rally"||car.type==="suv"?1.25:1)};}   // v4 (job 1104-2330): ~30% more top speed; grip differs per car
 /* ---------- ink & wash post-process (one full-screen pass) ---------- */
 const GP_POST_FS=`
@@ -832,7 +836,8 @@ function renderCircuits(tab){
    +gpOptRow("gpLaps","🔁 Laps",[[1,"1"],[2,"2"],[3,"3"]],gpLaps())
    +gpOptRow("gpPace","⭐ Difficulty",[["gentle","🐢 Easy"],["normal","🚗 Normal"],["hard","🔥 Hard"]],gpPace())
    +gpOptRow("gpAuto","🦶 Pedals",[[false,"Gas + brake"],[true,"✨ Auto gas"]],gpAuto())
-   +gpOptRow("gpLook","🖌️ Look",[["real","🗻 Realistic"],["story","🖌️ Storybook"]],gpLook())
+   +gpOptRow("gpLook","🖌️ Look",[["toon","🎨 Cartoon"],["real","🗻 Realistic"],["story","🖌️ Storybook"]],gpLook())
+   +gpOptRow("gpFx","✨ Effects",[["auto","Auto"],["off","Off"]],gpFx())
    +'<div class="fz-garage-row"><button class="btn big" onclick="renderRace()">🚗 Garage: '+esc(gpCar().n)+' ▶</button></div>'+gpGarageHtml()
    +'<div class="center" style="margin-top:12px"><button class="btn big fz-go" onclick="renderCircuits(\'tracks\')">🏁 Pick a track ▶</button></div></div>';
   app.innerHTML='<div class="'+gpShellClass()+'" id="fzShell" style="max-width:1080px;margin:0 auto;padding:0 8px">'
@@ -2790,9 +2795,9 @@ function gpTach(mph,gear,rf){const cv=$("gp3Tach");if(!cv)return;const x=cv.getC
 function gpFrame(now){
   if(!R3)return;
   const raw=Math.max(0,(now-R3.last)/1000);const dt=Math.min(0.05,raw);R3.last=now;   // a frame stamp can sit just before the build's clock
-  R3.fpsT+=raw;R3.fpsN++;if(R3.fpsT>=2){R3.fps=R3.fpsN/R3.fpsT;R3.fpsT=0;R3.fpsN=0;window.__gp.fps=Math.round(R3.fps);
+  R3.fpsT+=raw;R3.fpsN++;if(R3.fpsT>=2){R3.fps=typeof window.__gpForceFps==="number"?window.__gpForceFps:R3.fpsN/R3.fpsT;R3.fpsT=0;R3.fpsN=0;window.__gp.fps=Math.round(R3.fps);
     if(R3.fps<45&&!document.hidden){R3.lowT++;if(R3.lowT>=2){R3.lowT=0;if(R3.fz&&R3.fz.on&&R3.pr<=1.5&&!window.__gpFzKeep){R3.fz.on=false;window.__gp.fz=false;}else if(R3.pr>1){R3.pr=Math.max(1,R3.pr-0.25);R3.renderer.setPixelRatio(R3.pr);R3.onResize();}else if(R3.shadowsOn){R3.shadowsOn=false;R3.sun.castShadow=false;}}}else R3.lowT=0;
-    window.__gp.pr=R3.pr;window.__gp.shadows=R3.shadowsOn;}
+    window.__gp.pr=R3.pr;window.__gp.shadows=R3.shadowsOn;window.__gp.look=gpLook();}
   R3.frameN=(R3.frameN||0)+1;
   gpCountTick(now);
   if(R3.phase==="race"&&!R3.done)R3.time=now-R3.goAt-(R3.timeBonus||0);
@@ -3740,7 +3745,7 @@ function gpnLeave(quiet){const G=GPN;if(!G)return;GPN=null;clearInterval(G.iv);G
 function gpnGone(msg){const G=GPN;if(!G)return;GPN=null;clearInterval(G.iv);G.subs.forEach(f=>{try{f();}catch(e){}});gpnRememberRoom(null);try{window._gpnFb.db.ref("rooms/"+G.code).remove().catch(()=>{});}catch(e){}gpStop();renderOnline(msg||"That room has ended.");}   // the rules only allow that removal if the room really has expired
 /* everyone in seat order, each with the paint and label THIS race uses (the same on every screen: a copy of an earlier car gets a spare colour) */
 function gpnRoster(){const G=GPN,used=[],names=[],out=[];Object.keys(G.players).map(u=>Object.assign({uid:u},G.players[u])).sort((a,b)=>a.slot-b.slot).forEach(p=>{let pt=p.paint;if(used.includes(p.car+pt)){pt=GPN_SPARE.find(s=>!used.includes(p.car+s)&&gpnColor(s)!==gpnColor(p.paint))||pt;}used.push(p.car+pt);let label=gpnLabel(p.car,pt);{const same=out.filter(o=>o.label===label).length;if(same)label+=" "+(same+1);}const nm=gpnNameOk(p.name)?p.name:"",dup=!!nm&&names.includes(nm.toLowerCase());if(nm&&!dup)names.push(nm.toLowerCase());out.push(Object.assign(p,{paint:pt,label,name:dup?"":nm,dup,disp:(nm&&!dup)?nm:label,me:p.uid===G.uid}));});return out;}
-function gpnOnMeta(m){const G=GPN;if(!m){gpnGone();return;}const prev=G.meta;G.meta=m;G.look=(m.look==="story"||m.look==="real")?m.look:null;
+function gpnOnMeta(m){const G=GPN;if(!m){gpnGone();return;}const prev=G.meta;G.meta=m;G.look=GP_LOOKS.includes(m.look)?m.look:null;
   if(m.state==="lobby"){if(G.scr!=="lobby"){gpStop();G.race=null;G.scr="lobby";G.finish={};G.order=null;window.scrollTo(0,0);gpnLobby();return;}gpnLobbySoon();return;}
   if((!G.race||G.race.run!==m.run)&&(m.state==="load"||m.state==="count"||m.state==="race")){if(!gpnOnScreen()){gpnLeave();return;}gpnBegin(m);}
   if(R3&&R3.online&&m.goAt&&!R3.netGo&&G.race&&G.race.run===m.run){gpnSetGo(m.goAt);}
@@ -3765,8 +3770,8 @@ function gpnLobby(){const G=GPN;if(!G||G.scr!=="lobby"||!app)return;gpnCss();con
     +'<div class="gpn-chips">'+[1,2,3].map(n=>'<button class="'+(m.laps===n?"on":"")+'" onclick="gpnSet(\'laps\','+n+')">'+n+' lap'+(n>1?"s":"")+'</button>').join("")+'<button class="'+(m.pace==="gentle"?"on":"")+'" onclick="gpnSet(\'pace\',\'gentle\')">🐢 Easy</button><button class="'+(m.pace==="normal"?"on":"")+'" onclick="gpnSet(\'pace\',\'normal\')">🚗 Normal</button><button id="gpnLock" class="'+(m.locked?"on":"")+'" onclick="gpnSet(\'locked\','+(m.locked?"false":"true")+')">'+(m.locked?"🔒 Locked":"🔓 Open")+'</button></div>'
     :'<p class="gpn-h">THE TRACK</p><div class="gpn-picked" id="gpnPicked"><img src="assets/tracks/'+C.id+'.webp?v=1" alt=""><div><b>'+esc(C.name)+'</b><small>'+m.laps+' lap'+(m.laps>1?"s":"")+' · '+(m.pace==="normal"?"Normal":"Easy")+'</small></div></div>';
   const hostR=ros.find(r=>r.uid===m.host),curLook=G.look||gpLook(),
-    lookLine=!G.look?"":'<p class="gpn-look" id="gpnLook">🖌️ Look: <b>'+(curLook==="story"?"Storybook":"Realistic")+'</b>, picked by '+(isHost?"you":esc(hostR?hostR.disp:"the host"))+'<small>Everyone races with this look</small></p>'
-     +(isHost?'<div class="gpn-chips" id="gpnLookChips"><button class="'+(curLook==="real"?"on":"")+'" data-look="real" onclick="gpnSet(\'look\',\'real\')">🗻 Realistic</button><button class="'+(curLook==="story"?"on":"")+'" data-look="story" onclick="gpnSet(\'look\',\'story\')">🖌️ Storybook</button></div>':"");
+    lookLine=!G.look?"":'<p class="gpn-look" id="gpnLook">🖌️ Look: <b>'+(curLook==="story"?"Storybook":curLook==="toon"?"Cartoon":"Realistic")+'</b>, picked by '+(isHost?"you":esc(hostR?hostR.disp:"the host"))+'<small>Everyone races with this look</small></p>'
+     +(isHost?'<div class="gpn-chips" id="gpnLookChips"><button class="'+(curLook==="toon"?"on":"")+'" data-look="toon" onclick="gpnSet(\'look\',\'toon\')">🎨 Cartoon</button><button class="'+(curLook==="real"?"on":"")+'" data-look="real" onclick="gpnSet(\'look\',\'real\')">🗻 Realistic</button><button class="'+(curLook==="story"?"on":"")+'" data-look="story" onclick="gpnSet(\'look\',\'story\')">🖌️ Storybook</button></div>':"");
   const others=ros.filter(r=>!r.me&&r.on!==false).length;
   const taken=!!(me&&me.dup),hint=taken?"A friend has your name, so you race as "+esc(me.label)+". Change name to use your own":(others?(rdy?"Waiting for everyone to tap Ready":"Tap when you're ready. The race starts when everyone is"):"Read the code out to a friend");
   app.innerHTML='<div class="gpn" id="gpnScr"><div class="gpn-top"><h1>Grand Fable GP</h1><button class="gpn-x" id="gpnExit" onclick="renderOnline()">Exit</button></div>'
