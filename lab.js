@@ -110,10 +110,11 @@ function labReflectQ(){
   const order=shuffle(r.opts.map((_,i)=>i));LAB.order=order;
   const letters=["A","B","C","D"];
   openOverlay('<div><div class="center"><div class="ananse-wrap">'+ananseSVG(80,"teach")+'</div><div class="speech">Scientist\'s notebook — question '+(LAB.ri+1)+' of '+l.reflect.length+'</div></div><div class="spacer"></div>'
-   +'<p class="qtext" style="font-size:22px">'+esc(r.q)+'</p><div class="opts">'+order.map((oi,pos)=>'<button class="opt" id="lopt'+pos+'" onclick="labReflectA('+pos+')"><span class="letter">'+letters[pos]+'</span><span>'+esc(r.opts[oi])+'</span></button>').join("")+'</div></div>');
+   +'<p class="qtext" style="font-size:22px">'+esc(r.q)+'</p>'+lzAskRow("labHelp()")+'<div class="opts">'+order.map((oi,pos)=>'<button class="opt" id="lopt'+pos+'" onclick="labReflectA('+pos+')"><span class="letter">'+letters[pos]+'</span><span>'+esc(r.opts[oi])+'</span></button>').join("")+'</div></div>');
   LAB.qStart=Date.now();
   say(r.q);
 }
+function labHelp(){lzAskShow("Think back to what you saw when you played with the lab. What changed when you moved the sliders? Cross out answers that don't match what you saw.");}
 function labReflectA(pos){
   const l=labById(LAB.id);const r=l.reflect[LAB.ri];
   const labId=LAB.id,reflection=LAB.ri;

@@ -381,12 +381,13 @@ function fdRender(){
   app.innerHTML='<div class="fd-wrap fadein" id="fdRoot">'
    +'<div class="fd-top"><span class="fd-title">'+esc(p.icon+" "+p.title)+'</span><span class="fd-dots" aria-label="Question '+(FDS.qi+1)+' of '+p.qs.length+'">'+dots+'</span></div>'
    +'<div class="fd-card fd-q"><div class="fd-kicker">'+(tap?'Tap the sentence':'Find the detail')+' · '+(FDS.qi+1)+' of '+p.qs.length+'</div><p class="fd-qtext">'+esc(q.q)+'</p></div>'
-   +'<div class="fd-tools"><button class="fd-read" onclick="say(fdQ().q)">🔊 Read the question</button>'+lookBtn+'</div>'
+   +'<div class="fd-tools"><button class="fd-read" onclick="say(fdQ().q)">🔊 Read the question</button>'+lookBtn+(done?'':'<button class="fd-read fd-ask lz-ask" id="fdAsk" onclick="fdAskHelp()">🦁 Ask for help</button>')+'</div>'
    +msg+storyCard+opts
    +'</div><div class="fd-foot">'+foot+'</div>'+sheet;
   fdSyncReadBtns();
   if(typeof lzBack==="function")lzBack(()=>{FDS=null;fdStopRead();if(typeof stopRecorded==="function")stopRecorded();renderHome();},"Home");
 }
+function fdAskHelp(){const q=fdQ();if(!q||!FDS)return;const t=q.hint||(fdIsTap(q)?"Read the story again and look for the sentence that answers the question.":"Tap Look back at the story, find the sentence that answers the question, then pick.");lzAskShow(t,"fdAsk");}
 function fdPickOpt(oi){if(!FDS||FDS.phase==="right")return;FDS.pick=oi;sfx("tick");fdRender();}
 function fdTapSentence(i){if(!FDS||FDS.phase==="right")return;if(FDS.dead.indexOf(i)>=0)return;FDS.pick=i;sfx("tick");fdRender();}
 function fdCheck(){
