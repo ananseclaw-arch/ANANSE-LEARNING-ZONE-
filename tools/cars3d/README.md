@@ -38,3 +38,8 @@ passes; `--cycles` uses a Cycles AO bake instead. Meshy cars keep their own bake
 because three r128 ray-casts the bodies on the CPU (name plates, roof numbers) and does not de-normalise quantised positions.
 `check_glb.mjs`: same node names, material names, triangle count and per-node bounding box (2 mm) as the original.
 `assets/vendor/meshopt_decoder.js` = meshopt_decoder.cjs from meshoptimizer 1.3 (MIT, (c) Arseny Kapoulkine), unchanged.
+
+## Realistic look (job 1112-0147-25ca)
+The six Meshy cars keep their geometry; Realistic gives them real alloy / glass numbers through the cosmetic `rs` key in
+`GP_GLB` (merged over `matSet` only in the Realistic look, so Cartoon/Storybook are unchanged). The fleet rebuild, lamp units
+and the contract check are described in `README_fleet.md`.

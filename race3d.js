@@ -776,7 +776,7 @@ function renderRace(){
   const seg=(k,v,cl)=>'<span class="fz-st '+cl+'"><i>'+k+'</i><s>'+[1,2,3,4,5].map(q=>'<em class="'+(q<=v?"on":"")+'"></em>').join("")+'</s></span>';
   const grp=window._gpGrp||(GP_CARS.find(c=>c.id===sel)||{}).grp||"racers";
   const cards=GP_CARS.map(c=>'<button class="fz-car v4'+(c.id===sel?" on":"")+'"'+((c.grp||"racers")===grp?'':' hidden')+' data-grp="'+(c.grp||"racers")+'" data-car="'+c.id+'" onclick="gpPickCar(\''+c.id+'\')" aria-label="'+esc(c.n)+'">'
-    +'<span class="fz-thumb" style="--bg:url(assets/cars3d/thumbs/'+c.id+'.webp)"></span><span class="fz-kind">'+esc(c.kind||c.type)+'</span><b>'+esc(c.n)+'</b>'
+    +'<span class="fz-thumb" style="--bg:url(assets/cars3d/thumbs/'+c.id+'.webp?v=2)"></span><span class="fz-kind">'+esc(c.kind||c.type)+'</span><b>'+esc(c.n)+'</b>'
     +seg("Speed",c.speed,"sp")+seg("Grip",c.grip||c.handle,"gr")+seg("Accel",c.accel,"ac")+'<small>'+esc(c.bio)+'</small></button>').join("");
   const sw=GP_PAINTS.map(h=>'<button class="fz-sw'+(h===paint?" on":"")+'" style="background:'+h+'" data-paint="'+h+'" onclick="gpPickPaint(\''+h+'\')" aria-label="Paint colour"></button>').join("");
   app.innerHTML='<div class="'+gpShellClass()+(GP_PICS[sel]?" pic":"")+'" id="fzShell" style="max-width:980px;margin:0 auto;padding:0 8px">'

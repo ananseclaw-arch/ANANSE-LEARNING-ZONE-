@@ -81,3 +81,22 @@ One entry per id:
 - The formula's rear wing is narrower than its track (as on real cars). Its sticker sits on the main plane at x = ±0.27.
 - The trucks need `twF/twR/rad/radR` from fleet.json even more than the others: monster tyres are 0.80 m x 0.60 m and the
   semi's rear `twR` 0.66 covers both dual tyres. Their `ride` is the body floor (monster 1.30, trophy 0.75, semi cab 0.95).
+
+## Realistic parts (job 1112-0147-25ca)
+`build_fleet.py` now builds the 12 fleet cars with real-car parts (set `GP_FLEET_PLAIN=1` to rebuild the old models byte-for-byte):
+- **Lamp units** (`MBX` routes every `lamp` slab >= 5 cm and every `tail` part while a car's extras are built): dark `carbon`
+  housing, bright `rim` metal reflector bowl, `lamp` projector elements (two + an LED eyebrow on wide lamps), and a clear `lens`
+  cover. The lens takes the old part's outer face; everything else sits 3-9 mm behind it, so no outline moves. Tail lamps get a
+  glossy `taillens` cover over the `tail` emitter (the game lights both on the brake).
+- **`hl`** in fleet.json: headlamp centres `[x, y, z_front, size]` (game: faint glow sprites, `GP_GLB.<id>.hl`).
+- **Wheels:** 32 segments when `wseg % 4 == 0` (keeps the tyre's bounding box exact; ridge/monster/trophy keep 22/18), 5 lug nuts.
+- **Body:** stations at 0.025 / 0.045 m (razor keeps the old spacing - its nose tip moved 5 mm); door shut lines + chrome-metal
+  handles on the road cars in `PANEL`.
+- **New materials:** `lens`, `taillens` (`chrome`, `interior` exist but are unused, to keep each car within +2 materials).
+- **Contract check** (run after every rebuild, from the node folder like `check_glb.mjs`):
+  `node contract_check.mjs <old_unpacked_dir> <new_unpacked_dir> [ids]` - fails if a driving node (body, hub_*, wheel_*,
+  caliper_*) moved > 2 mm, a wheel's radius/width changed > 3 mm, the car's bbox changed > 10 mm, ride moved > 5 mm, an old
+  material vanished, tris > 34,000 or materials > old + 2. Also check `git diff assets/cars3d/fleet.json` only touches
+  `bytes`, `tris` and `hl`.
+- Pipeline after a rebuild: `bake_light.py` (lens skipped) -> `shadow_atlas.py` -> `pack_all.sh` (all 19 unpacked GLBs in one
+  folder, absolute out path) -> bump `?v=` in `GP_GLB`.
