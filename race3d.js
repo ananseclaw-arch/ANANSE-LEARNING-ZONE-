@@ -1023,7 +1023,7 @@ function gpLoadGlb(ids){
   const want=[...new Set(ids||Object.keys(GP_GLB))].filter(id=>GP_GLB[id]&&!window._gpGlb[id]);if(!want.length)return Promise.resolve(window._gpGlb);
   return gpGltfLoader().then(ok=>{if(!ok)return window._gpGlb;const L=gpGltf();
     return Promise.all(want.map(id=>new Promise(res=>L.load(GP_GLB[id].src,g=>{window._gpGlb[id]=g.scene;res();},undefined,()=>{res();})))).then(()=>window._gpGlb);});}
-function gpGlbShared(T,shared){if(shared.glb)return shared.glb;
+function gpGlbShared(T,shared){if(shared.glb&&shared.glbLook===gpLook())return shared.glb;shared.glbLook=gpLook();
   const std=o=>{const m=new T.MeshStandardMaterial(o);m.userData.lin=1;return m;};
   shared.glb={
     stripe:std({color:gpLin("#f4f4f0"),roughness:0.32,metalness:0.02}),
@@ -1086,6 +1086,7 @@ function gpBuildGlbCar(T,car,src,paint,shared){
   Object.values(hubs).forEach(h=>{h.userData.y0=h.position.y;});
   // far-away detail: small parts that cost a draw call each but can't be seen from 60 m (brake discs, calipers, spokes, decals...)
   const lod=[],casters=[];root.traverse(o=>{if(!o.isMesh)return;const nm=o.material&&o.material.name,pn=(o.parent&&o.parent.name)||"";if(/^(disc|caliper|spoke|rimdark|exhaust|decal|lamp|carbon)$/.test(nm||"")||/^caliper_/.test(o.name)||/^caliper_/.test(pn))lod.push(o);if(o.castShadow)casters.push(o);});
+  if(gpToon())root.traverse(o=>{if(o.isMesh)gpToonPatch(o.material);});
   return{lod,casters,lodFar:false,carId:car.id,g,body,wheels,steers,hubs:Object.values(hubs),shadows:[blob,contacts],tailMat:tail,bodyMat:paintM,stripeMat:stripe,S,xr:D.xr||S.xr,hw:z=>S.w/2,tyreX:D.tyreX,glb:{glows,blurs,glow:0,rollV:0,pitchV:0,heave:0,heaveV:0,pivotY:D.pivotY||0.3}};}
 /* per frame for model cars: brake glow fade (the springs for lean / dive / squat run in gpUpdate) */
 function gpGlbUpdate(kt,dt){const G=kt.glb;G.glow+=((kt.brakeOn?1:0)-G.glow)*Math.min(1,dt*(kt.brakeOn?18:7));
@@ -2592,7 +2593,7 @@ function gpBuild(C){
   R3={T,C,renderer,scene,camera,curve,samples,M,W,len,karts,me:karts.find(k=>k.player),keys:{},touchDir:0,brake:false,gas:false,drift:false,autoGas:gpAuto(),kap,vProf,vLim,lineX,corners,big,grip:GRIP,groundAt,shake:0,lossLog:[],jumpLog:[],t0:performance.now(),time:0,countdown:3.8,phase:"intro",cdReq:false,cdLog:[],frameN:0,goAt:0,done:false,raf:null,last:performance.now(),camPos:new T.Vector3(),msgT:0,place:5,board:[],
     sun,sky,band,glare,sunDir,sunOff:sunDir.clone().multiplyScalar(170),envRT,smoke,dust,sparks,petals,skids,skidLife,skidFade,skN:0,dummy,setLights,setScreen,screenTxt:"",fov:60,pr:pr0,fpsT:0,fpsN:0,fps:0,lowT:0,shadowsOn:true,tmpV:new T.Vector3(),tmpV2:new T.Vector3(),tmpV3:new T.Vector3(),tmpV4:new T.Vector3(),camYaw:null,teleV:new T.Vector3(),teleShadow:new T.Vector3(),teleSprite:new T.Vector3(),UP,story,
     gates,trapT:trapI/M,trapBest:0,gear:1,tachT:0,post,mode:gpMode(),notes,notesGot:0,notesTotal:notes.length*C.laps,song:[],lastDeg:4,songDirty:1,water,waterTex,fx:$("gp3Fx"),fxW:16,fxH:9,sk:{chain:0,mult:1,total:0,idle:0,list:[],dirty:1,clean:0,cool:0},bumpT:9,upGrip:(gpMode()==="race"&&!NET)?1+0.04*gpUpState().tyres:1,online:NET,netGo:0,cLog:null,sunTint:new T.Color(L.sun).lerp(new T.Color(1,1,1),0.35),skyTint:new T.Color(L.mid).lerp(new T.Color(L.hor),0.4),traffic:TR,tw:TW,megaTex,splash:TH==="coast"?gpParticles(T,scene,140,0.9,false,0.55):null};R3.bodies=R3.karts.concat(TR?TR.cars:[]);R3.fzSky=fzSky;if(!story)gpFzInit(T,renderer,phone);
-  window.__gp={fz:!!R3.fz,fps:0,pr:pr0,shadows:true,playerWheelPhase:0,wheelPhase:0,playerSpeed:0,speed:0,wheelRadius:R3.me.wheelRadius,cameraFov:60,cameraOffsetFromCar:0,cameraOffset:0,cameraOffsetVector:{x:0,y:0,z:0},playerShadowWorldY:0,shadowY:0,bodyRoll:0,spriteBottomY:R3.me.pos.y,smokeCount:0,rendererCalls:0,renderCalls:0,wheelPatchDrawCalls:0,wheelPatchState:R3.me.pic?"sharp":"3d",wheelPatchVisible:false,wheelPatchFrame:R3.me.pic?R3.me.pic.frame:null,wheelPatchKind:R3.me.pic&&R3.me.pic.wheelPatch?R3.me.pic.wheelPatch.kind:"3d",phys:{slipDeg:0,steerIn:0,sv:0,drift:0,x:0,speed:0},cam:{}};gpBakeInit();
+  window.__gp={fz:!!R3.fz,fps:0,pr:pr0,shadows:true,playerWheelPhase:0,wheelPhase:0,playerSpeed:0,speed:0,wheelRadius:R3.me.wheelRadius,cameraFov:60,cameraOffsetFromCar:0,cameraOffset:0,cameraOffsetVector:{x:0,y:0,z:0},playerShadowWorldY:0,shadowY:0,bodyRoll:0,spriteBottomY:R3.me.pos.y,smokeCount:0,rendererCalls:0,renderCalls:0,wheelPatchDrawCalls:0,wheelPatchState:R3.me.pic?"sharp":"3d",wheelPatchVisible:false,wheelPatchFrame:R3.me.pic?R3.me.pic.frame:null,wheelPatchKind:R3.me.pic&&R3.me.pic.wheelPatch?R3.me.pic.wheelPatch.kind:"3d",phys:{slipDeg:0,steerIn:0,sv:0,drift:0,x:0,speed:0},cam:{}};gpBakeInit();gpToonInit();
   // keyboard
   R3.kd=e=>{if(!R3)return;const k=e.key.toLowerCase();GPA.init();if(k==="escape"){renderCircuits();return;}if(k==="m"){gpToggleMute();return;}if(k==="c"){gpCycleCam();return;}if((k==="b"||k==="shift")&&!e.repeat){gpBoost();e.preventDefault();return;}if(k==="t"&&!e.repeat){gpTrick("spin",1);e.preventDefault();return;}if(k==="l"&&!e.repeat&&R3.me&&R3.me.jet){gpTrick("flip",1);e.preventDefault();return;}
     if(!e.repeat&&R3.me&&R3.me.air&&!R3.me.jet){if(k==="arrowleft")gpTrick("roll",-1);else if(k==="arrowright")gpTrick("roll",1);else if(k==="arrowup")gpTrick("flip",1);}R3.keys[k]=true;if(["arrowleft","arrowright","arrowdown","arrowup","shift"," "].includes(k))e.preventDefault();};
@@ -4004,18 +4005,18 @@ function gpFzInit(T,renderer,phone){try{
   const gl2=renderer.capabilities.isWebGL2&&!!T.WebGLMultisampleRenderTarget&&!phone,o={minFilter:T.LinearFilter,magFilter:T.LinearFilter,format:T.RGBAFormat};
   const rt=gl2?new T.WebGLMultisampleRenderTarget(4,4,o):new T.WebGLRenderTarget(4,4,o);rt.texture.encoding=T.sRGBEncoding;if(gl2)rt.samples=4;
   const C=R3.C,deep=!!C.deep,warm=gpSandy(C)||C.theme==="accra";
-  const mat=new T.ShaderMaterial({depthTest:false,depthWrite:false,uniforms:{tCol:{value:rt.texture},res:{value:new T.Vector2(4,4)},uBlur:{value:0},uBoost:{value:0},uT:{value:0},uSat:{value:deep?1.0:(warm?0.94:0.9)},uCon:{value:deep?0.0:0.3},uVig:{value:0.2},
+  const mat=new T.ShaderMaterial({depthTest:false,depthWrite:false,uniforms:{tCol:{value:rt.texture},res:{value:new T.Vector2(4,4)},uBlur:{value:0},uBoost:{value:0},uT:{value:0},uSat:{value:deep?1.0:(warm?0.94:0.9)},uCon:{value:deep?0.0:0.3},uVig:{value:0.2},uInk:{value:0},uInkC:{value:new T.Color(GP_TOON.ink)},uGrain:{value:0.014},
       uLift:{value:new T.Vector3(0.012,0.018,0.03)},uGain:{value:new T.Vector3(1.03,1.0,0.955)},uC:{value:new T.Vector2(0.5,0.42)}},
     vertexShader:"varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.0,1.0);}",
-    fragmentShader:"uniform sampler2D tCol;uniform vec2 res;uniform float uBlur;uniform float uBoost;uniform float uT;uniform float uSat;uniform float uCon;uniform float uVig;uniform vec3 uLift;uniform vec3 uGain;uniform vec2 uC;varying vec2 vUv;"+
+    fragmentShader:"uniform sampler2D tCol;uniform vec2 res;uniform float uInk;uniform vec3 uInkC;uniform float uGrain;uniform float uBlur;uniform float uBoost;uniform float uT;uniform float uSat;uniform float uCon;uniform float uVig;uniform vec3 uLift;uniform vec3 uGain;uniform vec2 uC;varying vec2 vUv;"+
      "float hs(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}"+
-     "void main(){vec2 dv=vUv-uC;dv.x*=res.x/res.y;float r2=dot(dv,dv);dv=vUv-uC;vec3 col=texture2D(tCol,vUv).rgb;"+
+     "void main(){vec2 dv=vUv-uC;dv.x*=res.x/res.y;float r2=dot(dv,dv);dv=vUv-uC;vec3 col=texture2D(tCol,vUv).rgb;float ink=0.0;"+"if(uInk>0.0){vec2 px=(res.y>1400.0?2.0:1.0)/res;vec3 a1=texture2D(tCol,vUv+px).rgb,a2=texture2D(tCol,vUv-px).rgb,a3=texture2D(tCol,vUv+vec2(px.x,-px.y)).rgb,a4=texture2D(tCol,vUv+vec2(-px.x,px.y)).rgb;"+"vec3 g1=a1-a2,g2=a3-a4;float d=max(length(g1),length(g2))*0.7+abs(dot(g1+g2,vec3(0.3,0.59,0.11)))*0.6;float lc=dot(col,vec3(0.3,0.59,0.11));ink=smoothstep(0.16,0.34,d)*(1.0-smoothstep(0.82,0.95,lc)*step(col.r,col.b))*(1.0-0.9*smoothstep(0.45,0.62,vUv.y)*smoothstep(0.36,0.52,lc));}"+
      "float k=uBlur*smoothstep(0.035,0.42,r2);if(k>0.004){float j=hs(vUv*res+uT)-0.5;vec3 a=col;for(int i=1;i<=6;i++){float f=1.0-k*0.03*(float(i)+j);a+=texture2D(tCol,uC+dv*f).rgb;}col=a/7.0;}"+
      "if(uBoost>0.01){float ab=uBoost*0.0035*smoothstep(0.06,0.5,r2);col.r=mix(col.r,texture2D(tCol,uC+dv*(1.0-ab)).r,0.85);col.b=mix(col.b,texture2D(tCol,uC+dv*(1.0+ab)).b,0.85);}"+
      "float l=dot(col,vec3(0.2126,0.7152,0.0722));col=mix(vec3(l),col,uSat);col=col*uGain+uLift*(1.0-l);col=mix(col,col*col*(3.0-2.0*col),uCon);"+
-     "col*=1.0-uVig*smoothstep(0.16,0.75,r2);col+=(hs(vUv*res+uT*7.0)-0.5)*0.014;gl_FragColor=vec4(clamp(col,0.0,1.0),1.0);}"});
+     "col*=1.0-uVig*smoothstep(0.16,0.75,r2);col=mix(col,uInkC,uInk*ink*0.8);col+=(hs(vUv*res+uT*7.0)-0.5)*uGrain;gl_FragColor=vec4(clamp(col,0.0,1.0),1.0);}"});
   const quad=new T.Mesh(new T.PlaneGeometry(2,2),mat);quad.frustumCulled=false;const scene=new T.Scene();scene.add(quad);const cam=new T.OrthographicCamera(-1,1,1,-1,0,1);
-  R3.fz={rt,mat,scene,cam,on:true,blur:0,msaa:!!gl2,resize(w,h,pr){const W=Math.max(2,Math.round(w*pr)),H=Math.max(2,Math.round(h*pr));rt.setSize(W,H);mat.uniforms.res.value.set(W,H);},dispose(){rt.dispose();mat.dispose();quad.geometry.dispose();}};
+  R3.fz={rt,mat,scene,cam,on:true,blur:0,msaa:!!gl2,resize(w,h,pr){const W=Math.max(2,Math.round(w*pr)),H=Math.max(2,Math.round(h*pr));rt.setSize(W,H);mat.uniforms.res.value.set(W,H);if(window._gpHullMat){window._gpHullMat.uniforms.uResY.value=H;window._gpHullMat.uniforms.uPx.value=H>1400?3.2:2.2;}},dispose(){rt.dispose();mat.dispose();quad.geometry.dispose();}};
 }catch(e){R3.fz=null;}}
 function gpFzRender(dt,spd,cmode){const R=R3,F=R.fz,r=R.renderer;
   if(!F||!F.on){r.render(R.scene,R.camera);return;}
@@ -4415,3 +4416,59 @@ function gpBakeDecals(R){const T=R.T,pts=[],mx=new T.Matrix4(),p=new T.Vector3()
   if(!pts.length)return;const m=new T.MeshBasicMaterial({map:gpSoftDot(),color:0x000000,transparent:true,opacity:0.42,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});m.userData.lin=1;
   const im=new T.InstancedMesh(new T.PlaneGeometry(2,2).rotateX(-Math.PI/2),m,pts.length),D=new T.Object3D();pts.forEach((a,i)=>{D.position.set(a[0],a[1],a[2]);D.scale.set(a[3],1,a[3]);D.updateMatrix();im.setMatrixAt(i,D.matrix);});
   im.frustumCulled=false;im.renderOrder=1;im.userData.bakeDecal=1;R.scene.add(im);R.bake.decals=pts.length;R.bake.decalMesh=im;}
+/* ---------- Cartoon look (job 1112-0016-43fd; look id "toon"; inspo/LOOK_SPEC.md) ----------
+   Cel shading is patched INTO the materials the game already uses (Lambert, Standard, Physical) rather than swapping them, so every
+   material the game animates (brake lights, start lights, screens, paint upgrades) keeps working. The light reaching a pixel is split
+   into 3 bands (shadow 0.45 / mid 0.75 / lit 1.0, soft 0.04 edges) relative to the scene's full sun+sky level; the dark band leans
+   lavender. The Blender-baked vertex shade stays underneath as tone. Shiny reflections are toned down (cartoon, never photoreal).
+   Cars get a deep-ink inverted-hull outline (one merged hull per body / per wheel, ~2-3 px wide on screen at any distance);
+   the world gets a 1-2 px ink edge inside the existing full-screen pass (no extra pass). */
+const GP_TOON={bands:[0.45,0.75,1.0],cut:[0.42,0.74],edge:0.04,ink:"#1a1a22",tint:[0.86,0.87,1.08]};
+window._gpToonRef=window._gpToonRef||{value:2.4};
+function gpToonPatch(m){if(!m||m.userData.toonP||!(m.isMeshLambertMaterial||m.isMeshStandardMaterial||m.isMeshToonMaterial||m.isMeshPhongMaterial))return m;m.userData.toonP=1;
+  const ob=m.onBeforeCompile,ok=m.customProgramCacheKey;
+  m.onBeforeCompile=function(sh,r){if(ob)ob.call(this,sh,r);sh.uniforms.uToonRef=window._gpToonRef;
+    const B=GP_TOON.bands,C=GP_TOON.cut,e=GP_TOON.edge.toFixed(3),f=v=>v.toFixed(3),tn=GP_TOON.tint.map(f).join(",");
+    const code="\n{float dl=max(dot(diffuseColor.rgb,vec3(0.299,0.587,0.114)),0.003);vec3 tot=reflectedLight.directDiffuse+reflectedLight.indirectDiffuse;float q=dot(tot,vec3(0.299,0.587,0.114))/dl/uToonRef;"
+      +"float lv="+f(B[0])+"+"+f(B[1]-B[0])+"*smoothstep("+f(C[0]-0.02)+","+f(C[0]+0.02)+",q)+"+f(B[2]-B[1])+"*smoothstep("+f(C[1]-0.02)+","+f(C[1]+0.02)+",q);"
+      +"float k=lv/max(q,0.02);reflectedLight.directDiffuse*=k;reflectedLight.indirectDiffuse*=k;vec3 tt=mix(vec3(1.0),vec3("+tn+"),clamp((0.8-lv)*1.6,0.0,1.0));reflectedLight.directDiffuse*=tt;reflectedLight.indirectDiffuse*=tt;\n"
+      +"#if defined(STANDARD)\nreflectedLight.directSpecular*=0.55;reflectedLight.indirectSpecular*=0.6;\n#endif\n}\n";
+    if(sh.fragmentShader.indexOf("#include <aomap_fragment>")<0){if(!window._gpToonWarn){window._gpToonWarn=1;console.warn("toon: shader chunk not found, left unbanded");}return;}
+    sh.fragmentShader="uniform float uToonRef;\n"+sh.fragmentShader.replace("#include <aomap_fragment>","#include <aomap_fragment>"+code);};
+  m.customProgramCacheKey=function(){return "toon|"+(ok?ok.call(this):"");};m.needsUpdate=true;return m;}
+/* once per race after the world + cars are built (Cartoon look only) */
+function gpToonInit(){const R=R3;if(!R||!gpToon()||R.C.deep&&false)return;const T=R.T,sun=R.sun,hemi=R.scene.children.find(o=>o.isHemisphereLight);
+  const lum=c=>c.r*0.299+c.g*0.587+c.b*0.114;window._gpToonRef.value=Math.max(0.4,lum(sun.color)*sun.intensity*Math.max(0.3,Math.min(1,R.sunDir.y))*1.05+(hemi?lum(hemi.color)*hemi.intensity:0.6));   // "fully lit" = flat ground in the sun (a low golden-hour sun lights the road at a grazing angle)
+  let n=0;R.scene.traverse(o=>{if(!o.isMesh&&!o.isInstancedMesh)return;(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{if(m&&!m.userData.toonP&&gpToonPatch(m)&&m.userData.toonP)n++;});
+    const fw=o.material&&o.material.userData&&o.material.userData.fzWet;if(fw&&!o.material.userData.toonRoad){fw.value=0;o.material.userData.toonRoad=1;o.material.color.multiplyScalar(1.45);}});   // no wet sheen on a cartoon road: a lighter flat asphalt instead (mockup A)
+  // a touch more colour in the world (HSL saturation x1.12), once per material
+  const hsl={};R.scene.traverse(o=>{if(!(o.isMesh||o.isInstancedMesh)||R.karts.some(k=>k.g===o))return;const m=o.material;if(!m||Array.isArray(m)||!m.color||m.userData.toonSat||m.isShaderMaterial)return;m.userData.toonSat=1;m.color.getHSL(hsl);m.color.setHSL(hsl.h,Math.min(1,hsl.s*1.12),hsl.l);});
+  R.karts.forEach(k=>gpToonHull(k));if(window._gpHullMat&&R.fz){const H=R.fz.mat.uniforms.res.value.y;window._gpHullMat.uniforms.uResY.value=H;window._gpHullMat.uniforms.uPx.value=H>1400?3.2:2.2;}
+  R.toon={mats:n,hulls:R.karts.reduce((a,k)=>a+((k.hulls&&k.hulls.length)||0),0)};
+  if(R.fz&&R.fz.mat.uniforms.uInk){const U=R.fz.mat.uniforms;U.uInk.value=1;U.uSat.value+=0.08;U.uCon.value=0.18;U.uVig.value=0.12;U.uGrain.value=0;}
+  if(window.__gp)window.__gp.toon=R.toon;}
+/* smooth (position-welded) normals for the hull push, so hard edges don't split the outline */
+function gpHullNormals(T,g){const P=g.attributes.position,n=P.count,idx=g.index,acc=new Map(),key=i=>Math.round(P.getX(i)*1e3)+"|"+Math.round(P.getY(i)*1e3)+"|"+Math.round(P.getZ(i)*1e3);
+  const keys=new Array(n);for(let i=0;i<n;i++){keys[i]=key(i);if(!acc.has(keys[i]))acc.set(keys[i],[0,0,0]);}
+  const a=new T.Vector3(),b=new T.Vector3(),c=new T.Vector3(),fnm=new T.Vector3(),tri=idx?idx.count/3:n/3;
+  for(let t=0;t<tri;t++){const i0=idx?idx.getX(t*3):t*3,i1=idx?idx.getX(t*3+1):t*3+1,i2=idx?idx.getX(t*3+2):t*3+2;a.fromBufferAttribute(P,i0);b.fromBufferAttribute(P,i1);c.fromBufferAttribute(P,i2);fnm.subVectors(c,b).cross(a.clone().sub(b));
+    [i0,i1,i2].forEach(i=>{const s=acc.get(keys[i]);s[0]+=fnm.x;s[1]+=fnm.y;s[2]+=fnm.z;});}
+  const out=new Float32Array(n*3);for(let i=0;i<n;i++){const s=acc.get(keys[i]),l=Math.hypot(s[0],s[1],s[2])||1;out[i*3]=s[0]/l;out[i*3+1]=s[1]/l;out[i*3+2]=s[2]/l;}
+  g.setAttribute("hullN",new T.BufferAttribute(out,3));return g;}
+function gpHullMat(T){if(window._gpHullMat&&window._gpHullMat.__T===T)return window._gpHullMat;
+  const m=new T.ShaderMaterial({side:T.BackSide,fog:true,uniforms:T.UniformsUtils.merge([T.UniformsLib.fog,{uInk:{value:new T.Color(GP_TOON.ink).convertSRGBToLinear()},uPx:{value:2.2},uResY:{value:800}}]),
+    vertexShader:"attribute vec3 hullN;uniform float uPx;uniform float uResY;\n#include <fog_pars_vertex>\nvoid main(){vec4 mv0=modelViewMatrix*vec4(position,1.0);float sc=length(modelMatrix[0].xyz);float w=clamp(uPx*(-mv0.z)*2.0/(uResY*projectionMatrix[1][1]),0.008,0.06)/max(sc,0.001);vec4 mvPosition=modelViewMatrix*vec4(position+hullN*w,1.0);gl_Position=projectionMatrix*mvPosition;\n#include <fog_vertex>\n}",
+    fragmentShader:"uniform vec3 uInk;\n#include <fog_pars_fragment>\nvoid main(){gl_FragColor=vec4(uInk,1.0);\n#include <fog_fragment>\n}"});
+  m.userData.lin=1;m.__T=T;window._gpHullMat=m;return m;}
+/* one merged hull per car body and per wheel (cached per car id); hidden with the far-detail list */
+function gpToonHull(k){if(!k||!k.glb||!k.body||k.hulls)return;const T=R3?R3.T:THREE,g=k.g,cid=k.carId||"x",C=window._gpHullGeo=window._gpHullGeo||{};k.hulls=[];const mat=gpHullMat(T);
+  const roots=[k.body].concat(k.wheels||[]);g.updateMatrixWorld(true);
+  roots.forEach((rt,ri)=>{const ck=cid+"|"+(ri?rt.name:"body");let geo=C[ck];
+    if(!geo){const parts=[],inv=new T.Matrix4().copy(rt.matrixWorld).invert();
+      rt.traverse(o=>{if(!o.isMesh||o.userData.liv||o.userData.hull||!o.geometry||!o.geometry.attributes.position)return;const nm=(o.material&&o.material.name)||"";if(/^(decal|lamp|tail|taillens)/.test(nm)||o.material.transparent||o.material.isMeshBasicMaterial)return;
+        for(let q=o.parent;q&&q!==rt;q=q.parent)if(q!==rt&&roots.includes(q))return;   // wheels inside the body tree belong to their own hull
+        const gg=new T.BufferGeometry();gg.setAttribute("position",o.geometry.attributes.position.clone());if(o.geometry.index)gg.setIndex(o.geometry.index.clone());gg.applyMatrix4(new T.Matrix4().multiplyMatrices(inv,o.matrixWorld));parts.push(gg);});
+      if(!parts.length)return;let n=0,ni=0;parts.forEach(p=>{n+=p.attributes.position.count;ni+=p.index?p.index.count:p.attributes.position.count;});const pos=new Float32Array(n*3),ix=new Uint32Array(ni);let vo=0,io=0;
+      parts.forEach(p=>{const c=p.attributes.position.count;pos.set(p.attributes.position.array,vo*3);if(p.index){const a=p.index.array;for(let i=0;i<a.length;i++)ix[io++]=a[i]+vo;}else for(let i=0;i<c;i++)ix[io++]=vo+i;vo+=c;p.dispose();});
+      geo=new T.BufferGeometry();geo.setAttribute("position",new T.BufferAttribute(pos,3));geo.setIndex(new T.BufferAttribute(ix,1));gpHullNormals(T,geo);geo.computeBoundingSphere();C[ck]=geo;}
+    const h=new T.Mesh(geo,mat);h.userData.hull=1;h.castShadow=false;h.renderOrder=0;rt.add(h);k.hulls.push(h);if(k.lod&&ri)k.lod.push(h);});}
