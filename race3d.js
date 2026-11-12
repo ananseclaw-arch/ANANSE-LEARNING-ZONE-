@@ -2592,7 +2592,7 @@ function gpBuild(C){
   R3={T,C,renderer,scene,camera,curve,samples,M,W,len,karts,me:karts.find(k=>k.player),keys:{},touchDir:0,brake:false,gas:false,drift:false,autoGas:gpAuto(),kap,vProf,vLim,lineX,corners,big,grip:GRIP,groundAt,shake:0,lossLog:[],jumpLog:[],t0:performance.now(),time:0,countdown:3.8,phase:"intro",cdReq:false,cdLog:[],frameN:0,goAt:0,done:false,raf:null,last:performance.now(),camPos:new T.Vector3(),msgT:0,place:5,board:[],
     sun,sky,band,glare,sunDir,sunOff:sunDir.clone().multiplyScalar(170),envRT,smoke,dust,sparks,petals,skids,skidLife,skidFade,skN:0,dummy,setLights,setScreen,screenTxt:"",fov:60,pr:pr0,fpsT:0,fpsN:0,fps:0,lowT:0,shadowsOn:true,tmpV:new T.Vector3(),tmpV2:new T.Vector3(),tmpV3:new T.Vector3(),tmpV4:new T.Vector3(),camYaw:null,teleV:new T.Vector3(),teleShadow:new T.Vector3(),teleSprite:new T.Vector3(),UP,story,
     gates,trapT:trapI/M,trapBest:0,gear:1,tachT:0,post,mode:gpMode(),notes,notesGot:0,notesTotal:notes.length*C.laps,song:[],lastDeg:4,songDirty:1,water,waterTex,fx:$("gp3Fx"),fxW:16,fxH:9,sk:{chain:0,mult:1,total:0,idle:0,list:[],dirty:1,clean:0,cool:0},bumpT:9,upGrip:(gpMode()==="race"&&!NET)?1+0.04*gpUpState().tyres:1,online:NET,netGo:0,cLog:null,sunTint:new T.Color(L.sun).lerp(new T.Color(1,1,1),0.35),skyTint:new T.Color(L.mid).lerp(new T.Color(L.hor),0.4),traffic:TR,tw:TW,megaTex,splash:TH==="coast"?gpParticles(T,scene,140,0.9,false,0.55):null};R3.bodies=R3.karts.concat(TR?TR.cars:[]);R3.fzSky=fzSky;if(!story)gpFzInit(T,renderer,phone);
-  window.__gp={fz:!!R3.fz,fps:0,pr:pr0,shadows:true,playerWheelPhase:0,wheelPhase:0,playerSpeed:0,speed:0,wheelRadius:R3.me.wheelRadius,cameraFov:60,cameraOffsetFromCar:0,cameraOffset:0,cameraOffsetVector:{x:0,y:0,z:0},playerShadowWorldY:0,shadowY:0,bodyRoll:0,spriteBottomY:R3.me.pos.y,smokeCount:0,rendererCalls:0,renderCalls:0,wheelPatchDrawCalls:0,wheelPatchState:R3.me.pic?"sharp":"3d",wheelPatchVisible:false,wheelPatchFrame:R3.me.pic?R3.me.pic.frame:null,wheelPatchKind:R3.me.pic&&R3.me.pic.wheelPatch?R3.me.pic.wheelPatch.kind:"3d",phys:{slipDeg:0,steerIn:0,sv:0,drift:0,x:0,speed:0},cam:{}};
+  window.__gp={fz:!!R3.fz,fps:0,pr:pr0,shadows:true,playerWheelPhase:0,wheelPhase:0,playerSpeed:0,speed:0,wheelRadius:R3.me.wheelRadius,cameraFov:60,cameraOffsetFromCar:0,cameraOffset:0,cameraOffsetVector:{x:0,y:0,z:0},playerShadowWorldY:0,shadowY:0,bodyRoll:0,spriteBottomY:R3.me.pos.y,smokeCount:0,rendererCalls:0,renderCalls:0,wheelPatchDrawCalls:0,wheelPatchState:R3.me.pic?"sharp":"3d",wheelPatchVisible:false,wheelPatchFrame:R3.me.pic?R3.me.pic.frame:null,wheelPatchKind:R3.me.pic&&R3.me.pic.wheelPatch?R3.me.pic.wheelPatch.kind:"3d",phys:{slipDeg:0,steerIn:0,sv:0,drift:0,x:0,speed:0},cam:{}};gpBakeInit();
   // keyboard
   R3.kd=e=>{if(!R3)return;const k=e.key.toLowerCase();GPA.init();if(k==="escape"){renderCircuits();return;}if(k==="m"){gpToggleMute();return;}if(k==="c"){gpCycleCam();return;}if((k==="b"||k==="shift")&&!e.repeat){gpBoost();e.preventDefault();return;}if(k==="t"&&!e.repeat){gpTrick("spin",1);e.preventDefault();return;}if(k==="l"&&!e.repeat&&R3.me&&R3.me.jet){gpTrick("flip",1);e.preventDefault();return;}
     if(!e.repeat&&R3.me&&R3.me.air&&!R3.me.jet){if(k==="arrowleft")gpTrick("roll",-1);else if(k==="arrowright")gpTrick("roll",1);else if(k==="arrowup")gpTrick("flip",1);}R3.keys[k]=true;if(["arrowleft","arrowright","arrowdown","arrowup","shift"," "].includes(k))e.preventDefault();};
@@ -3506,7 +3506,7 @@ function gpRender(dt){
   if(cmode!=="chase"&&me.trick&&me.trick.k==="roll"&&!window.__gpCam)R3.camera.rotateZ(gpTrickAngle(me).a);   // from inside the car a barrel roll turns the whole world
   R3.fovK=(R3.fovK||0)+(Math.max(0,Math.min(1,(spd-0.45)/0.55))-(R3.fovK||0))*Math.min(1,dt*1.6);R3.bk=(R3.bk||0)+((me.boostT>0?1:0)-(R3.bk||0))*Math.min(1,dt*(me.boostT>0?7:2.2));const fovT=(tall?(cmode==="chase"?76:78):(cmode==="chase"?58:66))+R3.fovK*(tall?6:(cmode==="chase"?8:7))+R3.bk*(tall?7:11)+(R3.jetK||0)*(tall?3:5);R3.fov=fovT;if(Math.abs(R3.camera.fov-fovT)>0.01){R3.camera.fov=fovT;R3.camera.updateProjectionMatrix();}   // eases wider with speed (no jumps)
   R3.sky.position.copy(R3.camera.position);if(R3.band)R3.band.position.set(R3.camera.position.x,R3.band.userData.y,R3.camera.position.z);R3.glare.position.copy(R3.camera.position).addScaledVector(R3.sunDir,1500);
-  R3.sun.position.copy(me.pos).add(R3.sunOff);R3.sun.target.position.copy(me.pos);if(me.jet){const dh=me.pos.y-me.ry;R3.sun.position.y-=dh;R3.sun.target.position.y-=dh;}R3.sun.target.updateMatrixWorld();
+  if(gpBakeFrame(me)){}else{R3.sun.position.copy(me.pos).add(R3.sunOff);R3.sun.target.position.copy(me.pos);if(me.jet){const dh=me.pos.y-me.ry;R3.sun.position.y-=dh;R3.sun.target.position.y-=dh;}R3.sun.target.updateMatrixWorld();}
   if(R3.dp)gpDeepRender(dt);
   if(R3.online)gpnLabels();
   R3.renderer.info.reset();if(cmode==="cockpit")gpCockpit();
@@ -4353,3 +4353,65 @@ function gpFzTurn(){const cv=$("fzTurn");if(!cv||!window.THREE)return;const T=TH
   const show=()=>{if(window._gpTurn!==S||S.id!==key)return;try{if(S.cur){S.spin.remove(S.cur.g);}const src=(window._gpGlb||{})[id];const m=(GP_GLB[id]&&src)?gpBuildGlbCar(T,car,src,gpGlbPaintFor(car,true),S.shared):gpBuildCar(T,car,gpPaint(),S.shared);
       m.g.traverse(o=>{if(o.isMesh){o.castShadow=true;}});m.g.position.set(0,0,0);m.g.rotation.set(0,0,0);S.spin.add(m.g);S.cur=m;S.car=id;S.built=(GP_GLB[id]&&src)?"glb":"drawn";}catch(e){}};
   if(GP_GLB[id]&&!(window._gpGlb||{})[id])gpLoadGlb([id]).then(show,show);else show();}
+/* ---------- baked lighting (job 1112-0016-43fd, Realistic + Cartoon looks; Storybook and Coral Deep keep their own path) ----------
+   The world is generated at race start, so "baking" happens once there, not in Blender:
+   - the sun's shadow map is drawn ONCE for the whole track (WHOLE mode, when a 4096/2048 map still gives <= 0.55 m texels), or for long
+     tracks re-drawn only after the car has travelled 18 m (FOLLOW mode, ~2-4 times a second instead of every frame);
+   - cars and anything that moves stop casting into it (cars carry their Blender-baked ground shadow instead). Movers are also found
+     automatically: every caster's matrix is compared after the race starts; whatever moved stops casting and the map is redrawn once;
+   - props get a baked "darker at the base" ambient term in their vertex colours, and one instanced draw of soft contact shadows. */
+function gpBakeOn(){return !gpStory()&&!(R3&&R3.C&&R3.C.deep)&&!window.__gpNoBake;}
+function gpBakeInit(){const R=R3;if(!R||!gpBakeOn())return;const T=R.T,rd=R.renderer,sun=R.sun,t0=performance.now();
+  R.bake={mode:"whole",n:0,c:new T.Vector3(),watch:[],t:0};
+  R.karts.forEach(k=>k.g.traverse(o=>{o.castShadow=false;}));if(R.traffic&&R.traffic.types)Object.values(R.traffic.types).forEach(ty=>["paint","glass","det","glow"].forEach(q=>{if(ty[q])ty[q].castShadow=false;}));
+  // light-space box of the whole road (+80 m)
+  const d=R.sunDir.clone().negate().normalize(),up=Math.abs(d.y)>0.99?new T.Vector3(0,0,1):new T.Vector3(0,1,0),rx=new T.Vector3().crossVectors(d,up).normalize(),ux=new T.Vector3().crossVectors(rx,d).normalize();
+  let a0=1e9,a1=-1e9,b0=1e9,b1=-1e9,z0=1e9,z1=-1e9,cx=0,cy=0,cz=0;R.samples.forEach(s=>{const p=s.pos;cx+=p.x;cy+=p.y;cz+=p.z;const a=p.dot(rx),b=p.dot(ux),z=p.dot(d);a0=Math.min(a0,a);a1=Math.max(a1,a);b0=Math.min(b0,b);b1=Math.max(b1,b);z0=Math.min(z0,z);z1=Math.max(z1,z);});
+  const n=R.samples.length,ctr=new T.Vector3(cx/n,cy/n,cz/n),M=80;a0-=M;a1+=M;b0-=M+30;b1+=M+30;
+  const big=rd.capabilities.maxTextureSize>=4096&&Math.min(innerWidth,innerHeight)>=520&&!(navigator.maxTouchPoints>1),MAP=big?4096:2048,span=Math.max(a1-a0,b1-b0),texel=span/MAP;
+  R.bake.texel=+texel.toFixed(3);
+  if(texel<=0.55&&!window.__gpBakeFollow){
+    const ca=ctr.dot(rx),cb=ctr.dot(ux),mid=new T.Vector3().addScaledVector(rx,(a0+a1)/2-ca).addScaledVector(ux,(b0+b1)/2-cb).add(ctr);
+    sun.position.copy(mid).addScaledVector(d,-1500);sun.target.position.copy(mid);sun.target.updateMatrixWorld();
+    const sc=sun.shadow.camera,hw=(a1-a0)/2,hh=(b1-b0)/2;sc.left=-hw;sc.right=hw;sc.top=hh;sc.bottom=-hh;const zc=mid.dot(d);sc.near=Math.max(1,1500+(z0-zc)-300);sc.far=1500+(z1-zc)+300;sc.updateProjectionMatrix();
+    if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null;}sun.shadow.mapSize.set(MAP,MAP);sun.shadow.bias=-0.0008;if("normalBias" in sun.shadow)sun.shadow.normalBias=0.25;sun.shadow.radius=3;
+  }else{R.bake.mode="follow";R.bake.c.set(1e9,0,0);sun.shadow.bias=-0.0005;}
+  R.bake.rx=rx;R.bake.ux=ux;
+  rd.shadowMap.autoUpdate=false;rd.shadowMap.needsUpdate=true;
+  gpBakeAO(R);gpBakeDecals(R);
+  const hemi=R.scene.children.find(o=>o.isHemisphereLight);if(hemi)hemi.intensity*=1.09;   // the baked base shade takes a little light away; give it back as sky fill
+  R.bake.ms=Math.round(performance.now()-t0);
+  // movers: snapshot every caster now, compare once the race has run (anything that moved stops casting, the map is redrawn)
+  R.scene.traverse(o=>{if(o.castShadow&&(o.isMesh||o.isInstancedMesh)){o.updateMatrixWorld(true);R.bake.watch.push([o,o.matrixWorld.elements.slice(),o.isInstancedMesh?o.instanceMatrix.version:0]);}});
+  if(window.__gp)window.__gp.bake=R.bake.mode+" "+R.bake.texel+"m "+R.bake.ms+"ms";}
+/* per frame (gpRender): FOLLOW mode re-centres the sun box only after 18 m (texel-snapped), consumes redraw requests, checks movers twice */
+function gpBakeFrame(me){const R=R3,B=R.bake,rd=R.renderer;if(!B)return false;B.t++;
+  if((B.t===90||B.t===600)&&B.watch.length){let moved=0;B.watch=B.watch.filter(w=>{const o=w[0];o.updateMatrixWorld(true);const e=o.matrixWorld.elements,mv=e.some((v,i)=>Math.abs(v-w[1][i])>1e-4)||(o.isInstancedMesh&&o.instanceMatrix.version!==w[2]);if(mv){o.castShadow=false;moved++;return false;}return true;});if(moved){B.movers=(B.movers||0)+moved;B.dirty=true;}}
+  if(B.mode==="follow"){const gy=me.jet&&me.ry!=null?me.ry:me.pos.y,dx=me.pos.x-B.c.x,dz=me.pos.z-B.c.z,dy=gy-B.c.y;
+    if(dx*dx+dz*dz+dy*dy>18*18){const t=(R.sun.shadow.camera.right-R.sun.shadow.camera.left)/R.sun.shadow.mapSize.x,c=new R.T.Vector3(me.pos.x,gy,me.pos.z),a=c.dot(B.rx),b=c.dot(B.ux);
+      c.addScaledVector(B.rx,-(a-Math.round(a/t)*t)).addScaledVector(B.ux,-(b-Math.round(b/t)*t));B.c.copy(c);R.sun.position.copy(c).add(R.sunOff);R.sun.target.position.copy(c);R.sun.target.updateMatrixWorld();B.dirty=true;}}
+  if(B.dirty&&R.sun.castShadow){rd.shadowMap.needsUpdate=true;B.n++;B.dirty=false;}
+  return true;}
+/* baked ambient: props darker at their base (0.72 -> 1.0 over the lower 35% of their height), in vertex colours, once per geometry.
+   Only small props (under 60 m across, over 1 m tall); road, terrain and walls are built in world space and are left alone. A material is
+   only switched to vertex colours when EVERY mesh using it got colours, so nothing can turn black. */
+function gpBakeAO(R){const T=R.T,byMat=new Map(),skip=new Set();R.karts.forEach(k=>k.g.traverse(o=>skip.add(o)));
+  R.scene.traverse(o=>{if(!(o.isMesh||o.isInstancedMesh)||skip.has(o)||!o.geometry||!o.geometry.attributes||!o.geometry.attributes.position)return;const m=o.material;if(Array.isArray(m)||!m)return;
+    if(!(m.isMeshLambertMaterial||(m.isMeshStandardMaterial&&!m.userData.vcOf)))return;if(!byMat.has(m))byMat.set(m,[]);byMat.get(m).push(o);});
+  let done=0;const geoOK=new Map();
+  const fit=g=>{if(geoOK.has(g))return geoOK.get(g);if(!g.boundingBox)g.computeBoundingBox();const b=g.boundingBox,h=b.max.y-b.min.y,w=Math.max(b.max.x-b.min.x,b.max.z-b.min.z);const ok=h>1&&w<60&&g.attributes.position.count<20000;geoOK.set(g,ok);return ok;};
+  byMat.forEach((list,m)=>{if(!list.every(o=>fit(o.geometry)))return;if(m.vertexColors&&!list.every(o=>o.geometry.attributes.color))return;
+    list.forEach(o=>{const g=o.geometry;if(g.userData.ao)return;g.userData.ao=1;const P=g.attributes.position,b=g.boundingBox,h=b.max.y-b.min.y,n=P.count;let C=g.attributes.color;
+      if(!C){C=new T.BufferAttribute(new Float32Array(n*3).fill(1),3);g.setAttribute("color",C);}
+      const k=C.normalized&&C.array instanceof Uint8Array?255:1;for(let i=0;i<n;i++){const u=Math.max(0,Math.min(1,(P.getY(i)-b.min.y)/(h*0.35))),f=0.72+0.28*u*u*(3-2*u);C.setXYZ(i,C.getX(i)*f,C.getY(i)*f,C.getZ(i)*f);}C.needsUpdate=true;done++;
+      if(k===255){}});
+    if(!m.vertexColors){m.vertexColors=true;m.needsUpdate=true;}});
+  R.bake.ao=done;}
+/* soft contact shadows under every instanced prop near the road: ONE instanced draw */
+function gpBakeDecals(R){const T=R.T,pts=[],mx=new T.Matrix4(),p=new T.Vector3(),q=new T.Quaternion(),s=new T.Vector3(),S=R.samples,step=Math.max(1,Math.round(S.length/240));
+  const near=(x,z)=>{for(let i=0;i<S.length;i+=step){const a=S[i].pos,dx=a.x-x,dz=a.z-z;if(dx*dx+dz*dz<62*62)return true;}return false;};
+  R.scene.traverse(o=>{if(!o.isInstancedMesh||!o.castShadow||!o.geometry)return;const g=o.geometry;if(!g.boundingBox)g.computeBoundingBox();const b=g.boundingBox,h=b.max.y-b.min.y,w=Math.max(b.max.x-b.min.x,b.max.z-b.min.z);if(h<1.2||w>40)return;
+    o.updateMatrixWorld(true);for(let i=0;i<o.count&&pts.length<1600;i++){o.getMatrixAt(i,mx);mx.premultiply(o.matrixWorld);mx.decompose(p,q,s);if(s.x<0.05)continue;if(!near(p.x,p.z))continue;pts.push([p.x,p.y+b.min.y*s.y+0.04,p.z,Math.max(0.6,w*0.5*Math.max(s.x,s.z)*1.25)]);}});
+  if(!pts.length)return;const m=new T.MeshBasicMaterial({map:gpSoftDot(),color:0x000000,transparent:true,opacity:0.42,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});m.userData.lin=1;
+  const im=new T.InstancedMesh(new T.PlaneGeometry(2,2).rotateX(-Math.PI/2),m,pts.length),D=new T.Object3D();pts.forEach((a,i)=>{D.position.set(a[0],a[1],a[2]);D.scale.set(a[3],1,a[3]);D.updateMatrix();im.setMatrixAt(i,D.matrix);});
+  im.frustumCulled=false;im.renderOrder=1;im.userData.bakeDecal=1;R.scene.add(im);R.bake.decals=pts.length;R.bake.decalMesh=im;}
