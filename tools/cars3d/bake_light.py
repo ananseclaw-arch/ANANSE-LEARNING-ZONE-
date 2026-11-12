@@ -18,7 +18,7 @@ IN, OUT = argv[0], argv[1]
 MESHY = "--meshy" in argv
 CYCLES = "--cycles" in argv
 SHADOW = argv[argv.index("--shadow") + 1] if "--shadow" in argv else None
-SKIP = {"glass", "decal", "decal_band", "decal_roof", "lamp", "tail", "taillens", "plate", "sign"}   # lit by their own shaders / must stay crisp
+SKIP = {"glass", "decal", "decal_band", "decal_roof", "lamp", "lens", "tail", "taillens", "plate", "sign"}   # lit by their own shaders / must stay crisp
 FLOOR = 0.6 if MESHY else 0.35          # Meshy cars already carry a baked AO x shut-line map; keep the vertex term gentle so they don't double-darken
 KEY = Vector((-0.40, -0.45, 0.80)).normalized()   # Blender space (z up, game +z = Blender -y): above, front, left (the game's golden-hour sun side)
 
