@@ -883,6 +883,10 @@ body.pit-stage .fd-home{margin-top:18px}
 .pit-fdfin .fd-btns button.alt{background:rgba(255,255,255,.06);color:var(--cream);border:2px solid var(--line-dk);box-shadow:none}
 /* "Ananse, help me" + scratchpad on white question screens: readable on the new palette */
 .readbtn.helpbtn{background:#FFF1E6!important;color:#9A3412!important;border:2px solid #F3B67A!important;box-shadow:0 3px 0 #F3B67A!important}
+/* Eb 2026-11-12: one quiet "Ask for help" on every kid question screen - same peach pill, under the question, smaller than it */
+.lz-askrow{margin:8px 0 4px;text-align:left}.lz-askrow .lz-ask{min-height:44px;font-size:16px;padding:6px 16px;margin:0}
+.lz-askbox{margin:8px 0 2px;padding:10px 14px;background:#FFF7E8;border:2px solid #F3B67A;border-radius:14px;color:#7C2D12;font-size:17px;line-height:1.45;text-align:left;font-weight:600}
+.lz-askbox b{font-weight:800}.lz-askbox{flex:1 1 100%}
 /* trophies, player card, journey on the stage */
 .pit-tcount{margin:6px 0 4px}.pit-tcount div{background:var(--navy3);border:2px solid var(--line-dk);color:var(--sky-ink)}.pit-tcount b{color:var(--cream)}
 .pit-trophies .shelf{background:var(--navy3);border:2px solid var(--line-dk);border-radius:20px;margin-top:12px;box-shadow:none}
@@ -1420,10 +1424,11 @@ function labReflectQ(){
   const order=shuffle(r.opts.map((_,i)=>i));LAB.order=order;
   const letters=["A","B","C","D"];
   openOverlay('<div><div class="center"><div class="ananse-wrap">'+ananseSVG(80,"teach")+'</div><div class="speech">Scientist\'s notebook — question '+(LAB.ri+1)+' of '+l.reflect.length+'</div></div><div class="spacer"></div>'
-   +'<p class="qtext" style="font-size:22px">'+esc(r.q)+'</p><div class="opts">'+order.map((oi,pos)=>'<button class="opt" id="lopt'+pos+'" onclick="labReflectA('+pos+')"><span class="letter">'+letters[pos]+'</span><span>'+esc(r.opts[oi])+'</span></button>').join("")+'</div></div>');
+   +'<p class="qtext" style="font-size:22px">'+esc(r.q)+'</p>'+lzAskRow("labHelp()")+'<div class="opts">'+order.map((oi,pos)=>'<button class="opt" id="lopt'+pos+'" onclick="labReflectA('+pos+')"><span class="letter">'+letters[pos]+'</span><span>'+esc(r.opts[oi])+'</span></button>').join("")+'</div></div>');
   LAB.qStart=Date.now();
   say(r.q);
 }
+function labHelp(){lzAskShow("Think back to what you saw when you played with the lab. What changed when you moved the sliders? Cross out answers that don't match what you saw.");}
 function labReflectA(pos){
   const l=labById(LAB.id);const r=l.reflect[LAB.ri];
   const labId=LAB.id,reflection=LAB.ri;
@@ -3090,10 +3095,12 @@ function wbMatchHTML(p){const hint=p.rights?'<div class="wb-rights">'+p.rights.m
 function wbNumberPad(){const keys=["1","2","3","4","5","6","7","8","9","0","⌫"];return'<div class="wb-pad lzq-pad">'+keys.map(k=>'<button type="button" class="wb-key '+(k==="⌫"?'action':(k==="0"?'zero':''))+'"'+(k==="⌫"?' aria-label="Delete"':'')+' onclick="wbKey(\''+k+'\')">'+k+'</button>').join("")+'</div>'+(wbNeedsWork(WB.cur)&&!wbWorkDone()?'<div class="wb-lock">'+(WB.cur.type==="pair"?'Build both models correctly to unlock ✓':'Show your work to unlock ✓')+'</div>':'');}
 function wbCanSubmit(){const p=WB&&WB.cur;if(!p||WB.answered||!wbWorkDone())return false;if(p.type==="form")return p.fields.every(f=>String(WB.fields[f.key]==null?"":WB.fields[f.key]).trim()!=="");if(p.type==="fill")return WB.fields.ans!=="";if(p.type==="picture")return["e0","e1","e2"].concat(p.extraEq?["x0","x1","x2"]:[]).every(k=>WB.fields[k]!=="");if(p.type==="story")return["e0","e1","e2","ans"].every(k=>WB.fields[k]!=="")&&(p.answer.remainder==null||WB.fields.rem!=="");if(p.type==="multi")return WB.selected.length>0;if(p.type==="who")return!!WB.person&&(p.valueAnswer==null||WB.fields.ans!=="");if(p.type==="match")return p.pairs.every(x=>WB.fields[x.id]!=="");if(p.type==="pair")return WB.fields.ans!==""&&(!p.equations||["e0","e1","e2","x0","x1","x2"].every(k=>WB.fields[k]!==""))&&(!p.people||!!WB.person);return false;}
 function wbSubmitButton(){return''+(wbNeedsWork(WB.cur)&&!wbWorkDone()?'<div class="wb-lock">Build the model or make a few drawing strokes first.</div>':'');}
+function wbHelpText(p){let t="";try{t=(typeof lztTip==="function"?lztTip(p,null).tip:"")||"";}catch(e){}return t||"Read the question again slowly. Work it out one small step at a time.";}
+function wbAskHelp(){if(!WB||!WB.cur)return;WB.helpFor=WB.cur;WB.helpCount=(WB.helpCount||0)+1;if(typeof sfx==="function")try{sfx("tick");}catch(e){}if(!lzAskShow(wbHelpText(WB.cur)))wbRenderProblem(true);}
 function wbRenderProblem(silent){
   const p=WB.cur,L=WB_LESSONS[WB.lessonId],pct=Math.round(WB.index/(WB.size||8)*100),num=WB.index+1,work=wbNeedsWork(p),visual=p.visual?'<div class="wb-visual">'+wbVisual(p.visual)+'</div>':'';
   let controls=wbQuestionAnswerHTML(p),submit=(p.type==="fill"||p.type==="picture"||p.type==="story"||p.type==="pair"||p.type==="match"||(p.type==="who"&&p.valueAnswer!=null))?wbNumberPad():wbSubmitButton();
-  app.innerHTML='<div class="fadein wb-shell lzq'+(WB.flex?' lzt-test':' wb-prac')+'"><div class="wb-page">'+wbQHead(WB.lessonId)+(WB.flex?lztStripHTML():wbPracticeStripHTML())+'<div class="wb-problem"><div class="wb-questionarea"><div class="wb-qrow"><div class="wb-qbody"><div class="wb-qcopy">'+(WB.isTwin?'<span style="color:#207141">Try one like it:</span> ':'')+wbEscape(p.q)+'</div>'+(p.instruction&&p.instruction!==p.q?'<div class="wb-instruction">'+wbEscape(p.instruction)+'</div>':'')+'</div><button type="button" class="wb-read" onclick="say(WB.cur.spoken)" aria-label="Read it to me"><span aria-hidden="true">🔈</span><span class="wb-read-t">Read it</span></button></div>'+visual+(work?wbWorkHTML(p):'')+'</div><div class="wb-answerarea">'+controls+submit+'</div></div>'+lzqBarHTML(wbCheckBtnHTML())+'</div></div>';
+  app.innerHTML='<div class="fadein wb-shell lzq'+(WB.flex?' lzt-test':' wb-prac')+'"><div class="wb-page">'+wbQHead(WB.lessonId)+(WB.flex?lztStripHTML():wbPracticeStripHTML())+'<div class="wb-problem"><div class="wb-questionarea"><div class="wb-qrow"><div class="wb-qbody"><div class="wb-qcopy">'+(WB.isTwin?'<span style="color:#207141">Try one like it:</span> ':'')+wbEscape(p.q)+'</div>'+(p.instruction&&p.instruction!==p.q?'<div class="wb-instruction">'+wbEscape(p.instruction)+'</div>':'')+'</div><button type="button" class="wb-read" onclick="say(WB.cur.spoken)" aria-label="Read it to me"><span aria-hidden="true">🔈</span><span class="wb-read-t">Read it</span></button></div>'+visual+lzAskRow('wbAskHelp()',WB.helpFor===p?wbHelpText(p):'')+(work?wbWorkHTML(p):'')+'</div><div class="wb-answerarea">'+controls+submit+'</div></div>'+lzqBarHTML(wbCheckBtnHTML())+'</div></div>';
   if(WB.flex)lztAfterRender();else wbPracticeChrome();
   if(work&&WB.workTab==="draw")setTimeout(wbInitCanvas,0);wbResumeSave();if(!silent&&typeof say==="function")say((WB.isTwin?"Try one like it. ":"")+p.spoken);
   if(!silent)wbWarmExplain();
@@ -4424,12 +4431,13 @@ function fdRender(){
   app.innerHTML='<div class="fd-wrap fadein" id="fdRoot">'
    +'<div class="fd-top"><span class="fd-title">'+esc(p.icon+" "+p.title)+'</span><span class="fd-dots" aria-label="Question '+(FDS.qi+1)+' of '+p.qs.length+'">'+dots+'</span></div>'
    +'<div class="fd-card fd-q"><div class="fd-kicker">'+(tap?'Tap the sentence':'Find the detail')+' · '+(FDS.qi+1)+' of '+p.qs.length+'</div><p class="fd-qtext">'+esc(q.q)+'</p></div>'
-   +'<div class="fd-tools"><button class="fd-read" onclick="say(fdQ().q)">🔊 Read the question</button>'+lookBtn+'</div>'
+   +'<div class="fd-tools"><button class="fd-read" onclick="say(fdQ().q)">🔊 Read the question</button>'+lookBtn+(done?'':'<button class="fd-read fd-ask lz-ask" id="fdAsk" onclick="fdAskHelp()">🦁 Ask for help</button>')+'</div>'
    +msg+storyCard+opts
    +'</div><div class="fd-foot">'+foot+'</div>'+sheet;
   fdSyncReadBtns();
   if(typeof lzBack==="function")lzBack(()=>{FDS=null;fdStopRead();if(typeof stopRecorded==="function")stopRecorded();renderHome();},"Home");
 }
+function fdAskHelp(){const q=fdQ();if(!q||!FDS)return;const t=q.hint||(fdIsTap(q)?"Read the story again and look for the sentence that answers the question.":"Tap Look back at the story, find the sentence that answers the question, then pick.");lzAskShow(t,"fdAsk");}
 function fdPickOpt(oi){if(!FDS||FDS.phase==="right")return;FDS.pick=oi;sfx("tick");fdRender();}
 function fdTapSentence(i){if(!FDS||FDS.phase==="right")return;if(FDS.dead.indexOf(i)>=0)return;FDS.pick=i;sfx("tick");fdRender();}
 function fdCheck(){
@@ -9229,7 +9237,12 @@ function sessTryResume(){
     return true;
   }catch(e){return false}
 }
-function sessResumeBtn(){if(!sessTryResume()){toast("Nothing to continue");renderHome();}}
+function sessResumeBtn(){
+  /* Eb 2026-11-12: the resume tile must not walk past the lesson video - if today's video for that lesson is still due, show it first, then pick up. */
+  try{const r=DB.resume&&P&&DB.resume[P.id],id=r&&savedResumeAllowed(r)&&savedResumeLesson(r);
+    if(id&&typeof videoGate==="function"&&videoGate("reveal:"+id,()=>sessResumeBtn(),()=>renderHome()))return;}catch(e){}
+  if(!sessTryResume()){toast("Nothing to continue");renderHome();}
+}
 let P=null; // active profile
 let S=null; // active session
 
@@ -10872,6 +10885,12 @@ function showStory(){
   say("Here is your story: "+st.title+". Read it slowly. Tap quiz me when you are ready.");
 }
 function storyDone(){ambientStop();nextQuestion()}
+/* ---------- "Ask for help": one shared button + hint box for every kid question screen (Eb 2026-11-12) ---------- */
+function lzAskBtn(fn,id){return'<button type="button" class="readbtn helpbtn lz-ask" id="'+(id||"lzAsk")+'" onclick="'+fn+'">🦁 Ask for help</button>';}
+function lzAskRow(fn,hint,id){return'<div class="lz-askrow">'+lzAskBtn(fn,id)+(hint?lzAskBox(hint):'')+'</div>';}
+function lzAskBox(text){return'<div class="lz-askbox" id="lzAskBox" role="status"><b>💡 Hint:</b> '+esc(text)+'</div>';}
+/* show (or refresh) the hint under the button without re-rendering the question, so typed answers and keypad focus stay put */
+function lzAskShow(text,btnId){try{const b=document.getElementById(btnId||"lzAsk");if(!b)return false;const old=document.getElementById("lzAskBox");if(old)old.remove();b.parentNode.insertAdjacentHTML("beforeend",lzAskBox(text));if(typeof say==="function")say(text);return true;}catch(e){return false;}}
 function renderQuestion(){
   clearTimers();
   const q=S.cur;
@@ -10912,7 +10931,7 @@ function renderQuestion(){
    +'<div class="center'+(rvL?' rvq-tools':'')+'" style="margin:-4px 0 10px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">'
    +((wp||S.subject==="comprehension")&&!rvL?'<button class="readbtn" onclick="say(S.cur.q)">🔊 Read it again</button>':'')
    +(S.story?'<button class="readbtn" onclick="showStoryAgain()">📖 Read the story again</button>':'')
-   +'<button class="readbtn helpbtn" onclick="askHelp()">🦁 Ananse, help me</button>'
+   +'<button class="readbtn helpbtn lz-ask" id="lzAsk" onclick="askHelp()">🦁 Ask for help</button>'
    +(rvL&&!q.mirror&&!typed&&showScratch?scratchHTML():'')
    +'</div>'
    +(q.manip?manipHTML(q):'')
@@ -11913,6 +11932,7 @@ function startStoryReplay(){
    +'<button class="readbtn" onclick="say(R.sq.text)">🔊 Read it to me</button></div></div>';
   say("Story Replay! Here is the story: "+sq.title+". "+sq.text);
 }
+function replayHelp(){const i=R.qi,hint=i===0?"Hear the story again. Think about how it begins. Which thing happens before all the others?":"Hear the story again. The thing you want comes right after “"+R.events[i-1]+"”. Cross out ones that happened earlier or later.";if(!lzAskShow(hint,"lzAsk")){}}
 function replayStart(){ambientStop();R.qi=0;R.correct=0;R.total=0;replayQuestion();}
 function replayQuestion(){
   defocus();if(typeof document!=="undefined"&&document.body)document.body.classList.add("focus");
@@ -11930,7 +11950,7 @@ function replayQuestion(){
    +'<div class="hud"><span class="pill">🎬 <b>Story Replay</b></span>'
    +'<span class="lvl-badge">Step '+(i+1)+' of '+ev.length+'</span></div>'
    +'<div class="card gold"><p class="qtext">'+esc(prompt)+'</p>'
-   +'<div class="center" style="margin:-4px 0 10px"><button class="readbtn" onclick="say(R.sq.text)">🔊 Hear the story again</button></div>'
+   +'<div class="center" style="margin:-4px 0 10px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button class="readbtn" onclick="say(R.sq.text)">🔊 Hear the story again</button>'+lzAskBtn("replayHelp()")+'</div>'
    +'<div class="opts">'+opts.map((o,pos)=>'<button class="opt" id="ropt'+pos+'" onclick="replayAnswer('+pos+')"><span class="letter">'+letters[pos]+'</span><span>'+esc(o)+'</span></button>').join("")+'</div>'
    +'</div></div>';
   say(prompt);
@@ -12407,12 +12427,14 @@ function startDaily(){
    +'<div class="speech" style="max-width:480px;margin:10px auto">Detective '+esc(P.name)+', this case needs TWO kinds of thinking. Read every clue slowly...</div></div>'
    +'<div class="spacer"></div>'
    +'<div class="card gold"><p class="qtext">'+esc(q.q)+'</p>'
+   +lzAskRow("dailyHelp()")
    +'<div class="opts">'+order.map((oi,pos)=>'<button class="opt" id="yopt'+pos+'" onclick="dailyAnswer('+pos+')"><span class="letter">'+letters[pos]+'</span><span>'+esc(q.opts[oi])+'</span></button>').join("")+'</div>'
    +'</div></div>';
   DC.qStart=Date.now();
   say("Detective "+P.name+", here is today's mystery. "+q.q);
 }
 function dailySubject(q){const m=String(q&&q.mix||"").toLowerCase();return m.indexOf("math")>=0?"math":(m.indexOf("reading")>=0?"comprehension":(m.indexOf("science")>=0?"science":(m.indexOf("history")>=0?"history":"comprehension")));}
+function dailyHelp(){const q=DC&&DC.q;if(!q)return;const t=q.teach&&q.teach[0]&&q.teach[0].t;lzAskShow((t||"Read every clue slowly.")+" Cross out answers that can't be right, then pick the best one.");}
 function dailyAnswer(pos){
   const q=DC.q;
   const correct=DC.order[pos]===q.a;
@@ -14252,11 +14274,11 @@ function fcShow(){
    +'<button class="fc-card" id="fcCard" onclick="fcFlip()"><span class="fc-side">QUESTION</span><span class="fc-text">'+esc(c.f)+'</span>'
    +'<small>Say your answer, then tap the card</small></button>'
    +'<div class="btn-row" id="fcBtns" style="justify-content:center;margin-top:16px">'
-   +(c.hint?'<button class="btn secondary" onclick="fcHint()">💡 Hint</button>':'')
+   +lzAskBtn("fcHint()","fcAsk")
    +'<button class="btn" onclick="fcFlip()">🔄 Show answer</button></div></div>';
   say(c.f);
 }
-function fcHint(){const c=FC&&FC.d.cards[FC.queue[0]];if(c&&c.hint){toast("💡 "+c.hint);say(c.hint);}}
+function fcHint(){const c=FC&&FC.d.cards[FC.queue[0]];if(!c)return;const t=c.hint||"Say your best guess out loud first. Try to picture it. Then tap Show answer to check.";toast("💡 "+t);say(t);}
 function fcFlip(){
   if(!FC||FC.flipped)return;FC.flipped=true;
   const c=FC.d.cards[FC.queue[0]],card=$("fcCard");
@@ -14289,7 +14311,7 @@ function fcDone(){
 </script>
 <script>
 /* Lesson video keys are stable even if a video is replaced. */
-const LESSON_VIDEOS={"4-1":["XfyDMXhRzU8","geGUeI2UC9k","H4ODBqGbnXI","m_l5wT-zWAI","O0EcXVUtm2c"],"4-2":["g__JQyMpvvs","Dv5wFs8XTLs","u8_ohgEMzGc","rECWGw5co3c","PykEMVMlCWk"],"4-3":["w7fPyQ7dAAk","baDP_W8CJ28","8NLaNUGVd3w","OpvZPxlb5Js","VfusWJSbtTs"]};
+const LESSON_VIDEOS={"4-1":["XfyDMXhRzU8","geGUeI2UC9k","H4ODBqGbnXI","m_l5wT-zWAI","O0EcXVUtm2c"],"4-2":["g__JQyMpvvs","Dv5wFs8XTLs","u8_ohgEMzGc","rECWGw5co3c","PykEMVMlCWk"],"4-3":["w7fPyQ7dAAk","baDP_W8CJ28","8NLaNUGVd3w","OpvZPxlb5Js","VfusWJSbtTs"],"4-4":["2xSoYz3icp0","3YJD2WYAIcg","A6ZhH-U0mDw","MF8aCf0YbDE","D6GNQZVt67I"],"4-5":["EQ4DZOr_zBA","y2pEP0Nr6CQ","5DkWQyH5PKw","EyyaBlekjIg","FeDJubiH45s"],"4-6":["PnaTvLgxPOo","PUcOsueTLoM","9dWfb0qyoRk","NKh2Fhp_S-o","FD-fP7paH9Y"],"5-1":["mx3FlfEDVvE","WmGEn-BUVs8","ggx90_-ouH8","uw4U5LvqnRs","oqXKQobaw9E"],"5-2":["imRvwqBK1jI","AZ3aPC_ht94","j597wQdzSGg","S5Pnn5-TZz4","2KO_dN6RFpE"],"5-3":["oCIH7I0iCe8","Vr5n5NWtQB0","FALtQM1QJqc","8BzrzRTIxao","85By1z_xb5M"],"5-4":["ekgRwIHdbbY","mNv-zc2iuq0","qtR0JBW4ayk","D3QGbhsQR5M","gKsYbVQaKC8"]};
 let videoActive=null,videoApiLoading=false,videoBypassOnce=null;
 function videoList(key){return key.startsWith('reveal:')?(LESSON_VIDEOS[key.slice(7)]||[]):[];}
 function videoSeenAt(profile,key,index){const seen=profile&&profile.videoSeen&&profile.videoSeen[key];return (seen===true&&index===0)||(Array.isArray(seen)&&seen[index]===true);}
@@ -14321,7 +14343,7 @@ function videoGate(key,next,back,replay,forceIndex){
   if(!due||due.index<0)return false;
   videoStop();clearTimers();closeOverlay();defocus();showAnanseCorner(false);
   const v=videoActive={key:due.key,index:due.index,requestedKey:key,replay:!!replay,profile:P,next,back,player:null,ready:false,failed:false,playing:false,watched:0,fallback:0,lastWall:performance.now(),lastMedia:null};
-  app.innerHTML='<style>#lessonVideoRetry[hidden]{display:none!important}#lessonVideoStatus{margin:10px 0 14px}</style><div id="lessonVideoGate" class="fadein pit-stage pit-video" style="max-width:660px;margin:0 auto"><h1>🎬 '+(replay?'Watch it again':'Watch the lesson first')+'</h1><p>'+(replay?'Watch as much as you like.':'Watch the video first. When most of it has played, the lesson opens.')+'</p><div class="vg-frame" style="position:relative;width:100%;aspect-ratio:16/9;background:#111"><div id="lessonVideoPlayer"></div></div><div class="vg-bar" aria-hidden="true"><i id="lessonVideoBar"></i></div><p id="lessonVideoStatus" role="status">Loading video…</p><div class="btn-row"><button id="lessonVideoContinue" class="btn big"'+(replay?'':' disabled')+'>'+(replay?'Back to the lesson ▶':'Continue ▶')+'</button><button id="lessonVideoBack" class="btn secondary">⟵ Back</button><button id="lessonVideoRetry" class="btn secondary" hidden>Retry video</button></div></div>';
+  app.innerHTML='<style>#lessonVideoRetry[hidden]{display:none!important}#lessonVideoStatus{margin:10px 0 14px}</style><div id="lessonVideoGate" class="fadein pit-stage pit-video" style="max-width:660px;margin:0 auto"><h1>🎬 '+(replay?'Watch it again':'Watch the lesson first')+'</h1><p>'+(replay?'Watch as much as you like.':'Watch the video first. When most of it has played, the Start button wakes up.')+'</p><div class="vg-frame" style="position:relative;width:100%;aspect-ratio:16/9;background:#111"><div id="lessonVideoPlayer"></div></div><div class="vg-bar" aria-hidden="true"><i id="lessonVideoBar"></i></div><p id="lessonVideoStatus" role="status">Loading video…</p><div class="btn-row"><button id="lessonVideoContinue" class="btn big"'+(replay?'':' disabled')+'>'+(replay?'Back to the lesson ▶':'Start the lesson ▶')+'</button><button id="lessonVideoBack" class="btn secondary">⟵ Back</button><button id="lessonVideoRetry" class="btn secondary" hidden>Retry video</button></div></div>';
   document.getElementById('lessonVideoBack').onclick=()=>{videoStop();back();};
   if(typeof lzBack==="function")lzBack(()=>{videoStop();back();},"Back");
   document.getElementById('lessonVideoContinue').onclick=()=>videoComplete(v);
