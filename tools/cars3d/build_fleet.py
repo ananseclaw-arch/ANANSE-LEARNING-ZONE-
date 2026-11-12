@@ -149,6 +149,11 @@ def new_scene(S):
         "tail": mat("tail", srgb("#b0000a"), 0.25, 0.0, emit=(1, 0.05, 0.03), emit_str=0.6),
         "exhaust": mat("exhaust", srgb("#2b2b2e"), 0.4, 0.6),
         "spoke": mat("spoke", srgb("#3a3d44"), 0.35, 0.6),
+        # realistic parts (job 1112-0147): chrome reflector bowls / trim, clear headlamp lens, glossy red tail-lamp lens, dark interior
+        "chrome": mat("chrome", srgb("#e6e9ee"), 0.08, 1.0),
+        "lens": mat("lens", srgb("#f4f7fb"), 0.03, 0.0),
+        "taillens": mat("taillens", srgb("#7a0508"), 0.08, 0.0, emit=(1, 0.05, 0.03), emit_str=0.4),
+        "interior": mat("interior", srgb("#1a1b1f"), 0.75, 0.0),
         "decal": mat("decal", (1, 1, 1), 0.35, 0.0, tex=S.get("decal_png") or os.path.join(HERE, "num7.png"), alpha=True),
     }
     if S.get("livery"): M["livery"] = mat("livery", (1, 1, 1), 0.35, 0.05, tex=S["livery"])
@@ -527,9 +532,76 @@ def exhaust(C, b, x, y, r=0.06, sym=True, length=0.16, tip="exhaust", seg=12, z=
         b.cyl((sd * x, y, z - 0.03 - length / 2 - 0.004), r * 0.72, 0.012, "carbon", axis="z", seg=seg)
         C.exh.append([round(sd * x, 3), round(y, 3), round(z - 0.03 - length / 2 - 0.01, 3)])
 
+# ================================================================ realistic lamps (job 1112-0147)
+REAL = os.environ.get("GP_FLEET_PLAIN") != "1"        # GP_FLEET_PLAIN=1 rebuilds the old (pre-1112) models byte-for-byte
+def _rot(x, y, z, rot_x, rot_y):
+    if rot_x: y, z = y * math.cos(rot_x) - z * math.sin(rot_x), y * math.sin(rot_x) + z * math.cos(rot_x)
+    if rot_y: x, z = x * math.cos(rot_y) + z * math.sin(rot_y), -x * math.sin(rot_y) + z * math.cos(rot_y)
+    return x, y, z
+class MBX(MB):
+    """body builder used for a car's extras: every big headlamp slab becomes a lamp unit (dark housing, bright-metal reflector bowl,
+    bright projector elements, clear lens) and every tail lamp gets a glossy red lens over its emitter. The lens takes the old part's
+    outer face and everything else sits a few mm behind it, so no outline moves. Headlamp centres go to C.hl (fleet.json `hl`).
+    The bowl uses the bright `rim` metal so no extra material is needed."""
+    C = None
+    def box(s, c, size, m, rot_x=0.0, taper=1.0, uv=None, rot_y=0.0):
+        w, h, d = size
+        if m == "lamp" and min(w, h) >= 0.05:
+            sg = 1 if c[2] >= 0 else -1
+            def at(dx, dy, dz):
+                ox, oy, oz = _rot(dx, dy, dz, rot_x, rot_y); return (c[0] + ox, c[1] + oy, c[2] + oz)
+            MB.box(s, at(0, 0, -sg * 0.009), size, "carbon", rot_x, taper, uv, rot_y)
+            MB.box(s, at(0, 0, -sg * 0.006), (w * 0.9, h * 0.8, d), "rim", rot_x, taper, uv, rot_y)
+            if w > 1.6 * h:
+                for fx in (-0.24, 0.2):
+                    MB.box(s, at(fx * w, 0, -sg * 0.003), (min(w * 0.26, h * 0.75), h * 0.5, d), "lamp", rot_x, 1.0, uv, rot_y)
+                MB.box(s, at(0, -h * 0.34, -sg * 0.003), (w * 0.8, max(0.008, h * 0.1), d), "lamp", rot_x, 1.0, uv, rot_y)   # LED eyebrow
+            else:
+                MB.box(s, at(0, 0, -sg * 0.003), (w * 0.46, h * 0.46, d), "lamp", rot_x, 1.0, uv, rot_y)
+            MB.box(s, c, (w * 0.97, h * 0.94, d), "lens", rot_x, taper, uv, rot_y)
+            if sg > 0 and s.C is not None: s.C.hl.append([round(c[0], 3), round(c[1], 3), round(c[2] + d / 2, 3), round(max(w, h), 3)])
+            return
+        if m == "tail":
+            sg = -1 if c[2] < 0 else 1; ox, oy, oz = _rot(0, 0, -sg * 0.003, rot_x, rot_y)
+            MB.box(s, (c[0] + ox, c[1] + oy, c[2] + oz), (w * 0.97, h * 0.95, d), "tail", rot_x, taper, uv, rot_y)
+            MB.box(s, c, size, "taillens", rot_x, taper, uv, rot_y)
+            return
+        MB.box(s, c, size, m, rot_x, taper, uv, rot_y)
+    def cyl(s, c, r, length, m, axis="z", seg=16, r2=None, cap=True, ry=None, uv=None):
+        if axis == "z" and m == "lamp" and r >= 0.035:
+            sg = 1 if c[2] >= 0 else -1
+            MB.cyl(s, (c[0], c[1], c[2] - sg * 0.009), r, length, "carbon", axis, seg, r2, cap, ry, uv)
+            MB.cyl(s, (c[0], c[1], c[2] - sg * 0.006), r * 0.86, length, "rim", axis, seg, None, cap, ry * 0.86 if ry else None, uv)
+            MB.cyl(s, (c[0], c[1], c[2] - sg * 0.003), r * 0.4, length, "lamp", axis, 12, None, cap, ry * 0.4 if ry else None, uv)
+            MB.cyl(s, c, r * 0.96, length, "lens", axis, seg, None, cap, ry * 0.96 if ry else None, uv)
+            if sg > 0 and s.C is not None: s.C.hl.append([round(c[0], 3), round(c[1], 3), round(c[2] + length / 2, 3), round(2 * r, 3)])
+            return
+        if axis == "z" and m == "tail":
+            sg = -1 if c[2] < 0 else 1
+            MB.cyl(s, (c[0], c[1], c[2] - sg * 0.003), r * 0.96, length, "tail", axis, seg, None, cap, ry * 0.96 if ry else None, uv)
+            MB.cyl(s, c, r, length, "taillens", axis, seg, r2, cap, ry, uv)
+            return
+        MB.cyl(s, c, r, length, m, axis, seg, r2, cap, ry, uv)
+
+PANEL = {"arrow", "kei", "viper", "razor", "retro", "aurora", "breeze", "comet", "ridge"}
+def panel_lines(C, b):
+    """door shut lines (front + rear edge) and a chrome door handle on both sides, following the body side"""
+    S = C.S; sg = S.get("sideglass")
+    if not sg or S["id"] not in PANEL: return
+    zf, zr = sg[1] + 0.03, sg[0] + 0.10
+    if zf - zr < 0.5: return
+    for sd in (-1, 1):
+        for z in (zf, zr):
+            y0 = C.arch_y(z) + 0.03; y1 = keys(S["FPK"], z) - 0.035
+            if y1 - y0 < 0.12: continue
+            side_line(C, b, sd, [(z, y0), (z, lerp(y0, y1, 0.5)), (z, y1)], 0.0035, "carbon", off=0.0015, sub=4, seg=4)
+        yh = keys(S["FPK"], zr + 0.14) - 0.085; xh = C.side_x(zr + 0.14, yh)
+        b.box((sd * (xh + 0.006), yh, zr + 0.14), (0.012, 0.022, 0.11), "rim")
+
 # ================================================================ wheels (styles)
 def wheel_mesh(S, W_, o):
     r, tw = W_["r"], W_["w"]; mb = MB(); seg = S["wseg"]; style = S["wheel_style"]; tread = S["tread"]
+    if REAL and seg % 4 == 0 and tread != "monster": seg = max(seg, 32)   # rounder tyres; seg % 4 == 0 keeps the tyre's bounding box exact
     lug = {"knobbly": 0.038, "gravel": 0.016, "monster": 0.075}.get(tread, 0.0)
     rt = r - lug; rr = r * S["rimfrac"]; hw_ = tw / 2
     gfr = {"slick": [0.38], "ribbed": [0.2, 0.5], "gravel": [0.2, 0.52], "knobbly": [], "monster": []}[tread]
@@ -588,6 +660,9 @@ def wheel_mesh(S, W_, o):
                 p0 = (xa, math.cos(a0) * rr * r0, math.sin(a0) * rr * r0); p1 = (xb, math.cos(a1) * rr * r1, math.sin(a1) * rr * r1)
                 am = (a0 + a1) / 2
                 beam(p0, p1, w0, w1, th, (-math.sin(am), math.cos(am)), m)
+    if REAL and style in ("sport", "mag", "mesh8", "rally"):      # 5 chrome lug nuts round the centre cap
+        for k in range(5):
+            a = 2 * PI * (k + 0.5) / 5; mb.cyl((x_hub + 0.012 * o, math.cos(a) * rr * 0.19, math.sin(a) * rr * 0.19), rr * 0.035, 0.02, "rim", axis="x", seg=6)
     if style == "sport":
         spokes(S["spokes"], 0.11, 0.05 * rr / 0.25, 0.034 * rr / 0.25, 0.024, "spoke")
         mb.cyl((x_hub, 0, 0), rr * 0.24, 0.05, "spoke", axis="x", seg=12)
@@ -1724,7 +1799,7 @@ def build_formula(C):
 def finish_stats(C, body, out_path, tris):
     S = C.S
     ys = [v[1] for v in body.v]; zs = [v[2] for v in body.v]
-    tailz = min(v[2] for v in body.tris_of("tail"))
+    tailz = min(v[2] for v in body.tris_of("tail") + body.tris_of("taillens"))     # outer face of the tail lamps (lens, when it has one)
     wb = max(max(abs(v[0]) for v in body.v), C.WF["x"] + C.WF["w"] / 2 + 0.013, C.WR["x"] + C.WR["w"] / 2 + 0.013)
     if S["id"] == "formula": roof = 1.0
     elif S.get("roofY"): roof = S["roofY"]
@@ -1747,7 +1822,9 @@ def meta_of(C):
     elif S.get("eye"): eye = S["eye"]
     else: x, z = EYE_XZ[cid]; eye = [x, round(keys(S["TOP"], z) - 0.14, 3), z]
     exh = EXH_FIX.get(cid) or C.exh or [[sd * 0.22, round(C.FLOOR + 0.12, 3), round(C.ZT, 3)] for sd in (1, -1)]
-    return dict(eye=eye, exh=exh)
+    out = dict(eye=eye, exh=exh)
+    if getattr(C, "hl", None): out["hl"] = C.hl
+    return out
 def meta(cid):
     """eye/exh without building or exporting anything (pure-python body + extras)"""
     if cid == "falcon": return dict(eye=EYE_FIX["falcon"], exh=EXH_FIX["falcon"])
@@ -1761,8 +1838,13 @@ def build(cid):
     if cid == "formula":
         S = formula_spec(); new_scene(S); C = FCar(S); body = build_formula(C)
     else:
-        S, extras = CARS[cid](); new_scene(S); C = Car(S); wheel_checks(C)
-        body = build_loft_body(C); extras(C, body)
+        S, extras = CARS[cid](); new_scene(S)
+        if REAL and S.get("step_d", 0.04) <= 0.05 and cid not in ("razor",): S["step_d"], S["step_s"] = 0.025, 0.045      # denser stations: smoother flanks (razor is a crisp wedge; denser stations moved its nose tip 5 mm)
+        C = Car(S); C.hl = []; wheel_checks(C)
+        body = build_loft_body(C)
+        if REAL: body.__class__ = MBX; body.C = C
+        extras(C, body)
+        if REAL: panel_lines(C, body)
     CAM = S.get("cam", 1.0)
     body.to_obj("body", smooth_angle=S.get("smooth", 62))
     add_wheels(S, C.WF, C.WR)
