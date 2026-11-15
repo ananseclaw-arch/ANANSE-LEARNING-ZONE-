@@ -35,7 +35,8 @@ const GP_CARS=[
  {id:"breeze",grp:"exotics",n:"Breeze Roadster",kind:"Open-top roadster",cls:"A",pi:860,type:"super",paint:"#1f9c94",fin:"metallic",speed:4,grip:4,handle:5,accel:4,bio:"Open-top roadster - you can see the driver! Light, nimble and fun."},
  {id:"monster",grp:"trucks",n:"Big Bouncer",kind:"Monster truck",cls:"B",pi:720,type:"truck",paint:"#2f9a35",fin:"solid",speed:2,grip:3,handle:3,accel:3,cam:{back:2.2,up:1.5},bio:"Giant wheels and a huge bounce. Slow on the straights, flies over every jump."},
  {id:"trophy",grp:"trucks",n:"Dune Hawk",kind:"Desert trophy truck",cls:"A",pi:790,type:"truck",paint:"#e0a406",fin:"solid",speed:3,grip:3,handle:3,accel:4,cam:{back:1.2,up:0.5},bio:"Long-travel desert racer. Floats over bumps, sand and dunes."},
- {id:"semi",grp:"trucks",n:"Thunder Hauler",kind:"Racing semi-truck",cls:"B",pi:700,type:"truck",paint:"#cf4f2c",fin:"solid",speed:3,grip:2,handle:2,accel:2,cam:{back:3.7,up:2.1},bio:"A big-rig cab with chrome stacks. Slow to get going, unstoppable once rolling."}
+ {id:"semi",grp:"trucks",n:"Thunder Hauler",kind:"Racing semi-truck",cls:"B",pi:700,type:"truck",paint:"#cf4f2c",fin:"solid",speed:3,grip:2,handle:2,accel:2,cam:{back:3.7,up:2.1},bio:"A big-rig cab with chrome stacks. Slow to get going, unstoppable once rolling."},
+ {id:"bike",grp:"racers",n:"Lightning Bike",kind:"Superbike",cls:"S1",pi:910,type:"bike",cam:{back:-1.3,up:-0.55},paint:"#d21f2a",fin:"metallic",speed:4,grip:4,handle:5,accel:5,isNew:true,bio:"A fast sport motorbike with a helmeted rider. Leans right over in the corners!"}
 ];
 /* body shapes: z runs along the car, +z is the nose; all in metres */
 const GP_SHAPE={
@@ -46,6 +47,7 @@ const GP_SHAPE={
  muscle:{len:4.9,w:1.98,ride:0.26,rad:0.38,radR:0.4,xf:1.5,xr:-1.45,nose:0.64,hood:0.94,belt:0.98,deck:0.94,tail:0.84,cabF:0.1,roofF:-0.55,roofR:-1.3,cabR:-1.95,roof:1.32,wing:"duck",tyreW:0.3,tyreWR:0.36,hip:0.03},
  kei:{len:3.4,w:1.6,ride:0.3,rad:0.3,radR:0.3,xf:1.05,xr:-1.05,nose:0.7,hood:0.92,belt:0.98,deck:1.02,tail:1.0,cabF:0.75,roofF:0.2,roofR:-1.1,cabR:-1.5,roof:1.52,wing:"none",tyreW:0.24,tyreWR:0.24},
  truck:{len:5.6,w:2.3,ride:0.6,rad:0.6,radR:0.6,xf:1.8,xr:-1.8,nose:0.9,hood:1.5,belt:1.7,deck:1.8,tail:1.6,cabF:1.3,roofF:0.9,roofR:-1.2,cabR:-1.6,roof:2.4,wing:"none",tyreW:0.42,tyreWR:0.42,hip:0.02},
+ bike:{len:2.2,w:1.2,ride:0.16,rad:0.31,radR:0.32,xf:0.72,xr:-0.7,nose:0.75,hood:0.95,belt:0.9,deck:0.88,tail:0.88,cabF:0.3,roofF:0.2,roofR:-0.3,cabR:-0.5,roof:1.41,wing:"none",tyreW:0.12,tyreWR:0.18},
  suv:{len:5.3,w:2.05,ride:0.34,rad:0.42,radR:0.42,xf:1.62,xr:-1.62,nose:0.82,hood:1.04,belt:1.2,deck:1.4,tail:1.24,cabF:1.2,roofF:0.82,roofR:-1.88,cabR:-2.36,roof:1.88,wing:"none",tyreW:0.32,tyreWR:0.32,hip:0.025}
 };
 /* Real car pictures keyed off a green screen (key_cars.py, world_assets.py, wed_assets.py): one WebP sheet per car,
@@ -406,6 +408,9 @@ function gpCss(){if(document.getElementById("gpV4Css")){gpStoryFont();return;}co
 .fz-gtabs button i{font-style:normal;font-size:22px;line-height:1}.fz-gtabs button b{font-size:clamp(15px,2vw,20px);font-weight:900;letter-spacing:.05em;line-height:1.1}.fz-gtabs button small{font-size:11px;font-weight:800;opacity:.85}
 .fz-gtabs button.on{background:#FFD700;color:#1d2a2a;transform:translateY(5px);box-shadow:0 2px 0 #2F4F4F,inset 0 3px 0 rgba(255,255,255,.6)}
 .fz-car.v4[hidden]{display:none}
+.fz-new{position:absolute;top:7px;right:7px;z-index:2;font-style:normal;font-weight:900;font-size:11px;letter-spacing:.08em;background:#FFDE47;color:#1A1A24;border-radius:6px;padding:2px 7px;box-shadow:0 2px 0 #b8901a;animation:fzNew 1.8s ease-in-out infinite}
+@keyframes fzNew{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@media (prefers-reduced-motion:reduce){.fz-new{animation:none}}
 @media (min-width:900px){.fz-cars{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .fz-kind{align-self:flex-start;font-size:11px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:#1A1A24;background:#12B0E8;border-radius:6px;padding:1px 7px}
 .fz-st{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:900;color:#fff;text-transform:uppercase}
@@ -775,13 +780,13 @@ function renderRace(){
   // (segmented "arcade" bars from the Gemini direction; selected card pops like the 60fps.design card/badge patterns)
   const seg=(k,v,cl)=>'<span class="fz-st '+cl+'"><i>'+k+'</i><s>'+[1,2,3,4,5].map(q=>'<em class="'+(q<=v?"on":"")+'"></em>').join("")+'</s></span>';
   const grp=window._gpGrp||(GP_CARS.find(c=>c.id===sel)||{}).grp||"racers";
-  const cards=GP_CARS.map(c=>'<button class="fz-car v4'+(c.id===sel?" on":"")+'"'+((c.grp||"racers")===grp?'':' hidden')+' data-grp="'+(c.grp||"racers")+'" data-car="'+c.id+'" onclick="gpPickCar(\''+c.id+'\')" aria-label="'+esc(c.n)+'">'
-    +'<span class="fz-thumb" style="--bg:url(assets/cars3d/thumbs/'+c.id+'.webp?v=2)"></span><span class="fz-kind">'+esc(c.kind||c.type)+'</span><b>'+esc(c.n)+'</b>'
+  const cards=GP_CARS.map(c=>'<button class="fz-car v4'+(c.id===sel?" on":"")+'"'+((c.grp||"racers")===grp?'':' hidden')+(c.isNew?' style="order:-1"':'')+' data-grp="'+(c.grp||"racers")+'" data-car="'+c.id+'" onclick="gpPickCar(\''+c.id+'\')" aria-label="'+esc(c.n)+'">'
+    +'<span class="fz-thumb" style="--bg:url(assets/cars3d/thumbs/'+c.id+'.webp?v=2)"></span>'+(c.isNew?'<em class="fz-new">NEW</em>':'')+'<span class="fz-kind">'+esc(c.kind||c.type)+'</span><b>'+esc(c.n)+'</b>'
     +seg("Speed",c.speed,"sp")+seg("Grip",c.grip||c.handle,"gr")+seg("Accel",c.accel,"ac")+'<small>'+esc(c.bio)+'</small></button>').join("");
   const sw=GP_PAINTS.map(h=>'<button class="fz-sw'+(h===paint?" on":"")+'" style="background:'+h+'" data-paint="'+h+'" onclick="gpPickPaint(\''+h+'\')" aria-label="Paint colour"></button>').join("");
   app.innerHTML='<div class="'+gpShellClass()+(GP_PICS[sel]?" pic":"")+'" id="fzShell" style="max-width:980px;margin:0 auto;padding:0 8px">'
    +gpHead("Festival garage · choose your car",GP_WORLD.title,"center 44%")+gpFzStageHtml()
-   +'<div class="fz-gtabs" role="tablist">'+GP_GROUPS.map(g=>'<button role="tab" class="'+(g[0]===grp?'on':'')+'" data-grp="'+g[0]+'" aria-selected="'+(g[0]===grp)+'" onclick="gpPickGrp(\''+g[0]+'\')"><i>'+g[1]+'</i><b>'+g[2]+'</b><small>'+GP_CARS.filter(c=>(c.grp||"racers")===g[0]).length+' cars</small></button>').join('')+'</div>'
+   +'<div class="fz-gtabs" role="tablist">'+GP_GROUPS.map(g=>'<button role="tab" class="'+(g[0]===grp?'on':'')+'" data-grp="'+g[0]+'" aria-selected="'+(g[0]===grp)+'" onclick="gpPickGrp(\''+g[0]+'\')"><i>'+g[1]+'</i><b>'+g[2]+'</b><small>'+GP_CARS.filter(c=>(c.grp||"racers")===g[0]).length+(GP_CARS.some(c=>(c.grp||"racers")===g[0]&&c.type==="bike")?' rides':' cars')+'</small></button>').join('')+'</div>'
    +'<div class="fz-cars">'+cards+'</div>'
    +(GP_MESHY.has(sel)?'<div class="fz-paint-note" style="font-size:12px;opacity:.72">3D car shape made with Meshy (CC BY 4.0)</div>':'')+(GP_GLB[sel]?'<div class="fz-paint-note">🎨 Win races to unlock new paint and stickers for every car.</div>':'<div class="fz-paints">'+sw+'</div><div class="fz-paint-note">🎨 New paint colours come from race upgrades.</div>')+gpGarageHtml()
    +'<div class="center" style="margin-top:14px"><button class="btn big" onclick="renderCircuits()">Next: choose a route ▶</button></div>'
@@ -980,6 +985,23 @@ function gpBuildCar(T,car,paint,shared){
     wg.userData.rad=rad;wheels.push(wg);if(z>0)steers.push(hub);});
   const blob=new T.Mesh(new T.PlaneGeometry(w*1.5,S.len*1.2),new T.MeshBasicMaterial({map:shared.blob,color:0x000000,transparent:true,opacity:0.42,depthWrite:false}));blob.material.userData.lin=1;blob.rotation.x=-Math.PI/2;blob.position.y=0.04;g.add(blob);
   return{g,body:b,wheels,steers,shadows:[blob],tailMat:mats.tail,bodyMat:mats.body,S,xr:S.xr,hw:G.hw};}
+/* drawn motorbike for the Storybook look and when bike.glb can't load: same fields as gpBuildCar, wheels inside the body so it all leans */
+function gpBuildBikeDrawn(T,car,paint,shared){const S=Object.assign({},GP_SHAPE.bike),mats=gpCarMats(T,paint,shared),g=new T.Group(),b=new T.Group();g.add(b);
+  const add=(geo,mat,x,y,z,rx,ry,rz,par)=>{const m=new T.Mesh(geo,mat);m.position.set(x,y,z);if(rx)m.rotation.x=rx;if(ry)m.rotation.y=ry;if(rz)m.rotation.z=rz;m.castShadow=true;(par||b).add(m);return m;};
+  const suit=new T.MeshStandardMaterial({color:0x1f6fd6,roughness:0.7}),helm=new T.MeshStandardMaterial({color:0xffd23f,roughness:0.3,metalness:0.1}),dark=mats.dark;
+  add(new T.BoxGeometry(0.44,0.4,0.9),mats.body,0,0.6,0.12,0.12);add(new T.SphereGeometry(0.26,14,10),mats.body,0,0.84,0.2).scale.set(1,0.62,1.25);   // fairing + tank
+  add(new T.ConeGeometry(0.2,0.42,12),mats.body,0,0.82,0.66,Math.PI/2).scale.set(1,1,0.7);add(new T.BoxGeometry(0.22,0.14,0.8),mats.body,0,0.8,-0.62,-0.12);   // nose + tail
+  add(new T.BoxGeometry(0.3,0.22,0.38),dark,0,0.36,0.02);add(new T.BoxGeometry(0.2,0.06,0.42),mats.glass,0,1.02,0.66,-0.55);add(new T.BoxGeometry(0.12,0.04,0.03),mats.tail,0,0.86,-1.03);
+  [-1,1].forEach(sd=>add(new T.BoxGeometry(0.06,0.04,0.03),mats.lamp,sd*0.08,0.8,0.93));
+  add(new T.CylinderGeometry(0.13,0.15,0.5,10),suit,0,1.03,-0.12,-1.05);add(new T.SphereGeometry(0.15,12,10),suit,0,0.93,-0.32);add(new T.SphereGeometry(0.14,14,12),helm,0,1.27,0.2);   // rider: back, hips, helmet
+  [-1,1].forEach(sd=>{add(new T.CylinderGeometry(0.045,0.045,0.42,8),suit,sd*0.26,1.02,0.2,-1.0);add(new T.CylinderGeometry(0.065,0.06,0.45,8),suit,sd*0.24,0.8,-0.13,-1.15,0,sd*-0.3);add(new T.CylinderGeometry(0.055,0.05,0.38,8),suit,sd*0.24,0.55,-0.14,0.7);});
+  const wheels=[],steers=[];[[S.xf,S.rad,true],[S.xr,S.radR,false]].forEach(([z,rad,f])=>{const hub=new T.Group();hub.position.set(0,rad,z);b.add(hub);const wg=new T.Group();hub.add(wg);
+    const ty=new T.Mesh(new T.TorusGeometry(rad-0.055,0.06,10,26),mats.tyre);ty.rotation.y=Math.PI/2;ty.castShadow=true;wg.add(ty);
+    const rm=new T.Mesh(new T.CylinderGeometry(rad*0.66,rad*0.66,0.05,18),mats.rim);rm.rotation.z=Math.PI/2;wg.add(rm);
+    if(f)[-1,1].forEach(sd=>add(new T.CylinderGeometry(0.024,0.024,0.62,8),mats.rim,sd*0.09,0.3,-0.12,-0.4,0,0,hub));
+    wg.userData.rad=rad;wheels.push(wg);if(f)steers.push(hub);});
+  const blob=new T.Mesh(new T.PlaneGeometry(0.95,S.len*1.15),new T.MeshBasicMaterial({map:shared.blob,color:0x000000,transparent:true,opacity:0.42,depthWrite:false}));blob.material.userData.lin=1;blob.rotation.x=-Math.PI/2;blob.position.y=0.04;g.add(blob);
+  return{g,body:b,wheels,steers,shadows:[blob],tailMat:mats.tail,bodyMat:mats.body,S,xr:S.xr,hw:z=>0.36,bike:true,tyreX:0.05};}
 /* ---------- real 3D car models (GLB) ----------
    Built headless in Blender (lz-gp-3dcar-shots/blender/build_car.py) and loaded with the r128 GLTFLoader (vendored next to the game, so
    it stays on the same Three.js as Kingdom). Node names the game drives: body (suspension lean/dive/squat), hub_FL/FR/RL/RR (front hubs
@@ -1003,12 +1025,13 @@ const GP_GLB={   // every car is a real 3D model (tools/cars3d/build_car.py + bu
  breeze:{src:"assets/cars3d/breeze.glb?v=3",tyreX:0.75,xr:-1.22,tail:-1.998,pivotY:0.3,twF:0.24,twR:0.27,S:{len:4.11,w:1.87,rad:0.31,radR:0.32,xf:1.25,xr:-1.22},sticker:[0.4,0.822,-1.5,-1.6907],glows:[[-0.5,0.6,0.52,0.28],[0.5,0.6,0.52,0.28]],eye:[0.3,1.08,-0.33],exh:[[-0.16,0.27,-2.08],[0.16,0.27,-2.08]],nose:2.03,roofY:1.22,ride:0.12,hl:[[-0.55,0.56,1.893,0.17],[0.55,0.56,1.893,0.17]]},
  monster:{src:"assets/cars3d/monster.glb?v=3",tyreX:1.11,xr:-1.5,tail:-2.368,pivotY:1.3,twF:0.6,twR:0.6,S:{len:5.05,w:2.846,rad:0.8,radR:0.8,xf:1.5,xr:-1.5},sticker:[0.38,2.752,-0.1,-1.5712],glows:[[-0.84,1.86,0.38,0.54],[0.84,1.86,0.38,0.54]],eye:[0.38,2.5,0.05],exh:[[-0.25,1.24,-2.45],[0.25,1.24,-2.45]],nose:2.49,roofY:2.76,ride:1.3,hl:[[-0.48,2.83,0.205,0.11],[-0.24,2.83,0.205,0.11],[0.0,2.83,0.205,0.11],[0.24,2.83,0.205,0.11],[0.48,2.83,0.205,0.11],[-0.74,1.84,2.305,0.26],[0.74,1.84,2.305,0.26]]},
  trophy:{src:"assets/cars3d/trophy.glb?v=3",tyreX:1.02,xr:-1.65,tail:-2.818,pivotY:0.85,twF:0.4,twR:0.4,S:{len:5.914,w:2.466,rad:0.47,radR:0.47,xf:1.9,xr:-1.65},sticker:[0.38,2.013,-0.2,-1.5715],glows:[[-0.3,2.12,0.42,0.22],[0.0,2.12,0.42,0.22],[0.3,2.12,0.42,0.22],[-0.86,1.32,0.38,0.5],[0.86,1.32,0.38,0.5]],eye:[0.38,1.82,0.0],exh:[[-0.5,0.7,-2.84],[0.5,0.7,-2.84]],nose:2.975,roofY:2.02,ride:0.75,hl:[[-0.6,2.09,0.21,0.18],[-0.36,2.09,0.21,0.18],[-0.12,2.09,0.21,0.18],[0.12,2.09,0.21,0.18],[0.36,2.09,0.21,0.18],[0.6,2.09,0.21,0.18],[-0.7,1.18,2.855,0.3],[0.7,1.18,2.855,0.3]]},
- semi:{src:"assets/cars3d/semi.glb?v=3",tyreX:0.94,xr:-2.25,tail:-3.153,pivotY:1.0,twF:0.32,twR:0.66,S:{len:6.456,w:2.98,rad:0.54,radR:0.54,xf:2.15,xr:-2.25},sticker:[0.5,3.544,0.75,-1.5714],glows:[[-0.58,0.86,0.37,0.33],[0.58,0.86,0.37,0.33],[-0.82,0.86,0.37,0.33],[0.82,0.86,0.37,0.33]],eye:[0.55,2.3,2.7],exh:[[-1.02,3.9,0.12,1],[1.02,3.9,0.12,1]],nose:3.303,roofY:3.56,ride:0.95,hl:[[-0.55,3.2,0.303,0.22],[0.55,3.2,0.303,0.22],[-0.98,1.22,3.166,0.3],[0.98,1.22,3.166,0.3]]}};
+ semi:{src:"assets/cars3d/semi.glb?v=3",tyreX:0.94,xr:-2.25,tail:-3.153,pivotY:1.0,twF:0.32,twR:0.66,S:{len:6.456,w:2.98,rad:0.54,radR:0.54,xf:2.15,xr:-2.25},sticker:[0.5,3.544,0.75,-1.5714],glows:[[-0.58,0.86,0.37,0.33],[0.58,0.86,0.37,0.33],[-0.82,0.86,0.37,0.33],[0.82,0.86,0.37,0.33]],eye:[0.55,2.3,2.7],exh:[[-1.02,3.9,0.12,1],[1.02,3.9,0.12,1]],nose:3.303,roofY:3.56,ride:0.95,hl:[[-0.55,3.2,0.303,0.22],[0.55,3.2,0.303,0.22],[-0.98,1.22,3.166,0.3],[0.98,1.22,3.166,0.3]]},
+ bike:{src:"assets/cars3d/bike.glb?v=1",bike:1,tyreX:0.05,xr:-0.7,tail:-1.045,pivotY:0.001,twF:0.12,twR:0.18,S:{len:2.2,w:1.2,rad:0.31,radR:0.32,xf:0.72,xr:-0.7},sticker:[0.265,0.82,0.62,0],glows:[[0,0.878,0.2,0.09]],eye:[0,1.29,0.42],exh:[[-0.178,0.58,-0.77]],nose:1.03,roofY:1.413,ride:0.16,plate:{sy:0.79,sz:-0.55,sw:0.4,ry:1.03,rw:0.3},blur:{col:0x5a5d64,max:0.22},tailCol:"#c4060e",hl:[[0.085,0.8,0.975,0.11],[-0.085,0.8,0.975,0.11]],rs:{helmet:{r:0.16,env:1.2},suit:{r:0.72,env:0.35}},matSet:{helmet:{r:0.24,env:0.6},suit:{r:0.75,env:0.3}}}};   // Lightning Bike (tools/cars3d/build_bike.py): hubs inside body, so bike + rider lean together
 const GP_MESHY=new Set(["falcon","shogun","formula","kente","kumasi","rally"]);   // cars whose 3D shape is a free Meshy 6 Lite model
 const GP_GLTF_SRC="assets/vendor/GLTFLoader.r128.js",GP_MESHOPT_SRC="assets/vendor/meshopt_decoder.js";   // models are meshopt-compressed (tools/cars3d/pack_glb.mjs); the 29 KB decoder unpacks them
 /* Blender-baked ground shadow per car (tools/cars3d/bake_light.py --shadow -> shadow_atlas.py): [atlas col,row, centre x,z, width,length in metres] */
-const GP_SHADOW_TILES={"arrow":[0,0,0.0,0.028,2.743,6.036],"aurora":[1,0,0.0,0.084,2.717,6.406],"breeze":[2,0,0.0,-0.025,2.431,5.343],"comet":[3,0,0.0,-0.01,2.647,6.474],"falcon":[4,0,-0.005,0.163,2.778,6.025],"formula":[0,1,0.0,0.274,2.484,6.683],"kei":[1,1,0.0,-0.049,2.431,4.605],"kente":[2,1,-0.006,0.0,2.685,5.909],"kumasi":[3,1,-0.004,-0.08,2.633,6.415],"monster":[4,1,0.0,-0.035,3.708,6.565],"rally":[0,2,0.0,0.04,2.478,5.364],"razor":[1,2,0.0,-0.0,2.751,6.058],"retro":[2,2,0.0,-0.05,2.269,5.72],"ridge":[3,2,0.0,-0.015,3.003,7.319],"semi":[4,2,0.0,0.075,3.874,8.393],"shogun":[0,3,-0.004,-0.001,2.5,6.002],"trophy":[1,3,0.0,0.017,3.214,7.689],"viper":[2,3,0.0,-0.02,2.725,6.11]};
-const GP_SHADOW_SRC="assets/cars3d/shadows.webp?v=2",GP_SHADOW_GRID=[5,4];
+const GP_SHADOW_TILES={"arrow":[0,0,0.0,0.028,2.743,6.036],"aurora":[1,0,0.0,0.084,2.717,6.406],"breeze":[2,0,0.0,-0.025,2.431,5.343],"comet":[3,0,0.0,-0.01,2.647,6.474],"falcon":[4,0,-0.005,0.163,2.778,6.025],"formula":[0,1,0.0,0.274,2.484,6.683],"kei":[1,1,0.0,-0.049,2.431,4.605],"kente":[2,1,-0.006,0.0,2.685,5.909],"kumasi":[3,1,-0.004,-0.08,2.633,6.415],"monster":[4,1,0.0,-0.035,3.708,6.565],"rally":[0,2,0.0,0.04,2.478,5.364],"razor":[1,2,0.0,-0.0,2.751,6.058],"retro":[2,2,0.0,-0.05,2.269,5.72],"ridge":[3,2,0.0,-0.015,3.003,7.319],"semi":[4,2,0.0,0.075,3.874,8.393],"shogun":[0,3,-0.004,-0.001,2.5,6.002],"trophy":[1,3,0.0,0.017,3.214,7.689],"viper":[2,3,0.0,-0.02,2.725,6.11],"bike":[3,3,0.0,0.0,1.001,2.716]};
+const GP_SHADOW_SRC="assets/cars3d/shadows.webp?v=3",GP_SHADOW_GRID=[5,4];
 /* the loader attaches itself to the THREE it finds. Two overlapping loadThree() calls (car previews + a quick route tap) can run
    three.min.js twice, replacing window.THREE after the loader was attached - then every model fell back to the old drawn car.
    So the promise is kept per THREE object and the script is run again for a new one. */
@@ -1032,6 +1055,15 @@ const GP_REAL={paint:{solid:{m:0,r:0.30,env:1.3},metallic:{m:0.55,r:0.34,env:1.3
   carbon:{c:"#16171b",m:0.3,r:0.38,env:0.8},exhaust:{c:"#3a3a3e",m:0.9,r:0.25,env:1.0},stripe:{r:0.28,env:1.0},lamp:{c:"#f4f7fb",e:"#fff4e2",ei:1.2,r:0.05},
   lens:{c:"#f4f7fb",e:"#fff4e2",ei:0.12,op:0.42},taillens:{c:"#7a0508",e:"#ff0d06",ei:0.35},hl:{day:0.18,night:0.55}};
 function gpReal(){return gpLook()==="real";}
+/* motorbike pose (job 1114, drawing only - the driving numbers come from gpStats like every car): lean INTO the bend like a real bike,
+   target = atan(v^2 x curvature / g) x gain, capped at 38 deg; a soft spring (k, c) with a roll-rate cap so it rolls in smoothly; pitch is
+   kept tiny so the front wheel never lifts (no wheelies); the bars barely turn at speed */
+/* desert dust (Eb 2026-11-14: "there is too much dust on the desert tracks"): a light, low trail off the rear wheel(s) only, emitted per SECOND
+   so it is the same at any frame rate, puffs carried along with part of the car's speed so the trail ends ~10 m behind; small launch/landing
+   puffs; Dakar's crest spindrift only at the roadside and fainter gust streaks. me/riv = puffs per second for the player / one rival. */
+const GP_DUST={dakar:{pool:150,size:1.15,op:0.27,me:16,riv:4,life:[0.4,0.7],up:[0.3,0.9],side:0.7,off:1.5,carry:0.45,launch:5,launchR:2,land:[2,1],veil:0.25,streak:[0.06,0.2],col:[0.74,0.7,0.4]},
+  desert:{pool:110,size:1.0,op:0.27,me:10,riv:4,life:[0.4,0.65],up:[0.25,0.8],side:0.6,off:1.6,carry:0.45,launch:5,launchR:2,land:[2,1],col:[0.8,0.825,0.575]}};
+const GP_BIKE={max:0.66,g:9.81,gain:0.85,lat:0.02,ahead:0.3,mixA:0.6,k:46,c:10.5,vmax:2.4,pitch:[-0.018,0.022],pk:70,pc:17,steer:0.16};
 function gpMatSet(m,v){if(v.c)m.color.copy(gpLin(v.c));if(v.m!=null)m.metalness=v.m;if(v.r!=null)m.roughness=v.r;if(v.env!=null)m.envMapIntensity=v.env;if(v.e)m.emissive.copy(gpLin(v.e));if(v.ei!=null)m.emissiveIntensity=v.ei;return m;}
 /* clear-coat paint: a strong baked vertex shade under a mirror-like coat looks dirty, so only part of it is kept (Realistic only) */
 function gpRealVc(m){m.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace("#include <color_fragment>","\n#ifdef USE_COLOR\n\tdiffuseColor.rgb*=mix(vec3(1.0),vColor,"+GP_REAL.vc.toFixed(2)+");\n#endif\n");};m.customProgramCacheKey=()=>"gpRealVc";return m;}
@@ -1087,7 +1119,8 @@ function gpBuildGlbCar(T,car,src,paint,shared){
   if(!body)body=root;
   const wheels=[],steers=[],blurs=[];if(!SM.blurGeo)SM.blurGeo=new T.CircleGeometry(1,28);
   ["FL","FR","RL","RR"].forEach(k=>{const w=wh[k];if(!w)return;const rad=k[0]==="F"?S.rad:S.radR,tw=k[0]==="F"?(D.twF||0.3):(D.twR||0.38),sd=hubs[k]&&hubs[k].position.x<0?-1:1;w.userData.rad=rad;wheels.push(w);if(k[0]==="F"&&hubs[k])steers.push(hubs[k]);
-    const bm=new T.MeshBasicMaterial({map:SM.blurTex,transparent:true,opacity:0,depthWrite:false});if(D.blur&&D.blur.col!=null)bm.color.setHex(D.blur.col);bm.userData.lin=1;const b=new T.Mesh(SM.blurGeo,bm);b.scale.setScalar(rad*0.6);b.position.x=sd*(tw/2-0.02);b.rotation.y=sd*Math.PI/2;b.visible=false;b.renderOrder=2;w.add(b);w.userData.blur=b;blurs.push(b);});
+    const bm=new T.MeshBasicMaterial({map:SM.blurTex,transparent:true,opacity:0,depthWrite:false});if(D.blur&&D.blur.col!=null)bm.color.setHex(D.blur.col);bm.userData.lin=1;const b=new T.Mesh(SM.blurGeo,bm);b.scale.setScalar(rad*0.6);b.position.x=sd*(tw/2-0.02);b.rotation.y=sd*Math.PI/2;b.visible=false;b.renderOrder=2;w.add(b);w.userData.blur=b;blurs.push(b);
+    if(D.bike){const b2=new T.Mesh(SM.blurGeo,bm);b2.scale.setScalar(rad*0.6);b2.position.x=-b.position.x;b2.rotation.y=-b.rotation.y;b2.visible=false;b2.renderOrder=2;w.add(b2);blurs.push(b2);}});
   // brake lights: soft additive glows over the LED clusters and the rain light, faded in on the brake (plus the emissive lamp material)
   const glows=(D.glows||[]).map(q=>{const m=new T.SpriteMaterial({map:SM.glowTex,color:0xff1606,transparent:true,opacity:0,depthWrite:false,blending:T.AdditiveBlending});m.toneMapped=false;m.userData.lin=1;
     const s=new T.Sprite(m);s.position.set(q[0],q[1],D.tail-0.08);s.scale.set(q[2],q[3],1);s.visible=false;body.add(s);return s;});
@@ -1102,7 +1135,7 @@ function gpBuildGlbCar(T,car,src,paint,shared){
   else{blob=new T.Mesh(new T.PlaneGeometry(S.w*1.22,S.len*1.02),new T.MeshBasicMaterial({map:shared.ao||shared.blob,color:0x000000,transparent:true,opacity:0.92,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}));blob.position.y=0.035;}
   blob.material.userData.lin=1;blob.rotation.x=-Math.PI/2;g.add(blob);
   if(!shared.contact)shared.contact=gpContactTex();
-  const cps=[],cu=[],ci=[];["FL","FR","RL","RR"].forEach((k,q)=>{const h=hubs[k];if(!h)return;const tw=(k[0]==="F"?(D.twF||0.3):(D.twR||0.38))+0.24,ln=0.95,x=h.position.x,z=h.position.z;cps.push(x-tw/2,0,z-ln/2,x+tw/2,0,z-ln/2,x+tw/2,0,z+ln/2,x-tw/2,0,z+ln/2);cu.push(0,0,1,0,1,1,0,1);const v=q*4;ci.push(v,v+2,v+1,v,v+3,v+2);});
+  const cps=[],cu=[],ci=[];["FL","FR","RL","RR"].forEach((k,q)=>{const h=hubs[k];if(!h)return;const tw=(k[0]==="F"?(D.twF||0.3):(D.twR||0.38))+(D.bike?0.14:0.24),ln=0.95,x=h.position.x,z=h.position.z,v=cps.length/3;cps.push(x-tw/2,0,z-ln/2,x+tw/2,0,z-ln/2,x+tw/2,0,z+ln/2,x-tw/2,0,z+ln/2);cu.push(0,0,1,0,1,1,0,1);ci.push(v,v+2,v+1,v,v+3,v+2);});   // v = vertices so far (a bike has only FL + RL: slot*4 pointed past the buffer)
   const cg=new T.BufferGeometry();cg.setAttribute("position",new T.Float32BufferAttribute(cps,3));cg.setAttribute("uv",new T.Float32BufferAttribute(cu,2));cg.setIndex(ci);
   const cmat=new T.MeshBasicMaterial({map:shared.contact,color:0x000000,transparent:true,opacity:1,depthWrite:false,side:T.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});cmat.userData.lin=1;
   const contacts=new T.Mesh(cg,cmat);contacts.position.y=0.04;contacts.frustumCulled=false;g.add(contacts);
@@ -1111,7 +1144,7 @@ function gpBuildGlbCar(T,car,src,paint,shared){
   const lod=[],casters=[];root.traverse(o=>{if(!o.isMesh)return;const nm=o.material&&o.material.name,pn=(o.parent&&o.parent.name)||"";if(/^(disc|caliper|spoke|rimdark|exhaust|decal|lamp|carbon)$/.test(nm||"")||/^caliper_/.test(o.name)||/^caliper_/.test(pn))lod.push(o);if(o.castShadow)casters.push(o);});
   if(gpToon())root.traverse(o=>{if(o.isMesh)gpToonPatch(o.material);});
   if(gpReal()&&R3&&R3.cenv&&R3.cenv.env)root.traverse(o=>{if(o.isMesh)gpCarEnvMat(o.material,R3.cenv.env.texture);});
-  return{lod,casters,lodFar:false,carId:car.id,g,body,wheels,steers,hubs:Object.values(hubs),shadows:[blob,contacts],tailMat:tail,tlens,hlS,bodyMat:paintM,stripeMat:stripe,S,xr:D.xr||S.xr,hw:z=>S.w/2,tyreX:D.tyreX,glb:{glows,blurs,bmax:(D.blur&&D.blur.max)||(gpReal()?0.4:0.88),glow:0,rollV:0,pitchV:0,heave:0,heaveV:0,pivotY:D.pivotY||0.3}};}
+  return{lod,casters,lodFar:false,carId:car.id,bike:!!D.bike,g,body,wheels,steers,hubs:Object.values(hubs),shadows:[blob,contacts],tailMat:tail,tlens,hlS,bodyMat:paintM,stripeMat:stripe,S,xr:D.xr||S.xr,hw:z=>S.w/2,tyreX:D.tyreX,glb:{glows,blurs,bmax:(D.blur&&D.blur.max)||(gpReal()?0.4:0.88),glow:0,rollV:0,pitchV:0,heave:0,heaveV:0,pivotY:D.pivotY||0.3}};}
 /* per frame for model cars: brake glow fade (the springs for lean / dive / squat run in gpUpdate) */
 function gpGlbUpdate(kt,dt){const G=kt.glb;G.glow+=((kt.brakeOn?1:0)-G.glow)*Math.min(1,dt*(kt.brakeOn?18:7));
   const blD=(kt.carId&&GP_GLB[kt.carId]&&GP_GLB[kt.carId].blur)||null,om=Math.abs(kt.speed)/Math.max(0.1,kt.S.radR),bo=Math.max(0,Math.min(G.bmax||(blD&&blD.max)||0.88,(om-18)/34));G.blurs.forEach(b=>{const v=bo>0.02&&!kt.lodFar;if(b.visible!==v)b.visible=v;if(v)b.material.opacity=bo;});
@@ -1199,11 +1232,11 @@ function gpUpPicker(host,done){const offer=gpUpOffer();if(!host||!offer.length){
 /* 3D bits that show the upgrades on a model car: tyre sidewall stripes and the stickers on the rear wing */
 function gpUpFit(T,m,player,shared){if(!player||!m.glb)return;const u=gpUpState(),SM=shared.glb;
   if(u.tyres>0){const rm=new T.MeshStandardMaterial({color:gpLin(GP_TYRE_RING[u.tyres]),roughness:0.5,side:T.DoubleSide});rm.userData.lin=1;
-    m.wheels.forEach((w,i)=>{const GD=GP_GLB[m.carId]||{},front=i<2,rad=front?m.S.rad:m.S.radR,tw=front?(GD.twF||0.3):(GD.twR||0.38),b=w.userData.blur,sd=b?Math.sign(b.position.x):1;const ring=new T.Mesh(new T.RingGeometry(rad*0.8,rad*0.87,32),rm);ring.position.x=sd*(tw/2+0.017);ring.rotation.y=sd*Math.PI/2;w.add(ring);});}
+    m.wheels.forEach((w,i)=>{const GD=GP_GLB[m.carId]||{},front=m.bike?i<1:i<2,rad=front?m.S.rad:m.S.radR,tw=front?(GD.twF||0.3):(GD.twR||0.38),b=w.userData.blur,sd=b?Math.sign(b.position.x):1;const ring=new T.Mesh(new T.RingGeometry(rad*0.8,rad*0.87,32),rm);ring.position.x=sd*(tw/2+0.017);ring.rotation.y=sd*Math.PI/2;w.add(ring);if(m.bike){const r2=ring.clone();r2.position.x=-ring.position.x;r2.rotation.y=-ring.rotation.y;w.add(r2);}});}
   const st=GP_UP_STICKERS.find(s=>s[0]===u.sticker);
   if(st){const tex=gpCanvasTex(256,256,(x,w,h)=>{x.clearRect(0,0,w,h);x.fillStyle="#fff";x.beginPath();x.arc(128,128,118,0,7);x.fill();x.lineWidth=10;x.strokeStyle="#15161a";x.stroke();x.font="150px system-ui,'Apple Color Emoji','Segoe UI Emoji'";x.textAlign="center";x.textBaseline="middle";x.fillText(st[1],128,142);});
     const sm=new T.MeshStandardMaterial({map:tex,transparent:true,alphaTest:0.4,roughness:0.4,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});sm.userData.lin=1;
-    [-1,1].forEach(sd=>{const q=new T.Mesh(new T.PlaneGeometry(0.36,0.36),sm);const SP=(GP_GLB[m.carId]||{}).sticker||[0.6,1.272,-2.02,-Math.PI/2-0.1];q.position.set(sd*SP[0],gpGlbTop(T,m,sd*SP[0],SP[2],SP[1]),SP[2]);q.rotation.set(SP[3],0,Math.PI);m.body.add(q);});}}
+    [-1,1].forEach(sd=>{const q=new T.Mesh(new T.PlaneGeometry(0.36,0.36),sm);const SP=(GP_GLB[m.carId]||{}).sticker||[0.6,1.272,-2.02,-Math.PI/2-0.1];if(m.bike){q.scale.setScalar(0.6);q.position.set(sd*SP[0],SP[1],SP[2]);q.rotation.set(0,sd*Math.PI/2,0);}else{q.position.set(sd*SP[0],gpGlbTop(T,m,sd*SP[0],SP[2],SP[1]),SP[2]);q.rotation.set(SP[3],0,Math.PI);}m.body.add(q);});}}
 function gpUpLight(h){const c=new THREE.Color(h);return c.r*0.3+c.g*0.59+c.b*0.11>0.7;}
 /* car screen: the upgrades already fitted, with paint and sticker chips to switch between */
 function gpGarageHtml(){const u=gpUpState();if(!u.picks)return'<div class="fz-garage empty">🏁 Finish a race to pick your first upgrade!</div>';
@@ -1216,7 +1249,7 @@ function gpGarageSet(k,v){const u=gpUpState();u[k]=v||null;gpUpSave(u);sfx("tick
 /* ---------- real car pictures ---------- */
 /* Loads only the sheets used by this grid, so the SUV race texture stays lazy until the SUV is selected. Resolves with a map id → texture
    or null when a picture failed; a null means that car keeps its 3D model. */
-function gpRivalCars(cid){const mine=gpCar(),others=GP_CARS.filter(c=>c.id!==mine.id),k=Math.max(0,GP_CIRCUITS.findIndex(c=>c.id===cid));const out=[];
+function gpRivalCars(cid){const mine=gpCar(),others=GP_CARS.filter(c=>c.id!==mine.id&&c.type!=="bike"),k=Math.max(0,GP_CIRCUITS.findIndex(c=>c.id===cid));const out=[];
   if(cid==="desert"||cid==="dakar"){const tr=others.filter(c=>c.grp==="trucks"),ot=others.filter(c=>c.grp!=="trucks");return[ot[2],tr[0],ot[9]||ot[0],tr[2]||tr[1]];}   // desert: two trucks on the grid
   for(let q=0;q<4;q++)out.push(others[(k*3+q*Math.max(1,Math.floor(others.length/4)))%others.length]);return out;}
 function gpRacePicIds(cid){if(GPN&&GPN.race)return GPN.race.roster.map(r=>(GP_CARS.find(c=>c.id===r.car)||GP_CARS[0]).id);   // ids, like the single-player branch (it returned car objects, so no friend's 3D model was ever preloaded)
@@ -1378,7 +1411,7 @@ function gpPreview(){if(window._gpPrev)return window._gpPrev;if(!window.THREE)re
   const shared=gpCarShared(T);window._gpPrev={r,scene,cam,cv,env,shared,cur:null};return window._gpPrev;}catch(e){return null;}}
 function gpCarDraw(cv,car,paint){if(!cv||!window.THREE||!car)return;const pv=gpPreview();if(!pv){return;}
   try{if(pv.cur){pv.scene.remove(pv.cur.g);pv.cur.g.traverse(o=>{if(o.geometry)o.geometry.dispose();});}
-    const m=gpBuildCar(THREE,car,paint,pv.shared);m.g.rotation.y=-0.55;pv.scene.add(m.g);pv.cur=m;pv.r.render(pv.scene,pv.cam);
+    const m=car.type==="bike"?gpBuildBikeDrawn(THREE,car,paint,pv.shared):gpBuildCar(THREE,car,paint,pv.shared);m.g.rotation.y=-0.55;pv.scene.add(m.g);pv.cur=m;pv.r.render(pv.scene,pv.cam);
     const x=cv.getContext("2d");x.clearRect(0,0,cv.width,cv.height);x.drawImage(pv.cv,0,0,cv.width,cv.height);}catch(e){}}
 /* One draw call of camera-facing photo props: an instanced quad per prop with its atlas cell, size and
    mirror flag; the vertex shader turns each quad about Y towards the camera. Photo colours are shown as
@@ -2576,7 +2609,7 @@ function gpBuild(C){
   const NET=!!(GPN&&GPN.race);const racers=NET?GPN.race.roster.map((r,ri)=>({rank:ri,n:r.disp,livery:r.name||"",car:GP_CARS.find(c=>c.id===r.car)||GP_CARS[0],css:r.paint,player:!!r.me,netPaint:r.paint,netUid:r.uid,slot:r.slot})):[{n:pname,livery:gpnProfileName(),car:myCar,css:myPaint,player:true}].concat(gpMode()==="race"?others.slice(0,4).map((c,i)=>({n:GP_DRIVERS[i%GP_DRIVERS.length],car:c,css:c.paint,player:false})):[]);
   const pics=story?{}:(window._gpPics||{});   // the storybook look keeps the drawn 3D cars (the ink filter buries a photo)
   const glbs=story?{}:(window._gpGlb||{});   // real 3D models (GLB) win over the photo sprites when they loaded
-  const pace=gpPaceMul();const karts=racers.map((r,i)=>{const m=(GP_GLB[r.car.id]&&glbs[r.car.id])?gpBuildGlbCar(T,r.car,glbs[r.car.id],r.netPaint||gpGlbPaintFor(r.car,r.player),shared):(GP_PICS[r.car.id]&&pics[r.car.id])?gpBuildPicCar(T,r.car,pics[r.car.id],shared):gpBuildCar(T,r.car,r.css,shared);scene.add(m.g);gpNameLivery(T,m,r.livery,r.netPaint||(r.player?gpGlbPaintFor(r.car,true):r.css),shared);const st=gpStats(NET?GPN_STD:r.car);st.max*=pace;st.accel*=0.75;if(r.player&&gpMode()==="race"){const U=gpUpState();if(!NET){st.max*=1+0.02*U.speed;st.accel*=1+0.06*U.launch;}gpUpFit(T,m,true,shared);}   // online: everyone races on the car's own numbers, upgrades are looks only
+  const pace=gpPaceMul();const karts=racers.map((r,i)=>{const m=(GP_GLB[r.car.id]&&glbs[r.car.id])?gpBuildGlbCar(T,r.car,glbs[r.car.id],r.netPaint||gpGlbPaintFor(r.car,r.player),shared):(GP_PICS[r.car.id]&&pics[r.car.id])?gpBuildPicCar(T,r.car,pics[r.car.id],shared):r.car.type==="bike"?gpBuildBikeDrawn(T,r.car,r.css,shared):gpBuildCar(T,r.car,r.css,shared);scene.add(m.g);gpNameLivery(T,m,r.livery,r.netPaint||(r.player?gpGlbPaintFor(r.car,true):r.css),shared);const st=gpStats(NET?GPN_STD:r.car);st.max*=pace;st.accel*=0.75;if(r.player&&gpMode()==="race"){const U=gpUpState();if(!NET){st.max*=1+0.02*U.speed;st.accel*=1+0.06*U.launch;}gpUpFit(T,m,true,shared);}   // online: everyone races on the car's own numbers, upgrades are looks only
     return{racer:r,player:r.player,net:NET&&!r.player,netUid:r.netUid,...m,...st,t:0,x:0,px:0,speed:0,lap:0,spin:0,drift:0,off:0,hop:0,roll:0,pitch:0,steerVis:0,st1:0,steerIn:0,sv:0,dHold:0,wasBrake:false,lockT:0,gasT:0,wallT:0,knock:0,headA:0,headV:0,wallRec:0,leanT:0,liftT:0,chatter:0,yaw:null,lastSpeed:0,wheelPhase:0,wheelRadius:m.S.radR,travel:0,skidD:0,ahead:true,started:false,pos:new T.Vector3(),draft:false,brakeOn:false,load:0,squeal:0,loss:null,lossA:0,lossCool:0,overT:0,air:false,airT:0,vy:null,y:0,ry:null,sq:0,sqV:0,hang:0,pS:null,aiSkill:(r.player?1:(0.95+(i%3)*0.025+r.car.handle*0.006)*(gpPace()!=="gentle"?1:0.97)*(gpPK().skill||1)*(NET||r.player?1:gpRivK(C.id)))};});
   {const me0=karts.find(k=>k.player),PK=gpPK(),RK=gpRivK(C.id);if(!NET)karts.forEach(k=>{if(!k.player)k.max=Math.max(me0.max*(PK.capLo||0.9),Math.min(k.max,me0.max*(PK.cap||1.05)))*RK;});}   // every rival's top speed sits in a tight band around the player's car (so no race is won or lost on the car draw), times the track's measured pace number
   const rows=karts.length,pitch=8/(len/M);karts.forEach((k,i)=>{const row=NET?(k.racer.rank+(GPN.race.shift||0))%rows:(k.player?rows-1:i-1);k.t=((M-5-row*pitch)/M)%1;k.x=(row%2?0.4:-0.4)*(rows>1?1:0);k.px=k.x;});
@@ -2604,7 +2637,7 @@ function gpBuild(C){
     for(let i=24;i<M-10;i+=19){const k=notes.length;const sp=new T.Sprite(new T.SpriteMaterial({map:noteTex[k%noteTex.length],transparent:true,depthWrite:false}));sp.scale.set(2,2,1);const t=i/M,x=Math.max(-0.7,Math.min(0.7,Math.sin(i*0.37)*0.62));
       const pp=curve.getPointAt(t),tn=curve.getTangentAt(t).normalize(),nn=new T.Vector3(-tn.z,0,tn.x).normalize();pp.addScaledVector(nn,x*(W-1.2));sp.position.set(pp.x,pp.y+1.5,pp.z);scene.add(sp);notes.push({t,x,mesh:sp,alive:true,col:noteCols[k%noteCols.length],k,y:pp.y+1.5});}}
   // ---- particles: tyre smoke, dust, sparks, cherry petals; skid marks ----
-  const smoke=gpSmoke(T,scene,150,WD.smoke||gpSoftDot(),scene.fog),dust=C.theme==="dakar"?gpParticles(T,scene,520,3.0,false,0.46):C.theme==="desert"?gpParticles(T,scene,300,2.3,false,0.5):gpParticles(T,scene,120,1.6,false,0.4),sparks=gpParticles(T,scene,160,0.6,true);
+  const smoke=gpSmoke(T,scene,150,WD.smoke||gpSoftDot(),scene.fog),dust=GP_DUST[C.theme]?gpParticles(T,scene,GP_DUST[C.theme].pool,GP_DUST[C.theme].size,false,GP_DUST[C.theme].op):gpParticles(T,scene,120,1.6,false,0.4),sparks=gpParticles(T,scene,160,0.6,true);
   const petals=C.tree==="cherry"?gpParticles(T,scene,160,WD.petal?0.42:0.32,false,0.9,WD.petal||null):null;
   const skidGeo=new T.PlaneGeometry(0.18,1.0);skidGeo.rotateX(-Math.PI/2);const SK=700,skidLife=new Float32Array(SK),skidFade=new T.InstancedBufferAttribute(new Float32Array(SK),1);skidGeo.setAttribute("aFade",skidFade);
   const skidMat=new T.ShaderMaterial({transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2,
@@ -2894,7 +2927,7 @@ function gpWallHit(kt,sd,vOut,dt,inp){const XS=R3.W-1.2,V=R3.tmpV,vF=Math.max(0,
   else if(kt.speed>6&&(inp===sd||Math.abs(kt.steerIn)>0.3&&kt.steerIn*sd>0)){   // still leaning on it: scrape along, a light drag, sparks trail
     kt.speed*=1-0.14*dt;kt.headA*=Math.exp(-5*dt);kt.scr=(kt.scr||0)+dt*26;if(kt.scr>=1){gpWallFx(kt,sd,Math.floor(kt.scr));kt.scr=0;}}}
 function gpWallFx(kt,sd,n){const V=R3.tmpV,R=R3,tn=R.curve.getTangentAt(kt.t),sandy=gpSandy(R.C);kt.g.updateMatrixWorld(true);V.set(sd*-(kt.S.w/2),0.35,0.4);kt.g.localToWorld(V);
-  for(let q=0;q<n;q++){if(sandy)R.dust.emit(V.x,V.y,V.z,tn.x*kt.speed*0.3+(Math.random()-0.5)*3,0.8+Math.random()*1.6,tn.z*kt.speed*0.3+(Math.random()-0.5)*3,0.8,0.66,0.46,1.0);
+  for(let q=0;q<n;q++){if(sandy){if(!(GP_DUST[R.C.theme]&&q%2))R.dust.emit(V.x,V.y,V.z,tn.x*kt.speed*0.3+(Math.random()-0.5)*3,0.8+Math.random()*1.6,tn.z*kt.speed*0.3+(Math.random()-0.5)*3,0.8,0.66,0.46,1.0);}
     else R.sparks.emit(V.x,V.y,V.z,tn.x*kt.speed*0.55+(Math.random()-0.5)*4,1+Math.random()*2.5,tn.z*kt.speed*0.55+(Math.random()-0.5)*4,1,0.75,0.3,0.35);}}
 /* ---------- the pack: real racing (jobs 1109-1803 / 1109-1919) ----------
    Normal and Hard: NO help of any kind. Rivals never ease off when they lead (ahead 0), never get pushed when they trail (behind 0), and Prince gets no
@@ -2904,15 +2937,29 @@ function gpWallFx(kt,sd,n){const V=R3.tmpV,R=R3,tn=R.curve.getTangentAt(kt.t),sa
    Easy keeps a small, quiet version of the old help so a young driver still finishes near the front: rivals further ahead than 15 m ease off up to 2%, rivals
    further behind push up to 4%, and Prince, when more than 12 m behind the leader, gets up to +3.5% (plus 3% for a few seconds after a wall hit or a slide);
    nothing once he leads. Grip is never touched, so corners stay his to get right. */
-const GP_PACK={gentle:{ahead:0.02,behind:0.04,me:0.035,hit:0.03,skill:1.015,cap:0.97,capLo:0.9,err:24,bq:0.016,bmul:1.05,def:0},
-  normal:{ahead:0,behind:0,me:0,hit:0,skill:1.03,cap:1.03,capLo:0.97,err:45,bq:0.03,bmul:1.12,def:0.7},
-  hard:{ahead:0,behind:0,me:0,hit:0,skill:1.04,cap:1.05,capLo:0.99,err:90,bq:0.04,bmul:1.16,def:1}};
+/* closer races (Eb 2026-11-14 "make the races more competitive", job 1114): a subtle rubber band on every level - rivals ahead ease off a little,
+   rivals behind push a little, starting d0 m from the player and full at d1 m, changing by at most `rate` per second (no surging), SPEED ONLY
+   (never position, never grip); `fin` = share of the lead-easing kept on the last 20% of the final lap. Legacy (pre-1114) rows: gentle
+   ahead 0.02 / behind 0.04, normal + hard 0 / 0, d0 15, d1 130, rate 0 (no smoothing), fin 1; gentle def 0, skill 1.015, cap 0.97 (Easy rivals
+   were ~10% slower than a tidy driver, more than a subtle band can hide). me/hit (help for the player) unchanged. Tuned with bike/tools/pack_gap.py. */
+const GP_PACK={gentle:{ahead:0.1,behind:0.05,d0:8,d1:45,rate:0.02,fin:1,me:0.035,hit:0.03,skill:1.02,cap:1.0,capLo:0.9,err:24,bq:0.016,bmul:1.05,def:0.25},
+  normal:{ahead:0.03,behind:0.08,d0:8,d1:45,rate:0.02,fin:0.6,me:0,hit:0,skill:1.03,cap:1.03,capLo:0.97,err:45,bq:0.03,bmul:1.12,def:0.7},
+  hard:{ahead:0.01,behind:0.04,d0:10,d1:60,rate:0.015,fin:0,me:0,hit:0,skill:1.04,cap:1.05,capLo:0.99,err:90,bq:0.04,bmul:1.16,def:1}};
+/* rival racecraft (job 1114): look-ahead on the racing line grows with speed [min m, max m, s]; a small lane preference per rival on straights
+   (two-wide pack, faded out in bends); hold a chosen overtaking side `commit` s (no dithering); spot a slower car `reach` x earlier; in braking
+   zones only `cornerK` of a push from the band (pushed rivals don't slide off); `side` 1 = two rivals side by side keep their own sides.
+   Legacy values: look [12,12,0], lane 0, commit 0, reach 1, cornerK 1, side 0. */
+const GP_AI={look:[8,24,0.35],lane:0.1,commit:1.2,reach:1.25,cornerK:0.4,side:1};
 function gpPK(){return GP_PACK[gpPace()]||GP_PACK.normal;}
 /* rival pace per track (1 = as built): measured with the test drivers so a clean lap beats the best rival by about the same margin on every track
    (flight ramps help the player, town corners and the sea help the rivals, so one number for all tracks left some unwinnable and some a walkover) */
 const GP_RIVK={kawaguchi:[1.05,0.982],hakone:[1.03,0.914],tokyo:[1.05,0.995],city:[1.045,0.915],accra:[1.02,1.04],coast:[1.085,1.018],desert:[1.09,1.08],inaka:[1.045,1.007],dakar:[1.072,1.01],deep:[1.0,0.95]};   // [Easy, Normal+Hard]
 function gpRivK(id){const k=GP_RIVK[id];return k?k[gpPace()==="gentle"?0:1]:1;}
-function gpBand(kt){const R=R3,me=R.me,K=GP_PACK[gpPace()]||GP_PACK.normal,g=((kt.lap+kt.t)-(me.lap+me.t))*R.len,u=Math.min(1,Math.max(0,(Math.abs(g)-15)/115)),e=u*u*(3-2*u);return g>0?1-K.ahead*e:1+(K.behind+(me.jet?GP_JET.pull[gpPace()==="gentle"?"gentle":"normal"]:0))*e;}
+function gpBand(kt,nj){const R=R3,me=R.me,K=GP_PACK[gpPace()]||GP_PACK.normal,g=((kt.lap+kt.t)-(me.lap+me.t))*R.len,d0=K.d0!=null?K.d0:15,d1=K.d1!=null?K.d1:130,u=Math.min(1,Math.max(0,(Math.abs(g)-d0)/(d1-d0))),e=u*u*(3-2*u);
+  const fin=(K.fin!=null&&K.fin<1&&me.started&&me.lap+1>=R.C.laps&&me.t>0.8)?K.fin:1;return g>0?1-K.ahead*fin*e:1+(K.behind+(me.jet&&!nj?GP_JET.pull[gpPace()==="gentle"?"gentle":"normal"]:0))*e;}
+/* the band a rival actually uses: eases toward gpBand at no more than K.rate per second (K.rate 0 = the old instant band) */
+function gpBandS(kt,dt){const K=gpPK();if(!K.rate)return(kt.bandS=gpBand(kt));const b=gpBand(kt,1),jet=gpBand(kt)-b;   // the flight pull (GP_JET.pull) stays instant, as before
+  if(kt.bandS==null)kt.bandS=b;else{const m=K.rate*dt;kt.bandS+=Math.max(-m,Math.min(m,b-kt.bandS));}return kt.bandS+jet;}
 function gpPack(dt,waiting){const R=R3,me=R.me;if(R.online&&!waiting&&R.mode==="race"&&!R.done){me.cu=gpnCatchUp(dt);return;}if(waiting||R.mode!=="race"||R.done||R.online){me.cu=0;return;}const K=GP_PACK[gpPace()]||GP_PACK.normal;let top=-1e9;for(const k of R.karts)if(!k.player)top=Math.max(top,k.lap+k.t);
   const gap=top<-1e8?0:(top-(me.lap+me.t))*R.len,u=Math.min(1,Math.max(0,(gap-12)/138));R.recB=me.loss||me.wobT>0||me.wallRec>0.5?1:Math.max(0,(R.recB||0)-dt/4);
   const want=gap>0?K.me*u+K.hit*R.recB:0;me.cu=(me.cu||0)+(want-(me.cu||0))*Math.min(1,dt*(want>(me.cu||0)?1.5:0.8));R.packLog&&R.packLog.push(+me.cu.toFixed(3));}
@@ -3155,7 +3202,7 @@ function gpLaunch(kt,L,ry){if(kt.speed<(L.kind==="mega"?8:15))return false;if(L.
   if(toJet){gpJetStart(kt,ry,"ramp");return true;}
   const dune=!mega&&!!R3.C.dnl,v=kt.speed,tMax=dune?Math.min(GP_DUNE_AIR.tMax,Math.max(0.62,(L.room-GP_DUNE_AIR.keep)/Math.max(10,v))):Math.min(mega?1.55:1.2,Math.max(0.62,(L.room-(mega?14:8))/Math.max(10,v)));let vy=Math.min(Math.max(L.slope,mega?0.16:0.09)*v,dune?GP_DUNE_AIR.vy:(mega?7.6:6.5));
   for(let n=0;n<(dune?9:5)&&gpFlightT(L,v,vy,ry)>tMax;n++)vy*=dune?0.92:0.86;
-  if(dune&&v>22&&(kt.player||kt.pos.distanceToSquared(R3.me.pos)<8100)){const tn=R3.curve.getTangentAt(kt.t),P=kt.pos;for(let q=0;q<(kt.player?16:8);q++)R3.dust.emit(P.x+(Math.random()-0.5)*2.2,ry+0.2,P.z+(Math.random()-0.5)*2.2,tn.x*v*0.5+(Math.random()-0.5)*7,2.5+Math.random()*4.5,tn.z*v*0.5+(Math.random()-0.5)*7,0.86,0.64,0.38,1.25);}   // sand thrown off the crest   // the real flight over the real road ahead (a hillside can fall away under the car): never longer than the room allows
+  if(dune&&v>22&&(kt.player||kt.pos.distanceToSquared(R3.me.pos)<8100)){const tn=R3.curve.getTangentAt(kt.t),P=kt.pos;const DU=GP_DUST[R3.C.theme];for(let q=0;q<(DU?(kt.player?DU.launch:DU.launchR):(kt.player?16:8));q++)R3.dust.emit(P.x+(Math.random()-0.5)*2.2,ry+0.2,P.z+(Math.random()-0.5)*2.2,tn.x*v*0.5+(Math.random()-0.5)*(DU?3:7),DU?0.6+Math.random()*1.4:2.5+Math.random()*4.5,tn.z*v*0.5+(Math.random()-0.5)*(DU?3:7),0.86,0.64,0.38,DU?0.7:1.25);}   // sand thrown off the crest   // the real flight over the real road ahead (a hillside can fall away under the car): never longer than the room allows
   const over=Math.max(0,((kt.t-L.t+1.5)%1-0.5)*R3.len);kt.air=true;kt.airT=0;kt.airPeak=0;kt.y=Math.max(ry,L.y+vy*over/Math.max(10,v));kt.vy=vy;kt.takeoff={v:Math.round(v*3.6),vy:+vy.toFixed(2),f:R3.frameN,kind:L.kind};kt.lipT=R3.simT||0;gpRivalTrick(kt,vy);return true;}
 /* Dakar dunes (job 1109-1803): off a dune crest the car is thrown UP (climb rate up to vy m/s) and may fly up to tMax seconds, always landing at least `keep` metres before the next bend */
 const GP_DUNE_AIR={vy:8.5,tMax:2.0,keep:48};
@@ -3179,7 +3226,7 @@ function gpLand(kt,imp){const big=kt.airT>0.22||imp>2.5;if(!big)return;
   if(trk&&kt.speed>8)kt.speed*=1.02;   // long-travel suspension: trucks keep their speed over the landing
   const near=kt.player||kt.pos.distanceToSquared(R3.me.pos)<3600;
   if(near){kt.g.updateMatrixWorld(true);const V=R3.tmpV;[-1,1].forEach(sd=>[kt.xr,-kt.xr].forEach(zz=>{V.set(sd*(kt.tyreX||kt.S.w/2-0.04),0.1,zz);kt.g.localToWorld(V);
-      const tn=R3.curve.getTangentAt(kt.t),cv=kt.speed*0.6;for(let q=0;q<(kt.player?(kt.airT>0.7?7:4):2);q++)R3.dust.emit(V.x,V.y+0.15,V.z,tn.x*cv+(Math.random()-0.5)*(kt.airT>0.7?7:4),0.8+Math.random()*(kt.airT>0.7?2.6:1.6),tn.z*cv+(Math.random()-0.5)*(kt.airT>0.7?7:4),0.66,0.6,0.5,kt.airT>0.7?1.1:0.9);}));
+      const tn=R3.curve.getTangentAt(kt.t),cv=kt.speed*0.6;for(let q=0;q<(GP_DUST[R3.C.theme]?GP_DUST[R3.C.theme].land[kt.player?0:1]:(kt.player?(kt.airT>0.7?7:4):2));q++)R3.dust.emit(V.x,V.y+0.15,V.z,tn.x*cv+(Math.random()-0.5)*(kt.airT>0.7?7:4),0.8+Math.random()*(kt.airT>0.7?2.6:1.6),tn.z*cv+(Math.random()-0.5)*(kt.airT>0.7?7:4),0.66,0.6,0.5,kt.airT>0.7?1.1:0.9);}));
     if(imp>4.5){V.set(0,0.12,0);kt.g.localToWorld(V);for(let q=0;q<10;q++)R3.sparks.emit(V.x,V.y,V.z,(Math.random()-0.5)*5,1+Math.random()*2.5,(Math.random()-0.5)*5,1,0.75,0.3,0.35);}}
   if(kt.player){R3.shake=Math.min(0.55,0.05+imp*0.055);GPA.play("land");
     const lg=R3.jumpLog||(R3.jumpLog=[]);lg.push({f:R3.frameN,t:+(R3.simT||0).toFixed(2),air:+kt.airT.toFixed(2),peak:+kt.airPeak.toFixed(2),impact:+imp.toFixed(1),takeoffKmh:kt.takeoff?kt.takeoff.v:null});
@@ -3246,19 +3293,25 @@ function gpContacts(dt,waiting){if(waiting)return 0;const B=R3.bodies,L=R3.len,X
 /* rivals: follow the racing line, but look ~20 m ahead for anything in the way (rivals, traffic, Prince) and pass on the freer
    side; if both sides are shut, hold its speed (kt.capSpd) instead of running into it. When Prince is alongside or just
    behind, keep a car's width plus a metre away from him. Sideways speed is capped (~2.7 m/s), so a rival never darts. */
-function gpRivalSteer(kt,i,waiting){const XS=R3.W-1.2,L=R3.len,me=R3.me,hw=kt.S.w/2;let target=R3.lineX[(i+Math.round(12/(L/R3.M)))%R3.M];kt.capSpd=null;if(R3.dp)target=gpDeepRival(kt,target);
+function gpRivalSteer(kt,i,waiting){const XS=R3.W-1.2,L=R3.len,me=R3.me,hw=kt.S.w/2,A=GP_AI,lk=Math.max(A.look[0],Math.min(A.look[1],kt.speed*A.look[2]));let target=R3.lineX[(i+Math.round(lk/(L/R3.M)))%R3.M];kt.capSpd=null;
+  if(A.lane){const q=R3.karts.indexOf(kt),ak=Math.abs(R3.kap[i]),f=ak>=1/150?0:(ak<=1/400?1:(1/150-ak)/(1/150-1/400));target+=A.lane*[0,-1,1,-0.5,0.5][q%5]*f;}   // two-wide on the straights, back on the line in the bends
+  if(R3.dp)target=gpDeepRival(kt,target);
   if(waiting)return 0;
   if(kt.testHold){kt.capSpd=kt.testHold.speed;return Math.max(-0.42,Math.min(0.42,(kt.testHold.x-kt.x)*1.5));}   // contact test only: hold a lane and a speed
   let blk=null,bd=1e9;for(const o of R3.bodies){if(o===kt||o.off||o.jet)continue;let dz=((o.t-kt.t+1.5)%1-0.5)*L;const need=(hw+o.S.w/2+0.7)/XS;
-    if(dz>kt.S.len*0.3&&dz<20+Math.max(0,kt.speed-o.speed)*1.2&&Math.abs(o.x-kt.x)<need&&dz<bd){blk=o;bd=dz;}}
+    if(dz>kt.S.len*0.3&&dz<(20+Math.max(0,kt.speed-o.speed)*1.2)*A.reach&&Math.abs(o.x-kt.x)<need&&dz<bd){blk=o;bd=dz;}}
   if(blk){const need=(hw+blk.S.w/2+1.0)/XS,free=x=>Math.abs(x)<=0.98&&!R3.bodies.some(o=>o!==kt&&o!==blk&&!o.off&&Math.abs(((o.t-kt.t+1.5)%1-0.5)*L-bd)<9&&Math.abs(o.x-x)<(hw+o.S.w/2+0.5)/XS);
     const l=blk.x-need,r=blk.x+need,lo=free(l),ro=free(r);
-    if(lo||ro)target=lo&&ro?(Math.abs(l-target)<Math.abs(r-target)?l:r):(lo?l:r);
+    const now0=R3.simT||0,keep=A.commit&&kt.ovB===blk&&kt.ovU>now0&&(kt.ovSide<0?lo:ro);   // hold the side already chosen for this pass while it stays free
+    if(keep)target=kt.ovSide<0?l:r;else if(lo||ro){target=lo&&ro?(Math.abs(l-target)<Math.abs(r-target)?l:r):(lo?l:r);if(A.commit){kt.ovB=blk;kt.ovSide=target===l?-1:1;kt.ovU=now0+A.commit;}}
     if(Math.abs(blk.x-kt.x)<(hw+blk.S.w/2+0.3)/XS&&bd<12+Math.max(0,kt.speed-blk.speed)*0.8)kt.capSpd=Math.max(0,blk.speed*0.97-(bd<kt.S.len?2:0));}
   const dzp=((me.t-kt.t+1.5)%1-0.5)*L,DEF=gpPK().def||0,side=(kt.S.len+me.S.len)/2+1.2;
   if(!me.jet&&(DEF?(dzp>-side&&dzp<side):(dzp>-9&&dzp<6))){const gap=(hw+me.S.w/2+1.0)/XS;if(Math.abs(me.x-kt.x)<gap){const sd=kt.x>=me.x?1:-1,want=me.x+sd*gap;target=Math.abs(want)<=0.98?want:me.x-sd*gap;}}
   else if(DEF&&!me.jet&&!blk&&!kt.air&&dzp<=-side&&dzp>-24&&me.speed>kt.speed-1.5&&kt.speed>kt.max*0.4){const now=R3.simT||0;   // defending: cover the side he is coming up on (one move, held ~1.8 s: no weaving)
     if(!(kt.defU>now)){kt.defX=Math.max(-0.82,Math.min(0.82,target+(me.x-target)*DEF*0.85));kt.defU=now+1.8;(R3.defLog=R3.defLog||[]).push(+now.toFixed(1));}target=kt.defX;}
+  if(A.side)for(const o of R3.karts){if(o===kt||o.player||o.off||o.jet||kt.air)continue;const dz=((o.t-kt.t+1.5)%1-0.5)*L,need=(hw+o.S.w/2+0.4)/XS;   // side by side with another rival: keep your own side until clear
+    if(Math.abs(dz)<(kt.S.len+o.S.len)/2&&Math.abs(o.x-kt.x)<need*1.6){if(o.x>kt.x)target=Math.min(target,o.x-need);else target=Math.max(target,o.x+need);}}
+  if(A.side||A.lane)target=Math.max(-0.95,Math.min(0.95,target));
   const gain=1.1+kt.racer.car.handle*0.18,vmax=0.42;return Math.max(-vmax,Math.min(vmax,(target-kt.x)*gain));}
 /* put cars that a contact moved back on the road this same frame (the view never shows the overlap that was just removed) */
 function gpPlaceAll(){const XS=R3.W-1.2,T=R3.T;R3.karts.forEach(kt=>{if(!kt._mv)return;kt._mv=0;const pos=R3.curve.getPointAt(kt.t),tan=R3.curve.getTangentAt(kt.t);const nx=-tan.z,nz=tan.x,nl=Math.hypot(nx,nz)||1;
@@ -3298,7 +3351,7 @@ function gpUpdate(dt,waiting){
     const offroad=Math.abs(kt.x)>1.05&&!kt.jet;
     if(kt.net){const t00=kt.t;gpNetKart(kt,dt);gpJetNetClaim(kt,t00);}else{   // a friend's car: their device drives it, this one only draws it
     let draft=false;if(!waiting&&!kt.jet&&kt.speed/kt.max>0.55){draft=karts.some(o=>{if(o===kt)return false;const d=(o.t-kt.t+1)%1;return d>0.003&&d<0.028&&Math.abs(o.x-kt.x)<0.32;});}kt.draft=draft;const dG=R3.online?gpnDraft(kt,dt,waiting):0;if(R3.online)kt.draft=dG>0.2;
-    let band=1;if(!kt.player&&!waiting)band=gpBand(kt);
+    let band=1;if(!kt.player&&!waiting)band=gpBandS(kt,dt);
     const maxNow=waiting?0:kt.max*band*(R3.online?1+GPN_DRAFT*dG:(draft?1.07:1))*(kt.spin>0?0.6:1)*(R3.tw&&R3.tw.zoneAt(i,"ford")?0.9:1)*(offroad?(kt.player?Math.max(0.62,kt.offF):kt.offF):1)*(kt.drift?0.94:1)*(kt.boostT>0?kt.boostMul:1)*(kt.wobT>0?0.84:1)*(kt.dpSlow>0?kt.dpSlowK:1)*(kt.player?1+(kt.cu||0):1);
     kt.mxn=maxNow;
     const spd0=kt.speed/kt.max,inp=kt.player?(left?-1:0)+(right?1:0):0;
@@ -3322,7 +3375,7 @@ function gpUpdate(dt,waiting){
       else{kt.speed=Math.max(0,kt.speed-(2.5+0.06*kt.speed)*dt);if(kt.speed>maxNow)kt.speed+=(maxNow-kt.speed)*Math.min(1,dt*(offroad?1.1:2.2));}   // coasting
     }else{
       // rivals follow the speed profile (real braking points for every corner), with a little driver variety, the odd mistake, and (Easy only) the quiet pack help
-      const tgt0=kt.testHold?kt.testHold.speed:Math.min(maxNow,R3.vProf[(i+3)%M]*kt.aiSkill*band*(kt.boostT>0?kt.boostMul:1),kt.capSpd!=null?kt.capSpd:1e9);
+      const tgt0=kt.testHold?kt.testHold.speed:Math.min(maxNow,R3.vProf[(i+3)%M]*kt.aiSkill*(band>1&&R3.vProf[(i+3)%M]<kt.max*0.8?1+(band-1)*GP_AI.cornerK:band)*(kt.boostT>0?kt.boostMul:1),kt.capSpd!=null?kt.capSpd:1e9);
       if(!waiting&&!kt.testHold&&!kt.jet){const now=R3.simT||0,PK=gpPK();if(kt.errN==null)kt.errN=now+PK.err*(0.5+Math.random()*1.2);if(now>kt.errN&&!kt.air){kt.errT=0.8+Math.random()*0.9;kt.errK=0.84+Math.random()*0.09;kt.errN=now+PK.err*(0.5+Math.random());(R3.errLog=R3.errLog||[]).push(+now.toFixed(1));}}
       let tgt=tgt0;if(kt.errT>0){kt.errT-=dt;tgt=tgt0*kt.errK;if(!kt.air)kt.x+=(Math.sign(kap)||(kt.x>=0?1:-1))*0.16*dt;}
       kt.brakeOn=!waiting&&kt.speed>tgt+0.8;
@@ -3381,7 +3434,16 @@ function gpUpdate(dt,waiting){
     }else{kt.yawRel=kt.net?(kt.netA||0):vx*0.05+(kt.drift?kt.drift*0.35:0);kt.g.rotateY(-kt.yawRel);}
     const heavy=kt.racer.car.type==="suv"||kt.racer.car.type==="truck",settle=heavy?4.5:6,rollMax=kt.pic?0:(heavy?0.105:0.09);
     const acc=(kt.speed-kt.lastSpeed)/Math.max(dt,0.001);kt.lastSpeed=kt.speed;
-    if(kt.glb){   // model cars: body on springs (a touch of overshoot) - leans out of corners and slides, dives on the brakes, squats on launch
+    if(kt.bike){   // motorbike: leans into the bend (opposite of a car's body roll), same formula for the player, rivals and a friend's bike online
+      // how hard it is really turning: the road's turn rate now, mixed with the bend coming up in the next 0.3 s (a rider leans in as the bend
+      // starts, so the lean doesn't trail the corner); lean = atan(lateral acceleration / g)
+      const G=kt.glb||kt,B=GP_BIKE;if(G.rollV==null)G.rollV=0;if(G.pitchV==null)G.pitchV=0;if(!G.tA)G.tA=new T.Vector3();
+      const v=Math.abs(kt.speed),la=Math.max(3,v*B.ahead),tA=R3.curve.getTangentAt((kt.t+la/len)%1,G.tA);let dA=Math.atan2(tA.x,tA.z)-yaw;if(dA>Math.PI)dA-=Math.PI*2;if(dA<-Math.PI)dA+=Math.PI*2;
+      const curv=(1-B.mixA)*yawRate/Math.max(4,v)+B.mixA*dA/la;
+      let leanT=(waiting||kt.air||kt.jet)?0:-Math.atan(v*v*curv/B.g)*B.gain+(kt.player?kt.sv*B.lat:vx*B.lat*0.4)+(kt.drift?kt.drift*0.08:0);
+      leanT=Math.max(-B.max,Math.min(B.max,leanT));G.rollV+=((leanT-kt.roll)*B.k-G.rollV*B.c)*dt;G.rollV=Math.max(-B.vmax,Math.min(B.vmax,G.rollV));kt.roll=Math.max(-B.max,Math.min(B.max,kt.roll+G.rollV*dt));
+      const pitchT=waiting?0:Math.max(B.pitch[0],Math.min(B.pitch[1],-acc*0.0012+(kt.brakeOn&&spd>0.15?0.012:0)));G.pitchV+=((pitchT-kt.pitch)*B.pk-G.pitchV*B.pc)*dt;kt.pitch=Math.max(B.pitch[0]-0.004,Math.min(B.pitch[1]+0.004,kt.pitch+G.pitchV*dt));}
+    else if(kt.glb){   // model cars: body on springs (a touch of overshoot) - leans out of corners and slides, dives on the brakes, squats on launch
       // roll saturates softly at ~6 deg in the hardest corners / slides; dive reaches ~3.7 deg on the brakes. The body turns about a
       // roll centre 0.32 m up (not the ground), so the outside drops onto its wheels and the inside lifts, and the tyres stay on the road.
       const G=kt.glb,lat=kt.player?-kt.sv*0.2:-vx*0.07,RM=0.125;
@@ -3395,7 +3457,7 @@ function gpUpdate(dt,waiting){
     kt.body.rotation.z=kt.roll;kt.body.rotation.x=kt.pitch;if(kt.jet)gpJetPose(kt,dt,yawRate);gpJetGearTick(kt,dt);gpTrickTick(kt,dt);if(kt.trick||kt.tkRe||kt.wobT>0||kt.tkLift)gpTrickPose(kt);
     if(kt.sqV||kt.sq){kt.sqV+=(-kt.sq*170-kt.sqV*13)*dt;kt.sq+=kt.sqV*dt;if(Math.abs(kt.sq)<1e-4&&Math.abs(kt.sqV)<1e-3){kt.sq=0;kt.sqV=0;}}
     kt.hang=(kt.hang||0)+(((kt.air&&kt.airT>0.06&&kt.y-(kt.ry||0)>1.1)?0.12:0)-(kt.hang||0))*Math.min(1,dt*(kt.air?9:22));
-    kt.body.position.y+=(kt.sq||0)+kt.hang*0.35+(kt.tkLift||0);if(kt.wet&&!kt.air&&kt.glb){const bb=(R3.simT||0)*2.1+kt.t*40;kt.body.position.y+=Math.sin(bb)*0.05;kt.body.rotation.z+=Math.sin(bb*0.7)*0.016;}if(kt.hubs)kt.hubs.forEach(h=>{h.position.y=h.userData.y0-kt.hang;});
+    kt.body.position.y+=(kt.sq||0)+kt.hang*0.35+(kt.tkLift||0);if(kt.wet&&!kt.air&&kt.glb){const bb=(R3.simT||0)*2.1+kt.t*40;kt.body.position.y+=Math.sin(bb)*0.05;kt.body.rotation.z+=Math.sin(bb*0.7)*0.016;}if(kt.hubs)kt.hubs.forEach(h=>{h.position.y=h.userData.y0-kt.hang-(kt.bike?(kt.sq||0):0);});   // a bike's hubs sit in the body: they don't squash into the road on a landing
     if(kt.shadows&&kt.air){const lift=Math.max(0,kt.y-kt.ry),hide=!!R3.dp&&lift>2;kt.shDp=hide;kt.shadows.forEach(s=>{if(s.userData.y0==null)s.userData.y0=s.position.y;s.position.y=s.userData.y0-lift;if(R3.dp)s.visible=!hide;});}
     else if(kt.shadows&&kt.shadows[0]&&kt.shadows[0].userData.y0!=null&&kt.shadows[0].position.y!==kt.shadows[0].userData.y0)kt.shadows.forEach(s=>{s.position.y=s.userData.y0;if(R3.dp)s.visible=true;});
     if(kt.glb){const py=kt.glb.pivotY,P=V.set(0,py,0).applyEuler(kt.body.rotation);kt.body.position.x=-P.x;kt.body.position.y+=py-P.y;kt.body.position.z=-P.z;}   // pivot about the roll centre
@@ -3409,6 +3471,7 @@ function gpUpdate(dt,waiting){
       stT=kt.player?(kt.drift?path*0.4+kt.headA*1.05-kt.steerIn*0.06:path-kt.steerIn*0.42+kt.headA*0.25):path-vx*0.3;   // + = wheels point left; in a drift they point back along the slide (counter-steer)
       if(kt.lossA)stT+=kt.lossA*0.6;stT=Math.max(-0.55,Math.min(0.55,stT));}
     else stT=Math.max(-0.45,Math.min(0.45,yawRate*0.32-vx*0.22+(kt.drift?kt.drift*0.35:0)));
+    if(kt.bike)stT=Math.max(-GP_BIKE.steer,Math.min(GP_BIKE.steer,stT));
     kt.steerVis+=(stT-kt.steerVis)*Math.min(1,dt*(kt.glb?12:10));kt.steers.forEach(h=>h.rotation.y=kt.steerVis);
     kt.wheels.forEach(w=>w.rotation.x+=kt.speed*dt/w.userData.rad);
     if(kt.glb)gpGlbUpdate(kt,dt);else kt.tailMat.emissiveIntensity=kt.brakeOn?3.4:0.9;
@@ -3421,7 +3484,7 @@ function gpUpdate(dt,waiting){
         if(skid){const hero=kt.player&&!!kt.glb;kt.smk=(kt.smk||0)+dt*(kt.player?(driftSlide?(hero?34:9):(hero?20:6)):4);while(kt.smk>=1){kt.smk-=1;const big=kt.player&&driftSlide?(hero?4.4:1.35):(hero?3.4:1),lf=hero?(driftSlide?3.1:2.2):big;   // the model car's smoke is a big billowing white cloud that hangs behind it
           const sp=hero?2.2:0.9,cv=hero?kt.speed*(driftSlide?0.6+Math.random()*0.2:0.3+Math.random()*0.2):-0.8;   // hero puffs leave with part of the car's speed, so the cloud billows right behind it instead of vanishing off-screen
           const ox=hero&&driftSlide?-kt.drift*(1.2+Math.random()*1.6):0;R3.smoke.emit(V.x+(Math.random()-0.5)*0.3,V.y+0.14,V.z+(Math.random()-0.5)*0.3,(Math.random()-0.5)*sp+tan.x*cv-tan.z*ox,(hero?0.5:0.2)+Math.random()*(hero?0.8:0.3),(Math.random()-0.5)*sp+tan.z*cv+tan.x*ox,(0.5+Math.random()*0.3)*big,(hero?0.55+Math.random()*0.3:0.3+Math.random()*0.18)*lf);}}
-        else if(Math.random()<0.6)R3.dust.emit(V.x,V.y+0.2,V.z,-tan.x*3+(Math.random()-0.5)*2,0.8+Math.random()*1.2,-tan.z*3+(Math.random()-0.5)*2,0.6,0.5,0.35,0.9);});}
+        else if(!GP_DUST[R3.C.theme]&&Math.random()<0.6)R3.dust.emit(V.x,V.y+0.2,V.z,-tan.x*3+(Math.random()-0.5)*2,0.8+Math.random()*1.2,-tan.z*3+(Math.random()-0.5)*2,0.6,0.5,0.35,0.9);});}
     if(skid&&near){kt.skidD+=kt.speed*dt;if(kt.skidD>0.9){const dl=Math.min(6,kt.skidD);kt.skidD=0;const D=R3.dummy;const fw=Math.atan2(tan.x,tan.z)-(kt.player?kt.headA+(kt.lossA||0):(kt.drift?kt.drift*0.42:0));   // each mark spans the distance since the last one, so the trail is continuous at any frame rate
       [-1,1].forEach(sd=>{V.set(sd*(kt.tyreX||kt.S.w/2-0.04),0,kt.xr);kt.g.localToWorld(V);D.position.set(V.x-tan.x*dl*0.5,kt.pos.y+0.028,V.z-tan.z*dl*0.5);D.rotation.set(0,fw,0);D.scale.set(1,1,dl+0.1);D.updateMatrix();const si=R3.skN;R3.skids.setMatrixAt(si,D.matrix);R3.skidLife[si]=4;R3.skidFade.setX(si,1);R3.skN=(si+1)%700;});R3.skids.instanceMatrix.needsUpdate=true;R3.skidFade.needsUpdate=true;}}
     // Coast Road: brown dust from both rear wheels on the dirt, a big spray through the ford
@@ -3429,11 +3492,12 @@ function gpUpdate(dt,waiting){
       [-1,1].forEach(sd=>{V.set(sd*(kt.tyreX||kt.S.w/2-0.04),0.15,kt.xr);kt.g.localToWorld(V);
         if(onDirt&&Math.random()<(kt.player?0.9:0.5))R3.dust.emit(V.x,V.y+0.1,V.z,-tan.x*kt.speed*0.12+(Math.random()-0.5)*2.5,0.6+Math.random()*1.4,-tan.z*kt.speed*0.12+(Math.random()-0.5)*2.5,0.62,0.47,0.3,1.4);
         if(inFord&&R3.splash)for(let q=0;q<(kt.player?3:1);q++)R3.splash.emit(V.x+(Math.random()-0.5)*0.6,V.y,V.z+(Math.random()-0.5)*0.6,sd*(1.5+Math.random()*2.5)*Math.abs(tan.z)+(Math.random()-0.5)*2+tan.x*kt.speed*0.2,2.5+Math.random()*3.5,sd*(1.5+Math.random()*2.5)*Math.abs(tan.x)+(Math.random()-0.5)*2+tan.z*kt.speed*0.2,0.86,0.93,1,0.6);});}}
-    // desert: every car pulls a sandy dust trail; much bigger off the road
-    if(R3.C.theme==="dakar"){if(near&&!waiting&&!kt.jet&&!kt.air&&spd>0.2&&Math.random()<(kt.player?1:0.85)){kt.g.updateMatrixWorld(true);const soft=offroad||(R3.tw&&R3.tw.zoneAt(i,"dirt")),big=(offroad?1.5:1)*(soft?1.15:0.8)*(0.6+0.6*spd),cr=0.74+Math.random()*0.08;   // Dakar: a tall golden plume off both rear wheels, biggest in the soft sand
-        for(let q=0;q<(kt.player?2:1);q++){const sd=q?1:-1;V.set(sd*(kt.tyreX||kt.S.w/2-0.04)*(kt.player?1:Math.random()*2-1),0.15,kt.xr-0.3);kt.g.localToWorld(V);R3.dust.emit(V.x,V.y+0.15,V.z,-tan.x*kt.speed*0.16+(Math.random()-0.5)*2.6*big,0.9+Math.random()*2.3*big,-tan.z*kt.speed*0.16+(Math.random()-0.5)*2.6*big,cr,cr*0.7,cr*0.4,(1.1+Math.random()*0.7)*big);}}}
-    else if(R3.C.theme==="desert"&&near&&!waiting&&!kt.jet&&spd>0.25&&Math.random()<(offroad?0.95:(kt.player?0.55:0.3))){kt.g.updateMatrixWorld(true);const sd=Math.random()<0.5?-1:1;V.set(sd*(kt.tyreX||kt.S.w/2-0.04),0.15,kt.xr);kt.g.localToWorld(V);const big=offroad?1.9:1;
-      for(let q=0;q<(offroad?2:1);q++)R3.dust.emit(V.x,V.y+0.1,V.z,-tan.x*kt.speed*0.1+(Math.random()-0.5)*2.2*big,0.5+Math.random()*1.3*big,-tan.z*kt.speed*0.1+(Math.random()-0.5)*2.2*big,0.8,0.66,0.46,1.2*big);}
+    // desert themes: a light, low dust trail off the rear wheel(s) only (GP_DUST), per second of game time; a bit more in soft sand / off the road
+    if(GP_DUST[R3.C.theme]&&near&&!waiting&&!kt.jet&&!kt.air&&spd>0.2){const DU=GP_DUST[R3.C.theme],soft=offroad||(R3.C.theme==="dakar"&&R3.tw&&R3.tw.zoneAt(i,"dirt")),om=offroad?DU.off:1;
+      kt.dAcc=(kt.dAcc||0)+(kt.player?DU.me:DU.riv)*om*(soft&&!offroad?1.15:1)*(0.6+0.6*spd)*dt;
+      if(kt.dAcc>=1){kt.g.updateMatrixWorld(true);while(kt.dAcc>=1){kt.dAcc-=1;const sd=kt.bike?0:(Math.random()<0.5?-1:1),cr=DU.col[0]+Math.random()*0.06,sp=DU.side*om,cv=kt.speed*DU.carry;
+        V.set(sd*(kt.tyreX||kt.S.w/2-0.04),0.12,kt.xr-0.15);kt.g.localToWorld(V);
+        R3.dust.emit(V.x,V.y+0.05,V.z,tan.x*cv+(Math.random()-0.5)*sp,DU.up[0]+Math.random()*(DU.up[1]-DU.up[0]),tan.z*cv+(Math.random()-0.5)*sp,cr,cr*DU.col[1],cr*DU.col[2],(DU.life[0]+Math.random()*(DU.life[1]-DU.life[0]))*(offroad?1.2:1));}}}
     // a little dust off the outside wheel when the player runs right on the road edge / kerb
     if(kt.player&&!offroad&&!kt.jet&&Math.abs(kt.x)>0.97&&spd>0.3&&Math.random()<0.45){const sd=-Math.sign(kt.x);kt.g.updateMatrixWorld(true);V.set(sd*(kt.tyreX||kt.S.w/2-0.04),0.1,kt.xr);kt.g.localToWorld(V);R3.dust.emit(V.x,V.y+0.15,V.z,-tan.x*2+(Math.random()-0.5)*1.5,0.5+Math.random()*0.8,-tan.z*2+(Math.random()-0.5)*1.5,0.62,0.55,0.42,0.6);}
   });
@@ -4326,10 +4390,10 @@ function gpDakarWorld(D){const {T,scene,C,samples,M,W,ds,nearest,groundAt,dummy,
   const G={t:5,on:0,k:0},crests=(C.jumps||[]).filter(J=>!J[2]).map(J=>Math.round(J[0]/C.lapM*M)%M);out.gust=G;
   out.update=(dt,me,cam,waiting)=>{const now=performance.now()/1000;shT.offset.x+=dt*0.004;shT.offset.y=Math.sin(now*1.4)*0.03;shimmer.position.set(cam.x,me.pos.y+12,cam.z);
     if(!waiting){G.t-=dt;if(G.t<=0){G.on=3.4;G.t=10+rnd()*9;}}if(G.on>0)G.on-=dt;const gk=G.on>0?Math.min(1,G.on/0.6,(3.4-G.on)/0.6):0;G.k=gk;
-    strT.offset.y-=dt*(0.35+0.9*gk);strM.opacity=0.22+0.5*gk;
+    strT.offset.y-=dt*(0.35+0.9*gk);strM.opacity=GP_DUST.dakar.streak[0]+GP_DUST.dakar.streak[1]*gk;
     const mi=Math.floor(me.t*M)%M;
     if(typeof R3!=="undefined"&&R3&&R3.dust&&!waiting){for(const ci of crests){let ah=ci-mi;if(ah<-M/2)ah+=M;if(ah>M/2)ah-=M;if(ah*ds<-25||ah*ds>300)continue;   // spindrift: the wind lifts a veil of sand off the next crest, thicker in a gust
-        const n=(rnd()<0.55+0.45*gk?1:0)+Math.round(2*gk);for(let q=0;q<n;q++){const s=samples[wrapI(ci+stp(rnd()*5))],o=(rnd()-0.5)*(2*W+12),c=0.7+rnd()*0.08;R3.dust.emit(s.pos.x+s.nor.x*o,s.pos.y+0.2+rnd()*0.5,s.pos.z+s.nor.z*o,s.tan.x*(7+rnd()*5)+s.nor.x*(rnd()-0.5)*3,1.2+rnd()*1.6,s.tan.z*(7+rnd()*5)+s.nor.z*(rnd()-0.5)*3,c,c*0.72,c*0.42,0.8+rnd()*0.5);}}}
+        const n=(rnd()<0.55+0.45*gk?1:0)+Math.round(2*gk);for(let q=0;q<n;q++){if(Math.random()>GP_DUST.dakar.veil)continue;const s=samples[wrapI(ci+stp(rnd()*5))],o=(rnd()<0.5?-1:1)*(W+1+rnd()*6),c=0.7+rnd()*0.08;R3.dust.emit(s.pos.x+s.nor.x*o,s.pos.y+0.2+rnd()*0.5,s.pos.z+s.nor.z*o,s.tan.x*(7+rnd()*5)+s.nor.x*(rnd()-0.5)*3,1.2+rnd()*1.6,s.tan.z*(7+rnd()*5)+s.nor.z*(rnd()-0.5)*3,c,c*0.72,c*0.42,0.8+rnd()*0.5);}}}
     // helicopter: eases to a spot ahead and to one side of the player, nose along the road, rotor spinning
     {const ia=wrapI(mi+stp(95)),s=samples[ia],side=26*Math.sin(now*0.11),tx=s.pos.x+s.nor.x*side,tz=s.pos.z+s.nor.z*side,ty=Math.max(s.pos.y,me.pos.y)+21+2.5*Math.sin(now*0.7),k=Math.min(1,dt*0.9);
       heli.position.x+=(tx-heli.position.x)*k;heli.position.y+=(ty-heli.position.y)*k;heli.position.z+=(tz-heli.position.z)*k;const yw=Math.atan2(s.tan.x,s.tan.z);let dy=yw-heli.rotation.y;while(dy>Math.PI)dy-=Math.PI*2;while(dy<-Math.PI)dy+=Math.PI*2;heli.rotation.y+=dy*Math.min(1,dt*1.2);heli.rotation.x=0.12;
@@ -4404,7 +4468,7 @@ function gpFzTurn(){const cv=$("fzTurn");if(!cv||!window.THREE)return;const T=TH
         if(w&&h&&(w!==S.w||h!==S.h)){S.w=w;S.h=h;r.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();const d=cam.aspect<1.25?11.6:(cam.aspect<1.7?9.6:8.8);cam.position.set(d*0.62,d*0.25,d*0.74);cam.lookAt(0,0.62,0);}
         if(!S.drag){S.vel+=(0.42-S.vel)*Math.min(1,dt*1.5);spin.rotation.y+=S.vel*dt;}r.render(scene,cam);S.frames=(S.frames||0)+1;S.raf=requestAnimationFrame(loop);};S.raf=requestAnimationFrame(loop);}catch(e){window._gpTurn=null;return;}}
   const car=gpCar(),id=car.id,key=id+"|"+gpPaint();if(S.id===key)return;S.id=key;
-  const show=()=>{if(window._gpTurn!==S||S.id!==key)return;try{if(S.cur){S.spin.remove(S.cur.g);}const src=(window._gpGlb||{})[id];const m=(GP_GLB[id]&&src)?gpBuildGlbCar(T,car,src,gpGlbPaintFor(car,true),S.shared):gpBuildCar(T,car,gpPaint(),S.shared);
+  const show=()=>{if(window._gpTurn!==S||S.id!==key)return;try{if(S.cur){S.spin.remove(S.cur.g);}const src=(window._gpGlb||{})[id];const m=(GP_GLB[id]&&src)?gpBuildGlbCar(T,car,src,gpGlbPaintFor(car,true),S.shared):(car.type==="bike"?gpBuildBikeDrawn(T,car,gpPaint(),S.shared):gpBuildCar(T,car,gpPaint(),S.shared));
       m.g.traverse(o=>{if(o.isMesh){o.castShadow=true;}});m.g.position.set(0,0,0);m.g.rotation.set(0,0,0);S.spin.add(m.g);S.cur=m;S.car=id;S.built=(GP_GLB[id]&&src)?"glb":"drawn";}catch(e){}};
   if(GP_GLB[id]&&!(window._gpGlb||{})[id])gpLoadGlb([id]).then(show,show);else show();}
 /* ---------- baked lighting (job 1112-0016-43fd, Realistic + Cartoon looks; Storybook and Coral Deep keep their own path) ----------
