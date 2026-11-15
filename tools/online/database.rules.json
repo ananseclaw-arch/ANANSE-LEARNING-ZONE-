@@ -66,7 +66,7 @@
       ".write": "auth != null && root.child('rooms').child($code).child('meta/touched').val() > now - 1800000 && ((auth.uid === $uid && (!newData.exists() || (root.child('rooms').child($code).child('slots').child(newData.child('slot').val() + '').val() === auth.uid && !root.child('rooms').child($code).child('kick').child(auth.uid).exists()))) || (root.child('rooms').child($code).child('meta/host').val() === auth.uid && !newData.exists()))",
       ".validate": "newData.hasChildren(['car','paint','slot','on','ready','load'])",
       "car": {
-       ".validate": "newData.isString() && newData.val().matches(/^(falcon|arrow|viper|formula|shogun|kente|kumasi|rally|retro|kei|ridge|razor|aurora|comet|breeze|monster|trophy|semi|bike)$/)"
+       ".validate": "newData.isString() && newData.val().matches(/^(falcon|arrow|viper|formula|shogun|kente|kumasi|rally|retro|kei|ridge|razor|aurora|comet|breeze|monster|trophy|semi)$/)"
       },
       "paint": {
        ".validate": "newData.isString() && newData.val().matches(/^#[0-9a-f]{6}$/)"
