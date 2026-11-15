@@ -2733,7 +2733,7 @@ const GP_BOOST={burst:2.6,cost:0.34,cool:1.2,mul:1.22,start:0.5};
    final lap; atk = attack window base m (+ atk x aggression); trail = the soft streak behind a boosting rival.
    Tuned with rboost/tools/pack_gap.py (5 races x 10 tracks per driver). */
 const GP_RBOOST={legacy:false,trail:true,
-  gentle:{t0:14,stag:6,maxAtOnce:1,gapS:3,farM:45,passCap:2,finNo:0.15,atk:35},
+  gentle:{t0:14,stag:6,maxAtOnce:1,gapS:3,farM:30,passCap:2,finNo:0.15,atk:35},
   normal:{t0:10,stag:6,maxAtOnce:2,gapS:2,farM:60,passCap:99,finNo:0.08,atk:35},
   hard:{t0:8,stag:6,maxAtOnce:2,gapS:1.5,farM:80,passCap:99,finNo:0,atk:35}};
 function gpRB(){return GP_RBOOST[gpPace()]||GP_RBOOST.normal;}
@@ -2764,7 +2764,7 @@ function gpRivalBoostWant(k,RB,easy){const R=R3,me=R.me,L=R.len,M=R.M,ds=L/M,i=M
   const atMe=myGap>0&&(aK===me||(myGap<win+20&&(why==="behind"||why==="full")));   // this burst could carry it up to / past the player
   if(myGap<0){if(easy)return null;if(why!=="defend"&&!(why==="attack"&&aK!==me))return null;}   // ahead of the player: Easy never; else only defend / attack another rival
   if(myGap>RB.farM&&!(why==="attack"&&aK!==me))return null;   // far behind the player: only a duel with another rival, never a charge at the player
-  if(atMe||(myGap>0&&myGap<RB.farM)){if((R.rbPass||0)>=RB.passCap)return null;if(RB.finNo&&me.lap+1>=R.C.laps&&me.t>1-RB.finNo)return null;}   // any burst close behind the player could end in a pass: the pass cap and the last-part-of-the-race rule cover them all
+  if(atMe||(myGap>0&&myGap<80)){if((R.rbPass||0)>=RB.passCap)return null;if(RB.finNo&&me.lap+1>=R.C.laps&&me.t>1-RB.finNo)return null;}   // any burst close behind the player could end in a pass: the pass cap and the last-part-of-the-race rule cover them all
   return why;}
 function gpBoostInit(){const R=R3;R.boost={q:GP_BOOST.start,cool:0,easy:gpPace()==="gentle",uses:0,ring:$("gp3BoostRing"),btn:$("gp3Boost"),pips:$("gp3BoostN"),key:""};R.boostLog=[];
   R.karts.forEach(k=>{k.boostT=0;k.boostMul=1;k.bq=GP_BOOST.start;k.bNext=k.player?0:6+Math.random()*6;});R.rbLast=-99;R.rbPass=0;R.rbMax=0;R.rbOn=0;}
