@@ -100,3 +100,21 @@ One entry per id:
   `bytes`, `tris` and `hl`.
 - Pipeline after a rebuild: `bake_light.py` (lens skipped) -> `shadow_atlas.py` -> `pack_all.sh` (all 19 unpacked GLBs in one
   folder, absolute out path) -> bump `?v=` in `GP_GLB`.
+
+## The Lightning Bike (job 1114, `build_bike.py`)
+
+    Blender -b --factory-startup -P tools/cars3d/build_bike.py -- [--out DIR] [--render DIR] [--json PATH] [--paint #hex --name id]
+
+- A faired sport motorbike with a rider in a sport tuck (blue `suit`, yellow `helmet` with the visor down). It reuses build_fleet.py's
+  helpers by running only the helper half of that file (mesh builder, materials, export settings, renders), so build_fleet.py is unchanged.
+- **Node layout differs from the cars:** `bike` -> `body` -> { every mesh, `hub_FL` -> wheel_FL + caliper_FL + fork_FL, `hub_RL` ->
+  wheel_RL + caliper_RL }. The hubs sit inside `body`, so the game leans the machine, wheels and rider together about the tyre contact
+  line (`pivotY` 0.001 - 0 would fall back to 0.3). Only FL and RL exist, hub x = 0.
+- Round (semi-ellipse) tyre profile so it looks right leaned over; twin front discs, single rear disc, sprocket + chain on the left,
+  underslung exhaust on the right; MBX lamp units (clear lens over reflector) in the nose, red tail lens.
+- Merges a `bike` entry into fleet.json (keeps every other entry). Note: a full `build_fleet.py` run rewrites fleet.json in its own
+  ORDER and would drop the `bike` key - re-run `build_bike.py` afterwards (or with `--json`).
+- Pipeline as for the fleet: bake_light.py (with `--shadow`) -> pack_all.sh (absolute out path) -> check_glb.mjs. The shadow tile was pasted
+  into the free atlas slot [3,3] with `bike/tools/add_shadow_tile.py` (old 18 tiles decoded and re-saved lossless, pixel-identical) -
+  `GP_SHADOW_SRC` is `?v=3`. Thumbnail: thumbs/bike.webp (same tool as the fleet thumbs, camera at 0.38x distance for the smaller vehicle).
+- `--paint/--name` build colourway mockups to another id without touching fleet.json.
