@@ -5852,6 +5852,7 @@ function gpReal(){return gpLook()==="real";}
    puffs; Dakar's crest spindrift only at the roadside and fainter gust streaks. me/riv = puffs per second for the player / one rival. */
 const GP_DUST={dakar:{pool:150,size:1.15,op:0.27,me:16,riv:4,life:[0.4,0.7],up:[0.3,0.9],side:0.7,off:1.5,carry:0.45,launch:5,launchR:2,land:[2,1],veil:0.25,streak:[0.06,0.2],col:[0.74,0.7,0.4]},
   desert:{pool:110,size:1.0,op:0.27,me:10,riv:4,life:[0.4,0.65],up:[0.25,0.8],side:0.6,off:1.6,carry:0.45,launch:5,launchR:2,land:[2,1],col:[0.8,0.825,0.575]}};
+function gpDustTick(kt,dt,rate){kt.kAcc=(kt.kAcc||0)+rate*dt;if(kt.kAcc>=1){kt.kAcc-=1;return true;}return false;}   // per-second puff clock (desert kerb dust)
 const GP_BIKE={max:0.66,g:9.81,gain:0.85,lat:0.02,ahead:0.3,mixA:0.6,k:46,c:10.5,vmax:2.4,pitch:[-0.018,0.022],pk:70,pc:17,steer:0.16};
 function gpMatSet(m,v){if(v.c)m.color.copy(gpLin(v.c));if(v.m!=null)m.metalness=v.m;if(v.r!=null)m.roughness=v.r;if(v.env!=null)m.envMapIntensity=v.env;if(v.e)m.emissive.copy(gpLin(v.e));if(v.ei!=null)m.emissiveIntensity=v.ei;return m;}
 /* clear-coat paint: a strong baked vertex shade under a mirror-like coat looks dirty, so only part of it is kept (Realistic only) */
@@ -7731,7 +7732,7 @@ function gpWallFx(kt,sd,n){const V=R3.tmpV,R=R3,tn=R.curve.getTangentAt(kt.t),sa
    (never position, never grip); `fin` = share of the lead-easing kept on the last 20% of the final lap. Legacy (pre-1114) rows: gentle
    ahead 0.02 / behind 0.04, normal + hard 0 / 0, d0 15, d1 130, rate 0 (no smoothing), fin 1; gentle def 0, skill 1.015, cap 0.97 (Easy rivals
    were ~10% slower than a tidy driver, more than a subtle band can hide). me/hit (help for the player) unchanged. Tuned with bike/tools/pack_gap.py. */
-const GP_PACK={gentle:{ahead:0.1,behind:0.05,d0:8,d1:45,rate:0.02,fin:1,me:0.035,hit:0.03,skill:1.02,cap:1.0,capLo:0.9,err:24,bq:0.016,bmul:1.05,def:0.25},
+const GP_PACK={gentle:{ahead:0.13,behind:0.04,d0:8,d1:45,rate:0.02,fin:1,me:0.035,hit:0.03,skill:1.02,cap:1.0,capLo:0.9,err:24,bq:0.016,bmul:1.05,def:0.25},
   normal:{ahead:0.03,behind:0.08,d0:8,d1:45,rate:0.02,fin:0.6,me:0,hit:0,skill:1.03,cap:1.03,capLo:0.97,err:45,bq:0.03,bmul:1.12,def:0.7},
   hard:{ahead:0.01,behind:0.04,d0:10,d1:60,rate:0.015,fin:0,me:0,hit:0,skill:1.04,cap:1.05,capLo:0.99,err:90,bq:0.04,bmul:1.16,def:1}};
 /* rival racecraft (job 1114): look-ahead on the racing line grows with speed [min m, max m, s]; a small lane preference per rival on straights
@@ -7742,7 +7743,7 @@ const GP_AI={look:[8,24,0.35],lane:0.1,commit:1.2,reach:1.25,cornerK:0.4,side:1}
 function gpPK(){return GP_PACK[gpPace()]||GP_PACK.normal;}
 /* rival pace per track (1 = as built): measured with the test drivers so a clean lap beats the best rival by about the same margin on every track
    (flight ramps help the player, town corners and the sea help the rivals, so one number for all tracks left some unwinnable and some a walkover) */
-const GP_RIVK={kawaguchi:[1.05,0.982],hakone:[1.03,0.914],tokyo:[1.05,0.995],city:[1.045,0.915],accra:[1.02,1.04],coast:[1.085,1.018],desert:[1.09,1.08],inaka:[1.045,1.007],dakar:[1.072,1.01],deep:[1.0,0.95]};   // [Easy, Normal+Hard]
+const GP_RIVK={kawaguchi:[1.05,0.982],hakone:[1.0,0.914],tokyo:[1.05,0.995],city:[1.03,0.915],accra:[1.02,1.04],coast:[1.085,1.018],desert:[1.09,1.08],inaka:[1.045,1.007],dakar:[1.055,1.01],deep:[1.0,0.95]};   // [Easy, Normal+Hard]
 function gpRivK(id){const k=GP_RIVK[id];return k?k[gpPace()==="gentle"?0:1]:1;}
 function gpBand(kt,nj){const R=R3,me=R.me,K=GP_PACK[gpPace()]||GP_PACK.normal,g=((kt.lap+kt.t)-(me.lap+me.t))*R.len,d0=K.d0!=null?K.d0:15,d1=K.d1!=null?K.d1:130,u=Math.min(1,Math.max(0,(Math.abs(g)-d0)/(d1-d0))),e=u*u*(3-2*u);
   const fin=(K.fin!=null&&K.fin<1&&me.started&&me.lap+1>=R.C.laps&&me.t>0.8)?K.fin:1;return g>0?1-K.ahead*fin*e:1+(K.behind+(me.jet&&!nj?GP_JET.pull[gpPace()==="gentle"?"gentle":"normal"]:0))*e;}
@@ -8277,18 +8278,18 @@ function gpUpdate(dt,waiting){
     if(skid&&near){kt.skidD+=kt.speed*dt;if(kt.skidD>0.9){const dl=Math.min(6,kt.skidD);kt.skidD=0;const D=R3.dummy;const fw=Math.atan2(tan.x,tan.z)-(kt.player?kt.headA+(kt.lossA||0):(kt.drift?kt.drift*0.42:0));   // each mark spans the distance since the last one, so the trail is continuous at any frame rate
       [-1,1].forEach(sd=>{V.set(sd*(kt.tyreX||kt.S.w/2-0.04),0,kt.xr);kt.g.localToWorld(V);D.position.set(V.x-tan.x*dl*0.5,kt.pos.y+0.028,V.z-tan.z*dl*0.5);D.rotation.set(0,fw,0);D.scale.set(1,1,dl+0.1);D.updateMatrix();const si=R3.skN;R3.skids.setMatrixAt(si,D.matrix);R3.skidLife[si]=4;R3.skidFade.setX(si,1);R3.skN=(si+1)%700;});R3.skids.instanceMatrix.needsUpdate=true;R3.skidFade.needsUpdate=true;}}
     // Coast Road: brown dust from both rear wheels on the dirt, a big spray through the ford
-    if(R3.tw&&near&&!waiting&&!kt.jet&&spd>0.12){const onDirt=R3.C.theme!=="dakar"&&R3.tw.zoneAt(i,"dirt"),inFord=R3.tw.zoneAt(i,"ford");if(onDirt||inFord){kt.g.updateMatrixWorld(true);
+    if(R3.tw&&near&&!waiting&&!kt.jet&&spd>0.12){const onDirt=!GP_DUST[R3.C.theme]&&R3.tw.zoneAt(i,"dirt"),inFord=R3.tw.zoneAt(i,"ford");if(onDirt||inFord){kt.g.updateMatrixWorld(true);
       [-1,1].forEach(sd=>{V.set(sd*(kt.tyreX||kt.S.w/2-0.04),0.15,kt.xr);kt.g.localToWorld(V);
         if(onDirt&&Math.random()<(kt.player?0.9:0.5))R3.dust.emit(V.x,V.y+0.1,V.z,-tan.x*kt.speed*0.12+(Math.random()-0.5)*2.5,0.6+Math.random()*1.4,-tan.z*kt.speed*0.12+(Math.random()-0.5)*2.5,0.62,0.47,0.3,1.4);
         if(inFord&&R3.splash)for(let q=0;q<(kt.player?3:1);q++)R3.splash.emit(V.x+(Math.random()-0.5)*0.6,V.y,V.z+(Math.random()-0.5)*0.6,sd*(1.5+Math.random()*2.5)*Math.abs(tan.z)+(Math.random()-0.5)*2+tan.x*kt.speed*0.2,2.5+Math.random()*3.5,sd*(1.5+Math.random()*2.5)*Math.abs(tan.x)+(Math.random()-0.5)*2+tan.z*kt.speed*0.2,0.86,0.93,1,0.6);});}}
     // desert themes: a light, low dust trail off the rear wheel(s) only (GP_DUST), per second of game time; a bit more in soft sand / off the road
-    if(GP_DUST[R3.C.theme]&&near&&!waiting&&!kt.jet&&!kt.air&&spd>0.2){const DU=GP_DUST[R3.C.theme],soft=offroad||(R3.C.theme==="dakar"&&R3.tw&&R3.tw.zoneAt(i,"dirt")),om=offroad?DU.off:1;
+    if(GP_DUST[R3.C.theme]&&near&&!waiting&&!kt.jet&&!kt.air&&spd>0.2){const DU=GP_DUST[R3.C.theme],soft=offroad||(R3.tw&&R3.tw.zoneAt&&R3.tw.zoneAt(i,"dirt")),om=offroad?DU.off:1;
       kt.dAcc=(kt.dAcc||0)+(kt.player?DU.me:DU.riv)*om*(soft&&!offroad?1.15:1)*(0.6+0.6*spd)*dt;
       if(kt.dAcc>=1){kt.g.updateMatrixWorld(true);while(kt.dAcc>=1){kt.dAcc-=1;const sd=kt.bike?0:(Math.random()<0.5?-1:1),cr=DU.col[0]+Math.random()*0.06,sp=DU.side*om,cv=kt.speed*DU.carry;
         V.set(sd*(kt.tyreX||kt.S.w/2-0.04),0.12,kt.xr-0.15);kt.g.localToWorld(V);
         R3.dust.emit(V.x,V.y+0.05,V.z,tan.x*cv+(Math.random()-0.5)*sp,DU.up[0]+Math.random()*(DU.up[1]-DU.up[0]),tan.z*cv+(Math.random()-0.5)*sp,cr,cr*DU.col[1],cr*DU.col[2],(DU.life[0]+Math.random()*(DU.life[1]-DU.life[0]))*(offroad?1.2:1));}}}
     // a little dust off the outside wheel when the player runs right on the road edge / kerb
-    if(kt.player&&!offroad&&!kt.jet&&Math.abs(kt.x)>0.97&&spd>0.3&&Math.random()<0.45){const sd=-Math.sign(kt.x);kt.g.updateMatrixWorld(true);V.set(sd*(kt.tyreX||kt.S.w/2-0.04),0.1,kt.xr);kt.g.localToWorld(V);R3.dust.emit(V.x,V.y+0.15,V.z,-tan.x*2+(Math.random()-0.5)*1.5,0.5+Math.random()*0.8,-tan.z*2+(Math.random()-0.5)*1.5,0.62,0.55,0.42,0.6);}
+    if(kt.player&&!offroad&&!kt.jet&&Math.abs(kt.x)>0.97&&spd>0.3&&(GP_DUST[R3.C.theme]?gpDustTick(kt,dt,6):Math.random()<0.45)){const sd=-Math.sign(kt.x);kt.g.updateMatrixWorld(true);V.set(sd*(kt.tyreX||kt.S.w/2-0.04),0.1,kt.xr);kt.g.localToWorld(V);R3.dust.emit(V.x,V.y+0.15,V.z,-tan.x*2+(Math.random()-0.5)*1.5,0.5+Math.random()*0.8,-tan.z*2+(Math.random()-0.5)*1.5,0.62,0.55,0.42,0.6);}
   });
   karts.forEach(k=>{if(k.player||!k.lod)return;const d2=k.pos.distanceToSquared(R3.camPos),far=k.lodFar?d2>3025:d2>4225;if(far!==k.lodFar){k.lodFar=far;k.lod.forEach(o=>{o.visible=!far;});k.casters.forEach(o=>{o.castShadow=!far;});if(k.glb)k.glb.blurs.forEach(b=>{if(far)b.visible=false;});}});   // rivals 65 m+ away: no small parts, no shadow
   gpTrafficUpdate(dt,waiting);
@@ -9182,7 +9183,7 @@ function gpDakarWorld(D){const {T,scene,C,samples,M,W,ds,nearest,groundAt,dummy,
     strT.offset.y-=dt*(0.35+0.9*gk);strM.opacity=GP_DUST.dakar.streak[0]+GP_DUST.dakar.streak[1]*gk;
     const mi=Math.floor(me.t*M)%M;
     if(typeof R3!=="undefined"&&R3&&R3.dust&&!waiting){for(const ci of crests){let ah=ci-mi;if(ah<-M/2)ah+=M;if(ah>M/2)ah-=M;if(ah*ds<-25||ah*ds>300)continue;   // spindrift: the wind lifts a veil of sand off the next crest, thicker in a gust
-        const n=(rnd()<0.55+0.45*gk?1:0)+Math.round(2*gk);for(let q=0;q<n;q++){if(Math.random()>GP_DUST.dakar.veil)continue;const s=samples[wrapI(ci+stp(rnd()*5))],o=(rnd()<0.5?-1:1)*(W+1+rnd()*6),c=0.7+rnd()*0.08;R3.dust.emit(s.pos.x+s.nor.x*o,s.pos.y+0.2+rnd()*0.5,s.pos.z+s.nor.z*o,s.tan.x*(7+rnd()*5)+s.nor.x*(rnd()-0.5)*3,1.2+rnd()*1.6,s.tan.z*(7+rnd()*5)+s.nor.z*(rnd()-0.5)*3,c,c*0.72,c*0.42,0.8+rnd()*0.5);}}}
+        const n=(rnd()<0.55+0.45*gk?1:0)+Math.round(2*gk);for(let q=0;q<n;q++){if(Math.random()>GP_DUST.dakar.veil*Math.min(2,dt*60))continue;const s=samples[wrapI(ci+stp(rnd()*5))],o=(rnd()<0.5?-1:1)*(W+1+rnd()*6),c=0.7+rnd()*0.08;R3.dust.emit(s.pos.x+s.nor.x*o,s.pos.y+0.2+rnd()*0.5,s.pos.z+s.nor.z*o,s.tan.x*(7+rnd()*5)+s.nor.x*(rnd()-0.5)*3,1.2+rnd()*1.6,s.tan.z*(7+rnd()*5)+s.nor.z*(rnd()-0.5)*3,c,c*0.72,c*0.42,0.8+rnd()*0.5);}}}
     // helicopter: eases to a spot ahead and to one side of the player, nose along the road, rotor spinning
     {const ia=wrapI(mi+stp(95)),s=samples[ia],side=26*Math.sin(now*0.11),tx=s.pos.x+s.nor.x*side,tz=s.pos.z+s.nor.z*side,ty=Math.max(s.pos.y,me.pos.y)+21+2.5*Math.sin(now*0.7),k=Math.min(1,dt*0.9);
       heli.position.x+=(tx-heli.position.x)*k;heli.position.y+=(ty-heli.position.y)*k;heli.position.z+=(tz-heli.position.z)*k;const yw=Math.atan2(s.tan.x,s.tan.z);let dy=yw-heli.rotation.y;while(dy>Math.PI)dy-=Math.PI*2;while(dy<-Math.PI)dy+=Math.PI*2;heli.rotation.y+=dy*Math.min(1,dt*1.2);heli.rotation.x=0.12;
