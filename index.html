@@ -5423,6 +5423,8 @@ function gpCss(){if(document.getElementById("gpV4Css")){gpStoryFont();return;}co
 .fz-quit-row{margin-top:8px}
 .fz-song{margin-top:6px;display:flex;align-items:center;gap:5px;background:rgba(10,12,25,.55);border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:3px 8px;font-size:clamp(13px,1.5vw,17px);width:max-content}
 .fz-song b{font-weight:700;margin-right:3px}
+.gp3-wrap.gfree .gp3-map{transform:translateY(34px)}
+.fz-free{display:block;width:max-content;margin-bottom:5px;background:rgba(10,12,25,.6);border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:3px 11px;font-size:clamp(12px,1.4vw,15px);font-weight:800;letter-spacing:.02em}
 .fz-song i{width:11px;height:11px;border-radius:50%;border:2px solid #fff;display:inline-block;background:transparent}
 .fz-song i.on{background:var(--c)}
 /* ---- phones: the race takes over the whole screen ---- */
@@ -5590,7 +5592,7 @@ function gpPickGrp(g){window._gpGrp=g;document.querySelectorAll(".fz-gtabs butto
 function gpPickCar(id){if(P){P.gpCar=id;save();}else window._gpCar=id;document.querySelectorAll(".fz-car").forEach(b=>b.classList.toggle("on",b.dataset.car===id));const sh=$("fzShell");if(sh)sh.classList.toggle("pic",!!GP_PICS[id]);gpDrawPreviews();gpFzStageSync();sfx("tick");}
 function gpPickPaint(h){if(P){P.gpPaint=h;save();}else window._gpPaint=h;document.querySelectorAll(".fz-sw").forEach(b=>b.classList.toggle("on",b.dataset.paint===h));gpDrawPreviews();sfx("tick");}
 function gpPickRacer(id){gpPickCar(GP_CARS.some(c=>c.id===id)?id:"falcon");}
-function gpMode(){if(GPN&&GPN.race)return"race";return (P&&P.gpMode)||window._gpMode||"free";}
+function gpMode(){if(GPN&&GPN.race)return"race";return (P&&P.gpMode)||window._gpMode||"race";}   // nothing saved = Race with 4 rivals (job 1115: a fresh Learning Zone profile used to land in Free drive, "I don't see the other cars")
 function gpPace(){if(GPN&&GPN.race)return GPN.race.pace;return (P&&P.gpPace)||window._gpPace||"gentle";}
 function gpPickPace(v){if(P){P.gpPace=v;save();}else window._gpPace=v;document.querySelectorAll(".fz-pace button").forEach(b=>b.classList.toggle("on",b.dataset.p===v));sfx("tick");}
 function gpPaceMul(){const g=gpPace()==="gentle";return gpMode()==="free"?(g?0.62:0.8):(g?0.76:0.92);}
@@ -6039,7 +6041,8 @@ function gpGarageSet(k,v){const u=gpUpState();u[k]=v||null;gpUpSave(u);sfx("tick
 /* ---------- real car pictures ---------- */
 /* Loads only the sheets used by this grid, so the SUV race texture stays lazy until the SUV is selected. Resolves with a map id → texture
    or null when a picture failed; a null means that car keeps its 3D model. */
-function gpRivalCars(cid){const mine=gpCar(),others=GP_CARS.filter(c=>c.id!==mine.id&&c.type!=="bike"),k=Math.max(0,GP_CIRCUITS.findIndex(c=>c.id===cid));const out=[];
+function gpRivalCars(cid){const L=gpRivalCars0(cid).filter(Boolean),mine=gpCar();if(L.length<4){for(const c of GP_CARS){if(L.length>=4)break;if(c.id!==mine.id&&c.type!=="bike"&&!L.includes(c))L.push(c);}(window.__rivGuard=window.__rivGuard||[]).push({why:"pick",cid});}return L;}   // job 1115 guard
+function gpRivalCars0(cid){const mine=gpCar(),others=GP_CARS.filter(c=>c.id!==mine.id&&c.type!=="bike"),k=Math.max(0,GP_CIRCUITS.findIndex(c=>c.id===cid));const out=[];
   if(cid==="desert"||cid==="dakar"){const tr=others.filter(c=>c.grp==="trucks"),ot=others.filter(c=>c.grp!=="trucks");return[ot[2],tr[0],ot[9]||ot[0],tr[2]||tr[1]];}   // desert: two trucks on the grid
   for(let q=0;q<4;q++)out.push(others[(k*3+q*Math.max(1,Math.floor(others.length/4)))%others.length]);return out;}
 function gpRacePicIds(cid){if(GPN&&GPN.race)return GPN.race.roster.map(r=>(GP_CARS.find(c=>c.id===r.car)||GP_CARS[0]).id);   // ids, like the single-player branch (it returned car objects, so no friend's 3D model was ever preloaded)
@@ -6997,10 +7000,10 @@ function gpBuild(C){
   gpCss();gpFzCss();
   const myCar=gpCar(),myPaint=gpPaint(),story=gpStory(),L=story?Object.assign({},C.look,C.story):C.look;
   if(P&&typeof P.gpMute==="boolean")GPA.muted=P.gpMute;GPA.setMute(GPA.muted);
-  app.innerHTML='<div class="fadein gp3-wrap v3'+(story?" story":" fzh")+(GPN&&GPN.race?" net":"")+'" id="gp3">'
+  app.innerHTML='<div class="fadein gp3-wrap v3'+(story?" story":" fzh")+(GPN&&GPN.race?" net":"")+(gpMode()==="free"?" gfree":"")+'" id="gp3">'
    +'<canvas id="gp3c"></canvas><canvas class="fz-fx" id="gp3Fx" width="16" height="9"></canvas><div class="fz-vig"></div><canvas class="fz-ck" id="gp3Ck" width="16" height="9"></canvas>'
    +'<div class="gp3-touch" id="gp3L"></div>'
-   +'<div class="fz-tl"><div class="fz-pos" id="gp3Pos"'+(gpMode()==="free"?' style="display:none"':'')+'>5<small>th</small><em>/5</em></div><div class="fz-lap" id="gp3Lap">LAP 1/'+C.laps+'</div><div class="fz-time" id="gp3Time">0:00.0</div>'+(GPN&&GPN.race?'<div class="fz-spd" id="gp3Spd"></div>':'')+'<div class="fz-song" id="gp3Song"'+(gpMode()==="free"?'':' style="display:none"')+'></div></div>'
+   +'<div class="fz-tl">'+(gpMode()==="free"?'<div class="fz-free" id="gp3Free">🎵 Free drive · no rivals</div>':'')+'<div class="fz-pos" id="gp3Pos"'+(gpMode()==="free"?' style="display:none"':'')+'>5<small>th</small><em>/5</em></div><div class="fz-lap" id="gp3Lap">LAP 1/'+C.laps+'</div><div class="fz-time" id="gp3Time">0:00.0</div>'+(GPN&&GPN.race?'<div class="fz-spd" id="gp3Spd"></div>':'')+'<div class="fz-song" id="gp3Song"'+(gpMode()==="free"?'':' style="display:none"')+'></div></div>'
    +'<canvas class="gp3-map" id="gp3Map" width="300" height="220"></canvas>'
    +'<div class="fz-skill" id="gp3Skill"></div>'
    +'<canvas class="fz-tach" id="gp3Tach" width="320" height="320"></canvas>'
@@ -8129,8 +8132,19 @@ function gpCountTick(now){const R=R3;
     R.cdLog.push({n,frame:R.frameN,frameMs:+now.toFixed(2),ideal:+(R.cdF0+step*1000).toFixed(2),callPerf:+performance.now().toFixed(2),beepPerf,beepAudio:GPA.ctx?+GPA.ctx.currentTime.toFixed(4):null,audioState:GPA.ctx?GPA.ctx.state:"none",lit:n,released:n===0,stallMs:+stall.toFixed(1)});
     if(n===0){R.phase="race";R.countdown=0;R.goAt=R.online?R.netGo:now;setTimeout(()=>{const cc=$("gp3Count");if(cc)cc.classList.remove("show");},800);}}
   if(R.phase==="count")R.countdown=Math.max(0.001,3-e);}
+/* rival guard (job 1115, Eb 2026-11-15 "I don't see the other cars anymore" - not reproduced, this is the safety net): in a single-player
+   race, a rival whose numbers went bad (NaN: checked every frame, first thing, because the contact code throws on them) or that is 60 m+
+   off the road while not flying (checked once a second) is put back on the racing line at its last good spot (lap kept), sideways drift
+   cleared, and logged in R3.rivGuard {t, car, why}. Never touches the player or online cars. Only reads when nothing is wrong. */
+function gpRivalGuard(dt,waiting){const R=R3;if(!R||R.online||R.mode!=="race")return;const f=Number.isFinite,XS=R.W-1.2;R.rgT=(R.rgT||0)+dt;const sec=R.rgT>=1&&!waiting;if(sec)R.rgT=0;
+  for(const k of R.karts){if(k.player||k.net)continue;const nan=!(f(k.t)&&f(k.x)&&f(k.speed)&&f(k.lap)&&f(k.pos.x)&&f(k.pos.y)&&f(k.pos.z)),far=sec&&!nan&&!k.air&&!k.jet&&Math.abs(k.x)*XS>60;
+    if(!nan&&!far){if(sec){k.gT=k.t;k.gLap=k.lap;}continue;}
+    const t=f(k.gT)?k.gT:(f(k.t)?((k.t%1)+1)%1:R.me.t),i=Math.floor(t*R.M)%R.M;if(k.jet)try{gpJetCancel(k);}catch(e){k.jet=null;}
+    k.t=t;if(!f(k.lap))k.lap=f(k.gLap)?k.gLap:R.me.lap;k.x=R.lineX[i];k.px=k.x;k.air=false;k.vy=null;k.speed=f(k.speed)?Math.min(Math.max(0,k.speed),R.vProf[i]):R.vProf[i]*0.6;k.spin=0;k.errT=0;
+    if(!f(k.pos.x)||!f(k.pos.y)||!f(k.pos.z)){const P0=R.curve.getPointAt(t);k.pos.copy(P0);k.g.position.copy(P0);}
+    (R.rivGuard=R.rivGuard||[]).push({t:+(R.simT||0).toFixed(1),car:k.racer&&k.racer.car.id,why:nan?"nan":"far"});}}
 function gpUpdate(dt,waiting){
-  const {karts,samples,M,len,T,me}=R3;
+  gpRivalGuard(dt,waiting);const {karts,samples,M,len,T,me}=R3;
   const k=R3.keys;const left=k["arrowleft"]||k["a"]||R3.touchDir<0,right=k["arrowright"]||k["d"]||R3.touchDir>0,gas=R3.autoGas||k["arrowup"]||k["w"]||R3.gas||(me.jetGas>0&&me.speed<R3.vProf[Math.floor(me.t*R3.M)%R3.M]),driftKey=k[" "]||k["x"];let brake=k["arrowdown"]||k["s"]||R3.brake;
   if(me.jetGas>0)me.jetGas-=dt;if(R3.jetBrakeLock){if(!me.jet&&!brake)R3.jetBrakeLock=false;else brake=false;}   // a thumb or key still down from flying (DOWN, LAND) doesn't slam the brakes at touchdown
   gpBoostTick(dt,waiting);gpPack(dt,waiting);
