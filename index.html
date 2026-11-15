@@ -7520,11 +7520,13 @@ const GP_BOOST={burst:2.6,cost:0.34,cool:1.2,mul:1.22,start:0.5};
    boosting together; gapS s between two rival bursts starting; farM = a rival this far behind the player never boosts to catch the
    player; passCap = boost passes on the player per race (all rivals); finNo = no boost aimed at the player in the last part of the
    final lap; atk = attack window base m (+ atk x aggression); str = clear straight wanted [min, max] m (per rival); trail = the soft streak behind a boosting rival.
+   chase / chaseMin (job 1115-0721): a rival between farM and chase m behind the player may boost to CLOSE the gap (never to pass: only while the gap is still > chaseMin m,
+   about what one burst gains) - this is what keeps a tidy driver's lead from growing into a runaway; a sloppy driver is rarely that far ahead, so it barely changes his race.
    Tuned with rboost/tools/pack_gap.py (5 races x 10 tracks per driver). */
 const GP_RBOOST={legacy:false,trail:true,
-  gentle:{t0:14,stag:6,maxAtOnce:1,gapS:3,farM:30,passCap:2,finNo:0.15,atk:35},
-  normal:{t0:10,stag:6,maxAtOnce:2,gapS:1,farM:60,passCap:99,finNo:0.08,atk:50,str:[40,70]},
-  hard:{t0:8,stag:6,maxAtOnce:2,gapS:1,farM:80,passCap:99,finNo:0,atk:50,str:[40,70]}};   // aheadFull:true (not used) would also let a rival ahead of the player empty a full meter
+  gentle:{t0:14,stag:6,maxAtOnce:1,gapS:3,farM:30,passCap:2,finNo:0.15,atk:35,chase:150,chaseMin:45},
+  normal:{t0:10,stag:6,maxAtOnce:2,gapS:1,farM:60,passCap:99,finNo:0.08,atk:50,str:[40,70],chase:260,chaseMin:40},
+  hard:{t0:8,stag:6,maxAtOnce:2,gapS:1,farM:80,passCap:99,finNo:0,atk:50,str:[40,70],chase:300,chaseMin:40}};   // aheadFull:true (not used) would also let a rival ahead of the player empty a full meter
 function gpRB(){return GP_RBOOST[gpPace()]||GP_RBOOST.normal;}
 /* the meter refill per second from a car's own state - one formula for the player and the rivals (the player's numbers are unchanged) */
 function gpBoostRate(k,easy){const spd=k.speed/k.max,off=Math.abs(k.x)>1.05&&!k.jet;let r=easy?0.03:0.018;   // on its own: a full meter in ~35-55 s
@@ -7552,7 +7554,7 @@ function gpRivalBoostWant(k,RB,easy){const R=R3,me=R.me,L=R.len,M=R.M,ds=L/M,i=M
   if(bp.reserve&&!last&&k.bq<GP_BOOST.cost*2-1e-6&&why!=="repass"&&why!=="defend")return null;   // a saver keeps one burst for the last lap
   const atMe=myGap>0&&(aK===me||(myGap<win+20&&(why==="behind"||why==="full")));   // this burst could carry it up to / past the player
   if(myGap<0){if(easy)return null;if(why!=="defend"&&!(why==="attack"&&aK!==me)&&!(RB.aheadFull&&(why==="full"||why==="behind")))return null;}   // ahead of the player: Easy never; else only defend / attack another rival
-  if(myGap>RB.farM&&!(why==="attack"&&aK!==me))return null;   // far behind the player: only a duel with another rival, never a charge at the player
+  if(myGap>RB.farM&&!(why==="attack"&&aK!==me)&&!(RB.chase&&myGap>RB.chaseMin&&myGap<RB.chase&&(why==="behind"||why==="full")))return null;   // far behind the player: only a duel with another rival - or (job 1115 chase) a catch-up burst that cannot reach the player (gap > chaseMin, about one burst of gain), never a charge past them
   if(atMe||(myGap>0&&myGap<80)){if((R.rbPass||0)>=RB.passCap)return null;if(RB.finNo&&me.lap+1>=R.C.laps&&me.t>1-RB.finNo)return null;}   // any burst close behind the player could end in a pass: the pass cap and the last-part-of-the-race rule cover them all
   return why;}
 function gpBoostInit(){const R=R3;R.boost={q:GP_BOOST.start,cool:0,easy:gpPace()==="gentle",uses:0,ring:$("gp3BoostRing"),btn:$("gp3Boost"),pips:$("gp3BoostN"),key:""};R.boostLog=[];
@@ -7816,7 +7818,7 @@ const GP_AI={look:[8,24,0.35],lane:0.1,commit:1.2,reach:1.25,cornerK:0.4,side:1}
 function gpPK(){return GP_PACK[gpPace()]||GP_PACK.normal;}
 /* rival pace per track (1 = as built): measured with the test drivers so a clean lap beats the best rival by about the same margin on every track
    (flight ramps help the player, town corners and the sea help the rivals, so one number for all tracks left some unwinnable and some a walkover) */
-const GP_RIVK={kawaguchi:[1.05,0.982],hakone:[1.0,0.914],tokyo:[1.05,0.995],city:[1.03,0.915],accra:[1.02,1.04],coast:[1.085,1.018],desert:[1.09,1.08],inaka:[1.045,1.007],dakar:[1.055,1.01],deep:[1.0,0.95]};   // [Easy, Normal+Hard]
+const GP_RIVK={kawaguchi:[1.054,0.982],hakone:[1.018,0.948],tokyo:[1.06,1.012],city:[1.042,0.920],accra:[1.043,1.047],coast:[1.085,1.018],desert:[1.09,1.123],inaka:[1.05,1.019],dakar:[1.062,1.027],deep:[1.009,0.95]};   // [Easy, Normal+Hard]. job 1115-0721: Normal/Hard raised 0-4% (and Easy 0-4% on the tracks a tidy driver won by 6+ s) so a tidy driver no longer wins by a mile; sloppy Easy drivers still win ~70%. Was kawaguchi[1.05,.982] hakone[1.0,.914] tokyo[1.05,.995] city[1.03,.915] accra[1.02,1.04] desert[1.09,1.08] inaka[1.045,1.007] dakar[1.055,1.01] deep[1.0,.95]
 function gpRivK(id){const k=GP_RIVK[id];return k?k[gpPace()==="gentle"?0:1]:1;}
 function gpBand(kt,nj){const R=R3,me=R.me,K=GP_PACK[gpPace()]||GP_PACK.normal,g=((kt.lap+kt.t)-(me.lap+me.t))*R.len,d0=K.d0!=null?K.d0:15,d1=K.d1!=null?K.d1:130,u=Math.min(1,Math.max(0,(Math.abs(g)-d0)/(d1-d0))),e=u*u*(3-2*u);
   const fin=(K.fin!=null&&K.fin<1&&me.started&&me.lap+1>=R.C.laps&&me.t>0.8)?K.fin:1;return g>0?1-K.ahead*fin*e:1+(K.behind+(me.jet&&!nj?GP_JET.pull[gpPace()==="gentle"?"gentle":"normal"]:0))*e;}
