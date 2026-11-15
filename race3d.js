@@ -2810,8 +2810,8 @@ function gpFlameBuild(kt){if(kt.flm!==undefined)return kt.flm;kt.flm=null;const 
     const o=new T.Mesh(R3.flameGeo,R3.flameMat[0]),c=new T.Mesh(R3.flameGeo,R3.flameMat[1]),s=new T.Sprite(R3.flameGlow);s.scale.set(0.9,0.9,1);g.add(o);g.add(c);g.add(s);g.visible=false;kt.body.add(g);return{g,o,c,s};});
   kt.flm={list,a:0};return kt.flm;}
 function gpFlameUpdate(kt,dt){const want=kt.boostT>0?1:0;if(!want&&!kt.flm)return;const F=gpFlameBuild(kt);if(!F)return;F.a+=(want-F.a)*Math.min(1,dt*(want?14:6));const vis=F.a>0.03;
-  F.list.forEach(f=>{if(f.g.visible!==vis)f.g.visible=vis;if(!vis)return;const same=kt.player||!GP_RBOOST.legacy,fl=0.75+Math.random()*0.5,big=same&&!kt.jet&&!kt.air,L=(big?1.9:(same?1.25:0.9))*F.a*fl,wd=big?0.19:0.15;f.o.scale.set(wd*F.a,wd*F.a,L);f.c.scale.set(wd*0.55*F.a,wd*0.55*F.a,L*0.6);f.s.material.opacity=0.8*F.a;{const gs=big?1.1+fl*0.5:0.9;if(same)f.s.scale.set(gs,gs,1);}});   // job 1115: a rival's flame = the player's flame
-  if(!kt.player&&!GP_RBOOST.legacy)gpRivalTrail(kt,F);}
+  F.list.forEach(f=>{if(f.g.visible!==vis)f.g.visible=vis;if(!vis)return;const same=kt.player||(!kt.net&&!GP_RBOOST.legacy),fl=0.75+Math.random()*0.5,big=same&&!kt.jet&&!kt.air,L=(big?1.9:(same?1.25:0.9))*F.a*fl,wd=big?0.19:0.15;f.o.scale.set(wd*F.a,wd*F.a,L);f.c.scale.set(wd*0.55*F.a,wd*0.55*F.a,L*0.6);f.s.material.opacity=0.8*F.a;{const gs=big?1.1+fl*0.5:0.9;if(same)f.s.scale.set(gs,gs,1);}});   // job 1115: a rival's flame = the player's flame
+  if(!kt.player&&!kt.net&&!GP_RBOOST.legacy)gpRivalTrail(kt,F);}   // an online friend's flame stays exactly as before
 /* a rival's boost trail (job 1115): one soft streak low behind the tail (a flat + an upright quad sharing one geometry + one material for
    every car), fading with the flame; not drawn when the car is far (LOD), on a flight, or with effects turned down to keep it smooth */
 function gpRivalTrail(kt,F){const R=R3,T=R.T;const show=GP_RBOOST.trail&&F.a>0.03&&!kt.lodFar&&!kt.jet&&!(R.pfx&&R.pfx.level<1);
