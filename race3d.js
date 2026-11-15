@@ -2730,12 +2730,12 @@ const GP_BOOST={burst:2.6,cost:0.34,cool:1.2,mul:1.22,start:0.5};
 /* rival boost USE (job 1115), per level: t0 = no rival boost before this many seconds (+ a 0-stag s stagger per rival); maxAtOnce rivals
    boosting together; gapS s between two rival bursts starting; farM = a rival this far behind the player never boosts to catch the
    player; passCap = boost passes on the player per race (all rivals); finNo = no boost aimed at the player in the last part of the
-   final lap; atk = attack window base m (+ atk x aggression); trail = the soft streak behind a boosting rival.
+   final lap; atk = attack window base m (+ atk x aggression); str = clear straight wanted [min, max] m (per rival); trail = the soft streak behind a boosting rival.
    Tuned with rboost/tools/pack_gap.py (5 races x 10 tracks per driver). */
 const GP_RBOOST={legacy:false,trail:true,
   gentle:{t0:14,stag:6,maxAtOnce:1,gapS:3,farM:30,passCap:2,finNo:0.15,atk:35},
-  normal:{t0:10,stag:6,maxAtOnce:2,gapS:2,farM:60,passCap:99,finNo:0.08,atk:35},
-  hard:{t0:8,stag:6,maxAtOnce:2,gapS:1.5,farM:80,passCap:99,finNo:0,atk:35}};
+  normal:{t0:10,stag:6,maxAtOnce:2,gapS:1,farM:60,passCap:99,finNo:0.08,atk:50,str:[40,70]},
+  hard:{t0:8,stag:6,maxAtOnce:2,gapS:1,farM:80,passCap:99,finNo:0,atk:50,str:[40,70]}};   // aheadFull:true (not used) would also let a rival ahead of the player empty a full meter
 function gpRB(){return GP_RBOOST[gpPace()]||GP_RBOOST.normal;}
 /* the meter refill per second from a car's own state - one formula for the player and the rivals (the player's numbers are unchanged) */
 function gpBoostRate(k,easy){const spd=k.speed/k.max,off=Math.abs(k.x)>1.05&&!k.jet;let r=easy?0.03:0.018;   // on its own: a full meter in ~35-55 s
@@ -2744,7 +2744,7 @@ function gpBoostRate(k,easy){const spd=k.speed/k.max,off=Math.abs(k.x)>1.05&&!k.
 /* each rival's boost character, fixed at the start from its grid slot + the track (so sims repeat): aggression, keeps one burst back,
    reaction delay, how much clear straight it wants, start stagger */
 function gpRivalBoostChar(k){const R=R3,slot=R.karts.indexOf(k),ti=Math.max(0,GP_CIRCUITS.findIndex(c=>c.id===R.C.id)),h=n=>{const x=Math.sin((slot+1)*12.9898+(ti+1)*78.233+n*37.719)*43758.5453;return x-Math.floor(x);};
-  k.bp={aggr:0.3+0.7*h(1),reserve:h(2)<0.4?1:0,react:0.4+1.2*h(3),straight:60+60*h(4),stag:h(5)};return k.bp;}
+  const st=gpRB().str||[60,120];k.bp={aggr:0.3+0.7*h(1),reserve:h(2)<0.4?1:0,react:0.4+1.2*h(3),straight:st[0]+(st[1]-st[0])*h(4),stag:h(5)};return k.bp;}
 /* why this rival wants to boost now, or null. The fair-play rules about the player are in here too, so the re-check at fire time is the same call */
 function gpRivalBoostWant(k,RB,easy){const R=R3,me=R.me,L=R.len,M=R.M,ds=L/M,i=Math.floor(k.t*M)%M,p=k.lap+k.t,bp=k.bp;
   if(k.capSpd!=null||Math.abs(k.x)>1.0||k.spin>0||k.errT>0||k.wobT>0)return null;   // blocked, off the road, or in a mistake
@@ -2762,7 +2762,7 @@ function gpRivalBoostWant(k,RB,easy){const R=R3,me=R.me,L=R.len,M=R.M,ds=L/M,i=M
   if(!why)return null;
   if(bp.reserve&&!last&&k.bq<GP_BOOST.cost*2-1e-6&&why!=="repass"&&why!=="defend")return null;   // a saver keeps one burst for the last lap
   const atMe=myGap>0&&(aK===me||(myGap<win+20&&(why==="behind"||why==="full")));   // this burst could carry it up to / past the player
-  if(myGap<0){if(easy)return null;if(why!=="defend"&&!(why==="attack"&&aK!==me))return null;}   // ahead of the player: Easy never; else only defend / attack another rival
+  if(myGap<0){if(easy)return null;if(why!=="defend"&&!(why==="attack"&&aK!==me)&&!(RB.aheadFull&&(why==="full"||why==="behind")))return null;}   // ahead of the player: Easy never; else only defend / attack another rival
   if(myGap>RB.farM&&!(why==="attack"&&aK!==me))return null;   // far behind the player: only a duel with another rival, never a charge at the player
   if(atMe||(myGap>0&&myGap<80)){if((R.rbPass||0)>=RB.passCap)return null;if(RB.finNo&&me.lap+1>=R.C.laps&&me.t>1-RB.finNo)return null;}   // any burst close behind the player could end in a pass: the pass cap and the last-part-of-the-race rule cover them all
   return why;}
