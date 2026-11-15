@@ -7579,7 +7579,7 @@ function gpBoostTick(dt,waiting){const R=R3;if(!R.boost)gpBoostInit();const B=R.
 function gpRivalBoostTick(dt){const R=R3,B=R.boost,me=R.me,RB=gpRB(),now=R.simT||0,L=R.len;let on=0;
   for(const k of R.karts){if(k.player||k.net)continue;if(k.boostT>0&&k.rbOwn)on++;}if(on>(R.rbOn||0))R.rbOn=on;   // own bursts only (a jet pad / mega ramp gives every car a short push of its own)
   for(const k of R.karts){if(k.player||k.net)continue;if(!k.bp)gpRivalBoostChar(k);k.bumpT=(k.bumpT==null?9:k.bumpT)+dt;
-    const p=k.lap+k.t,g=((me.lap+me.t)-p)*L;if(k.boostT>0&&k.rbOwn){if(k.rbG0>0&&g<0&&!k.rbPassed){k.rbPassed=1;R.rbPass=(R.rbPass||0)+1;}if(!k.jet&&!k.air){const m=k.speed/k.max;if(m>R.rbMax)R.rbMax=m;}}
+    const p=k.lap+k.t,g=((me.lap+me.t)-p)*L;if(k.boostT>0&&k.rbOwn){if(k.rbG0>0&&g<0&&!k.rbPassed){k.rbPassed=1;R.rbPass=(R.rbPass||0)+1;}if(!k.jet&&!k.air){const cap=k.max*GP_BOOST.mul*1.07;if(k.speed>cap)k.speed=cap;const m=k.speed/k.max;if(m>R.rbMax)R.rbMax=m;}}   // never faster than the player's boost + slipstream ceiling (a knock into the car ahead can't add more)
     for(const o of R.karts){if(o===k)continue;const d=((o.lap+o.t)-p)*L,pd=k.pg&&k.pg.get(o);if(pd!=null&&pd<0&&d>0&&d<12){k.passedBy=o;k.passedAt=now;}(k.pg||(k.pg=new Map())).set(o,d);}   // who just went past me
     if(k.boostT>0)continue;k.bq=Math.min(1,k.bq+gpBoostRate(k,B.easy)*dt);k.fullT=k.bq>0.97?(k.fullT||0)+dt:0;if(k.bCool>0)k.bCool=Math.max(0,k.bCool-dt);
     if(k.jet||k.air||now<RB.t0+RB.stag*k.bp.stag||k.bCool>0||k.bq<GP_BOOST.cost-1e-6){k.bWant=null;continue;}
