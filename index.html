@@ -4902,6 +4902,16 @@ const GP_VIDEO={win:"assets/video/win.mp4",podium:"assets/video/podium.mp4",flyo
 const GP_PAINTS=["#d1121c","#d7dbe0","#f2f2f2","#1d5fd1","#f28a1c","#f7e85c","#0d0f14","#2e9e57","#8e3bd6","#ff5fa2"];
 const GP_SCALE=[392,440,523.25,587.33,659.25,783.99,880,1046.5,1174.66];
 const GP_DRIVERS=["Kofi","Ama","Esi","Kwame","Abena"];
+/* job 1118-1540 (Eb 11-18: "add motorcycles to the racers mixed in with the cars and trucks"): the one bike model in four colourways
+   (bike paint / rider suit / helmet) so rival bikes read as different riders, and none is the player's red bike.
+   GP_MOTO = the switches for this job: roster (bike rivals on the grid), pack (closer racing tables). Both false = the v115 game. */
+const GP_BIKE_RIVALS=[
+ {vk:"storm", n:"Storm Bike",   paint:"#1565d8",suit:"#f2f2f0",helmet:"#e02424"},
+ {vk:"venom", n:"Venom Bike",   paint:"#22a03a",suit:"#16181c",helmet:"#b7f23a"},
+ {vk:"sunset",n:"Sunset Bike",  paint:"#f07a12",suit:"#5a2ca0",helmet:"#f2f2f0"},
+ {vk:"night", n:"Midnight Bike",paint:"#1b1d24",suit:"#d21f2a",helmet:"#ffd23f"}];
+const GP_MOTO={roster:true,pack:true};
+function gpBikeRival(q){const b=GP_CARS.find(c=>c.id==="bike"),v=GP_BIKE_RIVALS[((q%4)+4)%4];return Object.assign({},b,v,{isNew:false,rival:true});}
 /* routes: each circuit is a list of straights ["S",metres] and arcs ["R"|"L",radius,degrees] walked from the
    start/finish line heading north (-z); the loop is designed to close on itself (checked by lz-fable-shots/f1/design.js).
    Every circuit has a long main straight (grid, gantry, pit wall, grandstands), a tight hairpin, a chicane, flowing esses,
@@ -5197,6 +5207,7 @@ function gpCss(){if(document.getElementById("gpV4Css")){gpStoryFont();return;}co
 .fz-gtabs button i{font-style:normal;font-size:22px;line-height:1}.fz-gtabs button b{font-size:clamp(15px,2vw,20px);font-weight:900;letter-spacing:.05em;line-height:1.1}.fz-gtabs button small{font-size:11px;font-weight:800;opacity:.85}
 .fz-gtabs button.on{background:#FFD700;color:#1d2a2a;transform:translateY(5px);box-shadow:0 2px 0 #2F4F4F,inset 0 3px 0 rgba(255,255,255,.6)}
 .fz-car.v4[hidden]{display:none}
+@media (max-width:520px){.fz-gtabs{gap:6px}.fz-gtabs button{min-height:64px;border-radius:15px;border-width:3px;padding:0 2px}.fz-gtabs button i{font-size:19px}.fz-gtabs button b{font-size:13px;letter-spacing:.02em}.fz-gtabs button small{font-size:10px}}
 .fz-new{position:absolute;top:7px;right:7px;z-index:2;font-style:normal;font-weight:900;font-size:11px;letter-spacing:.08em;background:#FFDE47;color:#1A1A24;border-radius:6px;padding:2px 7px;box-shadow:0 2px 0 #b8901a;animation:fzNew 1.8s ease-in-out infinite}
 @keyframes fzNew{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
 @media (prefers-reduced-motion:reduce){.fz-new{animation:none}}
@@ -5570,14 +5581,14 @@ function renderRace(){
   // v4 garage (job 1104-2330): 11 real 3D cars; each card = in-game picture, type, and chunky 5-step Speed / Grip / Acceleration bars
   // (segmented "arcade" bars from the Gemini direction; selected card pops like the 60fps.design card/badge patterns)
   const seg=(k,v,cl)=>'<span class="fz-st '+cl+'"><i>'+k+'</i><s>'+[1,2,3,4,5].map(q=>'<em class="'+(q<=v?"on":"")+'"></em>').join("")+'</s></span>';
-  const grp=window._gpGrp||(GP_CARS.find(c=>c.id===sel)||{}).grp||"racers";
-  const cards=GP_CARS.map(c=>'<button class="fz-car v4'+(c.id===sel?" on":"")+'"'+((c.grp||"racers")===grp?'':' hidden')+(c.isNew?' style="order:-1"':'')+' data-grp="'+(c.grp||"racers")+'" data-car="'+c.id+'" onclick="gpPickCar(\''+c.id+'\')" aria-label="'+esc(c.n)+'">'
+  const grp=window._gpGrp||"all";   // job 1118-1540: the garage opens on ALL (every ride in one list), not on the saved car's group, so the bike is never hidden behind a tab
+  const cards=gpGarageOrder().map(c=>'<button class="fz-car v4'+(c.id===sel?" on":"")+'"'+(grp==="all"||(c.grp||"racers")===grp?'':' hidden')+' data-grp="'+(c.grp||"racers")+'" data-car="'+c.id+'" onclick="gpPickCar(\''+c.id+'\')" aria-label="'+esc(c.n)+'">'
     +'<span class="fz-thumb" style="--bg:url(assets/cars3d/thumbs/'+c.id+'.webp?v=2)"></span>'+(c.isNew?'<em class="fz-new">NEW</em>':'')+'<span class="fz-kind">'+esc(c.kind||c.type)+'</span><b>'+esc(c.n)+'</b>'
     +seg("Speed",c.speed,"sp")+seg("Grip",c.grip||c.handle,"gr")+seg("Accel",c.accel,"ac")+'<small>'+esc(c.bio)+'</small></button>').join("");
   const sw=GP_PAINTS.map(h=>'<button class="fz-sw'+(h===paint?" on":"")+'" style="background:'+h+'" data-paint="'+h+'" onclick="gpPickPaint(\''+h+'\')" aria-label="Paint colour"></button>').join("");
   app.innerHTML='<div class="'+gpShellClass()+(GP_PICS[sel]?" pic":"")+'" id="fzShell" style="max-width:980px;margin:0 auto;padding:0 8px">'
    +gpHead("Festival garage · choose your car",GP_WORLD.title,"center 44%")+gpFzStageHtml()
-   +'<div class="fz-gtabs" role="tablist">'+GP_GROUPS.map(g=>'<button role="tab" class="'+(g[0]===grp?'on':'')+'" data-grp="'+g[0]+'" aria-selected="'+(g[0]===grp)+'" onclick="gpPickGrp(\''+g[0]+'\')"><i>'+g[1]+'</i><b>'+g[2]+'</b><small>'+GP_CARS.filter(c=>(c.grp||"racers")===g[0]).length+(GP_CARS.some(c=>(c.grp||"racers")===g[0]&&c.type==="bike")?' rides':' cars')+'</small></button>').join('')+'</div>'
+   +'<div class="fz-gtabs" role="tablist">'+GP_GROUPS.map(g=>'<button role="tab" class="'+(g[0]===grp?'on':'')+'" data-grp="'+g[0]+'" aria-selected="'+(g[0]===grp)+'" onclick="gpPickGrp(\''+g[0]+'\')"><i>'+g[1]+'</i><b>'+g[2]+'</b><small>'+(g[0]==="all"?GP_CARS.length+' rides':GP_CARS.filter(c=>(c.grp||"racers")===g[0]).length+(GP_CARS.some(c=>(c.grp||"racers")===g[0]&&c.type==="bike")?' rides':' cars'))+'</small></button>').join('')+'</div>'
    +'<div class="fz-cars">'+cards+'</div>'
    +(GP_MESHY.has(sel)?'<div class="fz-paint-note" style="font-size:12px;opacity:.72">3D car shape made with Meshy (CC BY 4.0)</div>':'')+(GP_GLB[sel]?'<div class="fz-paint-note">🎨 Win races to unlock new paint and stickers for every car.</div>':'<div class="fz-paints">'+sw+'</div><div class="fz-paint-note">🎨 New paint colours come from race upgrades.</div>')+gpGarageHtml()
    +'<div class="center" style="margin-top:14px"><button class="btn big" onclick="renderCircuits()">Next: choose a route ▶</button></div>'
@@ -5587,8 +5598,11 @@ function renderRace(){
   say("Grand Fable Horizon! Choose your car.");
 }
 function gpDrawPreviews(){if(!window.THREE)return;const pc=gpCar().id,pp=gpPaint();document.querySelectorAll("canvas[data-prev]").forEach(cv=>{const c=GP_CARS.find(x=>x.id===cv.dataset.prev);if(c)gpCarDraw(cv,c,c.id===pc?pp:c.paint);});}
-const GP_GROUPS=[["racers","🏁","RACERS"],["exotics","💎","EXOTICS"],["trucks","🛻","TRUCKS"]];
-function gpPickGrp(g){window._gpGrp=g;document.querySelectorAll(".fz-gtabs button").forEach(b=>{const on=b.dataset.grp===g;b.classList.toggle("on",on);b.setAttribute("aria-selected",on);});document.querySelectorAll(".fz-car.v4").forEach(b=>{b.hidden=b.dataset.grp!==g;});sfx("tick");}
+const GP_GROUPS=[["all","⭐","ALL"],["racers","🏁","RACERS"],["exotics","💎","EXOTICS"],["trucks","🛻","TRUCKS"]];
+function gpPickGrp(g){window._gpGrp=g;document.querySelectorAll(".fz-gtabs button").forEach(b=>{const on=b.dataset.grp===g;b.classList.toggle("on",on);b.setAttribute("aria-selected",on);});document.querySelectorAll(".fz-car.v4").forEach(b=>{b.hidden=g!=="all"&&b.dataset.grp!==g;});sfx("tick");}
+/* garage card order (job 1118-1540): the GP_CARS array keeps its order (other code uses its indexes); only the cards show the bike 3rd,
+   among the cars, so a kid scrolling the ALL list meets it in the first screenful */
+function gpGarageOrder(){const o=GP_CARS.filter(c=>c.id!=="bike"),b=GP_CARS.find(c=>c.id==="bike");if(b)o.splice(2,0,b);return o;}
 function gpPickCar(id){if(P){P.gpCar=id;save();}else window._gpCar=id;document.querySelectorAll(".fz-car").forEach(b=>b.classList.toggle("on",b.dataset.car===id));const sh=$("fzShell");if(sh)sh.classList.toggle("pic",!!GP_PICS[id]);gpDrawPreviews();gpFzStageSync();sfx("tick");}
 function gpPickPaint(h){if(P){P.gpPaint=h;save();}else window._gpPaint=h;document.querySelectorAll(".fz-sw").forEach(b=>b.classList.toggle("on",b.dataset.paint===h));gpDrawPreviews();sfx("tick");}
 function gpPickRacer(id){gpPickCar(GP_CARS.some(c=>c.id===id)?id:"falcon");}
@@ -5779,7 +5793,7 @@ function gpBuildCar(T,car,paint,shared){
 /* drawn motorbike for the Storybook look and when bike.glb can't load: same fields as gpBuildCar, wheels inside the body so it all leans */
 function gpBuildBikeDrawn(T,car,paint,shared){const S=Object.assign({},GP_SHAPE.bike),mats=gpCarMats(T,paint,shared),g=new T.Group(),b=new T.Group();g.add(b);
   const add=(geo,mat,x,y,z,rx,ry,rz,par)=>{const m=new T.Mesh(geo,mat);m.position.set(x,y,z);if(rx)m.rotation.x=rx;if(ry)m.rotation.y=ry;if(rz)m.rotation.z=rz;m.castShadow=true;(par||b).add(m);return m;};
-  const suit=new T.MeshStandardMaterial({color:0x1f6fd6,roughness:0.7}),helm=new T.MeshStandardMaterial({color:0xffd23f,roughness:0.3,metalness:0.1}),dark=mats.dark;
+  const suit=new T.MeshStandardMaterial({color:car.suit?gpLin(car.suit):0x1f6fd6,roughness:0.7}),helm=new T.MeshStandardMaterial({color:car.helmet?gpLin(car.helmet):0xffd23f,roughness:0.3,metalness:0.1}),dark=mats.dark;   // job 1118-1540: rival bikes bring their own rider colours
   add(new T.BoxGeometry(0.44,0.4,0.9),mats.body,0,0.6,0.12,0.12);add(new T.SphereGeometry(0.26,14,10),mats.body,0,0.84,0.2).scale.set(1,0.62,1.25);   // fairing + tank
   add(new T.ConeGeometry(0.2,0.42,12),mats.body,0,0.82,0.66,Math.PI/2).scale.set(1,1,0.7);add(new T.BoxGeometry(0.22,0.14,0.8),mats.body,0,0.8,-0.62,-0.12);   // nose + tail
   add(new T.BoxGeometry(0.3,0.22,0.38),dark,0,0.36,0.02);add(new T.BoxGeometry(0.2,0.06,0.42),mats.glass,0,1.02,0.66,-0.55);add(new T.BoxGeometry(0.12,0.04,0.03),mats.tail,0,0.86,-1.03);
@@ -5888,8 +5902,8 @@ function gpGlbPaintFor(car,player){const u=player&&gpUp().paint;return(u&&/^#[0-
 function gpUp(){const u=P&&P.gpUp;return(u&&typeof u==="object")?u:(window._gpUp||{});}
 function gpGlbPaint(paint,fin){if(gpReal()){const F=GP_REAL.paint[fin]||GP_REAL.paint.solid,m=new THREE.MeshPhysicalMaterial({color:gpLin(paint).multiplyScalar(GP_REAL.mul),metalness:F.m,roughness:F.r,clearcoat:1,clearcoatRoughness:GP_REAL.ccr,envMapIntensity:F.env});m.userData.lin=1;return gpRealVc(m);}
   const m=new THREE.MeshPhysicalMaterial({color:gpLin(paint).multiplyScalar(0.8),metalness:0.05,roughness:0.38,clearcoat:1,clearcoatRoughness:0.08,envMapIntensity:0.6});m.userData.lin=1;return m;}
-function gpGlbCarMat(T,SM,cid,nm,base,val,own){   // per-car material: the model's baked shading map on paint/stripe/carbon, or a colour override. Shared materials are cloned once per car; the paint is already per racer
-  const k=cid+"|"+nm;SM.carMats=SM.carMats||{};const map=own&&own.map;
+function gpGlbCarMat(T,SM,cid,nm,base,val,own,vk){   // per-car material: the model's baked shading map on paint/stripe/carbon, or a colour override. Shared materials are cloned once per car (once per colourway `vk` for rival bikes); the paint is already per racer
+  const k=cid+(vk?"~"+vk:"")+"|"+nm;SM.carMats=SM.carMats||{};const map=own&&own.map;
   if(nm==="paint"){if(map)base.map=map,base.needsUpdate=true;return base;}
   if(!SM.carMats[k]){const m=base.clone();if(val===1){if(map)m.map=map;}else if(typeof val==="string")m.color.copy(gpLin(val));else{if(val.map&&map)m.map=map;if(val.c)m.color.copy(gpLin(val.c));if(val.m!=null)m.metalness=val.m;if(val.r!=null)m.roughness=val.r;if(val.env!=null)m.envMapIntensity=val.env;if(val.e)m.emissive.copy(gpLin(val.e));if(val.ei!=null)m.emissiveIntensity=val.ei;}m.userData.lin=1;SM.carMats[k]=m;}
   return SM.carMats[k];}
@@ -5900,12 +5914,13 @@ function gpBuildGlbCar(T,car,src,paint,shared){
   const paintM=gpGlbPaint(paint,car.fin);let stripe=SM.stripe;if(gpUpLight(paint)){stripe=SM.stripe.clone();stripe.color.copy(gpLin("#d1121c"));stripe.userData.lin=1;}
   const tail=new T.MeshStandardMaterial({color:gpLin(D.tailCol||"#5a0004"),emissive:gpLin("#ff0d06"),emissiveIntensity:0.55,roughness:0.3});tail.userData.lin=1;tail.toneMapped=false;   // stays RED when lit (tone mapping turned it orange)
   const TL=GP_REAL.taillens,tlens=gpReal()?new T.MeshPhysicalMaterial({color:gpLin(TL.c),emissive:gpLin(TL.e),emissiveIntensity:TL.ei,roughness:0.08,clearcoat:1,clearcoatRoughness:0.03,envMapIntensity:1.2}):new T.MeshStandardMaterial({color:gpLin(TL.c),emissive:gpLin(TL.e),emissiveIntensity:TL.ei,roughness:0.15});tlens.userData.lin=1;tlens.toneMapped=false;
-  const MS=(gpReal()&&D.rs)?Object.assign({},D.matSet||{},D.rs):D.matSet;   /* rs = Realistic-only per-car material numbers (real alloys, glass) */
+  let MS=(gpReal()&&D.rs)?Object.assign({},D.matSet||{},D.rs):D.matSet;   /* rs = Realistic-only per-car material numbers (real alloys, glass) */
+  if(car.vk&&MS)MS=Object.assign({},MS,{helmet:Object.assign({},MS.helmet,{c:car.helmet}),suit:Object.assign({},MS.suit,{c:car.suit})});   // job 1118-1540: a rival bike's rider colours
   let body=null;const hubs={},wh={};
   root.traverse(o=>{if(o.name==="body")body=o;else if(/^hub_/.test(o.name))hubs[o.name.slice(4)]=o;else if(/^wheel_/.test(o.name))wh[o.name.slice(6)]=o;
     if(!o.isMesh)return;const nm=o.material&&o.material.name;
     if(nm==="decal"){SM.decals=SM.decals||{};SM.decal=SM.decals[car.id]||null;if(!SM.decal){const d=o.material;d.alphaTest=0.5;d.transparent=false;d.polygonOffset=true;d.polygonOffsetFactor=-2;d.polygonOffsetUnits=-2;d.roughness=0.35;d.metalness=0;d.userData.lin=1;SM.decal=d;SM.decals[car.id]=d;}o.material=SM.decal;o.castShadow=false;return;}
-    const baseMt=nm==="paint"?paintM:nm==="tail"?tail:nm==="taillens"?tlens:nm==="stripe"?stripe:(SM[nm]||o.material);o.material=(MS&&MS[nm]!==undefined)?gpGlbCarMat(T,SM,car.id,nm,baseMt,MS[nm],o.material):baseMt;if(!o.material.userData.lin)o.material.userData.lin=1;
+    const baseMt=nm==="paint"?paintM:nm==="tail"?tail:nm==="taillens"?tlens:nm==="stripe"?stripe:(SM[nm]||o.material);o.material=(MS&&MS[nm]!==undefined)?gpGlbCarMat(T,SM,car.id,nm,baseMt,MS[nm],o.material,car.vk):baseMt;if(!o.material.userData.lin)o.material.userData.lin=1;
     if(o.geometry.attributes.color&&nm!=="decal")o.material=gpVcMat(o.material,SM[nm]===o.material||(nm==="stripe"&&o.material===SM.stripe));   // Blender-baked light (tools/cars3d/bake_light.py) lives in COLOR_0
     o.castShadow=nm!=="glass"&&!/^(wheel|caliper|hub)_/.test(o.parent&&o.parent.name||o.name);o.receiveShadow=false;});   // wheels skip the shadow pass (draw calls); the body shadow + soft footprint ground them
   if(!body)body=root;
@@ -6043,7 +6058,15 @@ function gpGarageSet(k,v){const u=gpUpState();u[k]=v||null;gpUpSave(u);sfx("tick
 /* Loads only the sheets used by this grid, so the SUV race texture stays lazy until the SUV is selected. Resolves with a map id → texture
    or null when a picture failed; a null means that car keeps its 3D model. */
 function gpRivalCars(cid){const L=gpRivalCars0(cid).filter(Boolean),mine=gpCar();if(L.length<4){for(const c of GP_CARS){if(L.length>=4)break;if(c.id!==mine.id&&c.type!=="bike"&&!L.includes(c))L.push(c);}(window.__rivGuard=window.__rivGuard||[]).push({why:"pick",cid});}return L;}   // job 1115 guard
-function gpRivalCars0(cid){const mine=gpCar(),others=GP_CARS.filter(c=>c.id!==mine.id&&c.type!=="bike"),k=Math.max(0,GP_CIRCUITS.findIndex(c=>c.id===cid));const out=[];
+function gpRivalCars0(cid){const L=gpRivalCarsV115(cid);if(!GP_MOTO.roster)return L;   // job 1118-1540: bikes join the grid, mixed in with the cars and trucks
+  const k=Math.max(0,GP_CIRCUITS.findIndex(c=>c.id===cid)),out=L.slice(),car=q=>out[q]&&out[q].grp!=="trucks"&&out[q].type!=="bike";
+  // a bike takes a CAR's slot (never a truck's, so the trucks stay where they were): slot 1 first, else the next car slot; on the twisty
+  // tracks a second bike takes slot 3 (else another car slot) as long as one car is left on the grid
+  const put=(pref,v)=>{const q=pref.find(car);if(q!=null)out[q]=v;return q!=null;};
+  put(cid==="desert"||cid==="dakar"?[0,2]:[1,2,0,3],gpBikeRival(k));   // desert/dakar: bike + truck + car + truck
+  if((cid==="hakone"||cid==="tokyo"||cid==="inaka")&&[0,1,2,3].filter(car).length>=2)put([3,0,2,1],gpBikeRival(k+2));   // two bikes on the twisty tracks
+  return out;}
+function gpRivalCarsV115(cid){const mine=gpCar(),others=GP_CARS.filter(c=>c.id!==mine.id&&c.type!=="bike"),k=Math.max(0,GP_CIRCUITS.findIndex(c=>c.id===cid));const out=[];
   if(cid==="desert"||cid==="dakar"){const tr=others.filter(c=>c.grp==="trucks"),ot=others.filter(c=>c.grp!=="trucks");return[ot[2],tr[0],ot[9]||ot[0],tr[2]||tr[1]];}   // desert: two trucks on the grid
   for(let q=0;q<4;q++)out.push(others[(k*3+q*Math.max(1,Math.floor(others.length/4)))%others.length]);return out;}
 function gpRacePicIds(cid){if(GPN&&GPN.race)return GPN.race.roster.map(r=>(GP_CARS.find(c=>c.id===r.car)||GP_CARS[0]).id);   // ids, like the single-player branch (it returned car objects, so no friend's 3D model was ever preloaded)
@@ -7404,8 +7427,9 @@ function gpBuild(C){
   const pics=story?{}:(window._gpPics||{});   // the storybook look keeps the drawn 3D cars (the ink filter buries a photo)
   const glbs=story?{}:(window._gpGlb||{});   // real 3D models (GLB) win over the photo sprites when they loaded
   const pace=gpPaceMul();const karts=racers.map((r,i)=>{const m=(GP_GLB[r.car.id]&&glbs[r.car.id])?gpBuildGlbCar(T,r.car,glbs[r.car.id],r.netPaint||gpGlbPaintFor(r.car,r.player),shared):(GP_PICS[r.car.id]&&pics[r.car.id])?gpBuildPicCar(T,r.car,pics[r.car.id],shared):r.car.type==="bike"?gpBuildBikeDrawn(T,r.car,r.css,shared):gpBuildCar(T,r.car,r.css,shared);scene.add(m.g);gpNameLivery(T,m,r.livery,r.netPaint||(r.player?gpGlbPaintFor(r.car,true):r.css),shared);const st=gpStats(NET?GPN_STD:r.car);st.max*=pace;st.accel*=0.75;if(r.player&&gpMode()==="race"){const U=gpUpState();if(!NET){st.max*=1+0.02*U.speed;st.accel*=1+0.06*U.launch;}gpUpFit(T,m,true,shared);}   // online: everyone races on the car's own numbers, upgrades are looks only
-    return{racer:r,player:r.player,net:NET&&!r.player,netUid:r.netUid,...m,...st,t:0,x:0,px:0,speed:0,lap:0,spin:0,drift:0,off:0,hop:0,roll:0,pitch:0,steerVis:0,st1:0,steerIn:0,sv:0,dHold:0,wasBrake:false,lockT:0,gasT:0,wallT:0,knock:0,headA:0,headV:0,wallRec:0,leanT:0,liftT:0,chatter:0,yaw:null,lastSpeed:0,wheelPhase:0,wheelRadius:m.S.radR*m.g.scale.x,travel:0,skidD:0,ahead:true,started:false,pos:new T.Vector3(),draft:false,brakeOn:false,load:0,squeal:0,loss:null,lossA:0,lossCool:0,overT:0,air:false,airT:0,vy:null,y:0,ry:null,sq:0,sqV:0,hang:0,pS:null,aiSkill:(r.player?1:(0.95+(i%3)*0.025+r.car.handle*0.006)*(gpPace()!=="gentle"?1:0.97)*(gpPK().skill||1)*(NET||r.player?1:gpRivK(C.id)))};});
-  {const me0=karts.find(k=>k.player),PK=gpPK(),RK=gpRivK(C.id);if(!NET)karts.forEach(k=>{if(!k.player)k.max=Math.max(me0.max*(PK.capLo||0.9),Math.min(k.max,me0.max*(PK.cap||1.05)))*RK;});}   // every rival's top speed sits in a tight band around the player's car (so no race is won or lost on the car draw), times the track's measured pace number
+    return{racer:r,player:r.player,net:NET&&!r.player,netUid:r.netUid,...m,...st,t:0,x:0,px:0,speed:0,lap:0,spin:0,drift:0,off:0,hop:0,roll:0,pitch:0,steerVis:0,st1:0,steerIn:0,sv:0,dHold:0,wasBrake:false,lockT:0,gasT:0,wallT:0,knock:0,headA:0,headV:0,wallRec:0,leanT:0,liftT:0,chatter:0,yaw:null,lastSpeed:0,wheelPhase:0,wheelRadius:m.S.radR*m.g.scale.x,travel:0,skidD:0,ahead:true,started:false,pos:new T.Vector3(),draft:false,brakeOn:false,load:0,squeal:0,loss:null,lossA:0,lossCool:0,overT:0,air:false,airT:0,vy:null,y:0,ry:null,sq:0,sqV:0,hang:0,pS:null,aiSkill:(r.player?1:((GP_MOTO.pack&&gpPK().lad?gpPK().lad[0]+(i%3)*gpPK().lad[1]:0.95+(i%3)*0.025)+r.car.handle*0.006)*(gpPace()!=="gentle"?1:0.97)*(gpPK().skill||1)*(NET||r.player?1:gpRivK(C.id)))};});
+  {const me0=karts.find(k=>k.player),PK=gpPK(),RK=gpRivK(C.id);if(!NET)karts.forEach(k=>{if(!k.player)k.max=Math.max(me0.max*(PK.capLo||0.9),Math.min(k.max,me0.max*(PK.cap||1.05)))*RK;});
+    if(!NET&&GP_MOTO.pack)karts.forEach(k=>{if(k.player)return;k.form=1+(Math.random()-0.5)*2*(PK.form||0);k.wPer=18+Math.random()*16;k.wPh=Math.random()*Math.PI*2;k.towS=0;});}   // job 1118-1540: each rival's form of the day + its own slow pace wave   // every rival's top speed sits in a tight band around the player's car (so no race is won or lost on the car draw), times the track's measured pace number
   const rows=karts.length,pitch=8/(len/M);karts.forEach((k,i)=>{const row=NET?(k.racer.rank+(GPN.race.shift||0))%rows:(k.player?rows-1:i-1);k.t=((M-5-row*pitch)/M)%1;k.x=(row%2?0.4:-0.4)*(rows>1?1:0);k.px=k.x;});
   const TR=(TH&&!story&&(gpTrafficOn()||!!(TW&&TW.parked&&TW.parked.length)))?gpTrafficBuild(T,scene,window._gpTraffic,C,karts,len,karts.find(k=>k.player),shared0,{moving:gpTrafficOn(),parked:(TW&&TW.parked)||[]}):null;   // traffic cars (street + coast courses, Options: traffic on)
   if(gpMode()==="race"){const boxTex=gpCanvasTex(128,256,(x,w,h)=>{x.clearRect(0,0,w,h);x.strokeStyle="rgba(255,255,255,.9)";x.lineWidth=10;x.strokeRect(6,6,w-12,h-12);});
@@ -7810,25 +7834,42 @@ function gpWallFx(kt,sd,n){kt.bumpT=0;const V=R3.tmpV,R=R3,tn=R.curve.getTangent
    (never position, never grip); `fin` = share of the lead-easing kept on the last 20% of the final lap. Legacy (pre-1114) rows: gentle
    ahead 0.02 / behind 0.04, normal + hard 0 / 0, d0 15, d1 130, rate 0 (no smoothing), fin 1; gentle def 0, skill 1.015, cap 0.97 (Easy rivals
    were ~10% slower than a tidy driver, more than a subtle band can hide). me/hit (help for the player) unchanged. Tuned with bike/tools/pack_gap.py. */
-const GP_PACK={gentle:{ahead:0.13,behind:0.04,d0:8,d1:45,rate:0.02,fin:1,me:0.035,hit:0.03,skill:1.02,cap:1.0,capLo:0.9,err:24,bq:0.016,bmul:1.05,def:0.25},
+const GP_PACK_V115={gentle:{ahead:0.13,behind:0.04,d0:8,d1:45,rate:0.02,fin:1,me:0.035,hit:0.03,skill:1.02,cap:1.0,capLo:0.9,err:24,bq:0.016,bmul:1.05,def:0.25},
   normal:{ahead:0.03,behind:0.08,d0:8,d1:45,rate:0.02,fin:0.6,me:0,hit:0,skill:1.03,cap:1.03,capLo:0.97,err:45,bq:0.03,bmul:1.12,def:0.7},
   hard:{ahead:0.01,behind:0.04,d0:10,d1:60,rate:0.015,fin:0,me:0,hit:0,skill:1.04,cap:1.05,capLo:0.99,err:90,bq:0.04,bmul:1.16,def:1}};
+/* job 1118-1540 (Eb: "make the race more competitive"): the tables in use when GP_MOTO.pack (GP_PACK_V115 above = the 11-18 finish build).
+   New per row, all SPEED ONLY (never a position, never grip): `form` = each rival's luck of the day (a fixed +-share drawn at the grid),
+   `wave` = a slow +-share pace swell per rival (own 18-34 s period and phase), so the order keeps changing; `tow` = up to this much extra
+   for a rival 6-30 m behind ANOTHER RIVAL (never behind the player: the band covers that), eased in/out at `rate` per second.
+   `lad` = the fixed per-rival skill ladder step (v115 0.025 from 0.95; now squeezed). Normal now has a fair comeback for a player who falls
+   12 m+ behind the leader (`me` top-speed only, fades out as the gap closes; `hit` after a crash), as Easy always had. */
+const GP_PACK={gentle:{ahead:0.13,behind:0.04,d0:8,d1:45,rate:0.02,fin:1,me:0.035,hit:0.03,skill:1.02,cap:1.0,capLo:0.9,err:24,bq:0.016,bmul:1.05,def:0.25,form:0.008,wave:0.008,tow:0,lad:[0.95,0.025]},
+  normal:{ahead:0.08,behind:0.09,d0:8,d1:40,rate:0.02,fin:0.6,me:0.05,hit:0.03,skill:1.03,cap:1.03,capLo:0.97,err:35,bq:0.03,bmul:1.12,def:0.7,form:0.012,wave:0.012,tow:0.015,lad:[0.965,0.012]},
+  hard:{ahead:0.02,behind:0.06,d0:10,d1:60,rate:0.015,fin:0,me:0,hit:0,skill:1.04,cap:1.05,capLo:0.99,err:90,bq:0.04,bmul:1.16,def:1,form:0.012,wave:0.012,tow:0.015,lad:[0.965,0.012]}};
 /* rival racecraft (job 1114): look-ahead on the racing line grows with speed [min m, max m, s]; a small lane preference per rival on straights
    (two-wide pack, faded out in bends); hold a chosen overtaking side `commit` s (no dithering); spot a slower car `reach` x earlier; in braking
    zones only `cornerK` of a push from the band (pushed rivals don't slide off); `side` 1 = two rivals side by side keep their own sides.
    Legacy values: look [12,12,0], lane 0, commit 0, reach 1, cornerK 1, side 0. */
 const GP_AI={look:[8,24,0.35],lane:0.1,commit:1.2,reach:1.25,cornerK:0.4,side:1};
-function gpPK(){return GP_PACK[gpPace()]||GP_PACK.normal;}
+function gpPK(){const T=GP_MOTO.pack?GP_PACK:GP_PACK_V115;return T[gpPace()]||T.normal;}
 /* rival pace per track (1 = as built): measured with the test drivers so a clean lap beats the best rival by about the same margin on every track
    (flight ramps help the player, town corners and the sea help the rivals, so one number for all tracks left some unwinnable and some a walkover) */
-const GP_RIVK={kawaguchi:[1.054,0.982],hakone:[1.018,0.948],tokyo:[1.06,1.012],city:[1.042,0.920],accra:[1.043,1.047],coast:[1.085,1.018],desert:[1.09,1.123],inaka:[1.05,1.019],dakar:[1.062,1.027],deep:[1.009,0.95]};   // [Easy, Normal+Hard]. job 1115-0721: Normal/Hard raised 0-4% (and Easy 0-4% on the tracks a tidy driver won by 6+ s) so a tidy driver no longer wins by a mile; sloppy Easy drivers still win ~70%. Was kawaguchi[1.05,.982] hakone[1.0,.914] tokyo[1.05,.995] city[1.03,.915] accra[1.02,1.04] desert[1.09,1.08] inaka[1.045,1.007] dakar[1.055,1.01] deep[1.0,.95]
-function gpRivK(id){const k=GP_RIVK[id];return k?k[gpPace()==="gentle"?0:1]:1;}
-function gpBand(kt,nj){const R=R3,me=R.me,K=GP_PACK[gpPace()]||GP_PACK.normal,g=((kt.lap+kt.t)-(me.lap+me.t))*R.len,d0=K.d0!=null?K.d0:15,d1=K.d1!=null?K.d1:130,u=Math.min(1,Math.max(0,(Math.abs(g)-d0)/(d1-d0))),e=u*u*(3-2*u);
+const GP_RIVK_V115={kawaguchi:[1.054,0.982],hakone:[1.018,0.948],tokyo:[1.06,1.012],city:[1.042,0.920],accra:[1.043,1.047],coast:[1.085,1.018],desert:[1.09,1.123],inaka:[1.05,1.019],dakar:[1.062,1.027],deep:[1.009,0.95]};   // [Easy, Normal+Hard]. job 1115-0721: Normal/Hard raised 0-4% (and Easy 0-4% on the tracks a tidy driver won by 6+ s) so a tidy driver no longer wins by a mile; sloppy Easy drivers still win ~70%. Was kawaguchi[1.05,.982] hakone[1.0,.914] tokyo[1.05,.995] city[1.03,.915] accra[1.02,1.04] desert[1.09,1.08] inaka[1.045,1.007] dakar[1.055,1.01] deep[1.0,.95]
+/* job 1118-1540: three numbers per track [Easy, Normal, Hard] (Hard got its own pace); re-measured because a bike now takes a car's grid slot.
+   Steered with moto/tools/steer.sh (20 seeded races a cell, rounds r1-r4): Easy x0.99, Normal x1.055 (kawaguchi/city 1.5% less, the 7 others 0.5% more), Hard x1.076 of the v115 Normal+Hard number */
+const GP_RIVK={kawaguchi:[1.0435,1.0205,1.0565],hakone:[1.0078,1.0001,1.0199],tokyo:[1.0494,1.073,1.0889],city:[1.0316,0.956,0.9907],accra:[1.0326,1.1101,1.1265],coast:[1.0741,1.0794,1.0962],desert:[1.0791,1.1907,1.2091],inaka:[1.0395,1.0804,1.0973],dakar:[1.0514,1.0889,1.1056],deep:[0.9989,1.0073,1.0231]};
+function gpRivK(id){const p=gpPace();if(!GP_MOTO.pack){const k=GP_RIVK_V115[id];return k?k[p==="gentle"?0:1]:1;}const k=GP_RIVK[id];return k?k[p==="gentle"?0:p==="hard"?2:1]:1;}
+function gpBand(kt,nj){const R=R3,me=R.me,K=gpPK(),g=((kt.lap+kt.t)-(me.lap+me.t))*R.len,d0=K.d0!=null?K.d0:15,d1=K.d1!=null?K.d1:130,u=Math.min(1,Math.max(0,(Math.abs(g)-d0)/(d1-d0))),e=u*u*(3-2*u);
   const fin=(K.fin!=null&&K.fin<1&&me.started&&me.lap+1>=R.C.laps&&me.t>0.8)?K.fin:1;return g>0?1-K.ahead*fin*e:1+(K.behind+(me.jet&&!nj?GP_JET.pull[gpPace()==="gentle"?"gentle":"normal"]:0))*e;}
 /* the band a rival actually uses: eases toward gpBand at no more than K.rate per second (K.rate 0 = the old instant band) */
 function gpBandS(kt,dt){const K=gpPK();if(!K.rate)return(kt.bandS=gpBand(kt));const b=gpBand(kt,1),jet=gpBand(kt)-b;   // the flight pull (GP_JET.pull) stays instant, as before
   if(kt.bandS==null)kt.bandS=b;else{const m=K.rate*dt;kt.bandS+=Math.max(-m,Math.min(m,b-kt.bandS));}return kt.bandS+jet;}
-function gpPack(dt,waiting){const R=R3,me=R.me;if(R.online&&!waiting&&R.mode==="race"&&!R.done){me.cu=gpnCatchUp(dt);return;}if(waiting||R.mode!=="race"||R.done||R.online){me.cu=0;return;}const K=GP_PACK[gpPace()]||GP_PACK.normal;let top=-1e9;for(const k of R.karts)if(!k.player)top=Math.max(top,k.lap+k.t);
+/* job 1118-1540: a rival's own pace now (GP_PACK form / wave / tow; speed only). fzP = form x wave (corners and straights), the tow only lifts
+   the top speed. Set at the grid only when GP_MOTO.pack (kt.form), so with the switch off nothing here runs. */
+function gpRivFz(kt,dt){const R=R3,K=gpPK(),L=R.len,p=kt.lap+kt.t;kt.fzP=kt.form*(1+(K.wave||0)*Math.sin((R.simT||0)*Math.PI*2/kt.wPer+kt.wPh));
+  let d=1e9;if(K.tow&&!kt.air&&!kt.jet)for(const o of R.karts){if(o===kt||o.player||o.net)continue;const g=((o.lap+o.t)-p)*L;if(g>=6&&g<=30&&g<d)d=g;}
+  const want=d>30?0:K.tow*(d<=15?1:(30-d)/15),m=(K.rate||0.02)*dt;kt.towS+=Math.max(-m,Math.min(m,want-kt.towS));return kt.fzP*(1+kt.towS);}
+function gpPack(dt,waiting){const R=R3,me=R.me;if(R.online&&!waiting&&R.mode==="race"&&!R.done){me.cu=gpnCatchUp(dt);return;}if(waiting||R.mode!=="race"||R.done||R.online){me.cu=0;return;}const K=gpPK();let top=-1e9;for(const k of R.karts)if(!k.player)top=Math.max(top,k.lap+k.t);
   const gap=top<-1e8?0:(top-(me.lap+me.t))*R.len,u=Math.min(1,Math.max(0,(gap-12)/138));R.recB=me.loss||me.wobT>0||me.wallRec>0.5?1:Math.max(0,(R.recB||0)-dt/4);
   const want=gap>0?K.me*u+K.hit*R.recB:0;me.cu=(me.cu||0)+(want-(me.cu||0))*Math.min(1,dt*(want>(me.cu||0)?1.5:0.8));R.packLog&&R.packLog.push(+me.cu.toFixed(3));}
 /* ---------- tricks in the air ----------
@@ -8232,7 +8273,7 @@ function gpUpdate(dt,waiting){
     if(kt.net){const t00=kt.t;gpNetKart(kt,dt);gpJetNetClaim(kt,t00);}else{   // a friend's car: their device drives it, this one only draws it
     let draft=false;if(!waiting&&!kt.jet&&kt.speed/kt.max>0.55){draft=karts.some(o=>{if(o===kt)return false;const d=(o.t-kt.t+1)%1;return d>0.003&&d<0.028&&Math.abs(o.x-kt.x)<0.32;});}kt.draft=draft;const dG=R3.online?gpnDraft(kt,dt,waiting):0;if(R3.online)kt.draft=dG>0.2;
     let band=1;if(!kt.player&&!waiting){band=gpBandS(kt,dt);if(kt.boostT>0&&kt.rbOwn&&!GP_RBOOST.legacy)band=Math.min(1,band);}   // job 1115: a boosting rival gets no rubber-band push (top speed = car x 1.22, like the player)
-    const maxNow=waiting?0:kt.max*band*(R3.online?1+GPN_DRAFT*dG:(draft?1.07:1))*(kt.spin>0?0.6:1)*(R3.tw&&R3.tw.zoneAt(i,"ford")?0.9:1)*(offroad?(kt.player?Math.max(0.62,kt.offF):kt.offF):1)*(kt.drift?0.94:1)*(kt.boostT>0?kt.boostMul:1)*(kt.wobT>0?0.84:1)*(kt.dpSlow>0?kt.dpSlowK:1)*(kt.player?1+(kt.cu||0):1);
+    const maxNow=waiting?0:kt.max*band*(R3.online?1+GPN_DRAFT*dG:(draft?1.07:1))*(kt.spin>0?0.6:1)*(R3.tw&&R3.tw.zoneAt(i,"ford")?0.9:1)*(offroad?(kt.player?Math.max(0.62,kt.offF):kt.offF):1)*(kt.drift?0.94:1)*(kt.boostT>0?kt.boostMul:1)*(kt.wobT>0?0.84:1)*(kt.dpSlow>0?kt.dpSlowK:1)*(kt.player?1+(kt.cu||0):1)*(kt.player||waiting||kt.form==null?1:gpRivFz(kt,dt));
     kt.mxn=maxNow;
     const spd0=kt.speed/kt.max,inp=kt.player?(left?-1:0)+(right?1:0):0;
     if(kt.player){
@@ -8255,7 +8296,7 @@ function gpUpdate(dt,waiting){
       else{kt.speed=Math.max(0,kt.speed-(2.5+0.06*kt.speed)*dt);if(kt.speed>maxNow)kt.speed+=(maxNow-kt.speed)*Math.min(1,dt*(offroad?1.1:2.2));}   // coasting
     }else{
       // rivals follow the speed profile (real braking points for every corner), with a little driver variety, the odd mistake, and (Easy only) the quiet pack help
-      const tgt0=kt.testHold?kt.testHold.speed:Math.min(maxNow,R3.vProf[(i+3)%M]*kt.aiSkill*(band>1&&R3.vProf[(i+3)%M]<kt.max*0.8?1+(band-1)*GP_AI.cornerK:band)*(kt.boostT>0&&(!kt.rbOwn||GP_RBOOST.legacy||R3.vProf[(i+3)%M]>=kt.max*0.98)?kt.boostMul:1),kt.capSpd!=null?kt.capSpd:1e9);   // job 1115: boost only lifts the straight; a boosting rival still brakes for the bend
+      const tgt0=kt.testHold?kt.testHold.speed:Math.min(maxNow,R3.vProf[(i+3)%M]*kt.aiSkill*(kt.fzP||1)*(band>1&&R3.vProf[(i+3)%M]<kt.max*0.8?1+(band-1)*GP_AI.cornerK:band)*(kt.boostT>0&&(!kt.rbOwn||GP_RBOOST.legacy||R3.vProf[(i+3)%M]>=kt.max*0.98)?kt.boostMul:1),kt.capSpd!=null?kt.capSpd:1e9);   // job 1115: boost only lifts the straight; a boosting rival still brakes for the bend
       if(!waiting&&!kt.testHold&&!kt.jet){const now=R3.simT||0,PK=gpPK();if(kt.errN==null)kt.errN=now+PK.err*(0.5+Math.random()*1.2);if(now>kt.errN&&!kt.air){kt.errT=0.8+Math.random()*0.9;kt.errK=0.84+Math.random()*0.09;kt.errN=now+PK.err*(0.5+Math.random());(R3.errLog=R3.errLog||[]).push(+now.toFixed(1));}}
       let tgt=tgt0;if(kt.errT>0){kt.errT-=dt;tgt=tgt0*kt.errK;if(!kt.air)kt.x+=(Math.sign(kap)||(kt.x>=0?1:-1))*0.16*dt;}
       kt.brakeOn=!waiting&&kt.speed>tgt+0.8;
@@ -9302,6 +9343,8 @@ function gpFzMenuCss(){if(document.getElementById("gpFzMenuCss"))return;const s=
 .fzs-chip b{position:absolute;left:0;right:0;bottom:0;padding:12px 6px 5px;font-size:clamp(10px,1.3vw,12px);font-weight:800;font-style:italic;letter-spacing:.06em;text-transform:uppercase;text-align:center;background:linear-gradient(rgba(0,0,0,0),rgba(0,0,0,.78))}
 .fzs-chip.on{border-color:#ff8c00;box-shadow:0 0 0 3px rgba(255,140,0,.32);transform:translateY(-2px)}
 .fzs-chip:active{transform:scale(.96)}
+.fzs-chip.bk{background-size:auto 76%;background-position:center 18%;background-color:#2a2d36}
+.fzs-chip .fz-new{top:5px;right:5px;font-size:9px;padding:1px 5px;letter-spacing:.06em}
 .fz-shell.fzm .fz-gtabs button.on{background:linear-gradient(90deg,#ff8c00,#ff5a1f);border-color:transparent}
 .fz-shell.fzm .fz-car.v4.on{border-color:#ff8c00;box-shadow:0 0 0 3px rgba(255,140,0,.28)}
 .fz-shell.fzm .fz-mode button.on,.fz-shell.fzm .fz-tabs button.on{background:linear-gradient(90deg,#ff8c00,#ff5a1f);border-color:transparent}
@@ -9321,7 +9364,11 @@ function gpFzMenuCss(){if(document.getElementById("gpFzMenuCss"))return;const s=
 `;document.head.appendChild(s);}
 function gpFzStageHtml(){if(gpStory())return"";gpFzMenuCss();const sel=gpCar().id;
   return'<div class="fzs" id="fzStage"><canvas id="fzTurn" width="640" height="360" role="img" aria-label="Your car on the festival turntable"></canvas><div class="fzs-info" id="fzsInfo"></div>'
-   +'<div class="fzs-six" role="list" aria-label="Festival cars">'+GP_CARS.filter(c=>GP_MESHY.has(c.id)).map(c=>'<button class="fzs-chip'+(c.id===sel?" on":"")+'" role="listitem" data-chip="'+c.id+'" style="background-image:url(assets/cars/cards/'+c.id+'.webp)" onclick="gpPickGrp(\''+(c.grp||"racers")+'\');gpPickCar(\''+c.id+'\')" aria-label="'+esc(c.n)+'"><b>'+esc(c.n)+'</b></button>').join("")+'</div></div>';}
+   +'<div class="fzs-six" role="list" aria-label="Festival cars">'+gpChipCars().map(c=>'<button class="fzs-chip'+(c.id===sel?" on":"")+(c.type==="bike"?" bk":"")+'" role="listitem" data-chip="'+c.id+'" style="background-image:url('+(c.type==="bike"?'assets/cars3d/thumbs/'+c.id+'.webp?v=2':'assets/cars/cards/'+c.id+'.webp')+')" onclick="gpChipPick(\''+c.id+'\')" aria-label="'+esc(c.n)+'">'+(c.isNew?'<em class="fz-new">NEW</em>':'')+'<b>'+esc(c.n)+'</b></button>').join("")+'</div></div>';}
+/* job 1118-1540: the strip = the 6 Meshy cars with the Lightning Bike as the 2nd chip (its picture is the garage thumb, shown whole);
+   a chip tap picks the car and only switches tab when the kid is not on ALL and the car is not in the open tab */
+function gpChipCars(){const o=GP_CARS.filter(c=>GP_MESHY.has(c.id)),b=GP_CARS.find(c=>c.id==="bike");if(b)o.splice(1,0,b);return o;}
+function gpChipPick(id){const c=GP_CARS.find(x=>x.id===id),g=window._gpGrp||"all";if(c&&g!=="all"&&(c.grp||"racers")!==g)gpPickGrp(c.grp||"racers");gpPickCar(id);}
 function gpFzStageSync(){const e=$("fzsInfo");if(!e)return;const c=gpCar(),bar=(k,v)=>'<i>'+k+'<s>'+[1,2,3,4,5].map(q=>'<u class="'+(q<=v?"on":"")+'"></u>').join("")+'</s></i>';
   e.innerHTML='<div><em>'+esc(c.cls||"A")+' · '+(c.pi||800)+'</em><b>'+esc(c.n)+'</b><span class="k">'+esc(c.kind||c.type)+'</span></div><div class="fzs-bars">'+bar("Speed",c.speed)+bar("Grip",c.grip||c.handle)+bar("Accel",c.accel)+'</div>';
   document.querySelectorAll(".fzs-chip").forEach(b=>b.classList.toggle("on",b.dataset.chip===c.id));gpFzTurn();}
